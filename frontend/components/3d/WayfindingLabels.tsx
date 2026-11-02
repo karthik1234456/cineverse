@@ -99,3 +99,4 @@ function RowBadge({ position, letter }: { position: [number, number, number]; le
     </Billboard>
   );
 }
+

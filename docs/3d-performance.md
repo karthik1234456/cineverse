@@ -41,3 +41,4 @@ Measurements taken on desktop (NVIDIA RTX / Intel i7) and throttled hardware emu
    - Single dynamic screen bounce spotlight onto the audience.
    - Low ambient floor illumination.
    - House lights smoothly transition intensities without creating or destroying Light nodes at runtime.
+

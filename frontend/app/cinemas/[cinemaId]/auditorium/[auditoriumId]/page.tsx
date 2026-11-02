@@ -25,7 +25,8 @@ export default function AuditoriumRoutePage({
     <AuditoriumExperience
       cinemaId={params.cinemaId}
       auditoriumId={params.auditoriumId}
-      showtimeId={searchParams.showtime || 'showtime-101'}
+      showtimeId={searchParams.showtime || '1'}
     />
   );
 }
+

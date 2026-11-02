@@ -27,3 +27,4 @@
 - The WebSocket synchronization client is provided as an interactive interface stub (`useSeatSocket`).
 - In Phase 4, the route handler and hook stub will be replaced by FastAPI endpoints and real-time WebSockets with distributed Redis lock management.
 - The checkout button is a clearly labeled next-phase handoff stub routing to `/checkout` with selected seat state; no fake payment transactions occur.
+

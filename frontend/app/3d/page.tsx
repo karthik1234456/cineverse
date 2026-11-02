@@ -13,7 +13,8 @@ export default function ThreeDevPage({
     <AuditoriumExperience
       cinemaId="cineverse-central"
       auditoriumId="auditorium-1"
-      showtimeId={searchParams.showtime || 'showtime-101'}
+      showtimeId={searchParams.showtime || '1'}
     />
   );
 }
+

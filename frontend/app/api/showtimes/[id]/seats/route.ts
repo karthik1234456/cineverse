@@ -4,6 +4,8 @@
 
 import { NextResponse } from 'next/server';
 
+export const dynamic = 'force-dynamic';
+
 function pseudoRandom(seed: number) {
   const x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
@@ -64,3 +66,4 @@ export async function GET(
     seats,
   });
 }
+

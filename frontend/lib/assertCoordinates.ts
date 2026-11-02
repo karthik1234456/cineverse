@@ -67,3 +67,4 @@ export function assertSceneCoordinates(scene: THREE.Object3D, layout: SeatLayout
     console.info('[CoordinateCheck SUCCESS] All 100 seats verified within 0.01 tolerance.');
   }
 }
+

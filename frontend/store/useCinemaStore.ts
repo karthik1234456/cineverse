@@ -347,3 +347,4 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     };
   },
 }));
+

@@ -1,0 +1,253 @@
+from datetime import datetime, date, time
+from typing import List, Optional, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func, or_
+from sqlalchemy.orm import selectinload
+
+from app.database import get_db
+from app.models.movie import Movie, MovieCast, Review
+from app.models.showtime import Showtime, PriceRule, SeatInventory, SeatStatusEnum
+from app.models.cinema import Cinema, Auditorium, City
+from app.models.auth import User
+from app.schemas.movie import MovieResponse, MovieDetailResponse, ReviewCreate, ReviewResponse
+from app.services.auth_service import get_current_user, require_user
+
+router = APIRouter()
+
+
+@router.get("/", response_model=List[MovieResponse])
+async def list_movies(
+    city_id: Optional[int] = None,
+    genre: Optional[str] = None,
+    language: Optional[str] = None,
+    format: Optional[str] = None,
+    status: Optional[str] = None,  # "now_showing" or "coming_soon"
+    search: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(Movie)
+
+    if status == "now_showing":
+        stmt = stmt.where(Movie.is_now_showing == True)
+    elif status == "coming_soon":
+        stmt = stmt.where(Movie.is_coming_soon == True)
+
+    if search:
+        search_term = f"%{search.lower()}%"
+        stmt = stmt.where(
+            or_(
+                func.lower(Movie.title).like(search_term),
+                func.lower(Movie.synopsis).like(search_term)
+            )
+        )
+
+    stmt = stmt.order_by(Movie.rating_avg.desc(), Movie.release_date.desc())
+    result = await db.execute(stmt)
+    movies = result.scalars().all()
+
+    # In-memory filter for JSON array fields (genres, languages, formats)
+    filtered = []
+    for m in movies:
+        if genre and genre not in (m.genres or []):
+            continue
+        if language and language not in (m.languages or []):
+            continue
+        if format and format not in (m.formats or []):
+            continue
+        filtered.append(m)
+
+    return filtered
+
+
+@router.get("/{id_or_slug}", response_model=MovieDetailResponse)
+async def get_movie(id_or_slug: str, db: AsyncSession = Depends(get_db)):
+    stmt = (
+        select(Movie)
+        .options(
+            selectinload(Movie.cast_members),
+            selectinload(Movie.reviews).selectinload(Review.user)
+        )
+    )
+    if id_or_slug.isdigit():
+        stmt = stmt.where(Movie.id == int(id_or_slug))
+    else:
+        stmt = stmt.where(Movie.slug == id_or_slug)
+
+    result = await db.execute(stmt)
+    movie = result.scalars().first()
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found")
+
+    # Format reviews with user names
+    review_responses = []
+    for r in movie.reviews:
+        if r.is_approved:
+            review_responses.append(ReviewResponse(
+                id=r.id,
+                movie_id=r.movie_id,
+                user_id=r.user_id,
+                rating=r.rating,
+                headline=r.headline,
+                content=r.content,
+                has_spoilers=r.has_spoilers,
+                created_at=r.created_at,
+                user_name=r.user.full_name if r.user else "Verified Viewer"
+            ))
+
+    return MovieDetailResponse(
+        id=movie.id,
+        title=movie.title,
+        slug=movie.slug,
+        synopsis=movie.synopsis,
+        poster_url=movie.poster_url,
+        banner_url=movie.banner_url,
+        trailer_url=movie.trailer_url,
+        duration_minutes=movie.duration_minutes,
+        certificate=movie.certificate,
+        release_date=movie.release_date,
+        is_now_showing=movie.is_now_showing,
+        is_coming_soon=movie.is_coming_soon,
+        rating_avg=movie.rating_avg,
+        rating_count=movie.rating_count,
+        interested_count=movie.interested_count,
+        languages=movie.languages or [],
+        genres=movie.genres or [],
+        formats=movie.formats or [],
+        cast_members=movie.cast_members or [],
+        reviews=review_responses
+    )
+
+
+@router.get("/{movie_id}/showtimes")
+async def get_movie_showtimes(
+    movie_id: int,
+    city_id: Optional[int] = None,
+    target_date: Optional[str] = None,  # YYYY-MM-DD
+    format: Optional[str] = None,
+    language: Optional[str] = None,
+    db: AsyncSession = Depends(get_db)
+):
+    # Parse target date
+    if target_date:
+        try:
+            d = datetime.strptime(target_date, "%Y-%m-%d").date()
+        except ValueError:
+            d = date.today()
+    else:
+        d = date.today()
+
+    start_of_day = datetime.combine(d, time.min)
+    end_of_day = datetime.combine(d, time.max)
+
+    stmt = (
+        select(Showtime)
+        .where(
+            Showtime.movie_id == movie_id,
+            Showtime.start_time >= start_of_day,
+            Showtime.start_time <= end_of_day
+        )
+        .options(
+            selectinload(Showtime.cinema),
+            selectinload(Showtime.auditorium),
+            selectinload(Showtime.price_rules),
+            selectinload(Showtime.seat_inventory)
+        )
+        .order_by(Showtime.start_time)
+    )
+
+    result = await db.execute(stmt)
+    all_showtimes = result.scalars().all()
+
+    # Filter by city, format, language
+    grouped_by_cinema: Dict[int, Dict[str, Any]] = {}
+
+    for st in all_showtimes:
+        if city_id and st.cinema.city_id != city_id:
+            continue
+        if format and format != st.format:
+            continue
+        if language and language != st.language:
+            continue
+
+        cinema = st.cinema
+        if cinema.id not in grouped_by_cinema:
+            grouped_by_cinema[cinema.id] = {
+                "cinema_id": cinema.id,
+                "cinema_name": cinema.name,
+                "address": cinema.address,
+                "cancellation_policy": cinema.cancellation_policy,
+                "facilities": cinema.facilities or [],
+                "showtimes": []
+            }
+
+        # Calculate lowest price & availability status
+        lowest_price = 280.0
+        if st.price_rules:
+            lowest_price = min(pr.base_price for pr in st.price_rules)
+
+        total_seats = len(st.seat_inventory) or 100
+        available_seats = sum(1 for s in st.seat_inventory if s.status == SeatStatusEnum.AVAILABLE)
+
+        ratio = available_seats / float(total_seats)
+        if ratio == 0:
+            avail_status = "SOLD_OUT"
+        elif ratio < 0.2:
+            avail_status = "ALMOST_FULL"
+        elif ratio < 0.5:
+            avail_status = "FAST_FILLING"
+        else:
+            avail_status = "AVAILABLE"
+
+        grouped_by_cinema[cinema.id]["showtimes"].append({
+            "id": st.id,
+            "movie_id": st.movie_id,
+            "auditorium_id": st.auditorium_id,
+            "auditorium_name": st.auditorium.name if st.auditorium else "Screen 1",
+            "screen_type": st.auditorium.screen_type if st.auditorium else "IMAX 3D",
+            "has_3d_preview": st.auditorium.has_3d_preview if st.auditorium else True,
+            "start_time": st.start_time,
+            "end_time": st.end_time,
+            "format": st.format,
+            "language": st.language,
+            "lowest_price": lowest_price,
+            "availability_status": avail_status,
+            "available_seat_count": available_seats,
+            "total_seat_count": total_seats
+        })
+
+    return list(grouped_by_cinema.values())
+
+
+@router.post("/{movie_id}/reviews", response_model=ReviewResponse)
+async def post_review(
+    movie_id: int,
+    req: ReviewCreate,
+    current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db)
+):
+    review = Review(
+        movie_id=movie_id,
+        user_id=current_user.id,
+        rating=max(1, min(10, req.rating)),
+        headline=req.headline,
+        content=req.content,
+        has_spoilers=req.has_spoilers,
+        is_approved=True
+    )
+    db.add(review)
+    await db.commit()
+    await db.refresh(review)
+
+    return ReviewResponse(
+        id=review.id,
+        movie_id=review.movie_id,
+        user_id=review.user_id,
+        rating=review.rating,
+        headline=review.headline,
+        content=review.content,
+        has_spoilers=review.has_spoilers,
+        created_at=review.created_at,
+        user_name=current_user.full_name
+    )
+

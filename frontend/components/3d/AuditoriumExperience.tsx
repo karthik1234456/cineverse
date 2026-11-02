@@ -39,7 +39,7 @@ interface AuditoriumExperienceProps {
 export function AuditoriumExperience({
   cinemaId = 'cineverse-imax',
   auditoriumId = 'auditorium-1',
-  showtimeId = 'showtime-101',
+  showtimeId = '1',
 }: AuditoriumExperienceProps) {
   // TanStack Query seat status sync
   useSeatData(showtimeId);

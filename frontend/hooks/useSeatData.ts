@@ -38,3 +38,4 @@ export function useSeatData(showtimeId: string = 'showtime-101') {
     socket,
   };
 }
+

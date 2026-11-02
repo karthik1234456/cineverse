@@ -73,3 +73,4 @@ CineVerse implements **Approach (b): Lightweight State Shells & Emissive Bounds*
 2. **Bezier Obstacle Clearance**: Camera routes through a 3D Bezier curve whose apex is elevated ($Y \ge \max(y_{\text{start}}, y_{\text{end}}, 7.2\text{u}) + 0.6\text{u}$). This guarantees the camera arcs over intermediate seat rows and handrails rather than penetrating geometry.
 3. **Quaternion Slerp**: Orientations are strictly interpolated using spherical linear interpolation (`quaternion.slerpQuaternions`). Euler angle lerping is forbidden to avoid gimbal flip and camera spin artifacts.
 4. **Reduced Motion**: If the user has `prefers-reduced-motion` enabled, the camera cuts instantly to the target pose.
+

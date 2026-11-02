@@ -1,24 +1,34 @@
 // services/seatStatusService.ts
-// Handles fetching and live updates for seat statuses.
-// MOCK - replaced by FastAPI / backend WebSocket service in Phase 4.
+// Connects to FastAPI /api/v1/showtimes/{id}/seats to fetch live seat statuses.
 
 import type { SeatStatus } from '@/lib/types';
-
-export interface SeatStatusResponse {
-  showtimeId: string;
-  timestamp: string;
-  seats: { seatId: string; status: 'available' | 'booked' | 'held' }[];
-}
+import { getShowtimeSeats } from './api';
 
 export async function fetchSeatStatuses(showtimeId: string): Promise<Record<string, SeatStatus>> {
-  const res = await fetch(`/api/showtimes/${encodeURIComponent(showtimeId)}/seats`);
-  if (!res.ok) {
-    throw new Error(`Failed to fetch seat statuses: ${res.statusText}`);
+  try {
+    const data = await getShowtimeSeats(showtimeId);
+    const map: Record<string, SeatStatus> = {};
+    for (const s of data.seats) {
+      let st: SeatStatus = 'available';
+      if (s.status === 'BOOKED') {
+        st = 'booked';
+      } else if (s.status === 'HELD' || s.status === 'PAYMENT_PENDING') {
+        st = 'held';
+      }
+      map[s.seat_id] = st;
+    }
+    return map;
+  } catch (err) {
+    console.warn(`Falling back to local seats endpoint: ${err}`);
+    const res = await fetch(`/api/showtimes/${encodeURIComponent(showtimeId)}/seats`);
+    if (res.ok) {
+      const fallbackData = await res.json();
+      const map: Record<string, SeatStatus> = {};
+      for (const s of fallbackData.seats) {
+        map[s.seatId] = s.status;
+      }
+      return map;
+    }
+    return {};
   }
-  const data: SeatStatusResponse = await res.json();
-  const map: Record<string, SeatStatus> = {};
-  for (const s of data.seats) {
-    map[s.seatId] = s.status;
-  }
-  return map;
 }

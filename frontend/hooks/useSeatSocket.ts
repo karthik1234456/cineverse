@@ -1,17 +1,8 @@
 // hooks/useSeatSocket.ts
-// WebSocket hook stub with interface for FastAPI/backend real-time seat synchronization.
-// Provides live state updates and event emission for dev simulation.
+// Real-time WebSocket hook connecting to FastAPI backend /ws/showtimes/{id}.
 
-import { useEffect, useCallback, useRef } from 'react';
+import { useEffect, useCallback, useRef, useState } from 'react';
 import type { SeatStatus } from '@/lib/types';
-
-export interface SeatSocketEvent {
-  type: 'SEAT_HELD' | 'SEAT_RELEASED' | 'SEAT_BOOKED';
-  seatId: string;
-  showtimeId: string;
-  userId?: string;
-  expiresAt?: string;
-}
 
 export interface UseSeatSocketOptions {
   showtimeId: string;
@@ -31,26 +22,76 @@ export function useSeatSocket({
   onSeatStatusChange,
   enabled = true,
 }: UseSeatSocketOptions): SeatSocketClient {
+  const [isConnected, setIsConnected] = useState(false);
   const callbackRef = useRef(onSeatStatusChange);
   callbackRef.current = onSeatStatusChange;
+  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!enabled) return;
-    // Log WebSocket stub initialization
-    console.info(`[SeatSocket] Initialized mock socket for showtime ${showtimeId}`);
+    if (!enabled || !showtimeId) return;
 
-    // In future phases: connect to ws://...
+    // Connect to real backend WebSocket
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://127.0.0.1:8000/ws';
+    const socket = new WebSocket(`${wsUrl}/showtimes/${showtimeId}`);
+    wsRef.current = socket;
+
+    socket.onopen = () => {
+      console.info(`[SeatSocket] Connected to live showtime channel ${showtimeId}`);
+      setIsConnected(true);
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        const { event: evtType, seat_ids, status } = data;
+        if (seat_ids && Array.isArray(seat_ids) && callbackRef.current) {
+          let mappedStatus: SeatStatus = 'available';
+          if (status === 'HELD') mappedStatus = 'held';
+          else if (status === 'BOOKED') mappedStatus = 'booked';
+          else if (status === 'AVAILABLE') mappedStatus = 'available';
+
+          for (const sId of seat_ids) {
+            callbackRef.current(sId, mappedStatus);
+          }
+        }
+      } catch (err) {
+        console.warn(`[SeatSocket] Failed to parse message: ${err}`);
+      }
+    };
+
+    socket.onerror = (err) => {
+      console.warn(`[SeatSocket] Connection error on showtime ${showtimeId}`);
+    };
+
+    socket.onclose = () => {
+      setIsConnected(false);
+    };
+
+    // Heartbeat ping
+    const pingInterval = setInterval(() => {
+      if (socket.readyState === WebSocket.OPEN) {
+        socket.send('ping');
+      }
+    }, 25000);
+
     return () => {
-      console.info(`[SeatSocket] Disconnected mock socket for showtime ${showtimeId}`);
+      clearInterval(pingInterval);
+      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+        socket.close();
+      }
     };
   }, [showtimeId, enabled]);
 
   const sendHoldRequest = useCallback((seatId: string) => {
-    console.info(`[SeatSocket STUB] sendHoldRequest: seat=${seatId}`);
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ action: 'hold', seat_id: seatId }));
+    }
   }, []);
 
   const sendReleaseRequest = useCallback((seatId: string) => {
-    console.info(`[SeatSocket STUB] sendReleaseRequest: seat=${seatId}`);
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ action: 'release', seat_id: seatId }));
+    }
   }, []);
 
   const simulateRemoteHold = useCallback((seatId: string) => {
@@ -61,7 +102,7 @@ export function useSeatSocket({
   }, []);
 
   return {
-    isConnected: true,
+    isConnected,
     sendHoldRequest,
     sendReleaseRequest,
     simulateRemoteHold,
