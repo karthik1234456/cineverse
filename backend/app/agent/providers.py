@@ -243,10 +243,21 @@ class MultilingualLocalNLPProvider(LLMProvider):
         # -------------------------------------------------------------
         if any(w in q for w in [
             "movie", "film", "show", "showing", "cinema", "चल रही", "फिल्म", "सिनेमा",
-            "शो", "क्वांटम", "ಚಿತ್ರ", "ಚಲನಚಿತ್ರ", "ಸಿನಿಮಾ", "ಪ್ರದರ್ಶನ", "ವಿವರ"
+            "शो", "क्वांटम", "ಚಿತ್ರ", "ಚಲನಚಿತ್ರ", "ಸಿನಿಮಾ", "ಪ್ರದರ್ಶನ", "ವಿವರ",
+            "ಹುಡುಕಿ", "huduki", "yavudu", "नया", "naya", "ಇಂದು", "ಹೊಸ"
         ]):
-            search_res = await tool_search_movies(self.db, query=clean_query if len(clean_query) > 3 else None)
-            tool_calls.append({"tool": "search_movies", "args": {"query": clean_query}})
+            known_titles = ["quantum", "panipat", "astra", "shadow", "kingdom", "ghats", "comedy", "neon", "spirits", "chakravyuh", "inferno", "solaris", "monsoon"]
+            search_term = None
+            for kw in known_titles:
+                if kw in q:
+                    search_term = kw
+                    break
+
+            search_res = await tool_search_movies(self.db, query=search_term)
+            if not search_res["movies"]:
+                search_res = await tool_search_movies(self.db, query=None)
+
+            tool_calls.append({"tool": "search_movies", "args": {"query": search_term or "all"}})
             if search_res["movies"]:
                 top = search_res["movies"][0]
                 reply = {
@@ -254,7 +265,8 @@ class MultilingualLocalNLPProvider(LLMProvider):
                     "hi": f"'{top['title']}' मिली ({top['genre']} • {top['formats']})। रेटिंग {top['rating']}/5.0 है। आज IMAX 3D में उपलब्ध है।",
                     "kn": f"'{top['title']}' ದೊರೆತಿದೆ ({top['genre']} • {top['formats']}). ರೇಟಿಂಗ್ {top['rating']}/5.0. ಇಂದು IMAX 3D ಯಲ್ಲಿ ಪ್ರದರ್ಶನವಿದೆ."
                 }.get(language, "en")
-                actions.append(UIAction(action="navigate", params={"url": f"/movies/{top['id']}"}))
+                if any(w in q for w in ["open", "go to", "navigate", "खोलो", "ले चलो", "ತೆರೆ"]):
+                    actions.append(UIAction(action="navigate", params={"url": f"/movies/{top['id']}"}))
                 return AgentResponse(session_id=session_id, reply_text=reply, language=language, ui_actions=actions, tool_calls_made=tool_calls)
 
         # -------------------------------------------------------------

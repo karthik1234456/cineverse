@@ -1,0 +1,11 @@
+﻿
+Running 6 tests using 1 worker
+
+  ok 1 [chromium] ΓÇ║ e2e\phase9_voice_agent.spec.ts:28:7 ΓÇ║ Phase 9 ΓÇö Voice Agent (Mic Button): Talk to CineVerse ΓÇ║ 01. Floating mic button is visible and opens modal on click or Alt+V (3.1s)
+  ok 2 [chromium] ΓÇ║ e2e\phase9_voice_agent.spec.ts:51:7 ΓÇ║ Phase 9 ΓÇö Voice Agent (Mic Button): Talk to CineVerse ΓÇ║ 02. Multilingual toggle switches between English, Hindi, and Kannada (3.6s)
+  ok 3 [chromium] ΓÇ║ e2e\phase9_voice_agent.spec.ts:84:7 ΓÇ║ Phase 9 ΓÇö Voice Agent (Mic Button): Talk to CineVerse ΓÇ║ 03. 3D Voice commands: Sightline POV from seat E05 & comparison (14.5s)
+  ok 4 [chromium] ΓÇ║ e2e\phase9_voice_agent.spec.ts:109:7 ΓÇ║ Phase 9 ΓÇö Voice Agent (Mic Button): Talk to CineVerse ΓÇ║ 04. Safety Gate: Voice payment is strictly refused and redirected to checkout (4.5s)
+  ok 5 [chromium] ΓÇ║ e2e\phase9_voice_agent.spec.ts:124:7 ΓÇ║ Phase 9 ΓÇö Voice Agent (Mic Button): Talk to CineVerse ΓÇ║ 05. Safety Gate: State mutation requires user tap confirmation card (1.6s)
+  ok 6 [chromium] ΓÇ║ e2e\phase9_voice_agent.spec.ts:141:7 ΓÇ║ Phase 9 ΓÇö Voice Agent (Mic Button): Talk to CineVerse ΓÇ║ 06. Prompt injection defense neutralizes malicious instruction overrides (1.8s)
+
+  6 passed (34.0s)

@@ -1,0 +1,16 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.7, pytest-9.2.0, pluggy-1.7.0 -- D:\projects\CineVerse\backend\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: D:\projects\CineVerse\backend
+configfile: pytest.ini
+plugins: anyio-4.16.0, asyncio-1.4.1.post1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 5 items
+
+backend\tests\test_phase9_voice_agent.py::test_tool_calling_eval_set_60_utterances PASSED [ 20%]
+backend\tests\test_phase9_voice_agent.py::test_safety_rule_1_voice_payment_banned PASSED [ 40%]
+backend\tests\test_phase9_voice_agent.py::test_safety_rule_2_state_mutations_require_explicit_confirmation PASSED [ 60%]
+backend\tests\test_phase9_voice_agent.py::test_safety_rule_3_guest_cannot_mutate_state PASSED [ 80%]
+backend\tests\test_phase9_voice_agent.py::test_safety_rule_4_prompt_injection_defense PASSED [100%]
+
+============================== 5 passed in 1.77s ==============================
