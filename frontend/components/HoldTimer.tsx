@@ -54,11 +54,14 @@ export function HoldTimer({ holdId, initialExpiresAt, onExpire }: HoldTimerProps
   const isUrgent = secondsRemaining < 60;
 
   return (
-    <div className={`flex items-center justify-between rounded-xl border p-3 ${
-      isUrgent
-        ? 'border-red-500/50 bg-red-950/20 text-red-200 animate-pulse'
-        : 'border-amber-500/30 bg-amber-950/20 text-amber-200'
-    }`}>
+    <div
+      className={`flex items-center justify-between rounded-xl border p-3 ${
+        isUrgent
+          ? 'border-red-500/50 bg-red-950/20 text-red-200 animate-pulse'
+          : 'border-amber-500/30 bg-amber-950/20 text-amber-200'
+      }`}
+      data-testid="hold-countdown-timer"
+    >
       <div className="flex items-center gap-2">
         {isUrgent ? (
           <AlertTriangle className="h-4 w-4 text-red-400" />
@@ -74,7 +77,7 @@ export function HoldTimer({ holdId, initialExpiresAt, onExpire }: HoldTimerProps
       </div>
 
       <div className="flex items-center gap-3">
-        <div className="font-mono text-base font-black tracking-wider text-white">
+        <div className="font-mono text-base font-black tracking-wider text-white" data-testid="hold-timer-digits">
           {formattedTime}
         </div>
 
@@ -82,6 +85,7 @@ export function HoldTimer({ holdId, initialExpiresAt, onExpire }: HoldTimerProps
           <button
             onClick={handleExtend}
             disabled={isExtending}
+            data-testid="extend-hold-button"
             className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-zinc-300 hover:bg-white/10 transition disabled:opacity-50"
             title="Extend countdown by 3 minutes"
           >

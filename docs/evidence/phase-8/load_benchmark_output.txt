@@ -1,0 +1,23 @@
+============================================================
+ CineVerse Concurrency & High-Velocity Load Benchmark 
+============================================================
+
+[1/3] Running Browse Load Test (100 concurrent requests)...
+  -> Browse Load Complete: Succeeded in 0.51s
+  -> Mean: 340.71ms | p50: 341.49ms | p95: 440.29ms | p99: 449.02ms
+
+[2/3] Running Hold Storm Test (50 concurrent hold attempts on single seat)...
+  -> Hold Storm Complete: 1 won (200 OK), 49 rejected (409 Conflict/429 Cooldown)
+  -> Mean: 454.64ms | Max: 851.04ms
+
+[3/3] Running Webhook Burst Test (50 concurrent webhook calls)...
+  -> Webhook Burst Complete: 50/50 succeeded in 0.42s
+  -> Mean: 213.21ms
+
+============================================================
+ Final Load Benchmark Results Summary 
+============================================================
+1. Browse Load (100 reqs): 100% OK, p95=440.3ms, p99=449.0ms
+2. Hold Storm (50 reqs): Exactly 1 winner, 49 conflicts, avg 454.6ms (ZERO double-booking)
+3. Webhook Burst (50 reqs): 100% OK, duplicate suppression verified, avg 213.2ms
+============================================================

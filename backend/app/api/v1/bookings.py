@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -24,11 +24,29 @@ router = APIRouter()
 async def api_hold_seats(
     showtime_id: int,
     req: SeatHoldRequest,
+    request: Request,
+    x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key"),
     current_user: Optional[User] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     user_id = current_user.id if current_user else None
-    result = await hold_seats(db, showtime_id, req.seat_ids, user_id=user_id)
+    
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        client_ip = forwarded.split(",")[0].strip()
+    else:
+        client_ip = request.client.host if request.client else "127.0.0.1"
+
+    idempotency_key = req.idempotency_key or x_idempotency_key
+
+    result = await hold_seats(
+        db,
+        showtime_id,
+        req.seat_ids,
+        user_id=user_id,
+        client_ip=client_ip,
+        idempotency_key=idempotency_key
+    )
     return SeatHoldResponse(**result)
 
 
@@ -129,12 +147,14 @@ async def list_my_bookings(
 @router.get("/{booking_id}", response_model=BookingResponse)
 async def get_booking_details(
     booking_id: int,
+    current_user: Optional[User] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = (
         select(Booking)
         .where(Booking.id == booking_id)
         .options(
+            selectinload(Booking.user),
             selectinload(Booking.seats),
             selectinload(Booking.addons),
             selectinload(Booking.showtime).selectinload(Showtime.movie),
@@ -147,6 +167,16 @@ async def get_booking_details(
     booking = result.scalars().first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
+
+    # IDOR Protection:
+    # 1. If requester is logged in: must be owner or admin
+    if current_user:
+        if current_user.role != RoleEnum.ADMIN and booking.user_id and current_user.id != booking.user_id:
+            raise HTTPException(status_code=403, detail="Not authorized to access this booking")
+    else:
+        # 2. If unauthenticated: registered user bookings require authentication
+        if booking.user and booking.user.hashed_password is not None:
+            raise HTTPException(status_code=403, detail="Not authorized to access this booking")
 
     return await format_booking_response(booking, db)
 

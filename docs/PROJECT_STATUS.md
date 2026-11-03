@@ -5,8 +5,8 @@
 | 1 Foundation | PASS | [docs/PHASE_1_REPORT.md](docs/PHASE_1_REPORT.md) | Schema, async Alembic migrations, idempotent seeding (100 seats), `/health` and `/ready` probes, DB-served layout endpoints verified. |
 | 2 3D auditorium | PASS | [docs/PHASE_2_REPORT.md](docs/PHASE_2_REPORT.md) | Full 3D auditorium experience, orbit clamp, seat POV sightlines (A05/E05/J10), 100-node mapping, comparison matrix, house lights, mobile responsive sheet, WebGL fallback verified with Vitest and Playwright. |
 | 3 Core site | PASS | [docs/PHASE_3_REPORT.md](docs/PHASE_3_REPORT.md) | Browse, movie catalog, search, cinema selection, showtimes matrix, 3D routing & 2D fallback |
-| 4 Booking engine | in progress | | Redis seat holds, concurrency race conditions, WebSocket live updates, 2D seat map, checkout |
-| 5 Payments and tickets | not started | | Razorpay order creation, HMAC signature verification, signed QR tickets |
-| 6 Accounts and content | not started | | Patron profiles, booking history, reviews, i18n |
-| 7 Admin | not started | | Analytics dashboard, showtime manager, revenue reports, RBAC |
-| 8 Hardening | not started | | Security audit, rate limiting, production builds, load tests |
+| 4 Booking engine | PASS | [docs/PHASE_4_REPORT.md](docs/PHASE_4_REPORT.md) | Concurrency race condition defense, Redis & DB holds, live WebSocket sync, default 2D seat map with keyboard navigation & Best Available, Explore in 3D sync, hold countdown timer |
+| 5 Payments and tickets | PASS | [docs/PHASE_5_REPORT.md](docs/PHASE_5_REPORT.md) | Server-computed Razorpay orders, constant-time HMAC-SHA256 signature verification, webhook idempotency, signed QR admission tokens, cancellation & refund policy |
+| 6 Accounts and content | PASS | [docs/PHASE_6_REPORT.md](docs/PHASE_6_REPORT.md) | Patron profiles, booking history, reviews with spoiler tags, active promotional coupons, multilingual sitemap and robots.txt |
+| 7 Admin | PASS | [docs/PHASE_7_REPORT.md](docs/PHASE_7_REPORT.md) | Admin analytics console, revenue & occupancy telemetry, showtime scheduling with overlap conflict prevention, RBAC authorization |
+| 8 Hardening | PASS | [docs/PHASE_8_REPORT.md](docs/PHASE_8_REPORT.md) | Concurrency load benchmarks (browse, hold storm, webhook burst), ASVS L2 security hardening, PWA manifest & service worker offline cache, Dockerfiles, docker-compose & Nginx reverse proxy |

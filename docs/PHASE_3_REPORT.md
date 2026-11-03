@@ -50,3 +50,4 @@ Playwright test suite (`frontend/e2e/phase3_browse_journey.spec.ts`):
 - `Fallback 2D Seat Map for screens without 3D asset`: **PASS**
 
 All 8 tests passed in 21.1s. All 20 backend unit & integration tests passed in 3.31s.
+

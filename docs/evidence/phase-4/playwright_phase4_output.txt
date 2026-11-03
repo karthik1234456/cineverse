@@ -1,0 +1,12 @@
+Running 8 tests using 1 worker
+
+  ok 1 [chromium] › e2e\phase4_booking_engine.spec.ts:13:7 › Phase 4 — Booking Engine, Holds, Real-Time WS, 2D/3D & Checkout › 01. 2D Seat Map is the default step with layout, categories, and screen curve (1.6s)
+  ok 2 [chromium] › e2e\phase4_booking_engine.spec.ts:48:7 › Phase 4 — Booking Engine, Holds, Real-Time WS, 2D/3D & Checkout › 02. Explore in 3D button transitions to 3D theatre with SHARED selection (1.5s)
+  ok 3 [chromium] › e2e\phase4_booking_engine.spec.ts:75:7 › Phase 4 — Booking Engine, Holds, Real-Time WS, 2D/3D & Checkout › 03. Bidirectional sync: change selection in 3D, switch back to 2D (8.2s)
+  ok 4 [chromium] › e2e\phase4_booking_engine.spec.ts:95:7 › Phase 4 — Booking Engine, Holds, Real-Time WS, 2D/3D & Checkout › 04. Best available auto-selector (1.2s)
+  ok 5 [chromium] › e2e\phase4_booking_engine.spec.ts:113:7 › Phase 4 — Booking Engine, Holds, Real-Time WS, 2D/3D & Checkout › 05. Keyboard navigation in 2D seat map (1.1s)
+  ok 6 [chromium] › e2e\phase4_booking_engine.spec.ts:136:7 › Phase 4 — Booking Engine, Holds, Real-Time WS, 2D/3D & Checkout › 06. Complete checkout flow with countdown timer, extend once, and coupon (2.0s)
+  ok 7 [chromium] › e2e\phase4_booking_engine.spec.ts:203:7 › Phase 4 — Booking Engine, Holds, Real-Time WS, 2D/3D & Checkout › 07. WebGL disabled fallback gracefully hides 3D button (1.0s)
+  ok 8 [chromium] › e2e\phase4_booking_engine.spec.ts:233:7 › Phase 4 — Booking Engine, Holds, Real-Time WS, 2D/3D & Checkout › 08. Real-time WebSocket: Hold in Browser A turns seat amber in Browser B (2.1s)
+
+  8 passed (22.3s)

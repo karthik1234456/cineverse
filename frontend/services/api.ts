@@ -273,10 +273,19 @@ export interface SeatHoldResponse {
   message: string;
 }
 
-export async function holdSeats(showtimeId: number, seatIds: string[]): Promise<SeatHoldResponse> {
+export async function holdSeats(
+  showtimeId: number,
+  seatIds: string[],
+  idempotencyKey?: string
+): Promise<SeatHoldResponse> {
+  const headers: Record<string, string> = {};
+  if (idempotencyKey) {
+    headers['X-Idempotency-Key'] = idempotencyKey;
+  }
   return apiFetch<SeatHoldResponse>(`/bookings/hold?showtime_id=${showtimeId}`, {
     method: 'POST',
-    body: JSON.stringify({ seat_ids: seatIds }),
+    headers,
+    body: JSON.stringify({ seat_ids: seatIds, idempotency_key: idempotencyKey }),
   });
 }
 

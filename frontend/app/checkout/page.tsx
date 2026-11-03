@@ -231,27 +231,34 @@ function CheckoutContent() {
                 <CreditCard className="h-5 w-5 text-[#e50914]" />
                 <h2 className="text-base font-bold text-white">Payment Method</h2>
               </div>
-              <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-bold text-emerald-400 border border-emerald-500/30">
-                Razorpay Sandbox Active
+              <span
+                data-testid="payment-stub-badge"
+                className="rounded bg-amber-500/20 px-2.5 py-0.5 text-[10px] font-bold text-amber-300 border border-amber-500/40"
+              >
+                [Phase 4 Stub] Payment Gateway Preview
               </span>
             </div>
 
-            <div className="rounded-xl border border-[#e50914]/40 bg-red-950/20 p-4 flex items-center justify-between">
+            <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3.5 text-xs text-amber-200 leading-relaxed">
+              <strong>Phase 4 Booking Engine Gate:</strong> Seat hold verification, concurrency, pricing calculation, and checkout are active. Real payment processing via Razorpay activates in Phase 5.
+            </div>
+
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#e50914] text-white font-black text-xs">
-                  RZP
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800 text-zinc-300 font-black text-xs border border-white/10">
+                  STUB
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-white">Razorpay Secure Checkout</div>
-                  <div className="text-[11px] text-zinc-400">UPI, Credit/Debit Cards, NetBanking, Wallets</div>
+                  <div className="text-sm font-bold text-white">Payment Gateway Simulator</div>
+                  <div className="text-[11px] text-zinc-400">Razorpay test mode simulator (Phase 4 stub)</div>
                 </div>
               </div>
-              <CheckCircle2 className="h-5 w-5 text-[#e50914]" />
+              <CheckCircle2 className="h-5 w-5 text-emerald-400" />
             </div>
 
             <div className="flex items-center gap-2 text-[11px] text-zinc-500 pt-1">
               <Lock className="h-3 w-3" />
-              <span>256-bit SSL encrypted • Instant cancellation policy applies</span>
+              <span>Simulated payment test mode • No real charges incurred in Phase 4</span>
             </div>
           </div>
         </div>
@@ -269,11 +276,13 @@ function CheckoutContent() {
                   type="text"
                   placeholder="e.g. CINEVERSE50"
                   value={couponCode}
+                  data-testid="coupon-input"
                   onChange={(e) => setCouponCode(e.target.value)}
                   className="flex-1 uppercase rounded-xl border border-white/10 bg-[#0f1014] px-3 py-2 text-xs text-white placeholder-zinc-600 focus:border-[#e50914] focus:outline-none"
                 />
                 <button
                   onClick={handleApplyCoupon}
+                  data-testid="apply-coupon-button"
                   className="rounded-xl bg-white/10 border border-white/15 px-4 text-xs font-bold text-white hover:bg-white/20 transition"
                 >
                   Apply
@@ -346,16 +355,17 @@ function CheckoutContent() {
             <button
               onClick={handlePayAndConfirm}
               disabled={isProcessing}
+              data-testid="pay-and-confirm-button"
               className="w-full rounded-xl bg-[#e50914] py-3.5 text-sm font-black text-white hover:bg-red-700 transition shadow-xl shadow-red-950/50 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {isProcessing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Authorizing Payment...</span>
+                  <span>Authorizing Checkout (Phase 4)...</span>
                 </>
               ) : (
                 <>
-                  <span>Pay ₹{grandTotal.toFixed(2)} & Get E-Ticket</span>
+                  <span>Complete Checkout (Phase 4 Stub) • ₹{grandTotal.toFixed(2)}</span>
                 </>
               )}
             </button>

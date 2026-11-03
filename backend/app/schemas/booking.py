@@ -6,6 +6,7 @@ from app.models.booking import BookingStatusEnum
 
 class SeatHoldRequest(BaseModel):
     seat_ids: List[str]
+    idempotency_key: Optional[str] = None
 
 
 class SeatHoldResponse(BaseModel):
@@ -14,6 +15,7 @@ class SeatHoldResponse(BaseModel):
     held_seats: List[str]
     expires_at: datetime
     hold_duration_seconds: int
+    is_extended: bool = False
     message: str = "Seats held successfully"
 
 

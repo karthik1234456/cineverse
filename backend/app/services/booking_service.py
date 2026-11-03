@@ -204,4 +204,7 @@ async def create_booking(
     await db.commit()
     await db.refresh(booking)
 
+    from app.services.hold_service import consume_hold
+    consume_hold(request.hold_id)
+
     return booking

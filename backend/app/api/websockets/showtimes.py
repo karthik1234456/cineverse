@@ -2,8 +2,10 @@ import asyncio
 import json
 import logging
 from typing import Dict, Set
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from datetime import datetime, timedelta
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status
 from app.redis_client import get_redis_client
+from app.config import settings
 
 logger = logging.getLogger("cineverse.ws")
 router = APIRouter()
@@ -30,7 +32,7 @@ class ConnectionManager:
     async def broadcast_to_showtime(self, showtime_id: int, message: dict):
         if showtime_id in self.active_connections:
             dead_sockets = set()
-            for ws in self.active_connections[showtime_id]:
+            for ws in list(self.active_connections[showtime_id]):
                 try:
                     await ws.send_json(message)
                 except Exception:
@@ -44,6 +46,14 @@ manager = ConnectionManager()
 
 @router.websocket("/ws/showtimes/{showtime_id}")
 async def websocket_showtime_endpoint(websocket: WebSocket, showtime_id: int):
+    # Origin verification
+    origin = websocket.headers.get("origin")
+    allowed_origins = set(settings.CORS_ORIGINS) | {"http://localhost:3000", "http://127.0.0.1:3000"}
+    if origin and origin not in allowed_origins and not origin.startswith("http://localhost:") and not origin.startswith("http://127.0.0.1:"):
+        logger.warning(f"WebSocket connection rejected: invalid origin {origin}")
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
     await manager.connect(showtime_id, websocket)
 
     # Redis subscription listener task
@@ -64,7 +74,7 @@ async def websocket_showtime_endpoint(websocket: WebSocket, showtime_id: int):
                             await websocket.send_json(parsed)
                         except Exception:
                             await websocket.send_text(data)
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0.05)
         except asyncio.CancelledError:
             pass
         except Exception as e:
@@ -72,10 +82,29 @@ async def websocket_showtime_endpoint(websocket: WebSocket, showtime_id: int):
 
     listener_task = asyncio.create_task(listen_redis())
 
+    # Rate limiting counter per socket
+    message_timestamps = []
+
     try:
         while True:
-            # Keep connection open and receive ping / messages from client
+            # Receive text with maximum message size protection
             data = await websocket.receive_text()
+
+            # Security: frame size limit (max 2048 bytes)
+            if len(data) > 2048:
+                logger.warning(f"WebSocket message exceeded max size: {len(data)} bytes")
+                await websocket.close(code=1009)  # Message Too Big
+                break
+
+            # Security: client rate limit (max 60 messages/minute)
+            now = datetime.utcnow()
+            message_timestamps = [t for t in message_timestamps if t > now - timedelta(seconds=60)]
+            if len(message_timestamps) >= 60:
+                logger.warning(f"WebSocket client exceeded message rate limit")
+                await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+                break
+            message_timestamps.append(now)
+
             if data == "ping":
                 await websocket.send_text("pong")
     except WebSocketDisconnect:
@@ -85,4 +114,3 @@ async def websocket_showtime_endpoint(websocket: WebSocket, showtime_id: int):
         manager.disconnect(showtime_id, websocket)
     finally:
         listener_task.cancel()
-

@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /checkout
+Disallow: /api/
+
+Sitemap: https://cineverse.in/sitemap.xml
