@@ -285,10 +285,13 @@ test.describe.serial('CineVerse 3D — Complete Interactive 3D Theatre Experienc
     const errorPage = await browser.newPage();
     // Block WebGL context creation
     await errorPage.addInitScript(() => {
-      HTMLCanvasElement.prototype.getContext = function (type: string) {
+      HTMLCanvasElement.prototype.getContext = function (
+        this: HTMLCanvasElement,
+        type: string
+      ): RenderingContext | null {
         if (type.includes('webgl')) return null;
         return null;
-      };
+      } as typeof HTMLCanvasElement.prototype.getContext;
     });
 
     await errorPage.goto('/3d');

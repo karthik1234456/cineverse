@@ -207,10 +207,16 @@ test.describe('Phase 4 — Booking Engine, Holds, Real-Time WS, 2D/3D & Checkout
       // Mock getContext to disable webgl
       window.localStorage.setItem('cineverse_city', 'bengaluru');
       const origGetContext = HTMLCanvasElement.prototype.getContext;
-      HTMLCanvasElement.prototype.getContext = function (type: string, ...args: any[]) {
-        if (type.includes('webgl')) return null;
-        return origGetContext.apply(this, [type as any, ...args]);
-      };
+      HTMLCanvasElement.prototype.getContext = function (
+        this: HTMLCanvasElement,
+        contextId: string,
+        ...args: unknown[]
+      ): RenderingContext | null {
+        if (contextId.includes('webgl')) {
+          return null;
+        }
+        return Reflect.apply(origGetContext, this, [contextId, ...args]) as RenderingContext | null;
+      } as typeof HTMLCanvasElement.prototype.getContext;
     });
 
     const page = await context.newPage();
