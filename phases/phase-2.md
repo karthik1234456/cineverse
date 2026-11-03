@@ -21,6 +21,8 @@ Implement **everything in `ANTIGRAVITY_PROMPT.md`** with these notes:
 - Realism: lighting rig, house-lights modes, screen content overlay, haze and dust (tier-gated).
 - Desktop panels and mobile bottom sheet, keyboard and reduced-motion support, WebGL-unavailable fallback.
 
+- **Start from the tested modules** in `frontend/lib/` (`seatView.ts`, `walkCollision.ts`); keep their 25 tests passing and add tests for anything new.
+
 ## Tests and evidence
 Follow section 9 of `ANTIGRAVITY_PROMPT.md`: Vitest fixtures (row A centre about 97.7 degrees, row E about 62.6, row J about 42.0), mapping test for all 100 nodes, Playwright with SwiftShader assertions through `window.__cineverse`, screenshots of POV from A05, E05 and J10, mobile touch tests, performance table.
 

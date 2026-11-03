@@ -42,6 +42,10 @@ Per seat: `seat_id` (e.g. `A01`), `node_name`, `node_number`, `row`, `number`, `
 
 ---
 
+
+## 0b. Tested reference code already in the repo (use it, do not rewrite it)
+`frontend/lib/seatView.ts`, `frontend/lib/seatMapLayout.ts`, `frontend/lib/walkCollision.ts` with 25 passing tests in `frontend/tests/unit/` (run `node --test "frontend/tests/unit/*.test.ts"`). They implement the seat maths, the 2D map layout, and the walk physics exactly as specified below, validated against the real JSON data. Import them into the Next.js app (see `frontend/lib/README.md` for the tsconfig note), extend them if needed, add tests for additions, and keep all 25 tests green. Do not re-implement these formulas inside components. If you find a bug in them, write a failing test first, then fix it.
+
 ## 1. Stack (frontend only this phase)
 Next.js (App Router) + TypeScript + Tailwind + shadcn/ui, React Three Fiber, three, @react-three/drei, @react-three/postprocessing (optional, gated), Framer Motion (UI only), Zustand (3D state), TanStack Query (seat-status fetching). Pin versions; run `npm run build` and `tsc --noEmit` clean.
 

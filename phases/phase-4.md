@@ -15,6 +15,8 @@ Seats can be held, released and expire correctly under concurrency, the 3D view 
 4. Pricing engine: category and format and time rules, convenience fee, configurable GST, coupon validation (min amount, per-user limit, expiry), F&B add-ons.
 5. Frontend: **standard 2D seat map as the default step** built from the real layout (`SeatMap2D`, per `DESIGN_SPEC.md` §4.3) with live WebSocket state, Best available, sticky summary, trailer mini-player and the **"Explore in 3D" button** that opens the Phase 2 theatre with shared selection, holds and countdown in both directions; ticket-count step, add-ons step, checkout page with summary, coupon, contact details and a visible hold countdown, expiry handling, and a payment step that is clearly a stub until Phase 5.
 
+- **Build `SeatMap2D` on `frontend/lib/seatMapLayout.ts`** (tested); do not re-derive row/column/aisle layout in the component.
+
 ## Tests and evidence
 - Concurrency: 50 parallel clients hold the same seat, exactly one wins.
 - Expiry: hold expires, seat becomes available, late confirmation is refused.
