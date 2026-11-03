@@ -1,0 +1,19 @@
+{
+  "name": "cineverse-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "powershell -Command \"$env:PYTHONPATH='backend'; .\\backend\\.venv\\Scripts\\uvicorn.exe app.main:app --reload --port 8000\"",
+    "build:frontend": "npm --prefix frontend run build",
+    "lint": "npm --prefix frontend run lint",
+    "test": "npm --prefix frontend test",
+    "test:frontend": "npm --prefix frontend test",
+    "test:backend": "powershell -Command \"$env:PYTHONPATH='backend'; .\\backend\\.venv\\Scripts\\pytest.exe -v backend/tests\"",
+    "test:e2e": "npm --prefix frontend run test:e2e",
+    "docker:up": "docker compose up --build",
+    "docker:down": "docker compose down",
+    "seed": "powershell -Command \"$env:PYTHONPATH='backend'; .\\backend\\.venv\\Scripts\\python.exe backend/app/seed/seeder.py\""
+  }
+}
+

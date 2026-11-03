@@ -1,10 +1,13 @@
+import uuid
 import pytest
 from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
 async def test_auth_registration_and_login_lifecycle(client: AsyncClient):
-    email = "new_patron@example.com"
+    uid = uuid.uuid4().hex[:8]
+    email = f"patron_{uid}@example.com"
+    phone = f"9{uuid.uuid4().int % 1000000000:09d}"
     password = "SecurePassword@123"
 
     # Register
@@ -14,7 +17,7 @@ async def test_auth_registration_and_login_lifecycle(client: AsyncClient):
             "email": email,
             "password": password,
             "full_name": "Test Patron",
-            "phone": "9123456789"
+            "phone": phone
         }
     )
     assert reg_resp.status_code == 200
@@ -59,16 +62,19 @@ async def test_otp_send_and_verify(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_admin_rbac_protection(client: AsyncClient):
+    uid = uuid.uuid4().hex[:8]
+    phone = f"9{uuid.uuid4().int % 1000000000:09d}"
     # Customer user attempts to access admin analytics -> should be 403 Forbidden
     reg_resp = await client.post(
         "/api/v1/auth/register",
         json={
-            "email": "customer_regular@example.com",
+            "email": f"customer_{uid}@example.com",
             "password": "Customer@123",
             "full_name": "Customer User",
-            "phone": "9000000001"
+            "phone": phone
         }
     )
+    assert reg_resp.status_code == 200
     cust_token = reg_resp.json()["access_token"]
 
     admin_resp = await client.get(

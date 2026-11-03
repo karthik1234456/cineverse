@@ -482,13 +482,19 @@ async def seed_database():
             city_map[c["name"]] = city
 
         print("Loading 3D seat layout from seat_layout_v2.json...")
-        layout_file = Path("frontend/public/models/seat_layout_v2.json")
+        layout_candidates = [
+            Path("frontend/public/models/seat_layout_v2.json"),
+            Path("../frontend/public/models/seat_layout_v2.json"),
+            Path("seat_layout_v2_1.json"),
+            Path("../seat_layout_v2_1.json"),
+        ]
+        layout_file = next((p for p in layout_candidates if p.exists()), None)
         seat_layout_data = []
-        if layout_file.exists():
+        if layout_file:
             with open(layout_file, "r", encoding="utf-8") as f:
                 parsed = json.load(f)
                 seat_layout_data = parsed.get("seats", [])
-        print(f"Loaded {len(seat_layout_data)} 3D seats from seat_layout_v2.json")
+        print(f"Loaded {len(seat_layout_data)} 3D seats from {layout_file}")
 
         print("Seeding Cinemas & Auditoriums...")
         cinema_entities = []
@@ -528,12 +534,23 @@ async def seed_database():
                 if primary_3d_auditorium is None:
                     primary_3d_auditorium = aud_3d
 
+                glb_candidates = [
+                    Path("frontend/public/models/cineverse_auditorium_v2.web.glb"),
+                    Path("../frontend/public/models/cineverse_auditorium_v2.web.glb"),
+                ]
+                glb_file = next((p for p in glb_candidates if p.exists()), None)
+                glb_checksum = "e1289e1ad3aa2b0fbff31633f016cb47e996dfc4d06dca6347b491d8153c3d9d"
+                if glb_file:
+                    import hashlib
+                    glb_checksum = hashlib.sha256(glb_file.read_bytes()).hexdigest()
+
                 # Attach TheatreAsset
                 asset = TheatreAsset(
                     auditorium_id=aud_3d.id,
                     glb_path="/models/cineverse_auditorium_v2.web.glb",
                     layout_path="/models/seat_layout_v2.json",
                     version="2.0",
+                    checksum=glb_checksum,
                     total_triangles=218000
                 )
                 db.add(asset)

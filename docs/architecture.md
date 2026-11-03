@@ -101,3 +101,4 @@ Each confirmed booking generates an admission ticket containing a cryptographic 
 HMAC-SHA256(secret_key, "{booking_code}|{showtime_id}|{sorted_seat_ids}")
 ```
 This signature is embedded into a high-density QR code rendered as a base64 PNG data URI, allowing cinema turnstile scanners to cryptographically verify ticket authenticity offline without database access.
+

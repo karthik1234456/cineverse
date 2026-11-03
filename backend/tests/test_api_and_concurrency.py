@@ -1,5 +1,6 @@
 import pytest
 import asyncio
+import uuid
 from httpx import AsyncClient, ASGITransport
 from app.main import app
 
@@ -79,7 +80,12 @@ async def test_seat_hold_concurrency_race_condition(client: AsyncClient):
     showtimes_resp = await client.get(f"/api/v1/movies/{movie_id}/showtimes")
     st_id = showtimes_resp.json()[0]["showtimes"][0]["id"]
 
-    target_seat = "B05"
+    # Pick an available seat dynamically
+    seats_resp = await client.get(f"/api/v1/showtimes/{st_id}/seats")
+    assert seats_resp.status_code == 200
+    avail_seats = [s["seat_id"] for s in seats_resp.json()["seats"] if s["status"] == "AVAILABLE"]
+    assert len(avail_seats) > 0, "No available seats found for race condition test"
+    target_seat = avail_seats[0]
 
     async def attempt_hold(client_id: int):
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
@@ -184,8 +190,8 @@ async def test_full_booking_payment_and_qr_ticket_lifecycle(client: AsyncClient)
         "seat_ids": target_seats,
         "addons": [{"fnb_item_id": fnb_id, "quantity": 1}],
         "coupon_code": "FIRSTSHOW",
-        "contact_email": "e2e_tester@cineverse.in",
-        "contact_phone": "9998887776"
+        "contact_email": f"e2e_tester_{uuid.uuid4().hex[:6]}@cineverse.in",
+        "contact_phone": f"9{uuid.uuid4().int % 1000000000:09d}"
     }
     bkg_resp = await client.post("/api/v1/bookings/create", json=bkg_req)
     assert bkg_resp.status_code == 200
@@ -208,7 +214,7 @@ async def test_full_booking_payment_and_qr_ticket_lifecycle(client: AsyncClient)
         json={
             "booking_id": booking_id,
             "razorpay_order_id": order_id,
-            "razorpay_payment_id": "pay_test_987654321",
+            "razorpay_payment_id": f"pay_test_{uuid.uuid4().hex[:12]}",
             "razorpay_signature": "test_signature_valid"
         }
     )

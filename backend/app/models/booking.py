@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, Enum, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, Enum, ForeignKey, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -54,9 +54,13 @@ class Booking(Base):
 
 class BookingSeat(Base):
     __tablename__ = "booking_seats"
+    __table_args__ = (
+        UniqueConstraint("showtime_id", "seat_id", name="uq_booking_seats_showtime_seat"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     booking_id = Column(Integer, ForeignKey("bookings.id", ondelete="CASCADE"), nullable=False, index=True)
+    showtime_id = Column(Integer, ForeignKey("showtimes.id", ondelete="CASCADE"), nullable=False, index=True)
     seat_id = Column(String(10), nullable=False)  # "A01"
     category = Column(String(50), nullable=False)
     price = Column(Float, nullable=False)

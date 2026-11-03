@@ -63,3 +63,4 @@ erDiagram
 - `payments`: Razorpay transaction state tracking (`razorpay_order_id`, `razorpay_payment_id`, `razorpay_signature`, `status`).
 - `refunds`: Logs processed cancellation refunds (standard 75% reimbursement).
 - `coupons` & `coupon_redemptions`: Discount rules engine tracking individual usage counts and maximum redemption caps per user.
+

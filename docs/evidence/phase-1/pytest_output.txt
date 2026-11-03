@@ -1,0 +1,25 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.7, pytest-9.2.0, pluggy-1.7.0 -- D:\projects\CineVerse\backend\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: D:\projects\CineVerse\backend
+configfile: pytest.ini
+plugins: anyio-4.16.0, asyncio-1.4.1.post1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 14 items
+
+backend\tests\test_api_and_concurrency.py::test_health_check PASSED      [  7%]
+backend\tests\test_api_and_concurrency.py::test_cities_and_movies_listing PASSED [ 14%]
+backend\tests\test_api_and_concurrency.py::test_showtimes_and_seats_inventory PASSED [ 21%]
+backend\tests\test_api_and_concurrency.py::test_seat_hold_concurrency_race_condition PASSED [ 28%]
+backend\tests\test_api_and_concurrency.py::test_pricing_tax_and_coupon_math PASSED [ 35%]
+backend\tests\test_api_and_concurrency.py::test_full_booking_payment_and_qr_ticket_lifecycle PASSED [ 42%]
+backend\tests\test_auth_and_expiry.py::test_auth_registration_and_login_lifecycle PASSED [ 50%]
+backend\tests\test_auth_and_expiry.py::test_otp_send_and_verify PASSED   [ 57%]
+backend\tests\test_auth_and_expiry.py::test_admin_rbac_protection PASSED [ 64%]
+backend\tests\test_phase1.py::test_seeding_twice_idempotent PASSED       [ 71%]
+backend\tests\test_phase1.py::test_100_seats_match_json_ids PASSED       [ 78%]
+backend\tests\test_phase1.py::test_two_confirmed_bookings_rejected PASSED [ 85%]
+backend\tests\test_phase1.py::test_health_and_readiness PASSED           [ 92%]
+backend\tests\test_phase1.py::test_auditorium_layout_served_from_db PASSED [100%]
+
+============================= 14 passed in 3.12s ==============================

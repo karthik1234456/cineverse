@@ -169,6 +169,7 @@ async def create_booking(
     for s in held_seats:
         b_seat = BookingSeat(
             booking_id=booking.id,
+            showtime_id=booking.showtime_id,
             seat_id=s.seat_id,
             category=s.category,
             price=s.price

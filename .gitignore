@@ -28,3 +28,4 @@ blob-report/
 *.pem
 .env
 .env.local
+

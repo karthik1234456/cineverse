@@ -62,3 +62,4 @@ When scanned at an auditorium entrance, scanners verify the signature against th
 Double-booking vulnerabilities are eliminated through atomic row-level locks on `seat_inventory`:
 - Multiple parallel clients requesting the exact same seat within the same millisecond are serialized at the database level. Exactly one client obtains the hold; all other clients receive `409 Conflict` or a friendly `Seat already held` notification.
 - Holds expire automatically after 300 seconds through both Redis TTL and the asynchronous SQL sweeper task.
+

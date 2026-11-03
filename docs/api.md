@@ -143,3 +143,4 @@ Offline/online scanner gate check verifying ticket authenticity against the HMAC
 
 ### `GET /api/v1/admin/analytics`
 Restricted to `RoleEnum.ADMIN` and `RoleEnum.CINEMA_MANAGER`. Returns aggregate gross revenue, confirmed bookings count, tickets sold, overall screen occupancy percentage, and top grossing movies.
+

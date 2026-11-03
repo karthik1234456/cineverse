@@ -1,0 +1,16 @@
+﻿
+Running 10 tests using 1 worker
+
+[E2E Verified Render Stats] { triangles: 179494, calls: 245, fps: 2 }
+  ok  1 [chromium] ΓÇ║ e2e\auditorium.spec.ts:16:7 ΓÇ║ CineVerse 3D ΓÇö Complete Interactive E2E Flow ΓÇ║ 01. Load Auditorium, verify 100% progress, render stats & overview (6.0s)
+  ok  2 [chromium] ΓÇ║ e2e\auditorium.spec.ts:48:7 ΓÇ║ CineVerse 3D ΓÇö Complete Interactive E2E Flow ΓÇ║ 02. Orbit navigation & boundary clamping (2.9s)
+  ok  3 [chromium] ΓÇ║ e2e\auditorium.spec.ts:71:7 ΓÇ║ CineVerse 3D ΓÇö Complete Interactive E2E Flow ΓÇ║ 03. Seat selection F05, visual feedback & inspection panel metrics (4.4s)
+  ok  4 [chromium] ΓÇ║ e2e\auditorium.spec.ts:89:7 ΓÇ║ CineVerse 3D ΓÇö Complete Interactive E2E Flow ΓÇ║ 04. Booked and held seat rejection, live hold update simulation (51ms)
+  ok  5 [chromium] ΓÇ║ e2e\auditorium.spec.ts:106:7 ΓÇ║ CineVerse 3D ΓÇö Complete Interactive E2E Flow ΓÇ║ 05. Seat POV mode for A05, E05, J10 ΓÇö mathematical validation & screenshots (16.2s)
+  ok  6 [chromium] ΓÇ║ e2e\auditorium.spec.ts:161:7 ΓÇ║ CineVerse 3D ΓÇö Complete Interactive E2E Flow ΓÇ║ 06. POV keyboard navigation, boundary safety & Esc return to orbit (2.1s)
+  ok  7 [chromium] ΓÇ║ e2e\auditorium.spec.ts:184:7 ΓÇ║ CineVerse 3D ΓÇö Complete Interactive E2E Flow ΓÇ║ 07. Multi-seat comparison view (6.0s)
+  ok  8 [chromium] ΓÇ║ e2e\auditorium.spec.ts:203:7 ΓÇ║ CineVerse 3D ΓÇö Complete Interactive E2E Flow ΓÇ║ 08. House lights show mode transition (6.5s)
+  ok  9 [chromium] ΓÇ║ e2e\auditorium.spec.ts:216:7 ΓÇ║ CineVerse 3D ΓÇö Complete Interactive E2E Flow ΓÇ║ 09. Mobile viewport (390├ù844) responsive layout (6.1s)
+  ok 10 [chromium] ΓÇ║ e2e\auditorium.spec.ts:229:7 ΓÇ║ CineVerse 3D ΓÇö Complete Interactive E2E Flow ΓÇ║ 10. WebGL failure fallback test (2.9s)
+
+  10 passed (58.3s)
