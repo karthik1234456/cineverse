@@ -1,23 +1,53 @@
 // app/movies/page.tsx
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
-import { Filter, Search, SlidersHorizontal } from 'lucide-react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { SlidersHorizontal, ArrowUpDown, X } from 'lucide-react';
 import { MovieCard } from '@/components/MovieCard';
 import { getMovies, type Movie } from '@/services/api';
 
 function MoviesListContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
-  const initialSearch = searchParams.get('search') || '';
+
+  // Read URL query params
+  const paramSearch = searchParams.get('search') || '';
+  const paramLang = searchParams.get('lang') || 'All';
+  const paramGenre = searchParams.get('genre') || 'All';
+  const paramFormat = searchParams.get('format') || 'All';
+  const paramCert = searchParams.get('certificate') || 'All';
+  const paramSort = searchParams.get('sort') || 'popularity';
+  const paramStatus = searchParams.get('status') || 'now_showing';
 
   const [movies, setMovies] = useState<Movie[]>([]);
-  const [search, setSearch] = useState(initialSearch);
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('All');
-  const [selectedGenre, setSelectedGenre] = useState<string>('All');
-  const [selectedFormat, setSelectedFormat] = useState<string>('All');
-  const [selectedTab, setSelectedTab] = useState<'all' | 'now_showing' | 'coming_soon'>('now_showing');
+  const [search, setSearch] = useState(paramSearch);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>(paramLang);
+  const [selectedGenre, setSelectedGenre] = useState<string>(paramGenre);
+  const [selectedFormat, setSelectedFormat] = useState<string>(paramFormat);
+  const [selectedCertificate, setSelectedCertificate] = useState<string>(paramCert);
+  const [selectedSort, setSelectedSort] = useState<string>(paramSort);
+  const [selectedTab, setSelectedTab] = useState<'all' | 'now_showing' | 'coming_soon'>(
+    paramStatus as 'all' | 'now_showing' | 'coming_soon'
+  );
   const [loading, setLoading] = useState(true);
+
+  // Sync state back to URL
+  const updateUrlParams = useCallback(
+    (updates: Record<string, string>) => {
+      const current = new URLSearchParams(searchParams.toString());
+      Object.entries(updates).forEach(([key, val]) => {
+        if (!val || val === 'All' || (key === 'status' && val === 'all') || (key === 'sort' && val === 'popularity')) {
+          current.delete(key);
+        } else {
+          current.set(key, val);
+        }
+      });
+      const query = current.toString();
+      router.replace(`/movies${query ? `?${query}` : ''}`, { scroll: false });
+    },
+    [router, searchParams]
+  );
 
   useEffect(() => {
     setLoading(true);
@@ -26,15 +56,67 @@ function MoviesListContent() {
       language: selectedLanguage !== 'All' ? selectedLanguage : undefined,
       genre: selectedGenre !== 'All' ? selectedGenre : undefined,
       format: selectedFormat !== 'All' ? selectedFormat : undefined,
+      certificate: selectedCertificate !== 'All' ? selectedCertificate : undefined,
+      sort: selectedSort as any,
       status: selectedTab !== 'all' ? selectedTab : undefined,
     })
       .then((data) => setMovies(data))
       .catch((err) => console.warn(err))
       .finally(() => setLoading(false));
-  }, [search, selectedLanguage, selectedGenre, selectedFormat, selectedTab]);
+  }, [search, selectedLanguage, selectedGenre, selectedFormat, selectedCertificate, selectedSort, selectedTab]);
+
+  function handleTabChange(tab: 'all' | 'now_showing' | 'coming_soon') {
+    setSelectedTab(tab);
+    updateUrlParams({ status: tab });
+  }
+
+  function handleLanguageChange(lang: string) {
+    setSelectedLanguage(lang);
+    updateUrlParams({ lang });
+  }
+
+  function handleGenreChange(g: string) {
+    setSelectedGenre(g);
+    updateUrlParams({ genre: g });
+  }
+
+  function handleFormatChange(f: string) {
+    setSelectedFormat(f);
+    updateUrlParams({ format: f });
+  }
+
+  function handleCertChange(c: string) {
+    setSelectedCertificate(c);
+    updateUrlParams({ certificate: c });
+  }
+
+  function handleSortChange(s: string) {
+    setSelectedSort(s);
+    updateUrlParams({ sort: s });
+  }
+
+  function handleReset() {
+    setSelectedLanguage('All');
+    setSelectedGenre('All');
+    setSelectedFormat('All');
+    setSelectedCertificate('All');
+    setSelectedSort('popularity');
+    setSearch('');
+    setSelectedTab('now_showing');
+    router.replace('/movies', { scroll: false });
+  }
+
+  const isFiltered =
+    selectedLanguage !== 'All' ||
+    selectedGenre !== 'All' ||
+    selectedFormat !== 'All' ||
+    selectedCertificate !== 'All' ||
+    selectedSort !== 'popularity' ||
+    Boolean(search) ||
+    selectedTab !== 'now_showing';
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 w-full">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 w-full" data-testid="movies-catalog-page">
       {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
         <div>
@@ -47,7 +129,7 @@ function MoviesListContent() {
         {/* Tab switch */}
         <div className="flex rounded-xl bg-[#16181f] p-1 border border-white/5">
           <button
-            onClick={() => setSelectedTab('now_showing')}
+            onClick={() => handleTabChange('now_showing')}
             className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition ${
               selectedTab === 'now_showing' ? 'bg-[#e50914] text-white shadow' : 'text-zinc-400 hover:text-white'
             }`}
@@ -55,7 +137,7 @@ function MoviesListContent() {
             Now Showing
           </button>
           <button
-            onClick={() => setSelectedTab('coming_soon')}
+            onClick={() => handleTabChange('coming_soon')}
             className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition ${
               selectedTab === 'coming_soon' ? 'bg-[#e50914] text-white shadow' : 'text-zinc-400 hover:text-white'
             }`}
@@ -63,7 +145,7 @@ function MoviesListContent() {
             Coming Soon
           </button>
           <button
-            onClick={() => setSelectedTab('all')}
+            onClick={() => handleTabChange('all')}
             className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition ${
               selectedTab === 'all' ? 'bg-[#e50914] text-white shadow' : 'text-zinc-400 hover:text-white'
             }`}
@@ -73,7 +155,7 @@ function MoviesListContent() {
         </div>
       </div>
 
-      {/* Filter bar */}
+      {/* Filter and Sort bar */}
       <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-[#12131a] p-4 mb-8">
         <div className="flex items-center gap-2 text-xs font-bold text-zinc-300 pr-2 border-r border-white/10">
           <SlidersHorizontal className="h-4 w-4 text-[#e50914]" />
@@ -83,8 +165,9 @@ function MoviesListContent() {
         {/* Languages */}
         <select
           value={selectedLanguage}
-          onChange={(e) => setSelectedLanguage(e.target.value)}
+          onChange={(e) => handleLanguageChange(e.target.value)}
           className="rounded-xl border border-white/10 bg-[#16181f] px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-[#e50914]"
+          data-testid="language-filter"
         >
           <option value="All">All Languages</option>
           <option value="English">English</option>
@@ -98,8 +181,9 @@ function MoviesListContent() {
         {/* Genres */}
         <select
           value={selectedGenre}
-          onChange={(e) => setSelectedGenre(e.target.value)}
+          onChange={(e) => handleGenreChange(e.target.value)}
           className="rounded-xl border border-white/10 bg-[#16181f] px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-[#e50914]"
+          data-testid="genre-filter"
         >
           <option value="All">All Genres</option>
           <option value="Sci-Fi">Sci-Fi</option>
@@ -113,8 +197,9 @@ function MoviesListContent() {
         {/* Formats */}
         <select
           value={selectedFormat}
-          onChange={(e) => setSelectedFormat(e.target.value)}
+          onChange={(e) => handleFormatChange(e.target.value)}
           className="rounded-xl border border-white/10 bg-[#16181f] px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-[#e50914]"
+          data-testid="format-filter"
         >
           <option value="All">All Formats</option>
           <option value="IMAX 3D">IMAX 3D</option>
@@ -123,18 +208,44 @@ function MoviesListContent() {
           <option value="2D">Standard 2D</option>
         </select>
 
-        {/* Reset button if active */}
-        {(selectedLanguage !== 'All' || selectedGenre !== 'All' || selectedFormat !== 'All' || search) && (
-          <button
-            onClick={() => {
-              setSelectedLanguage('All');
-              setSelectedGenre('All');
-              setSelectedFormat('All');
-              setSearch('');
-            }}
-            className="text-xs text-[#e50914] hover:underline ml-auto font-medium"
+        {/* Certificate */}
+        <select
+          value={selectedCertificate}
+          onChange={(e) => handleCertChange(e.target.value)}
+          className="rounded-xl border border-white/10 bg-[#16181f] px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-[#e50914]"
+          data-testid="certificate-filter"
+        >
+          <option value="All">All Ratings</option>
+          <option value="U">U (Universal)</option>
+          <option value="UA">UA (Parental Guidance)</option>
+          <option value="A">A (Adults Only)</option>
+        </select>
+
+        {/* Sort */}
+        <div className="flex items-center gap-1.5 pl-2 border-l border-white/10">
+          <ArrowUpDown className="h-3.5 w-3.5 text-zinc-400" />
+          <select
+            value={selectedSort}
+            onChange={(e) => handleSortChange(e.target.value)}
+            className="rounded-xl border border-white/10 bg-[#16181f] px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-[#e50914]"
+            data-testid="sort-filter"
           >
-            Reset Filters
+            <option value="popularity">Popularity</option>
+            <option value="rating">Top Rated</option>
+            <option value="release_date">Release Date</option>
+            <option value="title">Alphabetical (A-Z)</option>
+          </select>
+        </div>
+
+        {/* Reset button if active */}
+        {isFiltered && (
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-1 text-xs text-[#e50914] hover:underline ml-auto font-medium"
+            data-testid="reset-filters-button"
+          >
+            <X className="h-3.5 w-3.5" />
+            <span>Reset Filters</span>
           </button>
         )}
       </div>
@@ -143,7 +254,7 @@ function MoviesListContent() {
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="aspect-[2/3] rounded-2xl bg-zinc-900 animate-pulse" />
+            <div key={i} className="aspect-[2/3] rounded-2xl bg-zinc-900 animate-pulse border border-white/5" />
           ))}
         </div>
       ) : movies.length > 0 ? (
@@ -156,6 +267,12 @@ function MoviesListContent() {
         <div className="rounded-2xl border border-white/10 bg-[#12131a] p-12 text-center text-zinc-400">
           <p className="text-base font-bold text-white">No movies found matching criteria</p>
           <p className="text-xs mt-1">Try adjusting your filters or search keywords</p>
+          <button
+            onClick={handleReset}
+            className="mt-4 rounded-xl bg-white/10 px-4 py-2 text-xs font-semibold text-white hover:bg-white/20 transition"
+          >
+            Clear All Filters
+          </button>
         </div>
       )}
     </div>
@@ -169,4 +286,3 @@ export default function MoviesPage() {
     </Suspense>
   );
 }
-

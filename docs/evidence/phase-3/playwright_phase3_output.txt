@@ -1,0 +1,13 @@
+﻿
+Running 8 tests using 1 worker
+
+  ok 1 [chromium] ΓÇ║ e2e\phase3_browse_journey.spec.ts:22:7 ΓÇ║ Phase 3 ΓÇö Discovery, Movies, Cinemas, Showtimes E2E Journey ΓÇ║ 01. City selection and Home page discovery (3.4s)
+  ok 2 [chromium] ΓÇ║ e2e\phase3_browse_journey.spec.ts:64:7 ΓÇ║ Phase 3 ΓÇö Discovery, Movies, Cinemas, Showtimes E2E Journey ΓÇ║ 02. Mobile responsive viewport (390x844) (1.6s)
+  ok 3 [chromium] ΓÇ║ e2e\phase3_browse_journey.spec.ts:77:7 ΓÇ║ Phase 3 ΓÇö Discovery, Movies, Cinemas, Showtimes E2E Journey ΓÇ║ 03. Global search with autocomplete suggestions and recent history (1.6s)
+  ok 4 [chromium] ΓÇ║ e2e\phase3_browse_journey.spec.ts:101:7 ΓÇ║ Phase 3 ΓÇö Discovery, Movies, Cinemas, Showtimes E2E Journey ΓÇ║ 04. Movies listing with URL-synced filters and sorting (2.5s)
+  ok 5 [chromium] ΓÇ║ e2e\phase3_browse_journey.spec.ts:129:7 ΓÇ║ Phase 3 ΓÇö Discovery, Movies, Cinemas, Showtimes E2E Journey ΓÇ║ 05. Movie detail page with 7-day showtimes and SEO JSON-LD (1.5s)
+  ok 6 [chromium] ΓÇ║ e2e\phase3_browse_journey.spec.ts:153:7 ΓÇ║ Phase 3 ΓÇö Discovery, Movies, Cinemas, Showtimes E2E Journey ΓÇ║ 06. Showtime chip navigation to 3D Auditorium (1.9s)
+  ok 7 [chromium] ΓÇ║ e2e\phase3_browse_journey.spec.ts:170:7 ΓÇ║ Phase 3 ΓÇö Discovery, Movies, Cinemas, Showtimes E2E Journey ΓÇ║ 07. Cinema detail with real showtimes grouped by movie (2.9s)
+  ok 8 [chromium] ΓÇ║ e2e\phase3_browse_journey.spec.ts:181:7 ΓÇ║ Phase 3 ΓÇö Discovery, Movies, Cinemas, Showtimes E2E Journey ΓÇ║ 08. Fallback 2D Seat Map for screens without 3D asset (2.2s)
+
+  8 passed (21.1s)

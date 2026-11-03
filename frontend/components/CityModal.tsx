@@ -49,6 +49,7 @@ export function CityModal({
             return (
               <button
                 key={city.id}
+                data-testid={`city-option-${city.slug}`}
                 onClick={() => {
                   onSelectCity(city);
                   onClose();

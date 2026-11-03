@@ -251,6 +251,10 @@ async def cancel_booking(db: AsyncSession, booking_id: int, user_id: Optional[in
         inv.hold_id = None
         inv.hold_expires_at = None
 
+    # Delete booking_seats so the unique constraint is released for future bookings
+    for s in list(booking.seats):
+        await db.delete(s)
+
     # Record refund
     if booking.payment:
         booking.payment.status = PaymentStatusEnum.REFUNDED

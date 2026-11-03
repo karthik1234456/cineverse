@@ -27,6 +27,7 @@ from app.api.v1.coupons import router as coupons_router
 from app.api.v1.payments import router as payments_router
 from app.api.v1.tickets import router as tickets_router
 from app.api.v1.admin import router as admin_router
+from app.api.v1.search import router as search_router
 from app.api.websockets.showtimes import router as ws_router
 
 logging.basicConfig(
@@ -175,6 +176,7 @@ def create_app() -> FastAPI:
     application.include_router(coupons_router, prefix=f"{v1}/coupons", tags=["Coupons & Offers"])
     application.include_router(payments_router, prefix=f"{v1}/payments", tags=["Payments"])
     application.include_router(tickets_router, prefix=f"{v1}/tickets", tags=["Tickets"])
+    application.include_router(search_router, prefix=f"{v1}/search", tags=["Global Search"])
     application.include_router(admin_router, prefix=f"{v1}/admin", tags=["Admin"])
     application.include_router(ws_router, tags=["WebSockets"])
 

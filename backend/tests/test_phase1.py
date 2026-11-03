@@ -1,4 +1,5 @@
 import pytest
+import uuid
 from sqlalchemy import select, func
 from sqlalchemy.exc import IntegrityError
 from app.models.cinema import City, Cinema, Auditorium, Seat
@@ -60,14 +61,17 @@ async def test_100_seats_match_json_ids(db_session):
 @pytest.mark.asyncio
 async def test_two_confirmed_bookings_rejected(db_session):
     """Test: Inserting two confirmed bookings for one seat and showtime is rejected by the DB."""
+    uid = uuid.uuid4().hex[:8]
+    test_seat = f"X_{uid[:4]}"
+
     # Find a valid showtime
     res = await db_session.execute(select(Showtime).limit(1))
     st = res.scalars().first()
     assert st is not None
 
-    # First booking for showtime and seat A01
+    # First booking for showtime and test seat
     b1 = Booking(
-        booking_code="CV-TEST-01",
+        booking_code=f"CV-{uid}-1",
         user_id=1,
         showtime_id=st.id,
         status=BookingStatusEnum.CONFIRMED,
@@ -79,7 +83,7 @@ async def test_two_confirmed_bookings_rejected(db_session):
     bs1 = BookingSeat(
         booking_id=b1.id,
         showtime_id=st.id,
-        seat_id="A01",
+        seat_id=test_seat,
         category="Front",
         price=280.0
     )
@@ -88,7 +92,7 @@ async def test_two_confirmed_bookings_rejected(db_session):
 
     # Second booking attempting to book the exact same seat and showtime
     b2 = Booking(
-        booking_code="CV-TEST-02",
+        booking_code=f"CV-{uid}-2",
         user_id=2,
         showtime_id=st.id,
         status=BookingStatusEnum.CONFIRMED,
@@ -100,7 +104,7 @@ async def test_two_confirmed_bookings_rejected(db_session):
     bs2 = BookingSeat(
         booking_id=b2.id,
         showtime_id=st.id,
-        seat_id="A01",
+        seat_id=test_seat,
         category="Front",
         price=280.0
     )

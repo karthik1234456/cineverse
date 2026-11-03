@@ -105,16 +105,24 @@ export async function getMovies(params: {
   genre?: string;
   language?: string;
   format?: string;
+  certificate?: string;
   status?: 'now_showing' | 'coming_soon';
   search?: string;
+  sort?: 'popularity' | 'rating' | 'release_date' | 'title';
+  page?: number;
+  page_size?: number;
 } = {}): Promise<Movie[]> {
   const query = new URLSearchParams();
   if (params.city_id) query.set('city_id', params.city_id.toString());
   if (params.genre) query.set('genre', params.genre);
   if (params.language) query.set('language', params.language);
   if (params.format) query.set('format', params.format);
+  if (params.certificate) query.set('certificate', params.certificate);
   if (params.status) query.set('status', params.status);
   if (params.search) query.set('search', params.search);
+  if (params.sort) query.set('sort', params.sort);
+  if (params.page) query.set('page', params.page.toString());
+  if (params.page_size) query.set('page_size', params.page_size.toString());
 
   return apiFetch<Movie[]>(`/movies/?${query.toString()}`);
 }
@@ -184,6 +192,38 @@ export async function getCinemas(cityId?: number): Promise<Cinema[]> {
 
 export async function getCinema(idOrSlug: string | number): Promise<Cinema> {
   return apiFetch<Cinema>(`/cinemas/${idOrSlug}`);
+}
+
+export interface CinemaMovieShowtimes {
+  movie_id: number;
+  title: string;
+  slug: string;
+  poster_url: string;
+  certificate: string;
+  duration_minutes: number;
+  languages: string[];
+  formats: string[];
+  showtimes: ShowtimeSlot[];
+}
+
+export async function getCinemaShowtimes(
+  cinemaId: number,
+  targetDate?: string
+): Promise<CinemaMovieShowtimes[]> {
+  const query = targetDate ? `?target_date=${targetDate}` : '';
+  return apiFetch<CinemaMovieShowtimes[]>(`/cinemas/${cinemaId}/showtimes${query}`);
+}
+
+// ---------------- GLOBAL SEARCH ----------------
+export interface SearchResult {
+  query: string;
+  total_results: number;
+  movies: Movie[];
+  cinemas: Cinema[];
+}
+
+export async function globalSearch(query: string, limit = 10): Promise<SearchResult> {
+  return apiFetch<SearchResult>(`/search/?q=${encodeURIComponent(query)}&limit=${limit}`);
 }
 
 // ---------------- SHOWTIME SEATS ----------------

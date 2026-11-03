@@ -162,11 +162,11 @@ async def test_full_booking_payment_and_qr_ticket_lifecycle(client: AsyncClient)
     showtimes_resp = await client.get(f"/api/v1/movies/{movie_id}/showtimes")
     st_id = showtimes_resp.json()[0]["showtimes"][0]["id"]
 
-    # Fetch available seats dynamically
+    # Fetch available seats dynamically from Row D
     seats_resp = await client.get(f"/api/v1/showtimes/{st_id}/seats")
     avail_seats = [s["seat_id"] for s in seats_resp.json()["seats"] if s["status"] == "AVAILABLE"]
-    target_seats = [s for s in avail_seats if s not in ["B05", "C01", "C02"]][:2]
-    assert len(target_seats) == 2, "Need at least 2 available seats for test"
+    target_seats = [s for s in avail_seats if s.startswith("D")][:2]
+    assert len(target_seats) == 2, "Need at least 2 available seats in Row D for test"
 
     # 2. Hold target seats
     hold_resp = await client.post(

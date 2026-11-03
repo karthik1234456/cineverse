@@ -1,8 +1,8 @@
 from datetime import datetime, date, time
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_
+from sqlalchemy import select, func, or_, distinct
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
@@ -18,20 +18,34 @@ router = APIRouter()
 
 @router.get("/", response_model=List[MovieResponse])
 async def list_movies(
+    response: Response,
     city_id: Optional[int] = None,
     genre: Optional[str] = None,
     language: Optional[str] = None,
     format: Optional[str] = None,
+    certificate: Optional[str] = None,
     status: Optional[str] = None,  # "now_showing" or "coming_soon"
     search: Optional[str] = None,
+    sort: Optional[str] = Query("popularity", description="Sort by: popularity, rating, release_date, title"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=100, description="Items per page"),
     db: AsyncSession = Depends(get_db)
 ):
     stmt = select(Movie)
+
+    if city_id:
+        stmt = stmt.join(Showtime, Showtime.movie_id == Movie.id)\
+                   .join(Cinema, Cinema.id == Showtime.cinema_id)\
+                   .where(Cinema.city_id == city_id)\
+                   .distinct()
 
     if status == "now_showing":
         stmt = stmt.where(Movie.is_now_showing == True)
     elif status == "coming_soon":
         stmt = stmt.where(Movie.is_coming_soon == True)
+
+    if certificate:
+        stmt = stmt.where(func.upper(Movie.certificate) == certificate.upper())
 
     if search:
         search_term = f"%{search.lower()}%"
@@ -42,22 +56,39 @@ async def list_movies(
             )
         )
 
-    stmt = stmt.order_by(Movie.rating_avg.desc(), Movie.release_date.desc())
+    # Sorting
+    if sort == "release_date":
+        stmt = stmt.order_by(Movie.release_date.desc(), Movie.rating_avg.desc())
+    elif sort == "title":
+        stmt = stmt.order_by(Movie.title.asc())
+    elif sort == "rating":
+        stmt = stmt.order_by(Movie.rating_avg.desc(), Movie.rating_count.desc())
+    else:  # popularity (default)
+        stmt = stmt.order_by(Movie.rating_count.desc(), Movie.rating_avg.desc(), Movie.release_date.desc())
+
     result = await db.execute(stmt)
     movies = result.scalars().all()
 
     # In-memory filter for JSON array fields (genres, languages, formats)
     filtered = []
     for m in movies:
-        if genre and genre not in (m.genres or []):
+        if genre and genre.lower() != "all" and genre not in (m.genres or []):
             continue
-        if language and language not in (m.languages or []):
+        if language and language.lower() != "all" and language not in (m.languages or []):
             continue
-        if format and format not in (m.formats or []):
+        if format and format.lower() != "all" and format not in (m.formats or []):
             continue
         filtered.append(m)
 
-    return filtered
+    total_count = len(filtered)
+    response.headers["X-Total-Count"] = str(total_count)
+    response.headers["X-Page"] = str(page)
+    response.headers["X-Page-Size"] = str(page_size)
+
+    # Slice for pagination
+    start = (page - 1) * page_size
+    end = start + page_size
+    return filtered[start:end]
 
 
 @router.get("/{id_or_slug}", response_model=MovieDetailResponse)

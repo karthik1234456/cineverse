@@ -13,15 +13,47 @@ export default function HomePage() {
   const [cinemas, setCinemas] = useState<Cinema[]>([]);
   const [selectedFormat, setSelectedFormat] = useState<string>('All');
   const [activeHeroIdx, setActiveHeroIdx] = useState<number>(0);
+  const [loading, setLoading] = useState<boolean>(true);
   const [trailerModal, setTrailerModal] = useState<{ isOpen: boolean; title: string }>({
     isOpen: false,
     title: '',
   });
 
+  function loadData(cityId?: number) {
+    setLoading(true);
+    Promise.all([
+      getMovies({ city_id: cityId }),
+      getCinemas(cityId)
+    ])
+      .then(([movieData, cinemaData]) => {
+        setMovies(movieData);
+        setCinemas(cinemaData);
+      })
+      .catch((err) => console.warn(err))
+      .finally(() => setLoading(false));
+  }
+
   useEffect(() => {
-    getMovies().then((data) => setMovies(data)).catch((err) => console.warn(err));
-    getCinemas().then((data) => setCinemas(data)).catch((err) => console.warn(err));
+    const storedCityId = typeof window !== 'undefined' ? localStorage.getItem('cineverse_city_id') : null;
+    loadData(storedCityId ? parseInt(storedCityId, 10) : undefined);
+
+    function onCityChanged(e: any) {
+      if (e.detail?.id) {
+        loadData(e.detail.id);
+      }
+    }
+    window.addEventListener('cityChanged', onCityChanged);
+    return () => window.removeEventListener('cityChanged', onCityChanged);
   }, []);
+
+  // Auto-advance hero carousel every 6s
+  useEffect(() => {
+    if (movies.length <= 1) return;
+    const interval = setInterval(() => {
+      setActiveHeroIdx((prev) => (prev + 1) % Math.min(3, movies.length));
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [movies.length]);
 
   const nowShowing = movies.filter((m) => m.is_now_showing);
   const comingSoon = movies.filter((m) => m.is_coming_soon);
@@ -251,6 +283,45 @@ export default function HomePage() {
                 </div>
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* Offers & Promotions Section */}
+        <section className="border-t border-white/10 pt-10">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-2xl font-black text-white">Exclusive Offers & Promotions</h2>
+              <p className="text-xs text-zinc-400 mt-1">Special discounts and perks on movie tickets and concession combos</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="rounded-2xl border border-red-500/30 bg-gradient-to-br from-red-950/40 to-[#12131a] p-5 relative overflow-hidden">
+              <span className="rounded-full bg-red-600/30 border border-red-500/50 px-2.5 py-0.5 text-[10px] font-bold text-red-300">
+                NEW PATRON
+              </span>
+              <h3 className="text-lg font-black text-white mt-2">20% Off Your First Show</h3>
+              <p className="text-xs text-zinc-400 mt-1">Use code <strong className="text-white">FIRSTSHOW</strong> at checkout for up to ₹150 discount.</p>
+              <div className="mt-4 text-[10px] text-zinc-500">Valid on all 2D, 3D and IMAX bookings</div>
+            </div>
+
+            <div className="rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-950/40 to-[#12131a] p-5 relative overflow-hidden">
+              <span className="rounded-full bg-amber-600/30 border border-amber-500/50 px-2.5 py-0.5 text-[10px] font-bold text-amber-300">
+                WEEKEND SPECIAL
+              </span>
+              <h3 className="text-lg font-black text-white mt-2">Flat ₹100 Off Blockbusters</h3>
+              <p className="text-xs text-zinc-400 mt-1">Use code <strong className="text-white">BLOCKBUSTER</strong> on bookings of 2 or more tickets.</p>
+              <div className="mt-4 text-[10px] text-zinc-500">Limited to 1 redemption per weekend</div>
+            </div>
+
+            <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-br from-emerald-950/40 to-[#12131a] p-5 relative overflow-hidden">
+              <span className="rounded-full bg-emerald-600/30 border border-emerald-500/50 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300">
+                SNACK COMBO
+              </span>
+              <h3 className="text-lg font-black text-white mt-2">₹50 Off Gourmet Popcorn</h3>
+              <p className="text-xs text-zinc-400 mt-1">Use code <strong className="text-white">SNACK50</strong> when adding any F&B combo.</p>
+              <div className="mt-4 text-[10px] text-zinc-500">Direct delivery to your auditorium seat</div>
+            </div>
           </div>
         </section>
 

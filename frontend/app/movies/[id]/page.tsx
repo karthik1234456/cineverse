@@ -42,10 +42,13 @@ export default function MovieDetailPage() {
 
   useEffect(() => {
     setLoading(true);
+    const storedCityId = typeof window !== 'undefined' ? localStorage.getItem('cineverse_city_id') : null;
+    const cityId = storedCityId ? parseInt(storedCityId, 10) : undefined;
+
     getMovie(movieIdOrSlug)
       .then((m) => {
         setMovie(m);
-        return getMovieShowtimes(m.id, undefined, selectedDate.iso);
+        return getMovieShowtimes(m.id, cityId, selectedDate.iso);
       })
       .then((groups) => setShowtimesGroups(groups))
       .catch((err) => console.warn(err))
@@ -70,6 +73,35 @@ export default function MovieDetailPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#0b0c10] text-white">
+      {/* JSON-LD Structured Data for Movie SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Movie',
+            name: movie.title,
+            description: movie.synopsis,
+            image: movie.poster_url,
+            datePublished: movie.release_date,
+            duration: `PT${movie.duration_minutes}M`,
+            contentRating: movie.certificate,
+            aggregateRating:
+              movie.rating_avg > 0
+                ? {
+                    '@type': 'AggregateRating',
+                    ratingValue: movie.rating_avg.toFixed(1),
+                    bestRating: '10',
+                    ratingCount: movie.rating_count || 1,
+                  }
+                : undefined,
+            actor: movie.cast_members?.map((c) => ({
+              '@type': 'Person',
+              name: c.person_name,
+            })),
+          }),
+        }}
+      />
       {/* Hero Banner Section */}
       <section className="relative w-full min-h-[460px] overflow-hidden bg-black flex items-end">
         <div className="absolute inset-0">
@@ -222,7 +254,7 @@ export default function MovieDetailPage() {
                   </div>
 
                   {/* Showtime chips */}
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-3" data-testid="showtimes-list">
                     {group.showtimes.map((st) => {
                       const startTime = new Date(st.start_time);
                       const timeString = startTime.toLocaleTimeString('en-US', {
@@ -238,10 +270,16 @@ export default function MovieDetailPage() {
                           ? 'border-amber-500/50 text-amber-300 bg-amber-950/20'
                           : 'border-emerald-500/40 text-emerald-300 bg-emerald-950/20';
 
+                      const targetUrl = st.has_3d_preview
+                        ? `/cinemas/${group.cinema_id}/auditorium/${st.auditorium_id}?showtime=${st.id}`
+                        : `/cinemas/${group.cinema_id}/auditorium/${st.auditorium_id}?showtime=${st.id}&mode=2d`;
+
                       return (
                         <Link
                           key={st.id}
-                          href={`/cinemas/${group.cinema_id}/auditorium/${st.auditorium_id}?showtime=${st.id}`}
+                          href={targetUrl}
+                          data-testid="showtime-chip"
+                          data-has-3d={st.has_3d_preview}
                           className={`group flex flex-col items-center justify-center rounded-xl border px-4 py-2.5 transition duration-200 hover:scale-105 hover:border-white/40 ${statusColor}`}
                         >
                           <span className="text-sm font-black text-white">{timeString}</span>
@@ -249,8 +287,16 @@ export default function MovieDetailPage() {
                             {st.format}
                           </span>
                           <div className="flex items-center gap-1 mt-1 text-[9px] font-bold text-amber-400">
-                            {st.has_3d_preview && <Compass className="h-2.5 w-2.5" />}
-                            <span>From ₹{st.lowest_price}</span>
+                            {st.has_3d_preview ? (
+                              <>
+                                <Compass className="h-2.5 w-2.5 text-amber-400" />
+                                <span>3D Seat POV</span>
+                              </>
+                            ) : (
+                              <span className="text-zinc-400">2D Seat Map</span>
+                            )}
+                            <span className="text-zinc-500">•</span>
+                            <span>₹{st.lowest_price}</span>
                           </div>
                         </Link>
                       );
