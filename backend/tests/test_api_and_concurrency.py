@@ -8,7 +8,9 @@ from datetime import datetime, timedelta
 from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.database import AsyncSessionLocal
-from app.models.showtime import Showtime
+from app.models.showtime import Showtime, SeatInventory, SeatStatusEnum
+from app.models.booking import Booking, BookingSeat, BookingStatusEnum
+from sqlalchemy import delete, update
 
 
 @pytest.mark.asyncio
@@ -271,3 +273,115 @@ async def test_full_booking_payment_and_qr_ticket_lifecycle(client: AsyncClient)
     cancel_data = cancel_resp.json()
     assert cancel_data["status"] == "CANCELLED"
     assert cancel_data["refund_amount"] > 0
+
+
+@pytest.mark.asyncio
+async def test_seat_hold_concurrency_50_clients(client: AsyncClient):
+    """
+    RACE CONDITION TEST (50 concurrent clients, 1 winner):
+    50 concurrent clients attempt to hold the EXACT SAME SEAT simultaneously.
+    Guarantee: Exactly 1 client must succeed (200 OK), and 49 must fail (409 Conflict / 429 Cooldown).
+    """
+    target_seat = "J01"
+    st_id = 1
+
+    # Reset seat in DB
+    async with AsyncSessionLocal() as db:
+        await db.execute(delete(BookingSeat).where(BookingSeat.showtime_id == st_id, BookingSeat.seat_id == target_seat))
+        await db.execute(
+            update(SeatInventory)
+            .where(SeatInventory.showtime_id == st_id, SeatInventory.seat_id == target_seat)
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
+        )
+        await db.commit()
+
+    async def attempt_hold(i: int):
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            return await c.post(
+                f"/api/v1/bookings/hold?showtime_id={st_id}",
+                json={"seat_ids": [target_seat]},
+                headers={"X-Forwarded-For": f"172.16.0.{10 + (i % 240)}"}
+            )
+
+    responses = await asyncio.gather(*[attempt_hold(i) for i in range(50)])
+    wins = sum(1 for r in responses if r.status_code == 200)
+    rejected = sum(1 for r in responses if r.status_code in (409, 429))
+
+    assert wins == 1, f"Expected exactly 1 winner out of 50 concurrent holds, got {wins}"
+    assert rejected == 49, f"Expected 49 rejections, got {rejected}"
+
+    # Extract winning hold
+    winning_resp = next(r for r in responses if r.status_code == 200).json()
+    hold_id = winning_resp["hold_id"]
+
+    # Release
+    rel_resp = await client.post("/api/v1/bookings/release", json={"hold_id": hold_id})
+    assert rel_resp.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_database_level_unique_constraint_rejects_duplicate_booking():
+    """
+    DB Constraint Test:
+    Ensures that the database constraint uq_booking_seats_showtime_seat directly
+    rejects a second confirmed BookingSeat for the same (showtime_id, seat_id),
+    guaranteeing that even if application logic were bypassed, the DB itself enforces single occupancy.
+    """
+    import sqlalchemy.exc
+    st_id = 1
+    seat_id = "A09"
+
+    async with AsyncSessionLocal() as db:
+        # Clear out any prior test data
+        await db.execute(delete(BookingSeat).where(BookingSeat.showtime_id == st_id, BookingSeat.seat_id == seat_id))
+        await db.commit()
+
+        # Insert first booking seat
+        b1 = Booking(
+            booking_code=f"CV-TEST-{uuid.uuid4().hex[:6].upper()}",
+            user_id=1,
+            showtime_id=st_id,
+            status=BookingStatusEnum.CONFIRMED,
+            total_ticket_amount=350.0,
+            final_total_amount=350.0
+        )
+        db.add(b1)
+        await db.flush()
+
+        bs1 = BookingSeat(
+            booking_id=b1.id,
+            showtime_id=st_id,
+            seat_id=seat_id,
+            category="premier",
+            price=350.0
+        )
+        db.add(bs1)
+        await db.commit()
+
+        # Attempt to insert second booking seat for same seat and showtime in a different booking
+        b2 = Booking(
+            booking_code=f"CV-TEST-{uuid.uuid4().hex[:6].upper()}",
+            user_id=2,
+            showtime_id=st_id,
+            status=BookingStatusEnum.CONFIRMED,
+            total_ticket_amount=350.0,
+            final_total_amount=350.0
+        )
+        db.add(b2)
+        await db.flush()
+
+        bs2 = BookingSeat(
+            booking_id=b2.id,
+            showtime_id=st_id,
+            seat_id=seat_id,
+            category="premier",
+            price=350.0
+        )
+        db.add(bs2)
+
+        with pytest.raises((sqlalchemy.exc.IntegrityError, Exception)) as excinfo:
+            await db.commit()
+
+        # Rollback transaction
+        await db.rollback()
+        assert "unique constraint" in str(excinfo.value).lower() or "unique" in str(excinfo.value).lower()
