@@ -1,19 +1,34 @@
 from typing import AsyncGenerator
+from sqlalchemy import event
+from sqlalchemy.pool import NullPool
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import declarative_base
 from app.config import settings
 
 # Engine configuration
 connect_args = {}
+engine_kwargs = {}
 if "sqlite" in settings.DATABASE_URL:
     connect_args["check_same_thread"] = False
+    connect_args["timeout"] = 60.0  # 60s busy timeout for high-concurrency sqlite
+    engine_kwargs["poolclass"] = NullPool
 
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=False,
     future=True,
-    connect_args=connect_args if connect_args else {}
+    connect_args=connect_args if connect_args else {},
+    **engine_kwargs
 )
+
+if "sqlite" in settings.DATABASE_URL:
+    @event.listens_for(engine.sync_engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA busy_timeout=60000")
+        cursor.close()
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
@@ -41,4 +56,3 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-

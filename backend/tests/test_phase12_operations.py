@@ -2,7 +2,7 @@ import json
 import uuid
 import struct
 import pytest
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 from httpx import AsyncClient
 from sqlalchemy import select, update, delete
 
@@ -109,7 +109,8 @@ async def test_onboarding_pipeline_with_supplied_glb():
     Task 1: Validates the actual production GLB using AuditoriumOnboardingService.
     Asserts coordinate convention, 100 seats, screen center, and eye positions match seat_layout_v2.json.
     """
-    glb_path = "frontend/public/models/cineverse_auditorium_v2.glb"
+    import os
+    glb_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend/public/models/cineverse_auditorium_v2.glb")) if not os.path.exists("frontend/public/models/cineverse_auditorium_v2.glb") else "frontend/public/models/cineverse_auditorium_v2.glb"
     with open(glb_path, "rb") as f:
         file_bytes = f.read()
 
@@ -488,8 +489,10 @@ async def test_ticket_transfer_flow_and_security_limits(client: AsyncClient):
     token_sender = create_access_token({"sub": "3", "email": "customer@cineverse.in", "role": "CUSTOMER"})
     headers_sender = {"Authorization": f"Bearer {token_sender}"}
 
-    # Ensure recipient account exists and clear conflicting seat
+    # Ensure recipient account exists, clear prior transfer logs for user 3, and use an isolated test showtime
     async with AsyncSessionLocal() as db:
+        # Clear transfer logs for user 3 so the monthly rate limit is clean for tests
+        await db.execute(delete(TicketTransferLog).where(TicketTransferLog.from_user_id == 3))
         await db.execute(delete(BookingSeat).where(BookingSeat.showtime_id == 1, BookingSeat.seat_id == "E05"))
 
         recip_res = await db.execute(select(User).where(User.email == "recipient@cineverse.in"))
@@ -498,10 +501,12 @@ async def test_ticket_transfer_flow_and_security_limits(client: AsyncClient):
             recip = User(email="recipient@cineverse.in", hashed_password="hashed_pw", role="CUSTOMER")
             db.add(recip)
 
+        # Restore Showtime 1 to TODAY so browse / movie tests never find empty showtimes
         st = await db.get(Showtime, 1)
         if st:
-            st.start_time = datetime.utcnow() + timedelta(days=2)
-            st.end_time = datetime.utcnow() + timedelta(days=2, hours=3)
+            today_date = datetime.utcnow().date()
+            st.start_time = datetime.combine(today_date, time(18, 0))
+            st.end_time = datetime.combine(today_date, time(20, 45))
 
         bkg = Booking(
             booking_code=f"CV-{uuid.uuid4().hex[:6].upper()}",

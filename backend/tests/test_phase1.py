@@ -35,7 +35,7 @@ async def test_seeding_twice_idempotent(db_session):
 @pytest.mark.asyncio
 async def test_100_seats_match_json_ids(db_session):
     """Test: 100 seats in DB match the JSON ids exactly."""
-    layout_path = Path("frontend/public/models/seat_layout_v2.json")
+    layout_path = Path(__file__).resolve().parent.parent.parent / "frontend/public/models/seat_layout_v2.json"
     if not layout_path.exists():
         layout_path = Path("seat_layout_v2_1.json")
     

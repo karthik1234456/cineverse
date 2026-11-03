@@ -4,7 +4,7 @@ import uuid
 import hmac
 import hashlib
 from app.config import settings
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time, date
 from httpx import AsyncClient, ASGITransport
 from app.main import app
 from app.database import AsyncSessionLocal
@@ -170,12 +170,12 @@ async def test_full_booking_payment_and_qr_ticket_lifecycle(client: AsyncClient)
     showtimes_resp = await client.get(f"/api/v1/movies/{movie_id}/showtimes")
     st_id = showtimes_resp.json()[0]["showtimes"][0]["id"]
 
-    # Ensure showtime start_time is in the future for cancellation test window
+    # Ensure showtime start_time is in the future for cancellation test window, but stays on today date
     async with AsyncSessionLocal() as db:
         st = await db.get(Showtime, st_id)
         if st:
-            st.start_time = datetime.utcnow() + timedelta(days=2)
-            st.end_time = datetime.utcnow() + timedelta(days=2, hours=3)
+            st.start_time = datetime.combine(datetime.utcnow().date(), time(23, 59))
+            st.end_time = st.start_time + timedelta(hours=2, minutes=30)
             await db.commit()
 
     # Fetch available seats dynamically from Row D

@@ -36,16 +36,19 @@ async def test_50_parallel_concurrency_race(client: AsyncClient):
         await db.commit()
 
     async def attempt_hold(client_idx: int):
+        from httpx import ASGITransport
+        from app.main import app
         # Unique idempotency and ip per client to avoid bot throttling during race
-        resp = await client.post(
-            f"/api/v1/bookings/hold?showtime_id={target_showtime_id}",
-            json={
-                "seat_ids": [target_seat],
-                "idempotency_key": f"race_{client_idx}_{uuid.uuid4().hex}"
-            },
-            headers={"X-Forwarded-For": f"192.168.1.{10 + client_idx}"}
-        )
-        return resp.status_code
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as c:
+            resp = await c.post(
+                f"/api/v1/bookings/hold?showtime_id={target_showtime_id}",
+                json={
+                    "seat_ids": [target_seat],
+                    "idempotency_key": f"race_{client_idx}_{uuid.uuid4().hex}"
+                },
+                headers={"X-Forwarded-For": f"192.168.1.{10 + client_idx}"}
+            )
+            return resp.status_code
 
     # Launch 50 parallel requests
     tasks = [attempt_hold(i) for i in range(50)]
@@ -76,7 +79,7 @@ async def test_hold_expiry_and_late_confirmation_refusal(client: AsyncClient):
     3. Run background sweeper -> verifies seat status resets to AVAILABLE.
     4. Attempting to create booking with the expired hold must be refused with 400.
     """
-    target_seat = "J01"
+    target_seat = "J02"
     showtime_id = 1
 
     # Reset seat J01 to available
