@@ -6,6 +6,12 @@ from app.models.booking import Booking, BookingSeat, BookingAddon, FnbItem, Tick
 from app.models.payment import Payment, PaymentEvent, Refund, PaymentStatusEnum
 from app.models.promotion import Coupon, CouponRedemption, DiscountTypeEnum
 from app.models.audit import AuditLog, Notification
+from app.models.operations import (
+    TheatreAssetVersion, StaffDevice, TicketScanLog, ScanResultEnum,
+    FoodOrder, FoodDeliveryTypeEnum, FoodDeliveryStatusEnum,
+    LoyaltyAccount, LoyaltyLedger, LoyaltyTierEnum, LoyaltyActionEnum,
+    CinePassSubscription, TicketTransferLog
+)
 
 __all__ = [
     "User", "RoleEnum", "RefreshToken",
@@ -15,6 +21,10 @@ __all__ = [
     "Booking", "BookingSeat", "BookingAddon", "FnbItem", "Ticket", "BookingStatusEnum",
     "Payment", "PaymentEvent", "Refund", "PaymentStatusEnum",
     "Coupon", "CouponRedemption", "DiscountTypeEnum",
-    "AuditLog", "Notification"
+    "AuditLog", "Notification",
+    "TheatreAssetVersion", "StaffDevice", "TicketScanLog", "ScanResultEnum",
+    "FoodOrder", "FoodDeliveryTypeEnum", "FoodDeliveryStatusEnum",
+    "LoyaltyAccount", "LoyaltyLedger", "LoyaltyTierEnum", "LoyaltyActionEnum",
+    "CinePassSubscription", "TicketTransferLog"
 ]
 

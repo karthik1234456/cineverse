@@ -29,6 +29,11 @@ from app.api.v1.tickets import router as tickets_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.search import router as search_router
 from app.api.v1.agent import router as agent_router
+from app.api.v1.operations.onboarding import router as onboarding_router
+from app.api.v1.operations.scanning import router as scanning_router
+from app.api.v1.operations.food import router as food_router
+from app.api.v1.operations.loyalty import router as loyalty_router
+from app.api.v1.operations.transfer import router as transfer_router
 from app.api.websockets.showtimes import router as ws_router
 
 logging.basicConfig(
@@ -180,6 +185,11 @@ def create_app() -> FastAPI:
     application.include_router(search_router, prefix=f"{v1}/search", tags=["Global Search"])
     application.include_router(admin_router, prefix=f"{v1}/admin", tags=["Admin"])
     application.include_router(agent_router, prefix=f"{v1}/agent", tags=["Voice Agent"])
+    application.include_router(onboarding_router)
+    application.include_router(scanning_router)
+    application.include_router(food_router)
+    application.include_router(loyalty_router)
+    application.include_router(transfer_router)
     application.include_router(ws_router, tags=["WebSockets"])
 
     return application

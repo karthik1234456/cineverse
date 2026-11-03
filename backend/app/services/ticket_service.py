@@ -44,3 +44,31 @@ def generate_qr_code_base64(qr_data: str) -> str:
     img_str = base64.b64encode(buffered.getvalue()).decode()
     return f"data:image/png;base64,{img_str}"
 
+
+def verify_ticket_signature(qr_string: str) -> bool:
+    """Verifies the HMAC cryptographic signature on a scanned ticket QR token."""
+    try:
+        if qr_string.startswith("{"):
+            data = json.loads(qr_string)
+            bkg = data.get("booking_code")
+            st = int(data.get("showtime_id", 0))
+            seats = data.get("seats", [])
+            sig = data.get("sig", "")
+            if not (bkg and st and seats and sig):
+                return False
+            expected = generate_ticket_signature(bkg, st, seats)
+            return hmac.compare_digest(expected[:16], sig) or hmac.compare_digest(expected, sig)
+
+        parts = qr_string.split("|")
+        if len(parts) >= 4:
+            code, st_str, seats_str, sig = parts[0], parts[1], parts[2], parts[3]
+            st = int(st_str)
+            seats = [s.strip() for s in seats_str.split(",") if s.strip()]
+            expected = generate_ticket_signature(code, st, seats)
+            return hmac.compare_digest(expected[:16], sig) or hmac.compare_digest(expected, sig)
+
+        return False
+    except Exception:
+        return False
+
+

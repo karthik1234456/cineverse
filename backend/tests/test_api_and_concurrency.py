@@ -1,8 +1,11 @@
 import pytest
 import asyncio
 import uuid
+from datetime import datetime, timedelta
 from httpx import AsyncClient, ASGITransport
 from app.main import app
+from app.database import AsyncSessionLocal
+from app.models.showtime import Showtime
 
 
 @pytest.mark.asyncio
@@ -161,6 +164,14 @@ async def test_full_booking_payment_and_qr_ticket_lifecycle(client: AsyncClient)
     movie_id = movies_resp.json()[0]["id"]
     showtimes_resp = await client.get(f"/api/v1/movies/{movie_id}/showtimes")
     st_id = showtimes_resp.json()[0]["showtimes"][0]["id"]
+
+    # Ensure showtime start_time is in the future for cancellation test window
+    async with AsyncSessionLocal() as db:
+        st = await db.get(Showtime, st_id)
+        if st:
+            st.start_time = datetime.utcnow() + timedelta(days=2)
+            st.end_time = datetime.utcnow() + timedelta(days=2, hours=3)
+            await db.commit()
 
     # Fetch available seats dynamically from Row D
     seats_resp = await client.get(f"/api/v1/showtimes/{st_id}/seats")

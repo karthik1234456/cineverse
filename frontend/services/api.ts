@@ -588,3 +588,128 @@ export async function confirmAgentAction(
     }),
   });
 }
+
+// ---------------- PHASE 12: OPERATIONS & ONBOARDING ----------------
+
+export interface StaffScanResponse {
+  result: 'SUCCESS' | 'ALREADY_USED' | 'INVALID_TICKET' | 'SHOWTIME_MISMATCH';
+  ticket_number: string;
+  booking_code: string;
+  movie_title: string;
+  screen_name: string;
+  start_time: string;
+  seats: string[];
+  total_admissions: number;
+  scanned_at: string;
+}
+
+export async function registerStaffDevice(gate: string, deviceName: string) {
+  return apiFetch<{ device_id: string; device_name: string; gate: string }>('/staff/devices/register', {
+    method: 'POST',
+    body: JSON.stringify({ gate, device_name: deviceName }),
+  });
+}
+
+export async function scanTicket(qrData: string, gate: string = 'Gate 1', deviceId?: string): Promise<StaffScanResponse> {
+  return apiFetch<StaffScanResponse>('/staff/scan', {
+    method: 'POST',
+    body: JSON.stringify({ qr_data: qrData, gate, device_id: deviceId }),
+  });
+}
+
+export async function lookupTicket(code: string) {
+  return apiFetch<any>(`/staff/lookup?code=${encodeURIComponent(code)}`);
+}
+
+export async function validateGLB(file: File) {
+  const formData = new FormData();
+  formData.append('file', file);
+  const token = typeof window !== 'undefined' ? localStorage.getItem('cineverse_token') : null;
+  const headers: HeadersInit = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}/admin/onboarding/validate-glb`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'GLB validation failed');
+  }
+  return res.json();
+}
+
+export async function publishTheatreAsset(auditoriumId: number, versionLabel: string, seatLayout: any) {
+  const formData = new FormData();
+  formData.append('version_label', versionLabel);
+  formData.append('seat_layout_json', JSON.stringify(seatLayout));
+  const token = typeof window !== 'undefined' ? localStorage.getItem('cineverse_token') : null;
+  const headers: HeadersInit = {};
+  if (token) headers['Authorization'] = `Bearer ${token}`;
+
+  const res = await fetch(`${API_BASE}/admin/onboarding/publish?auditorium_id=${auditoriumId}`, {
+    method: 'POST',
+    headers,
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Publish failed');
+  }
+  return res.json();
+}
+
+export async function getAssetVersions(auditoriumId: number) {
+  return apiFetch<{ auditorium_id: number; versions: any[] }>(`/admin/onboarding/versions/${auditoriumId}`);
+}
+
+export async function rollbackAssetVersion(auditoriumId: number, targetVersionId: number) {
+  return apiFetch<any>(`/admin/onboarding/rollback?auditorium_id=${auditoriumId}&target_version_id=${targetVersionId}`, {
+    method: 'POST',
+  });
+}
+
+export async function optimizeTheatreAsset(auditoriumId: number) {
+  return apiFetch<any>(`/admin/onboarding/optimize?auditorium_id=${auditoriumId}`, {
+    method: 'POST',
+  });
+}
+
+export async function getKdsOrders() {
+  return apiFetch<{ orders: any[] }>('/food/kds/orders');
+}
+
+export async function updateKdsOrderStatus(orderId: number, status: string) {
+  return apiFetch<any>(`/food/kds/orders/${orderId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function getLoyaltyAccount() {
+  return apiFetch<any>('/loyalty/account');
+}
+
+export async function subscribeCinePass() {
+  return apiFetch<any>('/loyalty/cinepass/subscribe', { method: 'POST' });
+}
+
+export async function cancelCinePass() {
+  return apiFetch<any>('/loyalty/cinepass/cancel', { method: 'POST' });
+}
+
+export async function claimReferral(referralCode: string) {
+  return apiFetch<any>('/loyalty/referral/claim', {
+    method: 'POST',
+    body: JSON.stringify({ referral_code: referralCode }),
+  });
+}
+
+export async function transferTicket(ticketId: number, recipientEmail: string) {
+  return apiFetch<any>(`/tickets/${ticketId}/transfer`, {
+    method: 'POST',
+    body: JSON.stringify({ recipient_email: recipientEmail }),
+  });
+}
+

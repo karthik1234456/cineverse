@@ -9,7 +9,7 @@ from sqlalchemy import select, update, delete
 from app.database import AsyncSessionLocal
 from app.config import settings
 from app.models.booking import Booking, BookingSeat, Ticket, BookingStatusEnum
-from app.models.showtime import SeatInventory, SeatStatusEnum
+from app.models.showtime import Showtime, SeatInventory, SeatStatusEnum
 from app.models.payment import Payment, PaymentEvent, PaymentStatusEnum
 from app.services.ticket_service import generate_ticket_signature, generate_qr_data
 from app.services.payment_service import verify_razorpay_hmac
@@ -173,8 +173,12 @@ async def test_cancellation_and_refund_policy(client: AsyncClient):
     target_seat = "C05"
     showtime_id = 1
 
-    # Reset seat
+    # Reset seat and ensure showtime start_time is in future for cancellation window
     async with AsyncSessionLocal() as db:
+        st = await db.get(Showtime, showtime_id)
+        if st:
+            st.start_time = datetime.utcnow() + timedelta(days=2)
+            st.end_time = datetime.utcnow() + timedelta(days=2, hours=3)
         await db.execute(
             delete(BookingSeat).where(BookingSeat.showtime_id == showtime_id, BookingSeat.seat_id == target_seat)
         )
