@@ -29,6 +29,9 @@ Every session reads `DESIGN_SPEC.md` (layout, tokens, trailer player) and `SECUR
 4. Review the report and the evidence yourself. Open the running app and click through it.
 5. Only start the next phase when every item is PASS. Otherwise paste the failures back into the same session and ask it to fix them.
 
+## Checking progress at any time
+Paste `phases/audit-progress.md` into a fresh session. It verifies, by running everything, which phases are really done, writes `docs/AUDIT_REPORT_<date>.md`, updates `docs/PROJECT_STATUS.md`, and generates `docs/NEXT_SESSION_PROMPT.md`. Add the words `FIX MODE` to the message to let it fix Critical/High findings. Run it after every phase and before starting a new one.
+
 ## Rules that save you pain
 - One phase per session. Long sessions drift; `docs/PROJECT_STATUS.md` carries the memory between sessions.
 - Ask for evidence (test output, screenshots), not claims.
