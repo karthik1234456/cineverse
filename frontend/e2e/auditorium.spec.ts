@@ -15,9 +15,23 @@ test.describe.serial('CineVerse 3D — Complete Interactive 3D Theatre Experienc
 
   test('01. Load Auditorium, verify 100% progress, render stats & overview', async ({ browser }) => {
     sharedPage = await browser.newPage();
+
+    // Pre-seed selected city in localStorage (FIX-04)
+    await sharedPage.addInitScript(() => {
+      window.localStorage.setItem('cineverse_city', 'bengaluru');
+    });
+
+    // Route external trailer video to avoid unhandled net::ERR_FAILED in headless/offline tests
+    await sharedPage.route('**/BigBuckBunny.mp4', (route) => {
+      route.fulfill({ status: 200, contentType: 'video/mp4', body: Buffer.from('') });
+    });
+
     const consoleErrors: string[] = [];
     sharedPage.on('console', (msg) => {
       if (msg.type() === 'error') consoleErrors.push(msg.text());
+    });
+    sharedPage.on('requestfailed', (req) => {
+      console.log('[PLAYWRIGHT REQUEST FAILED]', req.url(), req.failure()?.errorText);
     });
 
     await sharedPage.goto('/3d');
@@ -37,9 +51,18 @@ test.describe.serial('CineVerse 3D — Complete Interactive 3D Theatre Experienc
       fps: state.rendererInfo?.fps,
     });
 
-    const fatalErrors = consoleErrors.filter(
-      (e) => !e.includes('favicon') && !e.includes('React DevTools') && !e.includes('BigBuckBunny') && !e.includes('WebSocket') && !e.includes('ECONNREFUSED')
-    );
+    // Documented allow-list for external resources (do NOT blanket ignore ERR_FAILED)
+    const ALLOWED_FAILING_EXTERNAL_URLS = [
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    ];
+
+    const fatalErrors = consoleErrors.filter((e) => {
+      if (e.includes('favicon') || e.includes('React DevTools') || e.includes('WebSocket')) return false;
+      if (e.includes('ERR_FAILED')) {
+        return !ALLOWED_FAILING_EXTERNAL_URLS.some((url) => e.includes(url) || e.includes('BigBuckBunny'));
+      }
+      return true;
+    });
     expect(fatalErrors).toHaveLength(0);
 
     await sharedPage.screenshot({ path: path.join(SCREENSHOT_DIR, '01_auditorium_overview.png') });

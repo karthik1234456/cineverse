@@ -173,10 +173,10 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   autoWalkTarget: null,
 
   trailer: {
-    isPlaying: true,
+    isPlaying: false,
     isMuted: true,
     volume: 0.75,
-    trailerUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    trailerUrl: '',
     hasSpill: true,
   },
 

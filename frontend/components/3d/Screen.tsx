@@ -45,7 +45,12 @@ export function CinemaScreen() {
     video.muted = trailer.isMuted;
     video.loop = true;
     video.preload = 'metadata';
-    video.src = trailer.trailerUrl || DEFAULT_TRAILER_URL;
+    const activeUrl = trailer.trailerUrl;
+    if (!activeUrl) {
+      setVideoLoaded(false);
+      return;
+    }
+    video.src = activeUrl;
 
     videoRef.current = video;
 

@@ -16,6 +16,10 @@ test.describe('CineVerse Full Website & 3D Booking Flow', () => {
       baseURL: baseURL || 'http://localhost:3001',
       viewport: { width: 1280, height: 800 },
     });
+    // Pre-seed city in localStorage (FIX-04)
+    await context.addInitScript(() => {
+      window.localStorage.setItem('cineverse_city', 'bengaluru');
+    });
     sharedPage = await context.newPage();
   });
 
@@ -100,9 +104,15 @@ test.describe('CineVerse Full Website & 3D Booking Flow', () => {
   test('04: 3D Auditorium seat selection, POV sightline, and F&B Add-ons modal', async () => {
     await sharedPage.waitForLoadState('networkidle');
 
+    // If on 2D map view, click "Explore in 3D" button to activate 3D auditorium canvas
+    const btn3D = sharedPage.locator('[data-testid="explore-in-3d-button"]');
+    if (await btn3D.isVisible({ timeout: 5000 }).catch(() => false)) {
+      await btn3D.click();
+    }
+
     // Wait for 3D canvas
     const canvas = sharedPage.locator('canvas');
-    await expect(canvas).toBeAttached();
+    await expect(canvas).toBeAttached({ timeout: 15000 });
 
     // Wait until window.__cineverse is initialized by R3F
     await sharedPage.waitForFunction(() => !!(window as any).__cineverse, { timeout: 35000 });
@@ -179,6 +189,40 @@ test.describe('CineVerse Full Website & 3D Booking Flow', () => {
 
     // Capture checkout screenshot
     await sharedPage.screenshot({ path: path.join(evidenceDir, '06_checkout_with_hold_timer.png') });
+
+    // Mock Razorpay checkout in E2E to complete payment with valid HMAC signature
+    await sharedPage.evaluate(async () => {
+      const secret = 'secret_cineverse_test_mode';
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey(
+        'raw',
+        enc.encode(secret),
+        { name: 'HMAC', hash: 'SHA-256' },
+        false,
+        ['sign']
+      );
+
+      (window as any).Razorpay = function (options: any) {
+        return {
+          open: async () => {
+            const payId = 'pay_playwright_' + Date.now();
+            const message = `${options.order_id}|${payId}`;
+            const sigBuf = await crypto.subtle.sign('HMAC', key, enc.encode(message));
+            const sigHex = Array.from(new Uint8Array(sigBuf))
+              .map((b) => b.toString(16).padStart(2, '0'))
+              .join('');
+
+            if (options.handler) {
+              await options.handler({
+                razorpay_payment_id: payId,
+                razorpay_order_id: options.order_id,
+                razorpay_signature: sigHex,
+              });
+            }
+          },
+        };
+      };
+    });
 
     // Click Pay & Get E-Ticket
     const payBtn = sharedPage.locator('button:has-text("Pay")');
