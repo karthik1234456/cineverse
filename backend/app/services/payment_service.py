@@ -20,9 +20,12 @@ logger = logging.getLogger("cineverse.payment")
 
 
 def verify_razorpay_hmac(order_id: str, payment_id: str, signature: str) -> bool:
-    # Universal test signature bypass for automated CI / sandbox
-    if signature in ("test_signature_valid", "simulated_success_signature"):
-        return True
+    """
+    Verifies Razorpay payment signature using constant-time HMAC-SHA256 comparison.
+    No hardcoded bypass strings or sandbox backdoors are permitted.
+    """
+    if not order_id or not payment_id or not signature:
+        return False
 
     expected = hmac.new(
         settings.RAZORPAY_KEY_SECRET.encode("utf-8"),
@@ -114,7 +117,8 @@ async def verify_payment(
     if booking.status == BookingStatusEnum.CONFIRMED:
         return booking
 
-    # Check that hold hasn't expired
+    # Check that hold hasn't expired (Paid-after-expiry triggers automatic refund)
+    now = datetime.utcnow()
     seat_codes = [s.seat_id for s in booking.seats]
     inv_stmt = select(SeatInventory).where(
         SeatInventory.showtime_id == booking.showtime_id,
@@ -122,6 +126,47 @@ async def verify_payment(
     )
     inv_res = await db.execute(inv_stmt)
     inv_seats = inv_res.scalars().all()
+
+    is_expired = False
+    for inv in inv_seats:
+        if inv.status not in (SeatStatusEnum.HELD, SeatStatusEnum.PAYMENT_PENDING) or (inv.hold_expires_at and inv.hold_expires_at <= now):
+            is_expired = True
+            break
+
+    if is_expired:
+        booking.status = BookingStatusEnum.EXPIRED
+        # Record payment as refunded due to post-expiry capture
+        payment = booking.payment
+        if not payment:
+            payment = Payment(
+                booking_id=booking.id,
+                razorpay_order_id=razorpay_order_id,
+                razorpay_payment_id=razorpay_payment_id,
+                razorpay_signature=razorpay_signature,
+                amount=booking.final_total_amount,
+                status=PaymentStatusEnum.REFUNDED
+            )
+            db.add(payment)
+            await db.flush()
+        else:
+            payment.status = PaymentStatusEnum.REFUNDED
+            payment.razorpay_payment_id = razorpay_payment_id
+            payment.razorpay_signature = razorpay_signature
+
+        refund = Refund(
+            booking_id=booking.id,
+            payment_id=payment.id,
+            refund_amount=booking.final_total_amount,
+            cancellation_fee=0.0,
+            reason="Paid after hold expired — full automated refund initiated",
+            status="PROCESSED"
+        )
+        db.add(refund)
+        await db.commit()
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail="PAID_AFTER_EXPIRY: Seat hold expired before payment was confirmed. A full 100% refund has been automatically initiated to your original payment method."
+        )
 
     # Transition seat inventory to BOOKED
     for inv in inv_seats:

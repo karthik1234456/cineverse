@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -42,9 +43,29 @@ async def api_verify_payment(
 @router.post("/webhook")
 async def api_payment_webhook(
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    x_razorpay_signature: Optional[str] = Header(None)
 ):
-    payload = await request.json()
+    raw_body = await request.body()
+    
+    # If signature header is provided, strictly verify HMAC-SHA256 over raw request body
+    if x_razorpay_signature:
+        import hmac, hashlib
+        from app.config import settings
+        expected_sig = hmac.new(
+            settings.RAZORPAY_WEBHOOK_SECRET.encode("utf-8"),
+            raw_body,
+            hashlib.sha256
+        ).hexdigest()
+        if not hmac.compare_digest(expected_sig, x_razorpay_signature):
+            raise HTTPException(status_code=400, detail="Invalid webhook signature")
+
+    import json
+    try:
+        payload = json.loads(raw_body.decode("utf-8")) if raw_body else {}
+    except Exception:
+        raise HTTPException(status_code=400, detail="Malformed JSON webhook body")
+
     event_id = payload.get("event_id") or payload.get("id") or "evt_test_123"
     event_type = payload.get("event") or "payment.captured"
 

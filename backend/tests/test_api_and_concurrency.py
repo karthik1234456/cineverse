@@ -1,6 +1,9 @@
 import pytest
 import asyncio
 import uuid
+import hmac
+import hashlib
+from app.config import settings
 from datetime import datetime, timedelta
 from httpx import AsyncClient, ASGITransport
 from app.main import app
@@ -219,14 +222,20 @@ async def test_full_booking_payment_and_qr_ticket_lifecycle(client: AsyncClient)
     order_data = order_resp.json()
     order_id = order_data["order_id"]
 
-    # 6. Verify Payment (using test mode signature)
+    # 6. Verify Payment (using computed HMAC signature)
+    test_pay_id = f"pay_test_{uuid.uuid4().hex[:12]}"
+    valid_sig = hmac.new(
+        settings.RAZORPAY_KEY_SECRET.encode("utf-8"),
+        f"{order_id}|{test_pay_id}".encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
     verify_resp = await client.post(
         "/api/v1/payments/verify",
         json={
             "booking_id": booking_id,
             "razorpay_order_id": order_id,
-            "razorpay_payment_id": f"pay_test_{uuid.uuid4().hex[:12]}",
-            "razorpay_signature": "test_signature_valid"
+            "razorpay_payment_id": test_pay_id,
+            "razorpay_signature": valid_sig
         }
     )
     assert verify_resp.status_code == 200

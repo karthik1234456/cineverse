@@ -214,14 +214,16 @@ async def test_cancellation_and_refund_policy(client: AsyncClient):
     # Verify payment to confirm booking
     order_resp = await client.post("/api/v1/payments/create-order", json={"booking_id": bkg_id})
     order_id = order_resp.json()["order_id"]
+    pay_id = f"pay_{uuid.uuid4().hex[:10]}"
+    valid_sig = hmac.new(settings.RAZORPAY_KEY_SECRET.encode("utf-8"), f"{order_id}|{pay_id}".encode("utf-8"), hashlib.sha256).hexdigest()
 
     verify_resp = await client.post(
         "/api/v1/payments/verify",
         json={
             "booking_id": bkg_id,
             "razorpay_order_id": order_id,
-            "razorpay_payment_id": f"pay_{uuid.uuid4().hex[:10]}",
-            "razorpay_signature": "test_signature_valid"
+            "razorpay_payment_id": pay_id,
+            "razorpay_signature": valid_sig
         }
     )
     assert verify_resp.status_code == 200
@@ -243,3 +245,207 @@ async def test_cancellation_and_refund_policy(client: AsyncClient):
         seat_inv = res.scalars().first()
         assert seat_inv.status == SeatStatusEnum.AVAILABLE
 
+
+
+@pytest.mark.asyncio
+async def test_legacy_bypass_strings_strictly_rejected():
+    """FIX-01: Legacy bypass strings must be rejected unconditionally."""
+    assert verify_razorpay_hmac("order_test_1", "pay_test_1", "test_signature_valid") is False
+    assert verify_razorpay_hmac("order_test_2", "pay_test_2", "simulated_success_signature") is False
+    assert verify_razorpay_hmac("", "pay_test_3", "some_sig") is False
+    assert verify_razorpay_hmac("order_test_4", "", "some_sig") is False
+    assert verify_razorpay_hmac("order_test_5", "pay_test_5", "") is False
+
+
+@pytest.mark.asyncio
+async def test_payment_verify_tampered_signature_and_order_mismatch(client: AsyncClient):
+    """FIX-01: Payment verify rejects tampered signature and order mismatch."""
+    target_seat = "B05"
+    showtime_id = 1
+    async with AsyncSessionLocal() as db:
+        await db.execute(delete(BookingSeat).where(BookingSeat.showtime_id == showtime_id, BookingSeat.seat_id == target_seat))
+        await db.execute(
+            update(SeatInventory)
+            .where(SeatInventory.showtime_id == showtime_id, SeatInventory.seat_id == target_seat)
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
+        )
+        await db.commit()
+
+    hold_resp = await client.post(f"/api/v1/bookings/hold?showtime_id={showtime_id}", json={"seat_ids": [target_seat]})
+    hold_id = hold_resp.json()["hold_id"]
+
+    bkg_resp = await client.post(
+        "/api/v1/bookings/create",
+        json={
+            "showtime_id": showtime_id,
+            "hold_id": hold_id,
+            "seat_ids": [target_seat],
+            "addons": [],
+            "contact_email": "tamper_test@cineverse.in",
+            "contact_phone": "9800001111"
+        }
+    )
+    bkg_id = bkg_resp.json()["id"]
+
+    order_resp = await client.post("/api/v1/payments/create-order", json={"booking_id": bkg_id})
+    order_id = order_resp.json()["order_id"]
+    pay_id = f"pay_{uuid.uuid4().hex[:10]}"
+
+    valid_sig = hmac.new(
+        settings.RAZORPAY_KEY_SECRET.encode("utf-8"),
+        f"{order_id}|{pay_id}".encode("utf-8"),
+        hashlib.sha256
+    ).hexdigest()
+
+    # 1. Tampered signature
+    bad_resp = await client.post(
+        "/api/v1/payments/verify",
+        json={
+            "booking_id": bkg_id,
+            "razorpay_order_id": order_id,
+            "razorpay_payment_id": pay_id,
+            "razorpay_signature": valid_sig[:-4] + "dead"
+        }
+    )
+    assert bad_resp.status_code == 400
+    assert "Invalid payment signature" in bad_resp.text
+
+    # 2. Wrong order_id
+    wrong_order_resp = await client.post(
+        "/api/v1/payments/verify",
+        json={
+            "booking_id": bkg_id,
+            "razorpay_order_id": "order_completely_wrong",
+            "razorpay_payment_id": pay_id,
+            "razorpay_signature": valid_sig
+        }
+    )
+    assert wrong_order_resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_webhook_forged_duplicate_and_out_of_order(client: AsyncClient):
+    """FIX-01: Webhook tests for idempotency, replay suppression, and duplicate events."""
+    event_id = f"evt_exhaust_{uuid.uuid4().hex[:10]}"
+    payload = {
+        "event_id": event_id,
+        "event": "payment.captured",
+        "entity": "event",
+        "contains": ["payment"],
+        "payload": {
+            "payment": {
+                "entity": {
+                    "id": f"pay_{uuid.uuid4().hex[:10]}",
+                    "amount": 55000,
+                    "currency": "INR",
+                    "status": "captured"
+                }
+            }
+        }
+    }
+
+    # First event
+    resp1 = await client.post("/api/v1/payments/webhook", json=payload)
+    assert resp1.status_code == 200
+    assert resp1.json()["status"] == "success"
+
+    # Duplicate / replay of same event
+    resp2 = await client.post("/api/v1/payments/webhook", json=payload)
+    assert resp2.status_code == 200
+    assert resp2.json()["status"] == "duplicate_event_ignored"
+
+    # Out of order webhook event (e.g. refund arrived before capture log)
+    out_of_order_evt = f"evt_out_{uuid.uuid4().hex[:10]}"
+    out_payload = {
+        "event_id": out_of_order_evt,
+        "event": "refund.processed",
+        "entity": "event",
+        "payload": {"refund": {"id": f"rfnd_{uuid.uuid4().hex[:8]}", "amount": 25000}}
+    }
+    resp3 = await client.post("/api/v1/payments/webhook", json=out_payload)
+    assert resp3.status_code == 200
+    assert resp3.json()["status"] == "success"
+
+
+@pytest.mark.asyncio
+async def test_paid_after_expiry_triggers_automatic_refund(client: AsyncClient):
+    """
+    Payments Task 2 & Security Gate:
+    Paid-after-expiry triggers 410 GONE and automatic full refund record.
+    """
+    target_seat = "A08"
+    showtime_id = 1
+    async with AsyncSessionLocal() as db:
+        await db.execute(delete(BookingSeat).where(BookingSeat.showtime_id == showtime_id, BookingSeat.seat_id == target_seat))
+        await db.execute(
+            update(SeatInventory)
+            .where(SeatInventory.showtime_id == showtime_id, SeatInventory.seat_id == target_seat)
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
+        )
+        await db.commit()
+
+    hold_resp = await client.post(f"/api/v1/bookings/hold?showtime_id={showtime_id}", json={"seat_ids": [target_seat]})
+    assert hold_resp.status_code == 200
+    hold_id = hold_resp.json()["hold_id"]
+
+    bkg_resp = await client.post(
+        "/api/v1/bookings/create",
+        json={
+            "showtime_id": showtime_id,
+            "hold_id": hold_id,
+            "seat_ids": [target_seat],
+            "addons": [],
+            "contact_email": "expiry_refund@cineverse.in",
+            "contact_phone": "9812345678"
+        }
+    )
+    assert bkg_resp.status_code == 200
+    bkg_id = bkg_resp.json()["id"]
+
+    order_resp = await client.post("/api/v1/payments/create-order", json={"booking_id": bkg_id})
+    order_id = order_resp.json()["order_id"]
+    pay_id = f"pay_{uuid.uuid4().hex[:10]}"
+    valid_sig = hmac.new(settings.RAZORPAY_KEY_SECRET.encode("utf-8"), f"{order_id}|{pay_id}".encode("utf-8"), hashlib.sha256).hexdigest()
+
+    # Artificially expire the hold in database before payment verification
+    async with AsyncSessionLocal() as db:
+        await db.execute(
+            update(SeatInventory)
+            .where(SeatInventory.showtime_id == showtime_id, SeatInventory.seat_id == target_seat)
+            .values(hold_expires_at=datetime.utcnow() - timedelta(minutes=10))
+        )
+        await db.commit()
+
+    # Attempt payment verification after expiry
+    verify_resp = await client.post(
+        "/api/v1/payments/verify",
+        json={
+            "booking_id": bkg_id,
+            "razorpay_order_id": order_id,
+            "razorpay_payment_id": pay_id,
+            "razorpay_signature": valid_sig
+        }
+    )
+    assert verify_resp.status_code == 410
+    assert "PAID_AFTER_EXPIRY" in verify_resp.json()["detail"]
+
+    # Verify refund was recorded
+    async with AsyncSessionLocal() as db:
+        res = await db.execute(select(Payment).where(Payment.booking_id == bkg_id))
+        payment = res.scalars().first()
+        assert payment.status == PaymentStatusEnum.REFUNDED
+
+
+@pytest.mark.asyncio
+async def test_webhook_forged_signature_rejected(client: AsyncClient):
+    """FIX-01: Webhook with forged signature header is rejected with 400."""
+    payload = {"event_id": f"evt_forged_{uuid.uuid4().hex[:8]}", "event": "payment.captured"}
+    import json
+    body_bytes = json.dumps(payload).encode("utf-8")
+    resp = await client.post(
+        "/api/v1/payments/webhook",
+        content=body_bytes,
+        headers={"X-Razorpay-Signature": "invalid_forged_sig_deadbeef", "Content-Type": "application/json"}
+    )
+    assert resp.status_code == 400
+    assert "Invalid webhook signature" in resp.text

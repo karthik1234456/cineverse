@@ -1,5 +1,6 @@
-// app/checkout/page.tsx
 'use client';
+
+import Script from 'next/script';
 
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
@@ -105,19 +106,67 @@ function CheckoutContent() {
         contact_phone: phone,
       });
 
-      // 2. Create Razorpay order
+      // 2. Server creates official Razorpay order with server-computed amount
       const order = await createRazorpayOrder(booking.id);
 
-      // 3. Verify Payment (using Razorpay test mode signature)
-      const confirmedBooking = await verifyPayment({
-        booking_id: booking.id,
-        razorpay_order_id: order.order_id,
-        razorpay_payment_id: `pay_test_${Date.now()}`,
-        razorpay_signature: 'test_signature_valid',
-      });
-
-      // 4. Redirect to confirmation ticket page
-      router.push(`/booking/${confirmedBooking.id}`);
+      // 3. Launch Razorpay Standard Checkout in test mode
+      // If Razorpay SDK is loaded in window, open its modal; otherwise fallback to test flow with client-side verification
+      const win = typeof window !== 'undefined' ? (window as any) : null;
+      if (win && win.Razorpay) {
+        const rzp = new win.Razorpay({
+          key: order.key_id || 'rzp_test_cineverse123',
+          amount: Math.round(order.amount * 100),
+          currency: order.currency || 'INR',
+          name: 'CineVerse India',
+          description: `Booking ${booking.booking_code}`,
+          order_id: order.order_id,
+          prefill: {
+            email: email,
+            contact: phone,
+          },
+          theme: {
+            color: '#E50914',
+          },
+          handler: async function (response: any) {
+            try {
+              const confirmedBooking = await verifyPayment({
+                booking_id: booking.id,
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+              });
+              router.push(`/booking/${confirmedBooking.id}`);
+            } catch (err: any) {
+              setGeneralError(err.message || 'Signature verification failed.');
+              setIsProcessing(false);
+            }
+          },
+          modal: {
+            ondismiss: function () {
+              setIsProcessing(false);
+            },
+          },
+        });
+        rzp.open();
+      } else {
+        // Fallback when script is offline or in CI automation where Razorpay script is mocked:
+        // Query backend verification endpoint directly with order
+        const fallbackResp = await fetch(`/api/v1/payments/verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            booking_id: booking.id,
+            razorpay_order_id: order.order_id,
+            razorpay_payment_id: `pay_test_${Date.now()}`,
+            razorpay_signature: '', // Rejected unless signed
+          }),
+        });
+        if (!fallbackResp.ok) {
+          const data = await fallbackResp.json().catch(() => ({}));
+          throw new Error(data.detail || 'Razorpay Checkout modal could not be loaded.');
+        }
+        router.push(`/booking/${booking.id}`);
+      }
     } catch (err: any) {
       console.error('Checkout error:', err);
       setGeneralError(err.message || 'Payment processing failed. Please try again.');
@@ -126,7 +175,9 @@ function CheckoutContent() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 w-full text-white">
+    <>
+      <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 w-full text-white">
       {/* Back button */}
       <div className="mb-6">
         <Link
@@ -233,9 +284,9 @@ function CheckoutContent() {
               </div>
               <span
                 data-testid="payment-stub-badge"
-                className="rounded bg-amber-500/20 px-2.5 py-0.5 text-[10px] font-bold text-amber-300 border border-amber-500/40"
+                className="rounded bg-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300 border border-emerald-500/40"
               >
-                [Phase 4 Stub] Payment Gateway Preview
+                Razorpay Test Mode
               </span>
             </div>
 
@@ -361,11 +412,11 @@ function CheckoutContent() {
               {isProcessing ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Authorizing Checkout (Phase 4)...</span>
+                  <span>Connecting to Razorpay...</span>
                 </>
               ) : (
                 <>
-                  <span>Complete Checkout (Phase 4 Stub) • ₹{grandTotal.toFixed(2)}</span>
+                  <span>Pay ₹{grandTotal.toFixed(2)} with Razorpay</span>
                 </>
               )}
             </button>
@@ -373,6 +424,7 @@ function CheckoutContent() {
         </div>
       </div>
     </div>
+    </>
   );
 }
 
