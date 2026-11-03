@@ -3,7 +3,7 @@ import path from 'path';
 
 export default defineConfig({
   test: {
-    include: ['lib/**/*.test.ts'],
+    include: ['lib/**/*.test.ts', 'tests/unit/seatMapLayout.test.ts'],
     exclude: ['e2e/**/*', 'node_modules/**/*'],
     alias: {
       '@': path.resolve(__dirname, './'),

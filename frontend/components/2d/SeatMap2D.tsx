@@ -12,6 +12,7 @@ import { useSeatSocket } from '@/hooks/useSeatSocket';
 import { holdSeats, getShowtimeSeats, type ShowtimeSeatsResponse } from '@/services/api';
 import { FnbAddonModal } from '@/components/FnbAddonModal';
 import layoutData from '@/public/models/seat_layout_v2.json';
+import { buildSeatMapLayout } from '@/lib/seatMapLayout';
 import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
 
 interface SeatMap2DProps {
@@ -76,7 +77,7 @@ export function SeatMap2D({
       .catch((err) => console.warn('Showtime load notice:', err));
   }, [showtimeNum]);
 
-  // Layout parsing
+  // Layout parsing via authoritative geometric seatMapLayout
   const seatsList = useMemo(() => (layoutData as unknown as SeatLayoutFile).seats || [], []);
   const seatMap = useMemo(() => {
     const map = new Map<string, SeatRecord>();
@@ -86,20 +87,23 @@ export function SeatMap2D({
     return map;
   }, [seatsList]);
 
-  // Group seats by rows: J to A
+  // Derive geometric layout: seat 01 on audience left, aisle gap detection
+  const layout2D = useMemo(() => {
+    return buildSeatMapLayout(seatsList as any);
+  }, [seatsList]);
+
+  // Group seats by rows: J (back) to A (front)
   const rows = useMemo(() => ['J', 'I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'], []);
   const rowSeats = useMemo(() => {
     const map: Record<string, SeatRecord[]> = {};
     for (const r of rows) map[r] = [];
-    for (const s of seatsList) {
-      const r = s.seat_id[0];
-      if (map[r]) map[r].push(s);
-    }
-    for (const r of rows) {
-      map[r].sort((a, b) => a.number - b.number);
+    // Populate rows based on geometry from layout2D
+    for (const mapRow of layout2D.rows) {
+      const r = mapRow.row;
+      map[r] = mapRow.seats.map((ms) => seatMap.get(ms.seat_id)!).filter(Boolean);
     }
     return map;
-  }, [seatsList, rows]);
+  }, [layout2D, seatMap, rows]);
 
   // Categories mapping
   const categoryTiers = [
