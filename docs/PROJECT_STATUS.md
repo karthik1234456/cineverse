@@ -10,3 +10,6 @@
 | 7 Admin | not started | | |
 | 8 Hardening | not started | | |
 | 9 Voice agent | not started | | |
+| 10 Group booking | not started | | |
+| 11 Smart seats and pricing | not started | | |
+| 12 Venue operations | not started | | |

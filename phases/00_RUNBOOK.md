@@ -11,6 +11,12 @@
 8. Hardening and deployment
 9. Voice agent (can start after Phase 5, ideally after Phase 6; must pass before final hardening sign-off if you want it in the first release)
 
+10. Group booking: shared seat picking and split payment (after Phase 7)
+11. Smart seats and pricing: best-seat engine, heatmap, view estimates, waitlist, dynamic pricing (after Phase 7)
+12. Venue operations: onboarding tool, entry scanning, at-seat orders, membership, ticket transfer (after Phase 7)
+
+Phases 10 to 12 are independent of each other; do them in the order that matters most to your launch. Run Phase 8 hardening again after any of them ships.
+
 Mobile app comes after Phase 8, once 3D has been measured on real phones.
 
 ## Companion specs
