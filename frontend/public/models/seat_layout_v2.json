@@ -1,0 +1,3758 @@
+{
+  "version": 2,
+  "generated_from": "cineverse_auditorium_v2.glb (derived, not measured)",
+  "coordinate_system": "glTF Y-up, right-handed. Screen at z~-1.25; audience at more negative Z. Seats face +Z (toward the screen). Viewer's right is -X. Three.js camera: use lookAt(screen centre); do not assume the default -Z forward.",
+  "numbering": "seat_id number = 11 - node_name number. Seat 01 is on the audience LEFT (x=+6), seat 10 on the RIGHT (x=-6). Always map by node_name.",
+  "units": {
+    "scene_unit": "model unit",
+    "unit_to_meters_estimate": 0.43,
+    "note": "ESTIMATE from seat width (1.28u ~ 0.55m). Distances in m are approximate."
+  },
+  "auditorium": {
+    "bounds_min": [
+      -11.11,
+      -0.57,
+      0.11
+    ],
+    "note": "Interior approx x[-11,11], y[0,11.06], z[-25.7,-0.3]"
+  },
+  "screen": {
+    "center_gltf_y_up": [
+      0.0,
+      5.55,
+      -1.255
+    ],
+    "width": 15.6,
+    "height": 7.25,
+    "aspect": 2.152,
+    "mesh": "cinema_screen_surface"
+  },
+  "eye_model": {
+    "cushion_top_above_seat_min_units": 0.8,
+    "eye_above_cushion_m": 0.65,
+    "eye_forward_of_backrest_units": 0.45,
+    "disclaimer": "Geometric estimate for a seated adult. Not a measurement of a physical cinema. No obstruction (heads, rails) is modelled."
+  },
+  "categories": {
+    "front": {
+      "label": "Front",
+      "rows": "ABC",
+      "price": 150,
+      "color": "#c9a227"
+    },
+    "prime": {
+      "label": "Prime",
+      "rows": "DEFG",
+      "price": 250,
+      "color": "#4f8cff"
+    },
+    "premier": {
+      "label": "Premier",
+      "rows": "HIJ",
+      "price": 350,
+      "color": "#b04fff"
+    }
+  },
+  "seats": [
+    {
+      "seat_id": "A01",
+      "node_name": "seat_A_10",
+      "node_number": 10,
+      "row": "A",
+      "number": 1,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        6.0,
+        1.365,
+        -8.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          5.36,
+          0.37,
+          -8.524
+        ],
+        "max": [
+          6.64,
+          2.36,
+          -7.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        6.0,
+        2.682,
+        -8.074
+      ],
+      "screen_distance": 9.525,
+      "screen_distance_m_est": 4.1,
+      "horizontal_offset_deg": 41.34,
+      "vertical_angle_deg": 17.53,
+      "screen_h_fov_deg": 97.7,
+      "screen_v_fov_deg": 56.0
+    },
+    {
+      "seat_id": "A02",
+      "node_name": "seat_A_09",
+      "node_number": 9,
+      "row": "A",
+      "number": 2,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        4.8,
+        1.365,
+        -8.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          4.16,
+          0.37,
+          -8.524
+        ],
+        "max": [
+          5.44,
+          2.36,
+          -7.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        4.8,
+        2.682,
+        -8.074
+      ],
+      "screen_distance": 8.819,
+      "screen_distance_m_est": 3.79,
+      "horizontal_offset_deg": 35.14,
+      "vertical_angle_deg": 18.98,
+      "screen_h_fov_deg": 97.7,
+      "screen_v_fov_deg": 56.0
+    },
+    {
+      "seat_id": "A03",
+      "node_name": "seat_A_08",
+      "node_number": 8,
+      "row": "A",
+      "number": 3,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        3.6,
+        1.365,
+        -8.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          2.96,
+          0.37,
+          -8.524
+        ],
+        "max": [
+          4.24,
+          2.36,
+          -7.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        3.6,
+        2.682,
+        -8.074
+      ],
+      "screen_distance": 8.227,
+      "screen_distance_m_est": 3.54,
+      "horizontal_offset_deg": 27.83,
+      "vertical_angle_deg": 20.4,
+      "screen_h_fov_deg": 97.7,
+      "screen_v_fov_deg": 56.0
+    },
+    {
+      "seat_id": "A04",
+      "node_name": "seat_A_07",
+      "node_number": 7,
+      "row": "A",
+      "number": 4,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        2.4,
+        1.365,
+        -8.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          1.76,
+          0.37,
+          -8.524
+        ],
+        "max": [
+          3.04,
+          2.36,
+          -7.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        2.4,
+        2.682,
+        -8.074
+      ],
+      "screen_distance": 7.777,
+      "screen_distance_m_est": 3.34,
+      "horizontal_offset_deg": 19.39,
+      "vertical_angle_deg": 21.64,
+      "screen_h_fov_deg": 97.7,
+      "screen_v_fov_deg": 56.0
+    },
+    {
+      "seat_id": "A05",
+      "node_name": "seat_A_06",
+      "node_number": 6,
+      "row": "A",
+      "number": 5,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        1.2,
+        1.365,
+        -8.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          0.56,
+          0.37,
+          -8.524
+        ],
+        "max": [
+          1.84,
+          2.36,
+          -7.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        1.2,
+        2.682,
+        -8.074
+      ],
+      "screen_distance": 7.494,
+      "screen_distance_m_est": 3.22,
+      "horizontal_offset_deg": 9.98,
+      "vertical_angle_deg": 22.5,
+      "screen_h_fov_deg": 97.7,
+      "screen_v_fov_deg": 56.0
+    },
+    {
+      "seat_id": "A06",
+      "node_name": "seat_A_05",
+      "node_number": 5,
+      "row": "A",
+      "number": 6,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -1.2,
+        1.365,
+        -8.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -1.84,
+          0.37,
+          -8.524
+        ],
+        "max": [
+          -0.56,
+          2.36,
+          -7.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -1.2,
+        2.682,
+        -8.074
+      ],
+      "screen_distance": 7.494,
+      "screen_distance_m_est": 3.22,
+      "horizontal_offset_deg": -9.98,
+      "vertical_angle_deg": 22.5,
+      "screen_h_fov_deg": 97.7,
+      "screen_v_fov_deg": 56.0
+    },
+    {
+      "seat_id": "A07",
+      "node_name": "seat_A_04",
+      "node_number": 4,
+      "row": "A",
+      "number": 7,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -2.4,
+        1.365,
+        -8.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -3.04,
+          0.37,
+          -8.524
+        ],
+        "max": [
+          -1.76,
+          2.36,
+          -7.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -2.4,
+        2.682,
+        -8.074
+      ],
+      "screen_distance": 7.777,
+      "screen_distance_m_est": 3.34,
+      "horizontal_offset_deg": -19.39,
+      "vertical_angle_deg": 21.64,
+      "screen_h_fov_deg": 97.7,
+      "screen_v_fov_deg": 56.0
+    },
+    {
+      "seat_id": "A08",
+      "node_name": "seat_A_03",
+      "node_number": 3,
+      "row": "A",
+      "number": 8,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -3.6,
+        1.365,
+        -8.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -4.24,
+          0.37,
+          -8.524
+        ],
+        "max": [
+          -2.96,
+          2.36,
+          -7.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -3.6,
+        2.682,
+        -8.074
+      ],
+      "screen_distance": 8.227,
+      "screen_distance_m_est": 3.54,
+      "horizontal_offset_deg": -27.83,
+      "vertical_angle_deg": 20.4,
+      "screen_h_fov_deg": 97.7,
+      "screen_v_fov_deg": 56.0
+    },
+    {
+      "seat_id": "A09",
+      "node_name": "seat_A_02",
+      "node_number": 2,
+      "row": "A",
+      "number": 9,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -4.8,
+        1.365,
+        -8.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -5.44,
+          0.37,
+          -8.524
+        ],
+        "max": [
+          -4.16,
+          2.36,
+          -7.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -4.8,
+        2.682,
+        -8.074
+      ],
+      "screen_distance": 8.819,
+      "screen_distance_m_est": 3.79,
+      "horizontal_offset_deg": -35.14,
+      "vertical_angle_deg": 18.98,
+      "screen_h_fov_deg": 97.7,
+      "screen_v_fov_deg": 56.0
+    },
+    {
+      "seat_id": "A10",
+      "node_name": "seat_A_01",
+      "node_number": 1,
+      "row": "A",
+      "number": 10,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -6.0,
+        1.365,
+        -8.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -6.64,
+          0.37,
+          -8.524
+        ],
+        "max": [
+          -5.36,
+          2.36,
+          -7.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -6.0,
+        2.682,
+        -8.074
+      ],
+      "screen_distance": 9.525,
+      "screen_distance_m_est": 4.1,
+      "horizontal_offset_deg": -41.34,
+      "vertical_angle_deg": 17.53,
+      "screen_h_fov_deg": 97.7,
+      "screen_v_fov_deg": 56.0
+    },
+    {
+      "seat_id": "B01",
+      "node_name": "seat_B_10",
+      "node_number": 10,
+      "row": "B",
+      "number": 1,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        6.0,
+        1.585,
+        -9.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          5.36,
+          0.59,
+          -10.024
+        ],
+        "max": [
+          6.64,
+          2.58,
+          -9.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        6.0,
+        2.902,
+        -9.574
+      ],
+      "screen_distance": 10.593,
+      "screen_distance_m_est": 4.56,
+      "horizontal_offset_deg": 35.8,
+      "vertical_angle_deg": 14.48,
+      "screen_h_fov_deg": 86.3,
+      "screen_v_fov_deg": 47.1
+    },
+    {
+      "seat_id": "B02",
+      "node_name": "seat_B_09",
+      "node_number": 9,
+      "row": "B",
+      "number": 2,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        4.8,
+        1.585,
+        -9.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          4.16,
+          0.59,
+          -10.024
+        ],
+        "max": [
+          5.44,
+          2.58,
+          -9.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        4.8,
+        2.902,
+        -9.574
+      ],
+      "screen_distance": 9.963,
+      "screen_distance_m_est": 4.28,
+      "horizontal_offset_deg": 29.98,
+      "vertical_angle_deg": 15.42,
+      "screen_h_fov_deg": 86.3,
+      "screen_v_fov_deg": 47.1
+    },
+    {
+      "seat_id": "B03",
+      "node_name": "seat_B_08",
+      "node_number": 8,
+      "row": "B",
+      "number": 3,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        3.6,
+        1.585,
+        -9.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          2.96,
+          0.59,
+          -10.024
+        ],
+        "max": [
+          4.24,
+          2.58,
+          -9.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        3.6,
+        2.902,
+        -9.574
+      ],
+      "screen_distance": 9.444,
+      "screen_distance_m_est": 4.06,
+      "horizontal_offset_deg": 23.4,
+      "vertical_angle_deg": 16.29,
+      "screen_h_fov_deg": 86.3,
+      "screen_v_fov_deg": 47.1
+    },
+    {
+      "seat_id": "B04",
+      "node_name": "seat_B_07",
+      "node_number": 7,
+      "row": "B",
+      "number": 4,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        2.4,
+        1.585,
+        -9.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          1.76,
+          0.59,
+          -10.024
+        ],
+        "max": [
+          3.04,
+          2.58,
+          -9.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        2.4,
+        2.902,
+        -9.574
+      ],
+      "screen_distance": 9.054,
+      "screen_distance_m_est": 3.89,
+      "horizontal_offset_deg": 16.09,
+      "vertical_angle_deg": 17.01,
+      "screen_h_fov_deg": 86.3,
+      "screen_v_fov_deg": 47.1
+    },
+    {
+      "seat_id": "B05",
+      "node_name": "seat_B_06",
+      "node_number": 6,
+      "row": "B",
+      "number": 5,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        1.2,
+        1.585,
+        -9.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          0.56,
+          0.59,
+          -10.024
+        ],
+        "max": [
+          1.84,
+          2.58,
+          -9.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        1.2,
+        2.902,
+        -9.574
+      ],
+      "screen_distance": 8.813,
+      "screen_distance_m_est": 3.79,
+      "horizontal_offset_deg": 8.21,
+      "vertical_angle_deg": 17.49,
+      "screen_h_fov_deg": 86.3,
+      "screen_v_fov_deg": 47.1
+    },
+    {
+      "seat_id": "B06",
+      "node_name": "seat_B_05",
+      "node_number": 5,
+      "row": "B",
+      "number": 6,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -1.2,
+        1.585,
+        -9.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -1.84,
+          0.59,
+          -10.024
+        ],
+        "max": [
+          -0.56,
+          2.58,
+          -9.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -1.2,
+        2.902,
+        -9.574
+      ],
+      "screen_distance": 8.813,
+      "screen_distance_m_est": 3.79,
+      "horizontal_offset_deg": -8.21,
+      "vertical_angle_deg": 17.49,
+      "screen_h_fov_deg": 86.3,
+      "screen_v_fov_deg": 47.1
+    },
+    {
+      "seat_id": "B07",
+      "node_name": "seat_B_04",
+      "node_number": 4,
+      "row": "B",
+      "number": 7,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -2.4,
+        1.585,
+        -9.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -3.04,
+          0.59,
+          -10.024
+        ],
+        "max": [
+          -1.76,
+          2.58,
+          -9.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -2.4,
+        2.902,
+        -9.574
+      ],
+      "screen_distance": 9.054,
+      "screen_distance_m_est": 3.89,
+      "horizontal_offset_deg": -16.09,
+      "vertical_angle_deg": 17.01,
+      "screen_h_fov_deg": 86.3,
+      "screen_v_fov_deg": 47.1
+    },
+    {
+      "seat_id": "B08",
+      "node_name": "seat_B_03",
+      "node_number": 3,
+      "row": "B",
+      "number": 8,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -3.6,
+        1.585,
+        -9.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -4.24,
+          0.59,
+          -10.024
+        ],
+        "max": [
+          -2.96,
+          2.58,
+          -9.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -3.6,
+        2.902,
+        -9.574
+      ],
+      "screen_distance": 9.444,
+      "screen_distance_m_est": 4.06,
+      "horizontal_offset_deg": -23.4,
+      "vertical_angle_deg": 16.29,
+      "screen_h_fov_deg": 86.3,
+      "screen_v_fov_deg": 47.1
+    },
+    {
+      "seat_id": "B09",
+      "node_name": "seat_B_02",
+      "node_number": 2,
+      "row": "B",
+      "number": 9,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -4.8,
+        1.585,
+        -9.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -5.44,
+          0.59,
+          -10.024
+        ],
+        "max": [
+          -4.16,
+          2.58,
+          -9.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -4.8,
+        2.902,
+        -9.574
+      ],
+      "screen_distance": 9.963,
+      "screen_distance_m_est": 4.28,
+      "horizontal_offset_deg": -29.98,
+      "vertical_angle_deg": 15.42,
+      "screen_h_fov_deg": 86.3,
+      "screen_v_fov_deg": 47.1
+    },
+    {
+      "seat_id": "B10",
+      "node_name": "seat_B_01",
+      "node_number": 1,
+      "row": "B",
+      "number": 10,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -6.0,
+        1.585,
+        -9.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -6.64,
+          0.59,
+          -10.024
+        ],
+        "max": [
+          -5.36,
+          2.58,
+          -9.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -6.0,
+        2.902,
+        -9.574
+      ],
+      "screen_distance": 10.593,
+      "screen_distance_m_est": 4.56,
+      "horizontal_offset_deg": -35.8,
+      "vertical_angle_deg": 14.48,
+      "screen_h_fov_deg": 86.3,
+      "screen_v_fov_deg": 47.1
+    },
+    {
+      "seat_id": "C01",
+      "node_name": "seat_C_10",
+      "node_number": 10,
+      "row": "C",
+      "number": 1,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        6.0,
+        1.805,
+        -11.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          5.36,
+          0.81,
+          -11.524
+        ],
+        "max": [
+          6.64,
+          2.8,
+          -10.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        6.0,
+        3.122,
+        -11.074
+      ],
+      "screen_distance": 11.761,
+      "screen_distance_m_est": 5.06,
+      "horizontal_offset_deg": 31.43,
+      "vertical_angle_deg": 11.92,
+      "screen_h_fov_deg": 76.9,
+      "screen_v_fov_deg": 40.5
+    },
+    {
+      "seat_id": "C02",
+      "node_name": "seat_C_09",
+      "node_number": 9,
+      "row": "C",
+      "number": 2,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        4.8,
+        1.805,
+        -11.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          4.16,
+          0.81,
+          -11.524
+        ],
+        "max": [
+          5.44,
+          2.8,
+          -10.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        4.8,
+        3.122,
+        -11.074
+      ],
+      "screen_distance": 11.196,
+      "screen_distance_m_est": 4.81,
+      "horizontal_offset_deg": 26.05,
+      "vertical_angle_deg": 12.53,
+      "screen_h_fov_deg": 76.9,
+      "screen_v_fov_deg": 40.5
+    },
+    {
+      "seat_id": "C03",
+      "node_name": "seat_C_08",
+      "node_number": 8,
+      "row": "C",
+      "number": 3,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        3.6,
+        1.805,
+        -11.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          2.96,
+          0.81,
+          -11.524
+        ],
+        "max": [
+          4.24,
+          2.8,
+          -10.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        3.6,
+        3.122,
+        -11.074
+      ],
+      "screen_distance": 10.736,
+      "screen_distance_m_est": 4.62,
+      "horizontal_offset_deg": 20.13,
+      "vertical_angle_deg": 13.07,
+      "screen_h_fov_deg": 76.9,
+      "screen_v_fov_deg": 40.5
+    },
+    {
+      "seat_id": "C04",
+      "node_name": "seat_C_07",
+      "node_number": 7,
+      "row": "C",
+      "number": 4,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        2.4,
+        1.805,
+        -11.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          1.76,
+          0.81,
+          -11.524
+        ],
+        "max": [
+          3.04,
+          2.8,
+          -10.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        2.4,
+        3.122,
+        -11.074
+      ],
+      "screen_distance": 10.396,
+      "screen_distance_m_est": 4.47,
+      "horizontal_offset_deg": 13.74,
+      "vertical_angle_deg": 13.51,
+      "screen_h_fov_deg": 76.9,
+      "screen_v_fov_deg": 40.5
+    },
+    {
+      "seat_id": "C05",
+      "node_name": "seat_C_06",
+      "node_number": 6,
+      "row": "C",
+      "number": 5,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        1.2,
+        1.805,
+        -11.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          0.56,
+          0.81,
+          -11.524
+        ],
+        "max": [
+          1.84,
+          2.8,
+          -10.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        1.2,
+        3.122,
+        -11.074
+      ],
+      "screen_distance": 10.186,
+      "screen_distance_m_est": 4.38,
+      "horizontal_offset_deg": 6.97,
+      "vertical_angle_deg": 13.79,
+      "screen_h_fov_deg": 76.9,
+      "screen_v_fov_deg": 40.5
+    },
+    {
+      "seat_id": "C06",
+      "node_name": "seat_C_05",
+      "node_number": 5,
+      "row": "C",
+      "number": 6,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -1.2,
+        1.805,
+        -11.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -1.84,
+          0.81,
+          -11.524
+        ],
+        "max": [
+          -0.56,
+          2.8,
+          -10.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -1.2,
+        3.122,
+        -11.074
+      ],
+      "screen_distance": 10.186,
+      "screen_distance_m_est": 4.38,
+      "horizontal_offset_deg": -6.97,
+      "vertical_angle_deg": 13.79,
+      "screen_h_fov_deg": 76.9,
+      "screen_v_fov_deg": 40.5
+    },
+    {
+      "seat_id": "C07",
+      "node_name": "seat_C_04",
+      "node_number": 4,
+      "row": "C",
+      "number": 7,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -2.4,
+        1.805,
+        -11.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -3.04,
+          0.81,
+          -11.524
+        ],
+        "max": [
+          -1.76,
+          2.8,
+          -10.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -2.4,
+        3.122,
+        -11.074
+      ],
+      "screen_distance": 10.396,
+      "screen_distance_m_est": 4.47,
+      "horizontal_offset_deg": -13.74,
+      "vertical_angle_deg": 13.51,
+      "screen_h_fov_deg": 76.9,
+      "screen_v_fov_deg": 40.5
+    },
+    {
+      "seat_id": "C08",
+      "node_name": "seat_C_03",
+      "node_number": 3,
+      "row": "C",
+      "number": 8,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -3.6,
+        1.805,
+        -11.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -4.24,
+          0.81,
+          -11.524
+        ],
+        "max": [
+          -2.96,
+          2.8,
+          -10.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -3.6,
+        3.122,
+        -11.074
+      ],
+      "screen_distance": 10.736,
+      "screen_distance_m_est": 4.62,
+      "horizontal_offset_deg": -20.13,
+      "vertical_angle_deg": 13.07,
+      "screen_h_fov_deg": 76.9,
+      "screen_v_fov_deg": 40.5
+    },
+    {
+      "seat_id": "C09",
+      "node_name": "seat_C_02",
+      "node_number": 2,
+      "row": "C",
+      "number": 9,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -4.8,
+        1.805,
+        -11.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -5.44,
+          0.81,
+          -11.524
+        ],
+        "max": [
+          -4.16,
+          2.8,
+          -10.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -4.8,
+        3.122,
+        -11.074
+      ],
+      "screen_distance": 11.196,
+      "screen_distance_m_est": 4.81,
+      "horizontal_offset_deg": -26.05,
+      "vertical_angle_deg": 12.53,
+      "screen_h_fov_deg": 76.9,
+      "screen_v_fov_deg": 40.5
+    },
+    {
+      "seat_id": "C10",
+      "node_name": "seat_C_01",
+      "node_number": 1,
+      "row": "C",
+      "number": 10,
+      "category": "front",
+      "price": 150,
+      "position_gltf_y_up": [
+        -6.0,
+        1.805,
+        -11.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -6.64,
+          0.81,
+          -11.524
+        ],
+        "max": [
+          -5.36,
+          2.8,
+          -10.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -6.0,
+        3.122,
+        -11.074
+      ],
+      "screen_distance": 11.761,
+      "screen_distance_m_est": 5.06,
+      "horizontal_offset_deg": -31.43,
+      "vertical_angle_deg": 11.92,
+      "screen_h_fov_deg": 76.9,
+      "screen_v_fov_deg": 40.5
+    },
+    {
+      "seat_id": "D01",
+      "node_name": "seat_D_10",
+      "node_number": 10,
+      "row": "D",
+      "number": 1,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        6.0,
+        2.025,
+        -12.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          5.36,
+          1.03,
+          -13.024
+        ],
+        "max": [
+          6.64,
+          3.02,
+          -12.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        6.0,
+        3.342,
+        -12.574
+      ],
+      "screen_distance": 13.0,
+      "screen_distance_m_est": 5.59,
+      "horizontal_offset_deg": 27.93,
+      "vertical_angle_deg": 9.78,
+      "screen_h_fov_deg": 69.1,
+      "screen_v_fov_deg": 35.5
+    },
+    {
+      "seat_id": "D02",
+      "node_name": "seat_D_09",
+      "node_number": 9,
+      "row": "D",
+      "number": 2,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        4.8,
+        2.025,
+        -12.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          4.16,
+          1.03,
+          -13.024
+        ],
+        "max": [
+          5.44,
+          3.02,
+          -12.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        4.8,
+        3.342,
+        -12.574
+      ],
+      "screen_distance": 12.492,
+      "screen_distance_m_est": 5.37,
+      "horizontal_offset_deg": 22.98,
+      "vertical_angle_deg": 10.18,
+      "screen_h_fov_deg": 69.1,
+      "screen_v_fov_deg": 35.5
+    },
+    {
+      "seat_id": "D03",
+      "node_name": "seat_D_08",
+      "node_number": 8,
+      "row": "D",
+      "number": 3,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        3.6,
+        2.025,
+        -12.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          2.96,
+          1.03,
+          -13.024
+        ],
+        "max": [
+          4.24,
+          3.02,
+          -12.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        3.6,
+        3.342,
+        -12.574
+      ],
+      "screen_distance": 12.081,
+      "screen_distance_m_est": 5.19,
+      "horizontal_offset_deg": 17.64,
+      "vertical_angle_deg": 10.53,
+      "screen_h_fov_deg": 69.1,
+      "screen_v_fov_deg": 35.5
+    },
+    {
+      "seat_id": "D04",
+      "node_name": "seat_D_07",
+      "node_number": 7,
+      "row": "D",
+      "number": 4,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        2.4,
+        2.025,
+        -12.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          1.76,
+          1.03,
+          -13.024
+        ],
+        "max": [
+          3.04,
+          3.02,
+          -12.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        2.4,
+        3.342,
+        -12.574
+      ],
+      "screen_distance": 11.78,
+      "screen_distance_m_est": 5.07,
+      "horizontal_offset_deg": 11.97,
+      "vertical_angle_deg": 10.81,
+      "screen_h_fov_deg": 69.1,
+      "screen_v_fov_deg": 35.5
+    },
+    {
+      "seat_id": "D05",
+      "node_name": "seat_D_06",
+      "node_number": 6,
+      "row": "D",
+      "number": 5,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        1.2,
+        2.025,
+        -12.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          0.56,
+          1.03,
+          -13.024
+        ],
+        "max": [
+          1.84,
+          3.02,
+          -12.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        1.2,
+        3.342,
+        -12.574
+      ],
+      "screen_distance": 11.595,
+      "screen_distance_m_est": 4.99,
+      "horizontal_offset_deg": 6.05,
+      "vertical_angle_deg": 10.98,
+      "screen_h_fov_deg": 69.1,
+      "screen_v_fov_deg": 35.5
+    },
+    {
+      "seat_id": "D06",
+      "node_name": "seat_D_05",
+      "node_number": 5,
+      "row": "D",
+      "number": 6,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -1.2,
+        2.025,
+        -12.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -1.84,
+          1.03,
+          -13.024
+        ],
+        "max": [
+          -0.56,
+          3.02,
+          -12.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -1.2,
+        3.342,
+        -12.574
+      ],
+      "screen_distance": 11.595,
+      "screen_distance_m_est": 4.99,
+      "horizontal_offset_deg": -6.05,
+      "vertical_angle_deg": 10.98,
+      "screen_h_fov_deg": 69.1,
+      "screen_v_fov_deg": 35.5
+    },
+    {
+      "seat_id": "D07",
+      "node_name": "seat_D_04",
+      "node_number": 4,
+      "row": "D",
+      "number": 7,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -2.4,
+        2.025,
+        -12.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -3.04,
+          1.03,
+          -13.024
+        ],
+        "max": [
+          -1.76,
+          3.02,
+          -12.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -2.4,
+        3.342,
+        -12.574
+      ],
+      "screen_distance": 11.78,
+      "screen_distance_m_est": 5.07,
+      "horizontal_offset_deg": -11.97,
+      "vertical_angle_deg": 10.81,
+      "screen_h_fov_deg": 69.1,
+      "screen_v_fov_deg": 35.5
+    },
+    {
+      "seat_id": "D08",
+      "node_name": "seat_D_03",
+      "node_number": 3,
+      "row": "D",
+      "number": 8,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -3.6,
+        2.025,
+        -12.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -4.24,
+          1.03,
+          -13.024
+        ],
+        "max": [
+          -2.96,
+          3.02,
+          -12.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -3.6,
+        3.342,
+        -12.574
+      ],
+      "screen_distance": 12.081,
+      "screen_distance_m_est": 5.19,
+      "horizontal_offset_deg": -17.64,
+      "vertical_angle_deg": 10.53,
+      "screen_h_fov_deg": 69.1,
+      "screen_v_fov_deg": 35.5
+    },
+    {
+      "seat_id": "D09",
+      "node_name": "seat_D_02",
+      "node_number": 2,
+      "row": "D",
+      "number": 9,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -4.8,
+        2.025,
+        -12.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -5.44,
+          1.03,
+          -13.024
+        ],
+        "max": [
+          -4.16,
+          3.02,
+          -12.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -4.8,
+        3.342,
+        -12.574
+      ],
+      "screen_distance": 12.492,
+      "screen_distance_m_est": 5.37,
+      "horizontal_offset_deg": -22.98,
+      "vertical_angle_deg": 10.18,
+      "screen_h_fov_deg": 69.1,
+      "screen_v_fov_deg": 35.5
+    },
+    {
+      "seat_id": "D10",
+      "node_name": "seat_D_01",
+      "node_number": 1,
+      "row": "D",
+      "number": 10,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -6.0,
+        2.025,
+        -12.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -6.64,
+          1.03,
+          -13.024
+        ],
+        "max": [
+          -5.36,
+          3.02,
+          -12.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -6.0,
+        3.342,
+        -12.574
+      ],
+      "screen_distance": 13.0,
+      "screen_distance_m_est": 5.59,
+      "horizontal_offset_deg": -27.93,
+      "vertical_angle_deg": 9.78,
+      "screen_h_fov_deg": 69.1,
+      "screen_v_fov_deg": 35.5
+    },
+    {
+      "seat_id": "E01",
+      "node_name": "seat_E_10",
+      "node_number": 10,
+      "row": "E",
+      "number": 1,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        6.0,
+        2.245,
+        -14.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          5.36,
+          1.25,
+          -14.524
+        ],
+        "max": [
+          6.64,
+          3.24,
+          -13.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        6.0,
+        3.562,
+        -14.074
+      ],
+      "screen_distance": 14.293,
+      "screen_distance_m_est": 6.15,
+      "horizontal_offset_deg": 25.08,
+      "vertical_angle_deg": 8.0,
+      "screen_h_fov_deg": 62.6,
+      "screen_v_fov_deg": 31.6
+    },
+    {
+      "seat_id": "E02",
+      "node_name": "seat_E_09",
+      "node_number": 9,
+      "row": "E",
+      "number": 2,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        4.8,
+        2.245,
+        -14.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          4.16,
+          1.25,
+          -14.524
+        ],
+        "max": [
+          5.44,
+          3.24,
+          -13.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        4.8,
+        3.562,
+        -14.074
+      ],
+      "screen_distance": 13.832,
+      "screen_distance_m_est": 5.95,
+      "horizontal_offset_deg": 20.53,
+      "vertical_angle_deg": 8.27,
+      "screen_h_fov_deg": 62.6,
+      "screen_v_fov_deg": 31.6
+    },
+    {
+      "seat_id": "E03",
+      "node_name": "seat_E_08",
+      "node_number": 8,
+      "row": "E",
+      "number": 3,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        3.6,
+        2.245,
+        -14.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          2.96,
+          1.25,
+          -14.524
+        ],
+        "max": [
+          4.24,
+          3.24,
+          -13.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        3.6,
+        3.562,
+        -14.074
+      ],
+      "screen_distance": 13.463,
+      "screen_distance_m_est": 5.79,
+      "horizontal_offset_deg": 15.69,
+      "vertical_angle_deg": 8.49,
+      "screen_h_fov_deg": 62.6,
+      "screen_v_fov_deg": 31.6
+    },
+    {
+      "seat_id": "E04",
+      "node_name": "seat_E_07",
+      "node_number": 7,
+      "row": "E",
+      "number": 4,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        2.4,
+        2.245,
+        -14.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          1.76,
+          1.25,
+          -14.524
+        ],
+        "max": [
+          3.04,
+          3.24,
+          -13.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        2.4,
+        3.562,
+        -14.074
+      ],
+      "screen_distance": 13.192,
+      "screen_distance_m_est": 5.67,
+      "horizontal_offset_deg": 10.6,
+      "vertical_angle_deg": 8.67,
+      "screen_h_fov_deg": 62.6,
+      "screen_v_fov_deg": 31.6
+    },
+    {
+      "seat_id": "E05",
+      "node_name": "seat_E_06",
+      "node_number": 6,
+      "row": "E",
+      "number": 5,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        1.2,
+        2.245,
+        -14.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          0.56,
+          1.25,
+          -14.524
+        ],
+        "max": [
+          1.84,
+          3.24,
+          -13.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        1.2,
+        3.562,
+        -14.074
+      ],
+      "screen_distance": 13.028,
+      "screen_distance_m_est": 5.6,
+      "horizontal_offset_deg": 5.35,
+      "vertical_angle_deg": 8.78,
+      "screen_h_fov_deg": 62.6,
+      "screen_v_fov_deg": 31.6
+    },
+    {
+      "seat_id": "E06",
+      "node_name": "seat_E_05",
+      "node_number": 5,
+      "row": "E",
+      "number": 6,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -1.2,
+        2.245,
+        -14.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -1.84,
+          1.25,
+          -14.524
+        ],
+        "max": [
+          -0.56,
+          3.24,
+          -13.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -1.2,
+        3.562,
+        -14.074
+      ],
+      "screen_distance": 13.028,
+      "screen_distance_m_est": 5.6,
+      "horizontal_offset_deg": -5.35,
+      "vertical_angle_deg": 8.78,
+      "screen_h_fov_deg": 62.6,
+      "screen_v_fov_deg": 31.6
+    },
+    {
+      "seat_id": "E07",
+      "node_name": "seat_E_04",
+      "node_number": 4,
+      "row": "E",
+      "number": 7,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -2.4,
+        2.245,
+        -14.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -3.04,
+          1.25,
+          -14.524
+        ],
+        "max": [
+          -1.76,
+          3.24,
+          -13.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -2.4,
+        3.562,
+        -14.074
+      ],
+      "screen_distance": 13.192,
+      "screen_distance_m_est": 5.67,
+      "horizontal_offset_deg": -10.6,
+      "vertical_angle_deg": 8.67,
+      "screen_h_fov_deg": 62.6,
+      "screen_v_fov_deg": 31.6
+    },
+    {
+      "seat_id": "E08",
+      "node_name": "seat_E_03",
+      "node_number": 3,
+      "row": "E",
+      "number": 8,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -3.6,
+        2.245,
+        -14.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -4.24,
+          1.25,
+          -14.524
+        ],
+        "max": [
+          -2.96,
+          3.24,
+          -13.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -3.6,
+        3.562,
+        -14.074
+      ],
+      "screen_distance": 13.463,
+      "screen_distance_m_est": 5.79,
+      "horizontal_offset_deg": -15.69,
+      "vertical_angle_deg": 8.49,
+      "screen_h_fov_deg": 62.6,
+      "screen_v_fov_deg": 31.6
+    },
+    {
+      "seat_id": "E09",
+      "node_name": "seat_E_02",
+      "node_number": 2,
+      "row": "E",
+      "number": 9,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -4.8,
+        2.245,
+        -14.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -5.44,
+          1.25,
+          -14.524
+        ],
+        "max": [
+          -4.16,
+          3.24,
+          -13.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -4.8,
+        3.562,
+        -14.074
+      ],
+      "screen_distance": 13.832,
+      "screen_distance_m_est": 5.95,
+      "horizontal_offset_deg": -20.53,
+      "vertical_angle_deg": 8.27,
+      "screen_h_fov_deg": 62.6,
+      "screen_v_fov_deg": 31.6
+    },
+    {
+      "seat_id": "E10",
+      "node_name": "seat_E_01",
+      "node_number": 1,
+      "row": "E",
+      "number": 10,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -6.0,
+        2.245,
+        -14.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -6.64,
+          1.25,
+          -14.524
+        ],
+        "max": [
+          -5.36,
+          3.24,
+          -13.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -6.0,
+        3.562,
+        -14.074
+      ],
+      "screen_distance": 14.293,
+      "screen_distance_m_est": 6.15,
+      "horizontal_offset_deg": -25.08,
+      "vertical_angle_deg": 8.0,
+      "screen_h_fov_deg": 62.6,
+      "screen_v_fov_deg": 31.6
+    },
+    {
+      "seat_id": "F01",
+      "node_name": "seat_F_10",
+      "node_number": 10,
+      "row": "F",
+      "number": 1,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        6.0,
+        2.465,
+        -15.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          5.36,
+          1.47,
+          -16.024
+        ],
+        "max": [
+          6.64,
+          3.46,
+          -15.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        6.0,
+        3.782,
+        -15.574
+      ],
+      "screen_distance": 15.626,
+      "screen_distance_m_est": 6.72,
+      "horizontal_offset_deg": 22.73,
+      "vertical_angle_deg": 6.5,
+      "screen_h_fov_deg": 57.2,
+      "screen_v_fov_deg": 28.4
+    },
+    {
+      "seat_id": "F02",
+      "node_name": "seat_F_09",
+      "node_number": 9,
+      "row": "F",
+      "number": 2,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        4.8,
+        2.465,
+        -15.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          4.16,
+          1.47,
+          -16.024
+        ],
+        "max": [
+          5.44,
+          3.46,
+          -15.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        4.8,
+        3.782,
+        -15.574
+      ],
+      "screen_distance": 15.205,
+      "screen_distance_m_est": 6.54,
+      "horizontal_offset_deg": 18.53,
+      "vertical_angle_deg": 6.68,
+      "screen_h_fov_deg": 57.2,
+      "screen_v_fov_deg": 28.4
+    },
+    {
+      "seat_id": "F03",
+      "node_name": "seat_F_08",
+      "node_number": 8,
+      "row": "F",
+      "number": 3,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        3.6,
+        2.465,
+        -15.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          2.96,
+          1.47,
+          -16.024
+        ],
+        "max": [
+          4.24,
+          3.46,
+          -15.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        3.6,
+        3.782,
+        -15.574
+      ],
+      "screen_distance": 14.87,
+      "screen_distance_m_est": 6.39,
+      "horizontal_offset_deg": 14.11,
+      "vertical_angle_deg": 6.83,
+      "screen_h_fov_deg": 57.2,
+      "screen_v_fov_deg": 28.4
+    },
+    {
+      "seat_id": "F04",
+      "node_name": "seat_F_07",
+      "node_number": 7,
+      "row": "F",
+      "number": 4,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        2.4,
+        2.465,
+        -15.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          1.76,
+          1.47,
+          -16.024
+        ],
+        "max": [
+          3.04,
+          3.46,
+          -15.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        2.4,
+        3.782,
+        -15.574
+      ],
+      "screen_distance": 14.626,
+      "screen_distance_m_est": 6.29,
+      "horizontal_offset_deg": 9.51,
+      "vertical_angle_deg": 6.94,
+      "screen_h_fov_deg": 57.2,
+      "screen_v_fov_deg": 28.4
+    },
+    {
+      "seat_id": "F05",
+      "node_name": "seat_F_06",
+      "node_number": 6,
+      "row": "F",
+      "number": 5,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        1.2,
+        2.465,
+        -15.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          0.56,
+          1.47,
+          -16.024
+        ],
+        "max": [
+          1.84,
+          3.46,
+          -15.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        1.2,
+        3.782,
+        -15.574
+      ],
+      "screen_distance": 14.478,
+      "screen_distance_m_est": 6.23,
+      "horizontal_offset_deg": 4.79,
+      "vertical_angle_deg": 7.02,
+      "screen_h_fov_deg": 57.2,
+      "screen_v_fov_deg": 28.4
+    },
+    {
+      "seat_id": "F06",
+      "node_name": "seat_F_05",
+      "node_number": 5,
+      "row": "F",
+      "number": 6,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -1.2,
+        2.465,
+        -15.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -1.84,
+          1.47,
+          -16.024
+        ],
+        "max": [
+          -0.56,
+          3.46,
+          -15.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -1.2,
+        3.782,
+        -15.574
+      ],
+      "screen_distance": 14.478,
+      "screen_distance_m_est": 6.23,
+      "horizontal_offset_deg": -4.79,
+      "vertical_angle_deg": 7.02,
+      "screen_h_fov_deg": 57.2,
+      "screen_v_fov_deg": 28.4
+    },
+    {
+      "seat_id": "F07",
+      "node_name": "seat_F_04",
+      "node_number": 4,
+      "row": "F",
+      "number": 7,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -2.4,
+        2.465,
+        -15.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -3.04,
+          1.47,
+          -16.024
+        ],
+        "max": [
+          -1.76,
+          3.46,
+          -15.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -2.4,
+        3.782,
+        -15.574
+      ],
+      "screen_distance": 14.626,
+      "screen_distance_m_est": 6.29,
+      "horizontal_offset_deg": -9.51,
+      "vertical_angle_deg": 6.94,
+      "screen_h_fov_deg": 57.2,
+      "screen_v_fov_deg": 28.4
+    },
+    {
+      "seat_id": "F08",
+      "node_name": "seat_F_03",
+      "node_number": 3,
+      "row": "F",
+      "number": 8,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -3.6,
+        2.465,
+        -15.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -4.24,
+          1.47,
+          -16.024
+        ],
+        "max": [
+          -2.96,
+          3.46,
+          -15.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -3.6,
+        3.782,
+        -15.574
+      ],
+      "screen_distance": 14.87,
+      "screen_distance_m_est": 6.39,
+      "horizontal_offset_deg": -14.11,
+      "vertical_angle_deg": 6.83,
+      "screen_h_fov_deg": 57.2,
+      "screen_v_fov_deg": 28.4
+    },
+    {
+      "seat_id": "F09",
+      "node_name": "seat_F_02",
+      "node_number": 2,
+      "row": "F",
+      "number": 9,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -4.8,
+        2.465,
+        -15.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -5.44,
+          1.47,
+          -16.024
+        ],
+        "max": [
+          -4.16,
+          3.46,
+          -15.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -4.8,
+        3.782,
+        -15.574
+      ],
+      "screen_distance": 15.205,
+      "screen_distance_m_est": 6.54,
+      "horizontal_offset_deg": -18.53,
+      "vertical_angle_deg": 6.68,
+      "screen_h_fov_deg": 57.2,
+      "screen_v_fov_deg": 28.4
+    },
+    {
+      "seat_id": "F10",
+      "node_name": "seat_F_01",
+      "node_number": 1,
+      "row": "F",
+      "number": 10,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -6.0,
+        2.465,
+        -15.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -6.64,
+          1.47,
+          -16.024
+        ],
+        "max": [
+          -5.36,
+          3.46,
+          -15.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -6.0,
+        3.782,
+        -15.574
+      ],
+      "screen_distance": 15.626,
+      "screen_distance_m_est": 6.72,
+      "horizontal_offset_deg": -22.73,
+      "vertical_angle_deg": 6.5,
+      "screen_h_fov_deg": 57.2,
+      "screen_v_fov_deg": 28.4
+    },
+    {
+      "seat_id": "G01",
+      "node_name": "seat_G_10",
+      "node_number": 10,
+      "row": "G",
+      "number": 1,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        6.0,
+        2.685,
+        -17.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          5.36,
+          1.69,
+          -17.524
+        ],
+        "max": [
+          6.64,
+          3.68,
+          -16.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        6.0,
+        4.002,
+        -17.074
+      ],
+      "screen_distance": 16.989,
+      "screen_distance_m_est": 7.31,
+      "horizontal_offset_deg": 20.77,
+      "vertical_angle_deg": 5.23,
+      "screen_h_fov_deg": 52.5,
+      "screen_v_fov_deg": 25.8
+    },
+    {
+      "seat_id": "G02",
+      "node_name": "seat_G_09",
+      "node_number": 9,
+      "row": "G",
+      "number": 2,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        4.8,
+        2.685,
+        -17.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          4.16,
+          1.69,
+          -17.524
+        ],
+        "max": [
+          5.44,
+          3.68,
+          -16.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        4.8,
+        4.002,
+        -17.074
+      ],
+      "screen_distance": 16.604,
+      "screen_distance_m_est": 7.14,
+      "horizontal_offset_deg": 16.88,
+      "vertical_angle_deg": 5.35,
+      "screen_h_fov_deg": 52.5,
+      "screen_v_fov_deg": 25.8
+    },
+    {
+      "seat_id": "G03",
+      "node_name": "seat_G_08",
+      "node_number": 8,
+      "row": "G",
+      "number": 3,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        3.6,
+        2.685,
+        -17.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          2.96,
+          1.69,
+          -17.524
+        ],
+        "max": [
+          4.24,
+          3.68,
+          -16.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        3.6,
+        4.002,
+        -17.074
+      ],
+      "screen_distance": 16.297,
+      "screen_distance_m_est": 7.01,
+      "horizontal_offset_deg": 12.82,
+      "vertical_angle_deg": 5.45,
+      "screen_h_fov_deg": 52.5,
+      "screen_v_fov_deg": 25.8
+    },
+    {
+      "seat_id": "G04",
+      "node_name": "seat_G_07",
+      "node_number": 7,
+      "row": "G",
+      "number": 4,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        2.4,
+        2.685,
+        -17.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          1.76,
+          1.69,
+          -17.524
+        ],
+        "max": [
+          3.04,
+          3.68,
+          -16.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        2.4,
+        4.002,
+        -17.074
+      ],
+      "screen_distance": 16.075,
+      "screen_distance_m_est": 6.91,
+      "horizontal_offset_deg": 8.63,
+      "vertical_angle_deg": 5.53,
+      "screen_h_fov_deg": 52.5,
+      "screen_v_fov_deg": 25.8
+    },
+    {
+      "seat_id": "G05",
+      "node_name": "seat_G_06",
+      "node_number": 6,
+      "row": "G",
+      "number": 5,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        1.2,
+        2.685,
+        -17.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          0.56,
+          1.69,
+          -17.524
+        ],
+        "max": [
+          1.84,
+          3.68,
+          -16.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        1.2,
+        4.002,
+        -17.074
+      ],
+      "screen_distance": 15.94,
+      "screen_distance_m_est": 6.85,
+      "horizontal_offset_deg": 4.34,
+      "vertical_angle_deg": 5.57,
+      "screen_h_fov_deg": 52.5,
+      "screen_v_fov_deg": 25.8
+    },
+    {
+      "seat_id": "G06",
+      "node_name": "seat_G_05",
+      "node_number": 5,
+      "row": "G",
+      "number": 6,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -1.2,
+        2.685,
+        -17.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -1.84,
+          1.69,
+          -17.524
+        ],
+        "max": [
+          -0.56,
+          3.68,
+          -16.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -1.2,
+        4.002,
+        -17.074
+      ],
+      "screen_distance": 15.94,
+      "screen_distance_m_est": 6.85,
+      "horizontal_offset_deg": -4.34,
+      "vertical_angle_deg": 5.57,
+      "screen_h_fov_deg": 52.5,
+      "screen_v_fov_deg": 25.8
+    },
+    {
+      "seat_id": "G07",
+      "node_name": "seat_G_04",
+      "node_number": 4,
+      "row": "G",
+      "number": 7,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -2.4,
+        2.685,
+        -17.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -3.04,
+          1.69,
+          -17.524
+        ],
+        "max": [
+          -1.76,
+          3.68,
+          -16.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -2.4,
+        4.002,
+        -17.074
+      ],
+      "screen_distance": 16.075,
+      "screen_distance_m_est": 6.91,
+      "horizontal_offset_deg": -8.63,
+      "vertical_angle_deg": 5.53,
+      "screen_h_fov_deg": 52.5,
+      "screen_v_fov_deg": 25.8
+    },
+    {
+      "seat_id": "G08",
+      "node_name": "seat_G_03",
+      "node_number": 3,
+      "row": "G",
+      "number": 8,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -3.6,
+        2.685,
+        -17.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -4.24,
+          1.69,
+          -17.524
+        ],
+        "max": [
+          -2.96,
+          3.68,
+          -16.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -3.6,
+        4.002,
+        -17.074
+      ],
+      "screen_distance": 16.297,
+      "screen_distance_m_est": 7.01,
+      "horizontal_offset_deg": -12.82,
+      "vertical_angle_deg": 5.45,
+      "screen_h_fov_deg": 52.5,
+      "screen_v_fov_deg": 25.8
+    },
+    {
+      "seat_id": "G09",
+      "node_name": "seat_G_02",
+      "node_number": 2,
+      "row": "G",
+      "number": 9,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -4.8,
+        2.685,
+        -17.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -5.44,
+          1.69,
+          -17.524
+        ],
+        "max": [
+          -4.16,
+          3.68,
+          -16.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -4.8,
+        4.002,
+        -17.074
+      ],
+      "screen_distance": 16.604,
+      "screen_distance_m_est": 7.14,
+      "horizontal_offset_deg": -16.88,
+      "vertical_angle_deg": 5.35,
+      "screen_h_fov_deg": 52.5,
+      "screen_v_fov_deg": 25.8
+    },
+    {
+      "seat_id": "G10",
+      "node_name": "seat_G_01",
+      "node_number": 1,
+      "row": "G",
+      "number": 10,
+      "category": "prime",
+      "price": 250,
+      "position_gltf_y_up": [
+        -6.0,
+        2.685,
+        -17.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -6.64,
+          1.69,
+          -17.524
+        ],
+        "max": [
+          -5.36,
+          3.68,
+          -16.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -6.0,
+        4.002,
+        -17.074
+      ],
+      "screen_distance": 16.989,
+      "screen_distance_m_est": 7.31,
+      "horizontal_offset_deg": -20.77,
+      "vertical_angle_deg": 5.23,
+      "screen_h_fov_deg": 52.5,
+      "screen_v_fov_deg": 25.8
+    },
+    {
+      "seat_id": "H01",
+      "node_name": "seat_H_10",
+      "node_number": 10,
+      "row": "H",
+      "number": 1,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        6.0,
+        2.905,
+        -18.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          5.36,
+          1.91,
+          -19.024
+        ],
+        "max": [
+          6.64,
+          3.9,
+          -18.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        6.0,
+        4.222,
+        -18.574
+      ],
+      "screen_distance": 18.377,
+      "screen_distance_m_est": 7.9,
+      "horizontal_offset_deg": 19.11,
+      "vertical_angle_deg": 4.15,
+      "screen_h_fov_deg": 48.5,
+      "screen_v_fov_deg": 23.6
+    },
+    {
+      "seat_id": "H02",
+      "node_name": "seat_H_09",
+      "node_number": 9,
+      "row": "H",
+      "number": 2,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        4.8,
+        2.905,
+        -18.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          4.16,
+          1.91,
+          -19.024
+        ],
+        "max": [
+          5.44,
+          3.9,
+          -18.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        4.8,
+        4.222,
+        -18.574
+      ],
+      "screen_distance": 18.021,
+      "screen_distance_m_est": 7.75,
+      "horizontal_offset_deg": 15.49,
+      "vertical_angle_deg": 4.23,
+      "screen_h_fov_deg": 48.5,
+      "screen_v_fov_deg": 23.6
+    },
+    {
+      "seat_id": "H03",
+      "node_name": "seat_H_08",
+      "node_number": 8,
+      "row": "H",
+      "number": 3,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        3.6,
+        2.905,
+        -18.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          2.96,
+          1.91,
+          -19.024
+        ],
+        "max": [
+          4.24,
+          3.9,
+          -18.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        3.6,
+        4.222,
+        -18.574
+      ],
+      "screen_distance": 17.739,
+      "screen_distance_m_est": 7.63,
+      "horizontal_offset_deg": 11.74,
+      "vertical_angle_deg": 4.29,
+      "screen_h_fov_deg": 48.5,
+      "screen_v_fov_deg": 23.6
+    },
+    {
+      "seat_id": "H04",
+      "node_name": "seat_H_07",
+      "node_number": 7,
+      "row": "H",
+      "number": 4,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        2.4,
+        2.905,
+        -18.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          1.76,
+          1.91,
+          -19.024
+        ],
+        "max": [
+          3.04,
+          3.9,
+          -18.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        2.4,
+        4.222,
+        -18.574
+      ],
+      "screen_distance": 17.535,
+      "screen_distance_m_est": 7.54,
+      "horizontal_offset_deg": 7.89,
+      "vertical_angle_deg": 4.34,
+      "screen_h_fov_deg": 48.5,
+      "screen_v_fov_deg": 23.6
+    },
+    {
+      "seat_id": "H05",
+      "node_name": "seat_H_06",
+      "node_number": 6,
+      "row": "H",
+      "number": 5,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        1.2,
+        2.905,
+        -18.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          0.56,
+          1.91,
+          -19.024
+        ],
+        "max": [
+          1.84,
+          3.9,
+          -18.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        1.2,
+        4.222,
+        -18.574
+      ],
+      "screen_distance": 17.411,
+      "screen_distance_m_est": 7.49,
+      "horizontal_offset_deg": 3.96,
+      "vertical_angle_deg": 4.38,
+      "screen_h_fov_deg": 48.5,
+      "screen_v_fov_deg": 23.6
+    },
+    {
+      "seat_id": "H06",
+      "node_name": "seat_H_05",
+      "node_number": 5,
+      "row": "H",
+      "number": 6,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -1.2,
+        2.905,
+        -18.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -1.84,
+          1.91,
+          -19.024
+        ],
+        "max": [
+          -0.56,
+          3.9,
+          -18.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -1.2,
+        4.222,
+        -18.574
+      ],
+      "screen_distance": 17.411,
+      "screen_distance_m_est": 7.49,
+      "horizontal_offset_deg": -3.96,
+      "vertical_angle_deg": 4.38,
+      "screen_h_fov_deg": 48.5,
+      "screen_v_fov_deg": 23.6
+    },
+    {
+      "seat_id": "H07",
+      "node_name": "seat_H_04",
+      "node_number": 4,
+      "row": "H",
+      "number": 7,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -2.4,
+        2.905,
+        -18.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -3.04,
+          1.91,
+          -19.024
+        ],
+        "max": [
+          -1.76,
+          3.9,
+          -18.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -2.4,
+        4.222,
+        -18.574
+      ],
+      "screen_distance": 17.535,
+      "screen_distance_m_est": 7.54,
+      "horizontal_offset_deg": -7.89,
+      "vertical_angle_deg": 4.34,
+      "screen_h_fov_deg": 48.5,
+      "screen_v_fov_deg": 23.6
+    },
+    {
+      "seat_id": "H08",
+      "node_name": "seat_H_03",
+      "node_number": 3,
+      "row": "H",
+      "number": 8,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -3.6,
+        2.905,
+        -18.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -4.24,
+          1.91,
+          -19.024
+        ],
+        "max": [
+          -2.96,
+          3.9,
+          -18.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -3.6,
+        4.222,
+        -18.574
+      ],
+      "screen_distance": 17.739,
+      "screen_distance_m_est": 7.63,
+      "horizontal_offset_deg": -11.74,
+      "vertical_angle_deg": 4.29,
+      "screen_h_fov_deg": 48.5,
+      "screen_v_fov_deg": 23.6
+    },
+    {
+      "seat_id": "H09",
+      "node_name": "seat_H_02",
+      "node_number": 2,
+      "row": "H",
+      "number": 9,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -4.8,
+        2.905,
+        -18.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -5.44,
+          1.91,
+          -19.024
+        ],
+        "max": [
+          -4.16,
+          3.9,
+          -18.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -4.8,
+        4.222,
+        -18.574
+      ],
+      "screen_distance": 18.021,
+      "screen_distance_m_est": 7.75,
+      "horizontal_offset_deg": -15.49,
+      "vertical_angle_deg": 4.23,
+      "screen_h_fov_deg": 48.5,
+      "screen_v_fov_deg": 23.6
+    },
+    {
+      "seat_id": "H10",
+      "node_name": "seat_H_01",
+      "node_number": 1,
+      "row": "H",
+      "number": 10,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -6.0,
+        2.905,
+        -18.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -6.64,
+          1.91,
+          -19.024
+        ],
+        "max": [
+          -5.36,
+          3.9,
+          -18.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -6.0,
+        4.222,
+        -18.574
+      ],
+      "screen_distance": 18.377,
+      "screen_distance_m_est": 7.9,
+      "horizontal_offset_deg": -19.11,
+      "vertical_angle_deg": 4.15,
+      "screen_h_fov_deg": 48.5,
+      "screen_v_fov_deg": 23.6
+    },
+    {
+      "seat_id": "I01",
+      "node_name": "seat_I_10",
+      "node_number": 10,
+      "row": "I",
+      "number": 1,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        6.0,
+        3.125,
+        -20.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          5.36,
+          2.13,
+          -20.524
+        ],
+        "max": [
+          6.64,
+          4.12,
+          -19.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        6.0,
+        4.442,
+        -20.074
+      ],
+      "screen_distance": 19.783,
+      "screen_distance_m_est": 8.51,
+      "horizontal_offset_deg": 17.68,
+      "vertical_angle_deg": 3.21,
+      "screen_h_fov_deg": 45.0,
+      "screen_v_fov_deg": 21.8
+    },
+    {
+      "seat_id": "I02",
+      "node_name": "seat_I_09",
+      "node_number": 9,
+      "row": "I",
+      "number": 2,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        4.8,
+        3.125,
+        -20.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          4.16,
+          2.13,
+          -20.524
+        ],
+        "max": [
+          5.44,
+          4.12,
+          -19.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        4.8,
+        4.442,
+        -20.074
+      ],
+      "screen_distance": 19.453,
+      "screen_distance_m_est": 8.36,
+      "horizontal_offset_deg": 14.31,
+      "vertical_angle_deg": 3.27,
+      "screen_h_fov_deg": 45.0,
+      "screen_v_fov_deg": 21.8
+    },
+    {
+      "seat_id": "I03",
+      "node_name": "seat_I_08",
+      "node_number": 8,
+      "row": "I",
+      "number": 3,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        3.6,
+        3.125,
+        -20.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          2.96,
+          2.13,
+          -20.524
+        ],
+        "max": [
+          4.24,
+          4.12,
+          -19.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        3.6,
+        4.442,
+        -20.074
+      ],
+      "screen_distance": 19.192,
+      "screen_distance_m_est": 8.25,
+      "horizontal_offset_deg": 10.83,
+      "vertical_angle_deg": 3.31,
+      "screen_h_fov_deg": 45.0,
+      "screen_v_fov_deg": 21.8
+    },
+    {
+      "seat_id": "I04",
+      "node_name": "seat_I_07",
+      "node_number": 7,
+      "row": "I",
+      "number": 4,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        2.4,
+        3.125,
+        -20.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          1.76,
+          2.13,
+          -20.524
+        ],
+        "max": [
+          3.04,
+          4.12,
+          -19.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        2.4,
+        4.442,
+        -20.074
+      ],
+      "screen_distance": 19.004,
+      "screen_distance_m_est": 8.17,
+      "horizontal_offset_deg": 7.27,
+      "vertical_angle_deg": 3.34,
+      "screen_h_fov_deg": 45.0,
+      "screen_v_fov_deg": 21.8
+    },
+    {
+      "seat_id": "I05",
+      "node_name": "seat_I_06",
+      "node_number": 6,
+      "row": "I",
+      "number": 5,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        1.2,
+        3.125,
+        -20.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          0.56,
+          2.13,
+          -20.524
+        ],
+        "max": [
+          1.84,
+          4.12,
+          -19.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        1.2,
+        4.442,
+        -20.074
+      ],
+      "screen_distance": 18.89,
+      "screen_distance_m_est": 8.12,
+      "horizontal_offset_deg": 3.65,
+      "vertical_angle_deg": 3.36,
+      "screen_h_fov_deg": 45.0,
+      "screen_v_fov_deg": 21.8
+    },
+    {
+      "seat_id": "I06",
+      "node_name": "seat_I_05",
+      "node_number": 5,
+      "row": "I",
+      "number": 6,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -1.2,
+        3.125,
+        -20.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -1.84,
+          2.13,
+          -20.524
+        ],
+        "max": [
+          -0.56,
+          4.12,
+          -19.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -1.2,
+        4.442,
+        -20.074
+      ],
+      "screen_distance": 18.89,
+      "screen_distance_m_est": 8.12,
+      "horizontal_offset_deg": -3.65,
+      "vertical_angle_deg": 3.36,
+      "screen_h_fov_deg": 45.0,
+      "screen_v_fov_deg": 21.8
+    },
+    {
+      "seat_id": "I07",
+      "node_name": "seat_I_04",
+      "node_number": 4,
+      "row": "I",
+      "number": 7,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -2.4,
+        3.125,
+        -20.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -3.04,
+          2.13,
+          -20.524
+        ],
+        "max": [
+          -1.76,
+          4.12,
+          -19.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -2.4,
+        4.442,
+        -20.074
+      ],
+      "screen_distance": 19.004,
+      "screen_distance_m_est": 8.17,
+      "horizontal_offset_deg": -7.27,
+      "vertical_angle_deg": 3.34,
+      "screen_h_fov_deg": 45.0,
+      "screen_v_fov_deg": 21.8
+    },
+    {
+      "seat_id": "I08",
+      "node_name": "seat_I_03",
+      "node_number": 3,
+      "row": "I",
+      "number": 8,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -3.6,
+        3.125,
+        -20.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -4.24,
+          2.13,
+          -20.524
+        ],
+        "max": [
+          -2.96,
+          4.12,
+          -19.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -3.6,
+        4.442,
+        -20.074
+      ],
+      "screen_distance": 19.192,
+      "screen_distance_m_est": 8.25,
+      "horizontal_offset_deg": -10.83,
+      "vertical_angle_deg": 3.31,
+      "screen_h_fov_deg": 45.0,
+      "screen_v_fov_deg": 21.8
+    },
+    {
+      "seat_id": "I09",
+      "node_name": "seat_I_02",
+      "node_number": 2,
+      "row": "I",
+      "number": 9,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -4.8,
+        3.125,
+        -20.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -5.44,
+          2.13,
+          -20.524
+        ],
+        "max": [
+          -4.16,
+          4.12,
+          -19.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -4.8,
+        4.442,
+        -20.074
+      ],
+      "screen_distance": 19.453,
+      "screen_distance_m_est": 8.36,
+      "horizontal_offset_deg": -14.31,
+      "vertical_angle_deg": 3.27,
+      "screen_h_fov_deg": 45.0,
+      "screen_v_fov_deg": 21.8
+    },
+    {
+      "seat_id": "I10",
+      "node_name": "seat_I_01",
+      "node_number": 1,
+      "row": "I",
+      "number": 10,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -6.0,
+        3.125,
+        -20.032
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -6.64,
+          2.13,
+          -20.524
+        ],
+        "max": [
+          -5.36,
+          4.12,
+          -19.541
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -6.0,
+        4.442,
+        -20.074
+      ],
+      "screen_distance": 19.783,
+      "screen_distance_m_est": 8.51,
+      "horizontal_offset_deg": -17.68,
+      "vertical_angle_deg": 3.21,
+      "screen_h_fov_deg": 45.0,
+      "screen_v_fov_deg": 21.8
+    },
+    {
+      "seat_id": "J01",
+      "node_name": "seat_J_10",
+      "node_number": 10,
+      "row": "J",
+      "number": 1,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        6.0,
+        3.345,
+        -21.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          5.36,
+          2.35,
+          -22.024
+        ],
+        "max": [
+          6.64,
+          4.34,
+          -21.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        6.0,
+        4.662,
+        -21.574
+      ],
+      "screen_distance": 21.205,
+      "screen_distance_m_est": 9.12,
+      "horizontal_offset_deg": 16.45,
+      "vertical_angle_deg": 2.4,
+      "screen_h_fov_deg": 42.0,
+      "screen_v_fov_deg": 20.2
+    },
+    {
+      "seat_id": "J02",
+      "node_name": "seat_J_09",
+      "node_number": 9,
+      "row": "J",
+      "number": 2,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        4.8,
+        3.345,
+        -21.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          4.16,
+          2.35,
+          -22.024
+        ],
+        "max": [
+          5.44,
+          4.34,
+          -21.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        4.8,
+        4.662,
+        -21.574
+      ],
+      "screen_distance": 20.897,
+      "screen_distance_m_est": 8.99,
+      "horizontal_offset_deg": 13.29,
+      "vertical_angle_deg": 2.44,
+      "screen_h_fov_deg": 42.0,
+      "screen_v_fov_deg": 20.2
+    },
+    {
+      "seat_id": "J03",
+      "node_name": "seat_J_08",
+      "node_number": 8,
+      "row": "J",
+      "number": 3,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        3.6,
+        3.345,
+        -21.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          2.96,
+          2.35,
+          -22.024
+        ],
+        "max": [
+          4.24,
+          4.34,
+          -21.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        3.6,
+        4.662,
+        -21.574
+      ],
+      "screen_distance": 20.655,
+      "screen_distance_m_est": 8.88,
+      "horizontal_offset_deg": 10.05,
+      "vertical_angle_deg": 2.47,
+      "screen_h_fov_deg": 42.0,
+      "screen_v_fov_deg": 20.2
+    },
+    {
+      "seat_id": "J04",
+      "node_name": "seat_J_07",
+      "node_number": 7,
+      "row": "J",
+      "number": 4,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        2.4,
+        3.345,
+        -21.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          1.76,
+          2.35,
+          -22.024
+        ],
+        "max": [
+          3.04,
+          4.34,
+          -21.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        2.4,
+        4.662,
+        -21.574
+      ],
+      "screen_distance": 20.48,
+      "screen_distance_m_est": 8.81,
+      "horizontal_offset_deg": 6.74,
+      "vertical_angle_deg": 2.49,
+      "screen_h_fov_deg": 42.0,
+      "screen_v_fov_deg": 20.2
+    },
+    {
+      "seat_id": "J05",
+      "node_name": "seat_J_06",
+      "node_number": 6,
+      "row": "J",
+      "number": 5,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        1.2,
+        3.345,
+        -21.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          0.56,
+          2.35,
+          -22.024
+        ],
+        "max": [
+          1.84,
+          4.34,
+          -21.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        1.2,
+        4.662,
+        -21.574
+      ],
+      "screen_distance": 20.374,
+      "screen_distance_m_est": 8.76,
+      "horizontal_offset_deg": 3.38,
+      "vertical_angle_deg": 2.5,
+      "screen_h_fov_deg": 42.0,
+      "screen_v_fov_deg": 20.2
+    },
+    {
+      "seat_id": "J06",
+      "node_name": "seat_J_05",
+      "node_number": 5,
+      "row": "J",
+      "number": 6,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -1.2,
+        3.345,
+        -21.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -1.84,
+          2.35,
+          -22.024
+        ],
+        "max": [
+          -0.56,
+          4.34,
+          -21.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -1.2,
+        4.662,
+        -21.574
+      ],
+      "screen_distance": 20.374,
+      "screen_distance_m_est": 8.76,
+      "horizontal_offset_deg": -3.38,
+      "vertical_angle_deg": 2.5,
+      "screen_h_fov_deg": 42.0,
+      "screen_v_fov_deg": 20.2
+    },
+    {
+      "seat_id": "J07",
+      "node_name": "seat_J_04",
+      "node_number": 4,
+      "row": "J",
+      "number": 7,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -2.4,
+        3.345,
+        -21.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -3.04,
+          2.35,
+          -22.024
+        ],
+        "max": [
+          -1.76,
+          4.34,
+          -21.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -2.4,
+        4.662,
+        -21.574
+      ],
+      "screen_distance": 20.48,
+      "screen_distance_m_est": 8.81,
+      "horizontal_offset_deg": -6.74,
+      "vertical_angle_deg": 2.49,
+      "screen_h_fov_deg": 42.0,
+      "screen_v_fov_deg": 20.2
+    },
+    {
+      "seat_id": "J08",
+      "node_name": "seat_J_03",
+      "node_number": 3,
+      "row": "J",
+      "number": 8,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -3.6,
+        3.345,
+        -21.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -4.24,
+          2.35,
+          -22.024
+        ],
+        "max": [
+          -2.96,
+          4.34,
+          -21.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -3.6,
+        4.662,
+        -21.574
+      ],
+      "screen_distance": 20.655,
+      "screen_distance_m_est": 8.88,
+      "horizontal_offset_deg": -10.05,
+      "vertical_angle_deg": 2.47,
+      "screen_h_fov_deg": 42.0,
+      "screen_v_fov_deg": 20.2
+    },
+    {
+      "seat_id": "J09",
+      "node_name": "seat_J_02",
+      "node_number": 2,
+      "row": "J",
+      "number": 9,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -4.8,
+        3.345,
+        -21.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -5.44,
+          2.35,
+          -22.024
+        ],
+        "max": [
+          -4.16,
+          4.34,
+          -21.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -4.8,
+        4.662,
+        -21.574
+      ],
+      "screen_distance": 20.897,
+      "screen_distance_m_est": 8.99,
+      "horizontal_offset_deg": -13.29,
+      "vertical_angle_deg": 2.44,
+      "screen_h_fov_deg": 42.0,
+      "screen_v_fov_deg": 20.2
+    },
+    {
+      "seat_id": "J10",
+      "node_name": "seat_J_01",
+      "node_number": 1,
+      "row": "J",
+      "number": 10,
+      "category": "premier",
+      "price": 350,
+      "position_gltf_y_up": [
+        -6.0,
+        3.345,
+        -21.532
+      ],
+      "bounds_gltf_y_up": {
+        "min": [
+          -6.64,
+          2.35,
+          -22.024
+        ],
+        "max": [
+          -5.36,
+          4.34,
+          -21.041
+        ]
+      },
+      "eye_position_gltf_y_up": [
+        -6.0,
+        4.662,
+        -21.574
+      ],
+      "screen_distance": 21.205,
+      "screen_distance_m_est": 9.12,
+      "horizontal_offset_deg": -16.45,
+      "vertical_angle_deg": 2.4,
+      "screen_h_fov_deg": 42.0,
+      "screen_v_fov_deg": 20.2
+    }
+  ]
+}
