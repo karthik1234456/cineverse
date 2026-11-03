@@ -43,6 +43,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "font-src 'self' data:",
               "frame-src 'self' https://api.razorpay.com https://www.youtube.com https://www.youtube-nocookie.com",
+              "media-src 'self' blob: data: https://commondatastorage.googleapis.com https://*.storage.googleapis.com",
               "worker-src 'self' blob:",
             ].join('; '),
           },

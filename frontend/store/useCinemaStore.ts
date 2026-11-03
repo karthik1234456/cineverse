@@ -7,10 +7,36 @@ import type {
   QualityTier,
   CineverseStateExport,
 } from '@/lib/types';
+import layoutData from '@/public/models/seat_layout_v2.json';
+import walkNavData from '@/public/models/walk_nav_v2.json';
 
 export const MAX_SELECTED_SEATS = 8;
 export const DEFAULT_CAMERA_POS: [number, number, number] = [6.5, 8.5, -23.0];
 export const DEFAULT_CAMERA_TARGET: [number, number, number] = [0.0, 5.55, -1.255];
+
+export interface WalkPlayerState {
+  position: [number, number, number];
+  eyeHeight: number;
+  yaw: number;
+  pitch: number;
+  isRunning: boolean;
+  isGrounded: boolean;
+}
+
+export interface WalkSettings {
+  sensitivity: number;
+  invertY: boolean;
+  fov: number;
+  headBob: boolean;
+}
+
+export interface TrailerState {
+  isPlaying: boolean;
+  isMuted: boolean;
+  volume: number;
+  trailerUrl: string;
+  hasSpill: boolean;
+}
 
 export interface CinemaState {
   // Seat state
@@ -19,8 +45,9 @@ export interface CinemaState {
   activeSeatId: string | null;
   hoveredSeatId: string | null;
 
-  // Camera & Navigation
-  cameraMode: CameraMode;
+  // Camera & 3-Mode Navigation (§5b)
+  mode: 'overview' | 'walk' | 'seated';
+  cameraMode: CameraMode; // backwards compatible mirror
   cameraPreset: CameraPreset;
   cameraPosition: [number, number, number];
   cameraTarget: [number, number, number];
@@ -28,7 +55,15 @@ export interface CinemaState {
     position: [number, number, number];
     target: [number, number, number];
   };
-  fov: number; // 50 | 60 | 75
+  fov: number; // 50 | 60 | 70 | 75
+
+  // First-person Walk state
+  walkPlayer: WalkPlayerState;
+  walkSettings: WalkSettings;
+  autoWalkTarget: string | null; // seatId for scripted walk-to-seat
+
+  // Cinema Screen Trailer (§5c)
+  trailer: TrailerState;
 
   // Environment & Realism
   houseLights: HouseLightsMode;
@@ -61,10 +96,25 @@ export interface CinemaState {
   setActiveSeat: (seatId: string | null) => void;
   setHoveredSeat: (seatId: string | null) => void;
 
+  // Mode and Camera actions
+  setMode: (mode: 'overview' | 'walk' | 'seated') => void;
   setCameraMode: (mode: CameraMode) => void;
   setCameraPreset: (preset: CameraPreset) => void;
   setCameraPose: (position: [number, number, number], target: [number, number, number]) => void;
   setFOV: (fov: number) => void;
+
+  // First-Person Walk & Seated actions (§5b)
+  sitAt: (seatId: string) => void;
+  standUp: () => void;
+  walkToSeat: (seatId: string) => void;
+  teleportToRow: (row: string) => void;
+  updateWalkPose: (pos: [number, number, number], eyeHeight: number, yaw: number, pitch: number) => void;
+  setWalkSettings: (settings: Partial<WalkSettings>) => void;
+
+  // Trailer controls (§5c)
+  setTrailerState: (state: Partial<TrailerState>) => void;
+  toggleTrailerPlay: () => void;
+  toggleTrailerMute: () => void;
 
   enterPOV: (seatId: string) => void;
   exitPOV: () => void;
@@ -93,6 +143,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   activeSeatId: 'F05',
   hoveredSeatId: null,
 
+  mode: 'overview',
   cameraMode: 'orbit',
   cameraPreset: 'overview',
   cameraPosition: DEFAULT_CAMERA_POS,
@@ -102,6 +153,32 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     target: DEFAULT_CAMERA_TARGET,
   },
   fov: 60,
+
+  walkPlayer: {
+    position: [0.0, -0.025, -5.5],
+    eyeHeight: 3.77,
+    yaw: Math.PI, // Facing -Z toward seats
+    pitch: 0.0,
+    isRunning: false,
+    isGrounded: true,
+  },
+
+  walkSettings: {
+    sensitivity: 0.0022,
+    invertY: false,
+    fov: 70,
+    headBob: false,
+  },
+
+  autoWalkTarget: null,
+
+  trailer: {
+    isPlaying: true,
+    isMuted: true,
+    volume: 0.75,
+    trailerUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+    hasSpill: true,
+  },
 
   houseLights: 'full',
   qualityTier: 'high',
@@ -132,20 +209,20 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
   selectSeat: (seatId) => {
     const { seatStatuses, selectedSeats, showToast } = get();
-    const currentStatus = seatStatuses[seatId] || 'available';
+    const status = seatStatuses[seatId] || 'available';
 
-    if (currentStatus === 'booked') {
+    if (status === 'booked') {
       showToast(`Seat ${seatId} is already booked.`);
       return false;
     }
 
-    if (currentStatus === 'held') {
-      showToast(`Seat ${seatId} is currently held by another user.`);
+    if (status === 'held') {
+      showToast(`Seat ${seatId} is currently held by another patron.`);
       return false;
     }
 
     if (selectedSeats.includes(seatId)) {
-      return true;
+      return false;
     }
 
     if (selectedSeats.length >= MAX_SELECTED_SEATS) {
@@ -161,9 +238,10 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   },
 
   deselectSeat: (seatId) => {
-    set((state) => ({
-      selectedSeats: state.selectedSeats.filter((id) => id !== seatId),
-    }));
+    const { selectedSeats } = get();
+    set({
+      selectedSeats: selectedSeats.filter((id) => id !== seatId),
+    });
   },
 
   toggleSeat: (seatId) => {
@@ -182,7 +260,36 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
   setHoveredSeat: (seatId) => set({ hoveredSeatId: seatId }),
 
-  setCameraMode: (mode) => set({ cameraMode: mode }),
+  setMode: (mode) => {
+    const currentMode = get().mode;
+    if (currentMode === mode) return;
+
+    if (mode === 'overview') {
+      set({
+        mode: 'overview',
+        cameraMode: 'orbit',
+      });
+    } else if (mode === 'walk') {
+      set({
+        mode: 'walk',
+        cameraMode: 'walk',
+      });
+    } else if (mode === 'seated') {
+      const active = get().activeSeatId || 'E05';
+      get().sitAt(active);
+    }
+  },
+
+  setCameraMode: (camMode) => {
+    if (camMode === 'orbit' || camMode === 'overview') {
+      set({ mode: 'overview', cameraMode: 'orbit' });
+    } else if (camMode === 'pov' || camMode === 'seated') {
+      const active = get().activeSeatId || 'E05';
+      get().sitAt(active);
+    } else if (camMode === 'walk') {
+      set({ mode: 'walk', cameraMode: 'walk' });
+    }
+  },
 
   setCameraPreset: (preset) => {
     let position: [number, number, number] = DEFAULT_CAMERA_POS;
@@ -199,12 +306,12 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
         position = [0.0, 8.5, -24.5];
         break;
       case 'aerial':
-        // Top-down view in real 3D scene (not a 2D diagram)
         position = [0.0, 10.2, -15.0];
         break;
     }
 
     set({
+      mode: 'overview',
       cameraMode: 'orbit',
       cameraPreset: preset,
       cameraPosition: position,
@@ -220,6 +327,106 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
   setFOV: (fov) => set({ fov }),
 
+  // Seated Mode: transitions directly to exact seat eye position
+  sitAt: (seatId) => {
+    const seat = (layoutData as any).seats.find((s: any) => s.seat_id === seatId);
+    if (!seat) return;
+
+    set({
+      mode: 'seated',
+      cameraMode: 'pov',
+      activeSeatId: seatId,
+      autoWalkTarget: null,
+      cameraPosition: seat.eye_position_gltf_y_up,
+      cameraTarget: (layoutData as any).screen.center_gltf_y_up,
+    });
+  },
+
+  // Stand Up: returns to Walk Mode in aisle next to current seat row
+  standUp: () => {
+    const active = get().activeSeatId || 'E05';
+    const row = active.charAt(0);
+    const rowIndex = 'ABCDEFGHIJ'.indexOf(row);
+    const rowZ = -8.85 - (rowIndex >= 0 ? rowIndex : 4) * 1.5;
+    const groundY = 0.22 * (rowIndex >= 0 ? rowIndex : 4);
+
+    set({
+      mode: 'walk',
+      cameraMode: 'walk',
+      walkPlayer: {
+        ...get().walkPlayer,
+        position: [0.0, groundY, rowZ],
+        eyeHeight: 3.77,
+        yaw: 0.0, // facing screen (+Z)
+        pitch: 0.0,
+      },
+    });
+  },
+
+  walkToSeat: (seatId) => {
+    set({
+      autoWalkTarget: seatId,
+      activeSeatId: seatId,
+    });
+  },
+
+  teleportToRow: (row) => {
+    const r = row.toUpperCase();
+    const rowIndex = 'ABCDEFGHIJ'.indexOf(r);
+    if (rowIndex === -1) return;
+
+    const rowZ = -8.85 - rowIndex * 1.5;
+    const groundY = 0.22 * rowIndex;
+
+    set({
+      mode: 'walk',
+      cameraMode: 'walk',
+      walkPlayer: {
+        ...get().walkPlayer,
+        position: [0.0, groundY, rowZ],
+        eyeHeight: 3.77,
+        yaw: 0.0, // facing +Z toward screen
+      },
+    });
+  },
+
+  updateWalkPose: (pos, eyeHeight, yaw, pitch) =>
+    set((state) => ({
+      walkPlayer: {
+        ...state.walkPlayer,
+        position: pos,
+        eyeHeight,
+        yaw,
+        pitch,
+      },
+    })),
+
+  setWalkSettings: (settings) =>
+    set((state) => ({
+      walkSettings: {
+        ...state.walkSettings,
+        ...settings,
+      },
+    })),
+
+  setTrailerState: (state) =>
+    set((s) => ({
+      trailer: {
+        ...s.trailer,
+        ...state,
+      },
+    })),
+
+  toggleTrailerPlay: () =>
+    set((s) => ({
+      trailer: { ...s.trailer, isPlaying: !s.trailer.isPlaying },
+    })),
+
+  toggleTrailerMute: () =>
+    set((s) => ({
+      trailer: { ...s.trailer, isMuted: !s.trailer.isMuted },
+    })),
+
   enterPOV: (seatId) => {
     const currentMode = get().cameraMode;
     const currentPos = get().cameraPosition;
@@ -234,15 +441,13 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
       });
     }
 
-    set({
-      cameraMode: 'pov',
-      activeSeatId: seatId,
-    });
+    get().sitAt(seatId);
   },
 
   exitPOV: () => {
     const prev = get().previousOrbitPose;
     set({
+      mode: 'overview',
       cameraMode: 'orbit',
       cameraPosition: prev.position,
       cameraTarget: prev.target,
@@ -273,7 +478,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
     const newSeatId = `${nextRow}${nextNum.toString().padStart(2, '0')}`;
     if (newSeatId !== activeSeatId) {
-      set({ activeSeatId: newSeatId });
+      get().sitAt(newSeatId);
     }
   },
 
@@ -343,8 +548,13 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
       houseLights: state.houseLights,
       qualityTier: state.qualityTier,
       useHqModel: state.useHqModel,
+      walkPlayer: {
+        position: state.walkPlayer.position,
+        eyeHeight: state.walkPlayer.eyeHeight,
+        yaw: state.walkPlayer.yaw,
+        pitch: state.walkPlayer.pitch,
+      },
       rendererInfo: state.rendererInfo,
     };
   },
 }));
-

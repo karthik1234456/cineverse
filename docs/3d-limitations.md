@@ -28,3 +28,10 @@
 - In Phase 4, the route handler and hook stub will be replaced by FastAPI endpoints and real-time WebSockets with distributed Redis lock management.
 - The checkout button is a clearly labeled next-phase handoff stub routing to `/checkout` with selected seat state; no fake payment transactions occur.
 
+## 6. Walk Mode Rear Exit Door Platform Elevation Gap
+- In the original architectural geometry, the emergency exit doors are located on the rear wall at base floor level ($Y = 0$), whereas Row J sits elevated on tier platform 10 at $Y = 2.20\text{ units}$.
+- Central aisle treads terminate at Row J, leaving an unmodeled elevation drop behind Row J.
+- Walk mode enforces an edge-guard ($0.40\text{u}$ step-down ceiling) to block players from walking off this cliff, spawns players safely at the base of the central aisle (`[0.0, 0.0, -5.5]`), and provides a "Jump to row" menu (`teleportToRow`).
+- Future revisions of `cineverse_auditorium_v2.glb` should model stairs connecting the elevated Row J tier to the rear exit door vestibule.
+
+

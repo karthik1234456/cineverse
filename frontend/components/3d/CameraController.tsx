@@ -4,10 +4,11 @@ import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls } from '@react-three/drei';
 import * as THREE from 'three';
-import { useCinemaStore, DEFAULT_CAMERA_TARGET } from '@/store/useCinemaStore';
+import { useCinemaStore, DEFAULT_CAMERA_TARGET, DEFAULT_CAMERA_POS } from '@/store/useCinemaStore';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import layoutData from '@/public/models/seat_layout_v2.json';
 import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
+import { WalkController } from './WalkController';
 
 // Safe boundary box inside auditorium interior to prevent clipping through geometry
 const AUDITORIUM_BOUNDS = {
@@ -33,12 +34,18 @@ export function CameraController() {
   const { camera, gl } = useThree();
   const controlsRef = useRef<OrbitControlsImpl | null>(null);
 
+  const mode = useCinemaStore((s) => s.mode);
   const cameraMode = useCinemaStore((s) => s.cameraMode);
+  const isOverview = mode === 'overview' || cameraMode === 'orbit';
+  const isSeated = mode === 'seated' || cameraMode === 'pov';
+  const isWalk = mode === 'walk' || cameraMode === 'walk';
+
   const activeSeatId = useCinemaStore((s) => s.activeSeatId);
   const cameraPosition = useCinemaStore((s) => s.cameraPosition);
   const cameraTarget = useCinemaStore((s) => s.cameraTarget);
   const storeFov = useCinemaStore((s) => s.fov);
-  const exitPOV = useCinemaStore((s) => s.exitPOV);
+  const setMode = useCinemaStore((s) => s.setMode);
+  const standUp = useCinemaStore((s) => s.standUp);
   const navigatePOV = useCinemaStore((s) => s.navigatePOV);
   const toggleSeat = useCinemaStore((s) => s.toggleSeat);
   const toggleCompare = useCinemaStore((s) => s.toggleCompare);
@@ -91,10 +98,10 @@ export function CameraController() {
     endFov: 60,
   });
 
-  // POV Look-around offsets
+  // Seated head-look offsets: yaw ±80° (±1.396 rad), pitch ±35° (±0.611 rad)
   const povLook = useRef({
-    yaw: 0, // radians, clamp ±60° (±1.047)
-    pitch: 0, // radians, clamp ±25° (±0.436)
+    yaw: 0,
+    pitch: 0,
     targetYaw: 0,
     targetPitch: 0,
     isDragging: false,
@@ -104,11 +111,10 @@ export function CameraController() {
 
   // Target pose computation
   const targetPose = useMemo(() => {
-    if (cameraMode === 'pov' && activeSeatId) {
+    if (isSeated && activeSeatId) {
       const seat = seatMap.get(activeSeatId);
       if (seat) {
         const eye = new THREE.Vector3(...seat.eye_position_gltf_y_up);
-        // Orientation looking directly at screen centre
         const dummyCam = new THREE.PerspectiveCamera();
         dummyCam.position.copy(eye);
         dummyCam.lookAt(screenCenter);
@@ -123,25 +129,29 @@ export function CameraController() {
       }
     }
 
-    // Orbit mode pose
-    const pos = new THREE.Vector3(...cameraPosition);
-    clampToAuditorium(pos);
-    const tgt = new THREE.Vector3(...cameraTarget);
-    const dummyCam = new THREE.PerspectiveCamera();
-    dummyCam.position.copy(pos);
-    dummyCam.lookAt(tgt);
-    dummyCam.updateMatrix();
+    if (isOverview) {
+      const pos = new THREE.Vector3(...cameraPosition);
+      clampToAuditorium(pos);
+      const tgt = new THREE.Vector3(...cameraTarget);
+      const dummyCam = new THREE.PerspectiveCamera();
+      dummyCam.position.copy(pos);
+      dummyCam.lookAt(tgt);
+      dummyCam.updateMatrix();
 
-    return {
-      position: pos,
-      quaternion: dummyCam.quaternion.clone(),
-      target: tgt,
-      fov: storeFov,
-    };
-  }, [cameraMode, activeSeatId, cameraPosition, cameraTarget, storeFov, seatMap, screenCenter]);
+      return {
+        position: pos,
+        quaternion: dummyCam.quaternion.clone(),
+        target: tgt,
+        fov: storeFov,
+      };
+    }
+
+    return null;
+  }, [isSeated, isOverview, activeSeatId, cameraPosition, cameraTarget, storeFov, seatMap, screenCenter]);
 
   // Initiate transition whenever target pose changes
   useEffect(() => {
+    if (!targetPose || isWalk) return;
     const t = transitionRef.current;
     const persCam = camera as THREE.PerspectiveCamera;
 
@@ -157,7 +167,6 @@ export function CameraController() {
       return;
     }
 
-    // Mid-flight retargeting: start from current camera pose
     t.startPos.copy(persCam.position);
     t.startQuat.copy(persCam.quaternion);
     t.startFov = persCam.fov;
@@ -172,19 +181,19 @@ export function CameraController() {
     t.arcControl.set(mid.x, arcY, mid.z);
 
     t.startTime = performance.now();
-    t.duration = cameraMode === 'pov' ? 1.05 : 0.95;
+    t.duration = isSeated ? 1.05 : 0.95;
     t.active = true;
 
-    // Reset POV look offsets on transition
+    // Reset POV look offsets on seat transition
     povLook.current.yaw = 0;
     povLook.current.pitch = 0;
     povLook.current.targetYaw = 0;
     povLook.current.targetPitch = 0;
-  }, [targetPose, camera, cameraMode, prefersReducedMotion]);
+  }, [targetPose, camera, isSeated, isWalk, prefersReducedMotion]);
 
-  // Pointer drag listeners for POV look-around
+  // Pointer drag listeners for Seated POV look-around
   useEffect(() => {
-    if (cameraMode !== 'pov') return;
+    if (!isSeated) return;
     const dom = gl.domElement;
 
     const onPointerDown = (e: PointerEvent) => {
@@ -202,14 +211,13 @@ export function CameraController() {
       povLook.current.lastX = e.clientX;
       povLook.current.lastY = e.clientY;
 
-      // Sensitivity
       const speed = 0.0035;
       povLook.current.targetYaw -= dx * speed;
       povLook.current.targetPitch -= dy * speed;
 
-      // Yaw limit ±60° (1.047 rad), Pitch limit ±25° (0.436 rad)
-      povLook.current.targetYaw = THREE.MathUtils.clamp(povLook.current.targetYaw, -1.047, 1.047);
-      povLook.current.targetPitch = THREE.MathUtils.clamp(povLook.current.targetPitch, -0.436, 0.436);
+      // Yaw limit ±80° (1.396 rad), Pitch limit ±35° (0.611 rad)
+      povLook.current.targetYaw = THREE.MathUtils.clamp(povLook.current.targetYaw, -1.396, 1.396);
+      povLook.current.targetPitch = THREE.MathUtils.clamp(povLook.current.targetPitch, -0.611, 0.611);
     };
 
     const onPointerUp = () => {
@@ -225,48 +233,92 @@ export function CameraController() {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
     };
-  }, [cameraMode, gl]);
+  }, [isSeated, gl]);
 
-  // Keyboard navigation
+  // Keyboard navigation for Seated & Overview modes (§5b)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore when typing in input/textarea
       if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
 
-      if (e.key === 'Escape') {
-        if (cameraMode === 'pov') {
-          exitPOV();
-        }
-      } else if (e.key === 'ArrowLeft') {
-        if (cameraMode === 'pov') navigatePOV('prev');
-      } else if (e.key === 'ArrowRight') {
-        if (cameraMode === 'pov') navigatePOV('next');
-      } else if (e.key === 'ArrowUp') {
-        if (cameraMode === 'pov') navigatePOV('prevRow');
-      } else if (e.key === 'ArrowDown') {
-        if (cameraMode === 'pov') navigatePOV('nextRow');
-      } else if (e.key.toLowerCase() === 'c') {
+      // Global Compare Toggle (C)
+      if (e.code === 'KeyC') {
         toggleCompare();
-      } else if (e.key === 'Enter') {
-        if (activeSeatId) toggleSeat(activeSeatId);
+        return;
+      }
+
+      if (isSeated) {
+        // Look keys (arrows in Seated mode)
+        if (e.key === 'ArrowLeft') {
+          povLook.current.targetYaw = THREE.MathUtils.clamp(povLook.current.targetYaw + 0.1, -1.396, 1.396);
+        } else if (e.key === 'ArrowRight') {
+          povLook.current.targetYaw = THREE.MathUtils.clamp(povLook.current.targetYaw - 0.1, -1.396, 1.396);
+        } else if (e.key === 'ArrowUp') {
+          povLook.current.targetPitch = THREE.MathUtils.clamp(povLook.current.targetPitch + 0.08, -0.611, 0.611);
+        } else if (e.key === 'ArrowDown') {
+          povLook.current.targetPitch = THREE.MathUtils.clamp(povLook.current.targetPitch - 0.08, -0.611, 0.611);
+        }
+        // Prev/next seat in row (Q / E)
+        else if (e.code === 'KeyQ') {
+          navigatePOV('prev');
+        } else if (e.code === 'KeyE') {
+          navigatePOV('next');
+        }
+        // Row ahead / row behind (Z / X)
+        else if (e.code === 'KeyZ') {
+          navigatePOV('prevRow');
+        } else if (e.code === 'KeyX') {
+          navigatePOV('nextRow');
+        }
+        // Select / deselect (Enter / Space)
+        else if (e.code === 'Enter' || e.code === 'Space') {
+          e.preventDefault();
+          if (activeSeatId) toggleSeat(activeSeatId);
+        }
+        // Compare (C)
+        else if (e.code === 'KeyC') {
+          toggleCompare();
+        }
+        // Recentre (R)
+        else if (e.code === 'KeyR') {
+          povLook.current.targetYaw = 0;
+          povLook.current.targetPitch = 0;
+          povLook.current.yaw = 0;
+          povLook.current.pitch = 0;
+        }
+        // Stand up (Esc / Backspace / F) -> returns to Walk mode at aisle
+        else if (e.key === 'Escape' || e.code === 'Backspace' || e.code === 'KeyF') {
+          e.preventDefault();
+          standUp();
+        }
+        // Switch to Overview (O)
+        else if (e.code === 'KeyO') {
+          setMode('overview');
+        }
+      } else if (isOverview) {
+        // Overview mode controls
+        if (e.code === 'KeyW' || e.code === 'KeyS') {
+          // Switch to Walk mode
+          setMode('walk');
+        }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cameraMode, activeSeatId, exitPOV, navigatePOV, toggleCompare, toggleSeat]);
+  }, [isSeated, isOverview, activeSeatId, standUp, setMode, navigatePOV, toggleCompare, toggleSeat]);
 
-  // Frame tick: animations, slerp, and boundary clamping
+  // Frame tick: transitions, head-look, boundary clamps
   useFrame((_, delta) => {
+    if (isWalk) return; // WalkController handles camera in Walk mode
+
     const persCam = camera as THREE.PerspectiveCamera;
     const t = transitionRef.current;
 
-    if (t.active) {
+    if (t.active && targetPose) {
       const elapsed = (performance.now() - t.startTime) / 1000;
       const progress = Math.min(1, elapsed / t.duration);
       const eased = easeInOutCubic(progress);
 
-      // Bezier curve interpolation for position (rises above seat rows)
       const oneMinus = 1 - eased;
       const pos = new THREE.Vector3()
         .copy(t.startPos)
@@ -276,17 +328,13 @@ export function CameraController() {
 
       clampToAuditorium(pos);
       persCam.position.copy(pos);
-
-      // Quaternion slerp for orientation (never Euler lerp)
       persCam.quaternion.slerpQuaternions(t.startQuat, t.endQuat, eased);
 
-      // FOV animation
       persCam.fov = THREE.MathUtils.lerp(t.startFov, t.endFov, eased);
       persCam.updateProjectionMatrix();
 
       if (progress >= 1) {
         t.active = false;
-        // Snap precisely to target at completion
         persCam.position.copy(targetPose.position);
         persCam.quaternion.copy(targetPose.quaternion);
         persCam.fov = targetPose.fov;
@@ -296,14 +344,13 @@ export function CameraController() {
           controlsRef.current.update();
         }
       }
-    } else if (cameraMode === 'pov') {
-      // Damped look-around in POV mode
+    } else if (isSeated && targetPose) {
+      // Damped head-look in Seated mode
       const look = povLook.current;
       const dampSpeed = Math.min(delta * 12, 1);
       look.yaw = THREE.MathUtils.lerp(look.yaw, look.targetYaw, dampSpeed);
       look.pitch = THREE.MathUtils.lerp(look.pitch, look.targetPitch, dampSpeed);
 
-      // Base orientation looking at screen
       persCam.position.copy(targetPose.position);
       persCam.quaternion.copy(targetPose.quaternion);
 
@@ -313,23 +360,23 @@ export function CameraController() {
 
       persCam.quaternion.premultiply(yawQuat);
       persCam.quaternion.multiply(pitchQuat);
-    } else if (cameraMode === 'orbit') {
-      // Clamp OrbitControls position to auditorium boundaries
+    } else if (isOverview) {
       clampToAuditorium(persCam.position);
     }
   });
 
   return (
     <>
-      {cameraMode === 'orbit' && (
+      {isWalk && <WalkController />}
+      {isOverview && (
         <OrbitControls
           ref={controlsRef}
           enableDamping
           dampingFactor={0.06}
           minDistance={2.5}
           maxDistance={32}
-          maxPolarAngle={Math.PI / 2 - 0.04} // Prevent clipping under floor
-          minPolarAngle={0.08} // Prevent clipping directly above ceiling
+          maxPolarAngle={Math.PI / 2 - 0.04}
+          minPolarAngle={0.08}
           target={DEFAULT_CAMERA_TARGET}
         />
       )}

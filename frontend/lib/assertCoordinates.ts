@@ -68,3 +68,39 @@ export function assertSceneCoordinates(scene: THREE.Object3D, layout: SeatLayout
   }
 }
 
+/**
+ * Validates walk navigation colliders and platforms against GLB scene objects.
+ */
+export function assertWalkNavCoordinates(scene: THREE.Object3D, walkNav: any) {
+  if (process.env.NODE_ENV === 'production') return;
+
+  scene.updateMatrixWorld(true);
+  let warnings = 0;
+
+  for (const surface of walkNav.walkable) {
+    const node = scene.getObjectByName(surface.name);
+    if (!node) {
+      warnings++;
+      continue;
+    }
+    const box = new THREE.Box3().setFromObject(node);
+    const expMin = surface.bounds.min;
+    const expMax = surface.bounds.max;
+    const diff = Math.max(
+      Math.abs(box.min.x - expMin[0]),
+      Math.abs(box.min.y - expMin[1]),
+      Math.abs(box.min.z - expMin[2]),
+      Math.abs(box.max.x - expMax[0]),
+      Math.abs(box.max.y - expMax[1]),
+      Math.abs(box.max.z - expMax[2])
+    );
+    if (diff > 0.05) {
+      warnings++;
+    }
+  }
+
+  if (warnings === 0) {
+    console.info('[WalkNavCheck SUCCESS] Walk navigation bounds validated.');
+  }
+}
+

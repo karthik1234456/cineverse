@@ -9,6 +9,7 @@ import { SelectedSeatsBar } from './SelectedSeatsBar';
 import { ViewModeToggle } from './ViewModeToggle';
 import { CompareView } from './CompareView';
 import { MobileControls } from './MobileControls';
+import { WalkHUD } from './WalkHUD';
 import { ToastNotification } from '../ui/ToastNotification';
 import { useCinemaStore } from '@/store/useCinemaStore';
 
@@ -69,6 +70,7 @@ export function AuditoriumExperience({
       <SeatInformationPanel />
       <SelectedSeatsBar />
       <ViewModeToggle />
+      <WalkHUD />
       <CompareView />
       <MobileControls />
       <ToastNotification />

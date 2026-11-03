@@ -38,3 +38,4 @@
 - [x] `.env.example` template provided without hardcoded secrets.
 - [x] Nginx reverse proxy configured with SSL termination, HTTP/2, and rate-limiting zones.
 - [x] Database healthcheck and connection pool sizing documented.
+

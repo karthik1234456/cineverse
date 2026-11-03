@@ -3,7 +3,7 @@
 | Phase | Status | Report | Notes |
 |---|:---:|---|---|
 | 1 Foundation | PASS | [docs/PHASE_1_REPORT.md](docs/PHASE_1_REPORT.md) | Schema, async Alembic migrations, idempotent seeding (100 seats), `/health` and `/ready` probes, DB-served layout endpoints verified. |
-| 2 3D auditorium | PASS | [docs/PHASE_2_REPORT.md](docs/PHASE_2_REPORT.md) | Full 3D auditorium experience, orbit clamp, seat POV sightlines (A05/E05/J10), 100-node mapping, comparison matrix, house lights, mobile responsive sheet, WebGL fallback verified with Vitest and Playwright. |
+| 2 3D auditorium | PASS | [docs/PHASE_2_REPORT.md](docs/PHASE_2_REPORT.md) | First-person Walk mode (§5b), Seated POV (A05/E05/J10), 100-node mapping, walk_nav_v2 collision, trailer on 3D screen (§5c), comparison matrix, house lights, mobile responsive sheet, WebGL fallback verified with 20 Vitest and 11 Playwright tests. |
 | 3 Core site | PASS | [docs/PHASE_3_REPORT.md](docs/PHASE_3_REPORT.md) | Browse, movie catalog, search, cinema selection, showtimes matrix, 3D routing & 2D fallback |
 | 4 Booking engine | PASS | [docs/PHASE_4_REPORT.md](docs/PHASE_4_REPORT.md) | Concurrency race condition defense, Redis & DB holds, live WebSocket sync, default 2D seat map with keyboard navigation & Best Available, Explore in 3D sync, hold countdown timer |
 | 5 Payments and tickets | PASS | [docs/PHASE_5_REPORT.md](docs/PHASE_5_REPORT.md) | Server-computed Razorpay orders, constant-time HMAC-SHA256 signature verification, webhook idempotency, signed QR admission tokens, cancellation & refund policy |

@@ -28,3 +28,4 @@
 | Webhook idempotency & replay protection | PASS | `test_phase5_payments.py::test_payment_webhook_idempotency_and_duplicate_suppression` |
 | Signed QR ticket roundtrip verify | PASS | `test_phase5_payments.py::test_signed_qr_ticket_roundtrip_verification` |
 | Cancellation & 75% refund policy | PASS | `test_phase5_payments.py::test_cancellation_and_refund_policy` |
+

@@ -32,3 +32,4 @@
 | Movie reviews with spoiler tags | PASS | Verified in `test_phase3_apis.py` and `movies.py` |
 | Active coupons and validation | PASS | Verified in `test_phase4_booking_engine.py` |
 | Sitemap & robots.txt | PASS | Generated in `public/robots.txt` and `public/sitemap.xml` |
+

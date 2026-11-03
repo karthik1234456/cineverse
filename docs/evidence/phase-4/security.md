@@ -46,3 +46,4 @@
 - **Implementation:** `GET /bookings/{id}` verifies that only the booking owner or an administrator can access booking details and receipt. Unauthenticated or foreign patron requests receive HTTP 403 Forbidden.
 - **Test:** `test_security_idor_booking_isolation`.
 - **Result:** PASS.
+

@@ -2,7 +2,7 @@ export type SeatStatus = 'available' | 'booked' | 'held' | 'selected';
 
 export type SeatCategory = 'front' | 'prime' | 'premier';
 
-export type CameraMode = 'orbit' | 'pov' | 'transitioning';
+export type CameraMode = 'orbit' | 'pov' | 'walk' | 'overview' | 'seated' | 'transitioning';
 
 export type HouseLightsMode = 'full' | 'dim' | 'show';
 
@@ -72,6 +72,54 @@ export interface SeatLayoutFile {
   seats: SeatRecord[];
 }
 
+export interface WalkableSurface {
+  name: string;
+  type: string;
+  row?: string;
+  bounds: BoundingBox3D;
+  top_y: number;
+}
+
+export interface ColliderAABB {
+  name: string;
+  type: string;
+  bounds: BoundingBox3D;
+}
+
+export interface PlayerConfig {
+  radius: number;
+  standing_eye_height: number;
+  crouch_eye_height: number;
+  seated_eye_height: number;
+  max_step_up: number;
+  max_step_down: number;
+  walk_speed: number;
+  run_speed: number;
+  spawn_position: [number, number, number];
+  spawn_yaw: number;
+  fov: number;
+}
+
+export interface WalkNavFile {
+  version: number;
+  generated_from: string;
+  coordinate_system: string;
+  units: {
+    scene_unit: string;
+    unit_to_meters_estimate: number;
+  };
+  player: PlayerConfig;
+  aisles: {
+    central: { x_min: number; x_max: number; width: number };
+    side_left: { x_min: number; x_max: number };
+    side_right: { x_min: number; x_max: number };
+  };
+  walkable_count: number;
+  collider_count: number;
+  walkable: WalkableSurface[];
+  colliders: ColliderAABB[];
+}
+
 export interface SeatStatusUpdate {
   seatId: string;
   status: 'available' | 'booked' | 'held';
@@ -106,6 +154,12 @@ export interface CineverseStateExport {
   houseLights: HouseLightsMode;
   qualityTier: QualityTier;
   useHqModel: boolean;
+  walkPlayer?: {
+    position: [number, number, number];
+    eyeHeight: number;
+    yaw: number;
+    pitch: number;
+  };
   rendererInfo?: {
     triangles: number;
     calls: number;
@@ -122,12 +176,18 @@ declare global {
       selectSeat: (seatId: string) => boolean;
       enterPOV: (seatId: string) => void;
       exitPOV: () => void;
+      setMode?: (mode: 'overview' | 'walk' | 'seated') => void;
+      sitAt?: (seatId: string) => void;
+      standUp?: () => void;
+      teleportToRow?: (row: string) => void;
+      walkToSeat?: (seatId: string) => void;
       setCameraPreset: (preset: CameraPreset) => void;
+      toggleCompare?: () => void;
       simulateHold: (seatId: string) => void;
+      updateSeatStatus?: (seatId: string, status: SeatStatus) => void;
       setHouseLights: (mode: HouseLightsMode) => void;
       setQualityTier: (tier: QualityTier) => void;
       setFOV: (fov: number) => void;
     };
   }
 }
-

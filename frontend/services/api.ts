@@ -521,3 +521,70 @@ export interface AdminAnalytics {
 export async function getAdminAnalytics(): Promise<AdminAnalytics> {
   return apiFetch<AdminAnalytics>('/admin/analytics');
 }
+
+// ---------------- VOICE AGENT (PHASE 9) ----------------
+export interface AgentUIAction {
+  action: string;
+  params: Record<string, any>;
+}
+
+export interface AgentConfirmationCard {
+  card_type: string;
+  title: string;
+  description: string;
+  details: Record<string, any>;
+  requires_tap_confirmation: boolean;
+  action_token: string;
+  expires_at?: string;
+}
+
+export interface AgentMessageResponse {
+  session_id: string;
+  reply_text: string;
+  language: string;
+  ui_actions: AgentUIAction[];
+  confirmation_card?: AgentConfirmationCard;
+  spoken_audio_url?: string;
+  tool_calls_made: Record<string, any>[];
+}
+
+export async function createAgentSession(language: string = 'en'): Promise<{ session_id: string; welcome_message: string; language: string }> {
+  return apiFetch('/agent/session', {
+    method: 'POST',
+    body: JSON.stringify({ language }),
+  });
+}
+
+export async function sendAgentMessage(
+  sessionId: string,
+  message: string,
+  language: string = 'en',
+  clientContext?: Record<string, any>
+): Promise<AgentMessageResponse> {
+  return apiFetch<AgentMessageResponse>('/agent/message', {
+    method: 'POST',
+    body: JSON.stringify({
+      session_id: sessionId,
+      message,
+      language,
+      client_context: clientContext || {},
+    }),
+  });
+}
+
+export async function confirmAgentAction(
+  sessionId: string,
+  actionToken: string,
+  cardType: string,
+  parameters: Record<string, any> = {}
+): Promise<{ status: string; message: string; hold_id?: string; refund_amount?: number }> {
+  return apiFetch('/agent/confirm-action', {
+    method: 'POST',
+    body: JSON.stringify({
+      session_id: sessionId,
+      action_token: actionToken,
+      card_type: cardType,
+      parameters,
+    }),
+  });
+}

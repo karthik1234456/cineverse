@@ -10,3 +10,4 @@ Running 8 tests using 1 worker
   ok 8 [chromium] › e2e\phase4_booking_engine.spec.ts:233:7 › Phase 4 — Booking Engine, Holds, Real-Time WS, 2D/3D & Checkout › 08. Real-time WebSocket: Hold in Browser A turns seat amber in Browser B (2.1s)
 
   8 passed (22.3s)
+

@@ -94,6 +94,11 @@ function DevBridge() {
   const selectSeat = useCinemaStore((s) => s.selectSeat);
   const enterPOV = useCinemaStore((s) => s.enterPOV);
   const exitPOV = useCinemaStore((s) => s.exitPOV);
+  const setMode = useCinemaStore((s) => s.setMode);
+  const sitAt = useCinemaStore((s) => s.sitAt);
+  const standUp = useCinemaStore((s) => s.standUp);
+  const teleportToRow = useCinemaStore((s) => s.teleportToRow);
+  const walkToSeat = useCinemaStore((s) => s.walkToSeat);
   const setCameraPreset = useCinemaStore((s) => s.setCameraPreset);
   const updateSeatStatus = useCinemaStore((s) => s.updateSeatStatus);
   const setHouseLights = useCinemaStore((s) => s.setHouseLights);
@@ -136,8 +141,15 @@ function DevBridge() {
       selectSeat,
       enterPOV,
       exitPOV,
+      setMode,
+      sitAt,
+      standUp,
+      teleportToRow,
+      walkToSeat,
       setCameraPreset,
+      toggleCompare: useCinemaStore.getState().toggleCompare,
       simulateHold: (seatId: string) => updateSeatStatus(seatId, 'held'),
+      updateSeatStatus,
       setHouseLights,
       setQualityTier,
       setFOV,
@@ -153,6 +165,11 @@ function DevBridge() {
     selectSeat,
     enterPOV,
     exitPOV,
+    setMode,
+    sitAt,
+    standUp,
+    teleportToRow,
+    walkToSeat,
     setCameraPreset,
     updateSeatStatus,
     setHouseLights,

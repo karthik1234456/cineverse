@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { QueryProvider } from '@/components/providers/QueryProvider';
 import { Navbar } from '@/components/Navbar';
+import { VoiceAgentFloatingButton } from '@/components/agent/VoiceAgentFloatingButton';
 
 export const metadata: Metadata = {
   title: 'CineVerse — Movie Tickets & Real 3D Auditorium Seat Preview',
@@ -26,6 +27,7 @@ export default function RootLayout({
         <QueryProvider>
           <Navbar />
           <main className="flex-1 flex flex-col">{children}</main>
+          <VoiceAgentFloatingButton />
         </QueryProvider>
         <script
           dangerouslySetInnerHTML={{

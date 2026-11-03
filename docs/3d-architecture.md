@@ -58,14 +58,25 @@ CineVerse implements **Approach (b): Lightweight State Shells & Emissive Bounds*
 ## 4. Camera State Machine & Interpolation Architecture
 
 ```
-[Orbit Mode] ◄────────────── Esc / Recentre ──────────────► [Seat POV Mode]
-  • OrbitControls (clamped)                                   • Eye position: seat.eye_position
-  • Boundary clamp:                                           • Orientation: lookAt(screenCenter)
-    x: [-9.8, 9.8]                                            • Damped look-around:
-    y: [0.8, 10.2]                                              yaw ±60°, pitch ±25°
-    z: [-25.0, -0.6]                                          • Lens FOV: 50°/60°/75° toggle
-  • Presets: Overview, Front,                                 • Prev/Next seat (← / →)
-    Back, Aerial top-down                                     • Prev/Next row (↑ / ↓)
+                      ┌───────────────────────────────────────┐
+                      │             OVERVIEW MODE             │
+                      │  • OrbitControls (clamped bounding)   │
+                      │  • Presets: Default, Front, Back,     │
+                      │    Aerial top-down 3D seat map        │
+                      └──────────▲─────────────────▲──────────┘
+                                 │                 │
+                'O' / Click      │                 │  'O' / Esc
+                                 │                 │
+                                 ▼                 ▼
+             ┌─────────────────────────┐     ┌─────────────────────────┐
+             │        WALK MODE        │     │       SEATED MODE       │
+             │ • First-person game FPS │◄───►│ • Eye position exact    │
+             │ • W/A/S/D + Shift run   │ Esc │   seat.eye_position     │
+             │ • Sub-stepped collision │  /F │ • Damped look ±80°/±35° │
+             │ • Ground tier following │     │ • Q/E & Z/X seat step   │
+             │ • Aim crosshair + [E]   │ Sit │ • Trailer plays on 3D   │
+             │ • Virtual touch joystick│  [E]│   screen directly ahead │
+             └─────────────────────────┘     └─────────────────────────┘
 ```
 
 ### Transition Mechanics
@@ -73,4 +84,17 @@ CineVerse implements **Approach (b): Lightweight State Shells & Emissive Bounds*
 2. **Bezier Obstacle Clearance**: Camera routes through a 3D Bezier curve whose apex is elevated ($Y \ge \max(y_{\text{start}}, y_{\text{end}}, 7.2\text{u}) + 0.6\text{u}$). This guarantees the camera arcs over intermediate seat rows and handrails rather than penetrating geometry.
 3. **Quaternion Slerp**: Orientations are strictly interpolated using spherical linear interpolation (`quaternion.slerpQuaternions`). Euler angle lerping is forbidden to avoid gimbal flip and camera spin artifacts.
 4. **Reduced Motion**: If the user has `prefers-reduced-motion` enabled, the camera cuts instantly to the target pose.
+
+---
+
+## 5. Walk Mode Collision & Physics Architecture (`WalkCollision`)
+
+First-person walk mode operates using pure-TypeScript, frame-rate independent physics derived directly from `walk_nav_v2.json`:
+- **Collision Volumes**: 21 walkable surface AABBs (auditorium floor, 10 tier platforms $A\dots J$, 10 central aisle treads) and 122 colliders (perimeter walls, screen frame, stage lip, speaker towers, 14 handrail posts, and 100 solid seat bounding boxes).
+- **Player Capsule**: Cylinder/capsule of radius $0.30\text{u}$ with standing eye height $3.77\text{u}$.
+- **Horizontal Sliding**: Circle-vs-AABB intersection calculations push the player smoothly along collider faces, eliminating corner stickiness.
+- **Sub-stepping Anti-tunneling**: High delta time or running speed ($6.0\text{u/s}$) is subdivided into sub-steps of maximum $0.05\text{u}$, ensuring thin barriers (e.g., stage lip or rail posts) cannot be penetrated.
+- **Ground Following & Step Clamps**: Maximum step-up is strictly clamped at $0.30\text{u}$ (accommodating the $0.22\text{u}$ tier and tread steps), while step-down is clamped at $0.40\text{u}$ to act as an edge-guard, preventing accidental drops off high platforms. Eye height transitions over tiers are critically damped for natural stair traversal.
+- **Controls & Interaction**: Desktop WASD / arrow keys and pointer-lock mouse look; mobile dual-touch virtual joystick and touch drag. Aiming the crosshair at any seat within $4.2\text{u}$ triggers instant contextual inspection and an $[E]$ prompt to sit down.
+
 

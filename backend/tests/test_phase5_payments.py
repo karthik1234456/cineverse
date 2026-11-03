@@ -238,3 +238,4 @@ async def test_cancellation_and_refund_policy(client: AsyncClient):
         )
         seat_inv = res.scalars().first()
         assert seat_inv.status == SeatStatusEnum.AVAILABLE
+

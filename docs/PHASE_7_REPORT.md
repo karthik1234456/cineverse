@@ -27,3 +27,4 @@
 | Role protection (customer blocked) | PASS | Verified in `test_phase1.py` and `test_auth_and_expiry.py` |
 | Showtime creation & inventory provisioning | PASS | `admin.py::create_showtime` |
 | Schedule overlap conflict detection | PASS | Rejects overlapping slots with HTTP 400 |
+
