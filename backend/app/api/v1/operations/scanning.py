@@ -12,7 +12,7 @@ from app.models.auth import User
 from app.models.booking import Booking, Ticket
 from app.models.operations import StaffDevice, TicketScanLog, ScanResultEnum
 from app.api.dependencies import require_user, require_cinema_manager
-from app.services.ticket_service import verify_ticket_signature
+from app.services.ticket_service import verify_ticket_signature, get_public_keys
 
 router = APIRouter(prefix="/api/v1/staff", tags=["Staff Entry Scanning"])
 
@@ -40,6 +40,18 @@ class BatchScanItem(BaseModel):
 
 class BatchScanRequest(BaseModel):
     scans: List[BatchScanItem]
+
+
+@router.get("/keys")
+async def get_verification_keys(
+    current_user: User = Depends(require_user)
+):
+    """
+    Returns public keys and key IDs (`kid`) for offline scanning devices.
+    Staff devices download and cache these keys periodically to perform offline Ed25519
+    signature verification without exposing server private keys.
+    """
+    return {"status": "ok", "keys": get_public_keys()}
 
 
 @router.post("/devices/register")
@@ -205,9 +217,21 @@ async def batch_sync_offline_scans(
             continue
 
         if ticket.is_used:
+            # Reconcile conflict: duplicate offline scan detected across devices
+            conflict_log = TicketScanLog(
+                ticket_id=ticket.id,
+                staff_user_id=current_user.id,
+                device_id=item.device_id,
+                gate=item.gate,
+                scan_result=ScanResultEnum.OFFLINE_DUPLICATE_CONFLICT,
+                scanned_at=item.scanned_at,
+                offline_sync=True
+            )
+            db.add(conflict_log)
             results.append({
                 "client_scan_id": item.client_scan_id,
-                "result": "ALREADY_USED",
+                "result": "OFFLINE_DUPLICATE_CONFLICT",
+                "message": "Ticket already used/admitted by an earlier scan",
                 "used_at": ticket.used_at.isoformat() if ticket.used_at else None
             })
             continue
