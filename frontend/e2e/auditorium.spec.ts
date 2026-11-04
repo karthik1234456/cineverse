@@ -45,6 +45,9 @@ test.describe.serial('CineVerse 3D — Complete Interactive 3D Theatre Experienc
     expect(state.rendererInfo).toBeDefined();
     expect(state.rendererInfo!.triangles).toBeGreaterThan(10000);
 
+    const visibleProxies = await sharedPage.evaluate(() => window.__cineverse!.getVisibleProxiesCount?.() ?? 0);
+    expect(visibleProxies).toBe(0);
+
     console.log('[E2E Verified Render Stats]', {
       triangles: state.rendererInfo?.triangles,
       calls: state.rendererInfo?.calls,
@@ -100,6 +103,9 @@ test.describe.serial('CineVerse 3D — Complete Interactive 3D Theatre Experienc
     const state = await sharedPage.evaluate(() => window.__cineverse!.getState());
     expect(state.selectedSeats).toContain('F05');
     expect(state.activeSeatId).toBe('F05');
+
+    const visibleProxies = await sharedPage.evaluate(() => window.__cineverse!.getVisibleProxiesCount?.() ?? 0);
+    expect(visibleProxies).toBe(0);
 
     // Verify inspection panel displays F05
     await expect(sharedPage.locator('text=F05').first()).toBeVisible();

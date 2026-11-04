@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useRef, useMemo } from 'react';
-import { useFrame, ThreeEvent } from '@react-three/fiber';
+import React, { useRef, useMemo, useState, useEffect } from 'react';
+import { ThreeEvent } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import type { SeatRecord } from '@/lib/types';
@@ -15,12 +16,22 @@ interface SeatInteractionProps {
 export function SeatInteraction({ onSeatClick, onSeatDoubleClick }: SeatInteractionProps) {
   const seats = (layoutData as unknown as { seats: SeatRecord[] }).seats;
 
+  // Debug flag (?debug=proxies, dev builds only)
+  const [debugProxies, setDebugProxies] = useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+      const params = new URLSearchParams(window.location.search);
+      setDebugProxies(params.get('debug') === 'proxies');
+    }
+  }, []);
+
   return (
     <group name="SeatInteractionLayer">
       {seats.map((seat) => (
         <SeatProxyItem
           key={seat.seat_id}
           seat={seat}
+          debugProxies={debugProxies}
           onSeatClick={onSeatClick}
           onSeatDoubleClick={onSeatDoubleClick}
         />
@@ -31,22 +42,21 @@ export function SeatInteraction({ onSeatClick, onSeatDoubleClick }: SeatInteract
 
 interface SeatProxyItemProps {
   seat: SeatRecord;
+  debugProxies: boolean;
   onSeatClick?: (seatId: string) => void;
   onSeatDoubleClick?: (seatId: string) => void;
 }
 
-function SeatProxyItem({ seat, onSeatClick, onSeatDoubleClick }: SeatProxyItemProps) {
+function SeatProxyItem({ seat, debugProxies, onSeatClick, onSeatDoubleClick }: SeatProxyItemProps) {
   const meshRef = useRef<THREE.Mesh>(null);
   const edgesRef = useRef<THREE.LineSegments>(null);
 
   const seatStatuses = useCinemaStore((s) => s.seatStatuses);
   const selectedSeats = useCinemaStore((s) => s.selectedSeats);
-  const activeSeatId = useCinemaStore((s) => s.activeSeatId);
   const hoveredSeatId = useCinemaStore((s) => s.hoveredSeatId);
   const setHoveredSeat = useCinemaStore((s) => s.setHoveredSeat);
   const toggleSeat = useCinemaStore((s) => s.toggleSeat);
   const enterPOV = useCinemaStore((s) => s.enterPOV);
-  const cameraMode = useCinemaStore((s) => s.cameraMode);
 
   // Compute box dimensions and center from bounds
   const { min, max } = seat.bounds_gltf_y_up;
@@ -71,71 +81,9 @@ function SeatProxyItem({ seat, onSeatClick, onSeatDoubleClick }: SeatProxyItemPr
   // State derivation
   const rawStatus = seatStatuses[seat.seat_id] || 'available';
   const isSelected = selectedSeats.includes(seat.seat_id);
-  const isActive = activeSeatId === seat.seat_id;
   const isHovered = hoveredSeatId === seat.seat_id;
   const isBooked = rawStatus === 'booked';
   const isHeld = rawStatus === 'held';
-
-  // Category colour
-  const categoryColor = useMemo(() => {
-    switch (seat.category) {
-      case 'front':
-        return '#c9a227';
-      case 'prime':
-        return '#4f8cff';
-      case 'premier':
-        return '#b04fff';
-      default:
-        return '#38bdf8';
-    }
-  }, [seat.category]);
-
-  // Pulsing animation for held seats
-  useFrame(({ clock }) => {
-    if (isHeld && meshRef.current) {
-      const pulse = 0.35 + Math.sin(clock.getElapsedTime() * 4) * 0.15;
-      (meshRef.current.material as THREE.MeshBasicMaterial).opacity = pulse;
-    }
-  });
-
-  // State visual configuration
-  let fillColor = 'transparent';
-  let fillOpacity = 0.0;
-  let strokeColor = 'transparent';
-  let strokeOpacity = 0.0;
-  let showBox = false;
-
-  if (isSelected) {
-    fillColor = '#e50914'; // Cinematic Red
-    fillOpacity = 0.42;
-    strokeColor = '#ff4d5a';
-    strokeOpacity = 0.95;
-    showBox = true;
-  } else if (isHeld) {
-    fillColor = '#f59e0b'; // Amber
-    fillOpacity = 0.35;
-    strokeColor = '#fbbf24';
-    strokeOpacity = 0.85;
-    showBox = true;
-  } else if (isBooked) {
-    fillColor = '#18181b'; // Dark grey / desaturated
-    fillOpacity = 0.55;
-    strokeColor = '#3f3f46';
-    strokeOpacity = 0.4;
-    showBox = true;
-  } else if (isHovered) {
-    fillColor = categoryColor;
-    fillOpacity = 0.28;
-    strokeColor = '#ffffff';
-    strokeOpacity = 0.9;
-    showBox = true;
-  } else if (isActive && cameraMode !== 'pov') {
-    fillColor = categoryColor;
-    fillOpacity = 0.18;
-    strokeColor = categoryColor;
-    strokeOpacity = 0.6;
-    showBox = true;
-  }
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
@@ -157,10 +105,10 @@ function SeatProxyItem({ seat, onSeatClick, onSeatDoubleClick }: SeatProxyItemPr
 
   return (
     <group position={center} name={`proxy_${seat.seat_id}`}>
-      {/* Invisible Raycasting Hit Box (always present for picking) */}
+      {/* Invisible Raycasting Hit Box (zero pixels rasterized in normal mode) */}
       <mesh
         ref={meshRef}
-        visible={showBox}
+        visible={true}
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
         onPointerOver={(e) => {
@@ -174,56 +122,68 @@ function SeatProxyItem({ seat, onSeatClick, onSeatDoubleClick }: SeatProxyItemPr
       >
         <boxGeometry args={size} />
         <meshBasicMaterial
-          color={fillColor}
           transparent
-          opacity={fillOpacity}
+          opacity={debugProxies ? 0.35 : 0}
           depthWrite={false}
+          colorWrite={debugProxies}
+          color={isSelected ? '#e50914' : isHeld ? '#f59e0b' : '#38bdf8'}
           side={THREE.DoubleSide}
         />
       </mesh>
 
-      {/* Wireframe Outline Highlight */}
-      {showBox && strokeOpacity > 0 && (
+      {/* Wireframe Outline Highlight: ONLY in debugProxies mode */}
+      {debugProxies && (
         <lineSegments ref={edgesRef}>
           <edgesGeometry args={[new THREE.BoxGeometry(...size)]} />
           <lineBasicMaterial
-            color={strokeColor}
-            transparent
-            opacity={strokeOpacity}
-            linewidth={2}
+            color={isSelected ? '#ff4d5a' : isHeld ? '#fbbf24' : '#38bdf8'}
+            linewidth={1}
           />
         </lineSegments>
       )}
 
-      {/* When box is not shown, provide an invisible hit target */}
-      {!showBox && (
-        <mesh
-          visible={false}
-          onClick={handleClick}
-          onDoubleClick={handleDoubleClick}
-          onPointerOver={(e) => {
-            e.stopPropagation();
-            if (!isBooked) setHoveredSeat(seat.seat_id);
-          }}
-          onPointerOut={(e) => {
-            e.stopPropagation();
-            if (hoveredSeatId === seat.seat_id) setHoveredSeat(null);
-          }}
-        >
-          <boxGeometry args={size} />
-          <meshBasicMaterial transparent opacity={0} />
-        </mesh>
+      {/* Selected Indicator: small elegant badge above headrest with checkmark */}
+      {isSelected && (
+        <group position={[0, size[1] / 2 + 0.18, 0]}>
+          <Html center distanceFactor={18} position={[0, 0, 0]}>
+            <div className="pointer-events-none flex h-4 w-4 items-center justify-center rounded-full bg-[#e50914] text-[9px] font-bold text-white shadow-[0_0_8px_#e50914]">
+              ✓
+            </div>
+          </Html>
+        </group>
       )}
 
-      {/* Floating 3D Badge on Selected or Hovered Seat */}
-      {(isSelected || (isHovered && !isBooked)) && (
-        <mesh position={[0, size[1] / 2 + 0.22, 0]}>
-          <sphereGeometry args={[0.07, 16, 16]} />
-          <meshBasicMaterial
-            color={isSelected ? '#e50914' : categoryColor}
-            toneMapped={false}
-          />
-        </mesh>
+      {/* Held Indicator: pulsing amber pill */}
+      {isHeld && (
+        <group position={[0, size[1] / 2 + 0.18, 0]}>
+          <Html center distanceFactor={18} position={[0, 0, 0]}>
+            <div className="pointer-events-none flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-black shadow-[0_0_8px_#f59e0b] animate-pulse">
+              ●
+            </div>
+          </Html>
+        </group>
+      )}
+
+      {/* Booked Indicator: subtle small cross */}
+      {isBooked && (
+        <group position={[0, size[1] / 2 + 0.18, 0]}>
+          <Html center distanceFactor={18} position={[0, 0, 0]}>
+            <div className="pointer-events-none flex h-3 w-3 items-center justify-center rounded-full bg-zinc-800 text-[8px] font-semibold text-zinc-400 border border-zinc-700">
+              ✕
+            </div>
+          </Html>
+        </group>
+      )}
+
+      {/* Hovered indicator (if not selected/booked/held) */}
+      {isHovered && !isSelected && !isBooked && !isHeld && (
+        <group position={[0, size[1] / 2 + 0.18, 0]}>
+          <Html center distanceFactor={18} position={[0, 0, 0]}>
+            <div className="pointer-events-none whitespace-nowrap rounded bg-slate-900/90 px-1.5 py-0.5 text-[10px] font-medium text-slate-100 border border-slate-700 shadow-md">
+              {seat.seat_id}
+            </div>
+          </Html>
+        </group>
       )}
     </group>
   );

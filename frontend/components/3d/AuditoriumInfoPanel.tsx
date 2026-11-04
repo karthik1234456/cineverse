@@ -25,23 +25,25 @@ export function AuditoriumInfoPanel() {
 
   const layout = layoutData as unknown as SeatLayoutFile;
 
-  // Compute status counts
+  // Compute status counts strictly partitioning into exactly 100 seats
   const counts = React.useMemo(() => {
     let available = 0;
     let booked = 0;
     let held = 0;
+    const selected = selectedSeats.length;
 
     for (const seat of layout.seats) {
-      const status: SeatStatus = selectedSeats.includes(seat.seat_id)
-        ? 'selected'
-        : seatStatuses[seat.seat_id] || 'available';
+      if (selectedSeats.includes(seat.seat_id)) {
+        continue;
+      }
+      const status: SeatStatus = seatStatuses[seat.seat_id] || 'available';
 
-      if (status === 'selected' || status === 'available') available++;
-      if (status === 'booked') booked++;
-      if (status === 'held') held++;
+      if (status === 'available') available++;
+      else if (status === 'booked') booked++;
+      else if (status === 'held') held++;
     }
 
-    return { available, booked, held, selected: selectedSeats.length };
+    return { available, booked, held, selected };
   }, [seatStatuses, selectedSeats, layout.seats]);
 
   // Hide left panel on mobile or in POV mode to keep view unobstructed

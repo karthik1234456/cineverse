@@ -88,7 +88,7 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
  * Dev bridge that captures render stats and exposes window.__cineverse
  */
 function DevBridge() {
-  const { gl, camera } = useThree();
+  const { gl, camera, scene } = useThree();
   const setRendererInfo = useCinemaStore((s) => s.setRendererInfo);
   const exportState = useCinemaStore((s) => s.exportState);
   const selectSeat = useCinemaStore((s) => s.selectSeat);
@@ -153,6 +153,24 @@ function DevBridge() {
       setHouseLights,
       setQualityTier,
       setFOV,
+      getVisibleProxiesCount: () => {
+        let count = 0;
+        const layer = scene.getObjectByName('SeatInteractionLayer');
+        if (layer) {
+          layer.traverse((obj) => {
+            if (obj instanceof THREE.Mesh) {
+              const mat = obj.material as THREE.Material & { colorWrite?: boolean; opacity?: number };
+              if (obj.visible && mat.colorWrite !== false && (mat.opacity ?? 1) > 0) {
+                count++;
+              }
+            }
+            if (obj instanceof THREE.LineSegments && obj.visible) {
+              count++;
+            }
+          });
+        }
+        return count;
+      },
     };
 
     return () => {
@@ -161,6 +179,7 @@ function DevBridge() {
   }, [
     gl,
     camera,
+    scene,
     exportState,
     selectSeat,
     enterPOV,
