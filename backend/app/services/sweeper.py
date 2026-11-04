@@ -35,7 +35,7 @@ async def sweep_expired_holds():
 
             await db.commit()
 
-            # Broadcast releases
+            # Broadcast releases and process waitlist
             for showtime_id, seat_ids in by_showtime.items():
                 await broadcast_seat_update(showtime_id, {
                     "event": "SEATS_EXPIRED",
@@ -43,6 +43,11 @@ async def sweep_expired_holds():
                     "seat_ids": seat_ids,
                     "status": "AVAILABLE"
                 })
+                try:
+                    from app.services.waitlist_service import process_waitlist_on_release
+                    await process_waitlist_on_release(db, showtime_id, len(seat_ids))
+                except Exception as w_exc:
+                    logger.warning(f"Error processing waitlist on sweep for showtime {showtime_id}: {w_exc}")
 
             logger.info(f"Sweeper reverted {len(expired_seats)} expired seats across {len(by_showtime)} showtimes")
             return len(expired_seats)

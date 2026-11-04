@@ -2,31 +2,31 @@
   {
     "seatId": "A05",
     "category": "FRONT",
-    "tooltipText": "Seat A05\nFRONT\n₹280\nAvailable • Click to select\nSelect Seat",
+    "tooltipText": "Seat A05\nFRONT\n₹280\nAvailable • Click to select\nViewing Comfort:\n39.3 / 100\n100% line of sight • No audience modelled\nSelect Seat",
     "verified": true
   },
   {
     "seatId": "B06",
     "category": "FRONT",
-    "tooltipText": "Seat B06\nFRONT\n₹280\nAvailable • Click to select\nSelect Seat",
+    "tooltipText": "Seat B06\nFRONT\n₹280\nAvailable • Click to select\nViewing Comfort:\n52.1 / 100\n100% line of sight • No audience modelled\nSelect Seat",
     "verified": true
   },
   {
     "seatId": "F05",
     "category": "PRIME",
-    "tooltipText": "Seat F05\nPRIME\n₹380\nAvailable • Click to select\nSelect Seat",
+    "tooltipText": "Seat F05\nPRIME\n₹380\nAvailable • Click to select\nViewing Comfort:\n90.5 / 100\n100% line of sight • No audience modelled\nSelect Seat",
     "verified": true
   },
   {
     "seatId": "G04",
     "category": "PRIME",
-    "tooltipText": "Seat G04\nPRIME\n₹380\nAvailable • Click to select\nSelect Seat",
+    "tooltipText": "Seat G04\nPRIME\n₹380\nAvailable • Click to select\nViewing Comfort:\n96.7 / 100\n100% line of sight • No audience modelled\nSelect Seat",
     "verified": true
   },
   {
     "seatId": "J05",
     "category": "PREMIER",
-    "tooltipText": "Seat J05\nPREMIER\n₹520\nBooked (Sold Out)",
+    "tooltipText": "Seat J05\nPREMIER\n₹520\nAvailable • Click to select\nViewing Comfort:\n100 / 100\n100% line of sight • No audience modelled\nSelect Seat",
     "verified": true
   }
 ]

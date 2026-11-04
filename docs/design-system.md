@@ -77,3 +77,4 @@ All text styles are explicitly configured in `tailwind.config.ts` to prevent mic
   2. `2. Seats` (Interactive seat map & tier selection)
   3. `3. Pay` (Razorpay payment & instant QR generation)
 - [x] **Quick Booking**: "Pick the best seats for me" shortcut option in 2D map.
+

@@ -62,3 +62,28 @@ async def get_auditorium_layout(auditorium_id: int, db: AsyncSession = Depends(g
         "seats": seats_data
     }
 
+
+@router.get("/{auditorium_id}/obstructions")
+async def get_auditorium_obstructions(auditorium_id: int, db: AsyncSession = Depends(get_db)):
+    """Returns static geometric view obstruction estimates per seat against theatre colliders."""
+    aud = await db.get(Auditorium, auditorium_id)
+    if not aud:
+        raise HTTPException(status_code=404, detail="Auditorium not found")
+
+    obstruction_path = Path("frontend/public/models/seat_obstructions.json")
+    if not obstruction_path.exists():
+        obstruction_path = Path("../frontend/public/models/seat_obstructions.json")
+
+    if not obstruction_path.exists():
+        # Fallback or run computation
+        from tools.compute_seat_obstructions import main as compute_obstructions
+        compute_obstructions()
+
+    with open(obstruction_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # Ensure required disclaimer is present
+    data["disclaimer"] = "Geometric raycast estimate against static theatre geometry only. No audience members or physical heads modelled."
+    return data
+
+

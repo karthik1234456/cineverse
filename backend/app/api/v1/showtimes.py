@@ -93,3 +93,55 @@ async def get_showtime_seats(
         seats=seat_items
     )
 
+
+@router.get("/{showtime_id}/best-seats")
+async def get_best_seats_for_showtime(
+    showtime_id: int,
+    n: int = 2,
+    category: Optional[str] = None,
+    preference: Optional[str] = "balanced",
+    db: AsyncSession = Depends(get_db)
+):
+    """Finds best contiguous same-row seats for N people using geometric sightline scoring."""
+    if n < 1:
+        raise HTTPException(status_code=400, detail="Number of seats must be at least 1")
+    if n > 10:
+        raise HTTPException(status_code=400, detail="Cannot search for more than 10 seats at once")
+
+    stmt = select(Showtime).where(Showtime.id == showtime_id).options(selectinload(Showtime.seat_inventory))
+    result = await db.execute(stmt)
+    showtime = result.scalars().first()
+
+    if not showtime:
+        raise HTTPException(status_code=404, detail="Showtime not found")
+
+    from app.services.seat_scoring import get_layout_seats, best_available
+
+    layout_seats = get_layout_seats()
+    inventory_status = {
+        inv.seat_id: inv.status.value.lower()
+        for inv in showtime.seat_inventory
+    }
+
+    best = best_available(
+        seats=layout_seats,
+        status=inventory_status,
+        n=n,
+        preference=preference,
+        category=category
+    )
+
+    if not best:
+        raise HTTPException(status_code=404, detail="No suitable seats available for the requested count and preferences")
+
+    return {
+        "showtime_id": showtime_id,
+        "suggested_seats": best["seat_ids"],
+        "avg_score": best["avg_score"],
+        "split": best["split"],
+        "orphan_seats": best["orphan_seats"],
+        "reasons": best["reasons"],
+        "disclaimer": "Geometric viewing angle estimate based on screen distance and FOV. Not a physical cinema measurement."
+    }
+
+

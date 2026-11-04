@@ -1,6 +1,6 @@
 # CineVerse Project Status
 
-**Last Audited:** 2026-11-04 (Updated with Phase 2c completion)  
+**Last Audited:** 2026-11-05 (Updated with Phase 11 completion)  
 **Specification Reference:** `phases/00_RUNBOOK.md`, `phases/phase-N.md`, `SECURITY_SPEC.md`  
 **Phase Execution Note:** Phases 9 (Voice Agent) and 12 (Venue Operations) were implemented out of chronological sequence before Phases 10 & 11.
 
@@ -22,7 +22,7 @@
 | **Phase 8: Hardening & Performance** | `phases/phase-8.md` | `PASSED` | `PASS` | ASVS L2 security hardening, Content Security Policy, rate limiting, Dockerfiles, docker-compose orchestration with Nginx reverse proxy. |
 | **Phase 9: Voice Agent** | `phases/phase-9.md` | `PASSED` | `PASS` | *Built out of sequence.* Floating mic, multilingual (EN, HI, KN), 3D POV voice control, prompt-injection neutralized, payment strictly banned via voice, 6 Playwright tests passed. |
 | **Phase 10: Group Booking** | `phases/phase-10.md` | `NOT STARTED` | `PENDING` | Shared seat picking, split payment, invite token links. Blocked until fix mode completes. |
-| **Phase 11: Smart Seats & Pricing** | `phases/phase-11.md` | `NOT STARTED` | `PENDING` | Best-seat scoring engine, comfort heatmap, view estimation, waitlist, dynamic pricing. |
+| **Phase 11: Smart Seats & Pricing** | `phases/phase-11.md` | `PASSED` | `PASS` | TS/Python scoring engine parity ($\Delta \le 1.0$), 2D/3D comfort heatmap with color-blind safe badges, offline raycast view obstruction estimates, fair FIFO waitlist (10-min claim, max 3 limit), rules-based dynamic pricing (floor/ceiling bounds, DRAFT/ACTIVE approval, zero-user-attribute invariant verified, held/booked seats immutable), explainable occupancy forecast (95% CI). Evidence in `docs/evidence/phase-11/`. |
 | **Phase 12: Venue Operations & Scale** | `phases/phase-12.md` | `PASSED` | `PASS (Remediated)` | *Built out of sequence.* GLB onboarding validation, asset versioning/rollback, mobile entrance scanning, zero-PII KDS, loyalty CinePass, ticket transfer. **Remediated in FIX-06**: Asymmetric Ed25519 signing with `kid` rotation, `/api/v1/staff/keys` public key distribution, offline batch duplicate reconciliation. |
 
 ---

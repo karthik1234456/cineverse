@@ -7,6 +7,8 @@ import * as THREE from 'three';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import type { SeatRecord } from '@/lib/types';
 import layoutData from '@/public/models/seat_layout_v2.json';
+import obstructionsData from '@/public/models/seat_obstructions.json';
+import { viewScore } from '@/lib/seatScoring';
 
 interface SeatInteractionProps {
   onSeatClick?: (seatId: string) => void;
@@ -58,6 +60,13 @@ function SeatProxyItem({ seat, debugProxies, onSeatClick, onSeatDoubleClick }: S
   const setHoveredSeat = useCinemaStore((s) => s.setHoveredSeat);
   const toggleSeat = useCinemaStore((s) => s.toggleSeat);
   const enterPOV = useCinemaStore((s) => s.enterPOV);
+  const isHeatmapActive = useCinemaStore((s) => s.isHeatmapActive);
+
+  const scored = useMemo(() => viewScore(seat as any), [seat]);
+  const score = scored.score;
+  const obstruction = useMemo(() => {
+    return (obstructionsData as any).seats?.[seat.seat_id];
+  }, [seat.seat_id]);
 
   // Compute box dimensions and center from bounds
   const { min, max } = seat.bounds_gltf_y_up;
@@ -169,6 +178,22 @@ function SeatProxyItem({ seat, debugProxies, onSeatClick, onSeatDoubleClick }: S
         </group>
       )}
 
+      {/* 3D Comfort Heatmap Badge (Phase 11) */}
+      {isHeatmapActive && !isBooked && (
+        <group position={[0, size[1] / 2 + 0.18, 0]}>
+          <Html center distanceFactor={22} position={[0, 0, 0]}>
+            <div
+              data-testid={`heatmap-badge-3d-${seat.seat_id}`}
+              className={`pointer-events-none flex h-5 w-6 items-center justify-center rounded-md text-[10px] font-black text-white shadow-sm border ${
+                score >= 80 ? 'bg-emerald-600 border-emerald-700' : score >= 65 ? 'bg-amber-500 border-amber-600' : 'bg-orange-500 border-orange-600'
+              }`}
+            >
+              {Math.round(score)}
+            </div>
+          </Html>
+        </group>
+      )}
+
       {/* Booked Indicator: subtle small cross */}
       {isBooked && (
         <group position={[0, size[1] / 2 + 0.18, 0]}>
@@ -206,6 +231,17 @@ function SeatProxyItem({ seat, debugProxies, onSeatClick, onSeatDoubleClick }: S
               </div>
               <div className="text-xs font-semibold text-slate-600">
                 {isBooked ? 'Booked (Sold Out)' : isHeld ? 'Held by patron' : isSelected ? 'Selected' : 'Available • Click to select'}
+              </div>
+              <div className="mt-2 pt-2 border-t border-[#E6DCD2] flex items-center justify-between text-[11px]">
+                <span className="text-slate-500 font-medium">Viewing Comfort:</span>
+                <span className={`font-bold px-1.5 py-0.5 rounded text-white ${
+                  score >= 80 ? 'bg-emerald-600' : score >= 65 ? 'bg-amber-500' : 'bg-orange-500'
+                }`}>
+                  {score} / 100
+                </span>
+              </div>
+              <div className="mt-1 text-[10px] text-slate-500 italic">
+                {obstruction ? `${obstruction.visible_percentage}% line of sight` : '100% line of sight'} • No audience modelled
               </div>
               {!isHeld && !isBooked && (
                 <button

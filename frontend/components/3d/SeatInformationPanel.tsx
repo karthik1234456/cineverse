@@ -9,7 +9,9 @@ import {
   formatVerticalAngle,
   geometricCoverage,
 } from '@/lib/seatView';
-import { Eye, Plus, Minus, ArrowLeftRight, HelpCircle } from 'lucide-react';
+import { viewScore } from '@/lib/seatScoring';
+import obstructionsData from '@/public/models/seat_obstructions.json';
+import { Eye, Plus, Minus, ArrowLeftRight, HelpCircle, ShieldCheck, Flame } from 'lucide-react';
 
 export function SeatInformationPanel() {
   const activeSeatId = useCinemaStore((s) => s.activeSeatId);
@@ -30,6 +32,11 @@ export function SeatInformationPanel() {
     if (!activeSeatId) return seats[0];
     return seats.find((s) => s.seat_id === activeSeatId) || seats[0];
   }, [activeSeatId, seats]);
+
+  const comfortScore = useMemo(() => viewScore(seat as any), [seat]);
+  const obstruction = useMemo(() => {
+    return (obstructionsData as any).seats?.[seat.seat_id];
+  }, [seat.seat_id]);
 
   // First-person modes (Walk/Seated/POV) are minimal: auto-hide the right panel
   const isFirstPerson = mode === 'walk' || mode === 'seated' || cameraMode === 'pov' || cameraMode === 'walk';
@@ -115,6 +122,48 @@ export function SeatInformationPanel() {
               <span className="font-bold text-[#1B1320]">
                 {seat.screen_h_fov_deg.toFixed(1)}° H × {seat.screen_v_fov_deg.toFixed(1)}° V
               </span>
+            </div>
+
+            {/* Viewing Comfort Score (Phase 11) */}
+            <div className="rounded-xl bg-[#FAF6F0] p-3 border border-[#E6DCD2] space-y-1.5" data-testid="3d-seat-comfort-card">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-[#1B1320] flex items-center gap-1.5">
+                  <Flame className="h-3.5 w-3.5 text-emerald-600" />
+                  <span>Viewing Comfort Score</span>
+                </span>
+                <span className={`px-2 py-0.5 rounded-lg text-xs font-black text-white ${
+                  comfortScore.score >= 80 ? 'bg-emerald-600' : comfortScore.score >= 65 ? 'bg-amber-500' : 'bg-orange-500'
+                }`}>
+                  {comfortScore.score} / 100
+                </span>
+              </div>
+              <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                <div
+                  className={`h-full transition-all duration-300 ${
+                    comfortScore.score >= 80 ? 'bg-emerald-600' : comfortScore.score >= 65 ? 'bg-amber-500' : 'bg-orange-500'
+                  }`}
+                  style={{ width: `${comfortScore.score}%` }}
+                />
+              </div>
+              <p className="text-[11px] text-slate-600">
+                {comfortScore.reasons.join(', ')}
+              </p>
+            </div>
+
+            {/* Screen Obstruction Estimate (Phase 11) */}
+            <div className="rounded-xl bg-[#FAF6F0] p-3 border border-[#E6DCD2] space-y-1.5" data-testid="3d-seat-obstruction-card">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-[#1B1320] flex items-center gap-1.5">
+                  <ShieldCheck className="h-3.5 w-3.5 text-blue-600" />
+                  <span>Screen Line-of-Sight</span>
+                </span>
+                <span className="font-black text-emerald-700">
+                  {obstruction ? `${obstruction.visible_percentage}% visible` : '100% visible'}
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-500 italic">
+                {obstruction?.disclaimer || "Geometric raycast estimate against static theatre geometry only. No audience members or physical heads modelled."}
+              </p>
             </div>
 
             {/* Geometric Screen Coverage Bar */}

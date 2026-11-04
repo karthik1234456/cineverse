@@ -25,6 +25,8 @@ from app.models.showtime import Showtime, SeatInventory, SeatStatusEnum
 from app.models.booking import Booking, BookingSeat, BookingAddon, Ticket
 from app.models.payment import Payment, PaymentEvent, Refund
 from app.models.operations import TicketScanLog, TicketTransferLog, FoodOrder
+from app.models.waitlist import WaitlistEntry
+from app.models.dynamic_pricing import DynamicPricingRule, PriceAuditLog
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -44,6 +46,9 @@ async def _cleanup_database_state():
         await db.execute(delete(TicketScanLog))
         await db.execute(delete(TicketTransferLog))
         await db.execute(delete(FoodOrder))
+        await db.execute(delete(WaitlistEntry))
+        await db.execute(delete(PriceAuditLog))
+        await db.execute(delete(DynamicPricingRule))
         await db.execute(delete(Ticket))
         await db.execute(delete(Refund))
         await db.execute(delete(PaymentEvent))
@@ -52,10 +57,21 @@ async def _cleanup_database_state():
         await db.execute(delete(BookingSeat))
         await db.execute(delete(Booking))
 
-        # Reset all seat inventory to AVAILABLE
+        # Reset all seat inventory to AVAILABLE and standard tier prices
         await db.execute(
             update(SeatInventory)
-            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
+            .where(SeatInventory.category.ilike("front"))
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None, price=280.0)
+        )
+        await db.execute(
+            update(SeatInventory)
+            .where(SeatInventory.category.ilike("prime"))
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None, price=380.0)
+        )
+        await db.execute(
+            update(SeatInventory)
+            .where(SeatInventory.category.ilike("premier"))
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None, price=520.0)
         )
 
         # Restore Showtime 1 to today with late evening start time

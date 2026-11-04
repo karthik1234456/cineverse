@@ -323,6 +323,13 @@ async def cancel_booking(db: AsyncSession, booking_id: int, user_id: Optional[in
         "status": "AVAILABLE"
     })
 
+    # Fair waitlist notification trigger
+    try:
+        from app.services.waitlist_service import process_waitlist_on_release
+        await process_waitlist_on_release(db, booking.showtime_id, len(seat_codes))
+    except Exception as exc:
+        logger.warning(f"Waitlist notification on booking cancel encountered: {exc}")
+
     return {
         "booking_id": booking.id,
         "status": "CANCELLED",

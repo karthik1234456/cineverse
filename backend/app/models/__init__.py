@@ -12,6 +12,8 @@ from app.models.operations import (
     LoyaltyAccount, LoyaltyLedger, LoyaltyTierEnum, LoyaltyActionEnum,
     CinePassSubscription, TicketTransferLog
 )
+from app.models.waitlist import WaitlistEntry, WaitlistStatusEnum
+from app.models.dynamic_pricing import DynamicPricingRule, PricingRuleStatusEnum, PriceAuditLog
 
 __all__ = [
     "User", "RoleEnum", "RefreshToken",
@@ -25,6 +27,8 @@ __all__ = [
     "TheatreAssetVersion", "StaffDevice", "TicketScanLog", "ScanResultEnum",
     "FoodOrder", "FoodDeliveryTypeEnum", "FoodDeliveryStatusEnum",
     "LoyaltyAccount", "LoyaltyLedger", "LoyaltyTierEnum", "LoyaltyActionEnum",
-    "CinePassSubscription", "TicketTransferLog"
+    "CinePassSubscription", "TicketTransferLog",
+    "WaitlistEntry", "WaitlistStatusEnum",
+    "DynamicPricingRule", "PricingRuleStatusEnum", "PriceAuditLog"
 ]
 

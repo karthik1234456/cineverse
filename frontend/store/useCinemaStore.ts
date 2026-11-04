@@ -77,6 +77,11 @@ export interface CinemaState {
   isComparing: boolean;
   compareSeats: string[];
 
+  // Phase 11 Viewing Comfort Heatmap
+  isHeatmapActive: boolean;
+  toggleHeatmap: () => void;
+  setHeatmapActive: (active: boolean) => void;
+
   // Feedback & Toast
   toastMessage: string | null;
 
@@ -191,6 +196,10 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
   isComparing: false,
   compareSeats: [],
+
+  isHeatmapActive: false,
+  toggleHeatmap: () => set((state) => ({ isHeatmapActive: !state.isHeatmapActive })),
+  setHeatmapActive: (active) => set({ isHeatmapActive: active }),
 
   toastMessage: null,
 

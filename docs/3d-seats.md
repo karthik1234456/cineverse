@@ -33,3 +33,4 @@ When a user clicks "Sit Here" or switches to POV view (`mode === 'seated'`):
 ## 6. Original Asset Fallback
 For backward compatibility, debugging, and benchmarking, adding `?seats=original` to any 3D auditorium URL restores the original low-poly auditorium seats instantly.
 - Example: `/cinemas/1/auditorium/1?showtime=1&mode=3d&seats=original`
+

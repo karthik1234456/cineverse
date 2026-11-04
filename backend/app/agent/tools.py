@@ -244,43 +244,53 @@ async def tool_get_showtimes(db: AsyncSession, movie_id: int, date: Optional[str
     }
 
 
-async def tool_suggest_seats(db: AsyncSession, showtime_id: int, count: int = 2, category: Optional[str] = None) -> Dict[str, Any]:
-    stmt = select(SeatInventory).where(
-        SeatInventory.showtime_id == showtime_id,
-        SeatInventory.status == SeatStatusEnum.AVAILABLE
-    )
-    if category:
-        stmt = stmt.where(SeatInventory.category.ilike(category))
-
+async def tool_suggest_seats(db: AsyncSession, showtime_id: int, count: int = 2, category: Optional[str] = None, preference: Optional[str] = "balanced") -> Dict[str, Any]:
+    stmt = select(SeatInventory).where(SeatInventory.showtime_id == showtime_id)
     res = await db.execute(stmt)
-    available_seats = res.scalars().all()
+    all_inventory = res.scalars().all()
 
-    # Prioritize center sweet spot rows (F, E, G) and center columns (05, 06, 04, 07)
-    ideal_order = ['F05', 'F06', 'E05', 'E06', 'G05', 'G06', 'F04', 'F07', 'E04', 'E07', 'G04', 'G07', 'H05', 'H06']
-    avail_map = {s.seat_id: s for s in available_seats}
+    if not all_inventory:
+        return {"error": "No seat inventory found for showtime", "suggested_seats": []}
 
-    selected = []
-    for s_id in ideal_order:
-        if s_id in avail_map and s_id not in selected:
-            selected.append(s_id)
-            if len(selected) == count:
-                break
+    from app.services.seat_scoring import get_layout_seats, best_available
 
-    if len(selected) < count:
-        for s in available_seats:
-            if s.seat_id not in selected:
-                selected.append(s.seat_id)
-                if len(selected) == count:
-                    break
+    layout_seats = get_layout_seats()
+    inventory_status = {
+        inv.seat_id: inv.status.value.lower()
+        for inv in all_inventory
+    }
+    avail_map = {inv.seat_id: inv for inv in all_inventory}
+
+    best = best_available(
+        seats=layout_seats,
+        status=inventory_status,
+        n=count,
+        preference=preference,
+        category=category
+    )
+
+    if not best:
+        return {
+            "showtime_id": showtime_id,
+            "suggested_seats": [],
+            "message": "No suitable contiguous seats found for the requested count and preferences."
+        }
+
+    selected = best["seat_ids"]
+    primary_seat = avail_map.get(selected[0]) if selected else None
 
     # 3D Honesty wording rule
+    reasons_str = "; ".join(best["reasons"])
     return {
         "showtime_id": showtime_id,
         "suggested_seats": selected,
-        "category": avail_map[selected[0]].category if selected else "Prime",
-        "price_per_seat": avail_map[selected[0]].price if selected else 380.0,
-        "view_assessment": "Center-tier acoustic and visual field based on auditorium geometry. Note: tall viewers in row ahead may slightly intersect lower screen boundary."
+        "category": primary_seat.category if primary_seat else (category or "Prime"),
+        "price_per_seat": primary_seat.price if primary_seat else 380.0,
+        "avg_comfort_score": best["avg_score"],
+        "reasons": best["reasons"],
+        "view_assessment": f"Geometric estimate: {reasons_str}. Note: No audience members or physical heads modelled."
     }
+
 
 
 def tool_faq_lookup(query: str) -> Dict[str, Any]:

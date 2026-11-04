@@ -10,8 +10,8 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowDown,
-  RotateCcw,
   LogOut,
+  Flame,
 } from 'lucide-react';
 
 export function ViewModeToggle() {
@@ -28,6 +28,8 @@ export function ViewModeToggle() {
   const navigatePOV = useCinemaStore((s) => s.navigatePOV);
   const storeFov = useCinemaStore((s) => s.fov);
   const setFOV = useCinemaStore((s) => s.setFOV);
+  const isHeatmapActive = useCinemaStore((s) => s.isHeatmapActive);
+  const toggleHeatmap = useCinemaStore((s) => s.toggleHeatmap);
 
   return (
     <div className="pointer-events-none fixed top-20 left-1/2 z-30 -translate-x-1/2 flex flex-col items-center gap-2">
@@ -166,6 +168,21 @@ export function ViewModeToggle() {
             </button>
           ))}
         </div>
+
+        {/* Comfort Heatmap Toggle (Phase 11) */}
+        <button
+          onClick={toggleHeatmap}
+          className={`flex min-h-[36px] items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold transition-all border ${
+            isHeatmapActive
+              ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm ring-1 ring-emerald-400'
+              : 'text-slate-700 hover:bg-slate-100 border-[#E6DCD2]'
+          }`}
+          data-testid="toggle-3d-heatmap-btn"
+          title="Toggle 3D Viewing Comfort Heatmap"
+        >
+          <Flame className={`h-3.5 w-3.5 ${isHeatmapActive ? 'text-amber-200 fill-amber-200' : 'text-emerald-600'}`} />
+          <span>{isHeatmapActive ? 'Heatmap: ON' : 'Heatmap'}</span>
+        </button>
       </div>
     </div>
   );
