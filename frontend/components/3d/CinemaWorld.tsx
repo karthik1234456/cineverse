@@ -62,6 +62,7 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
           gl.setClearColor('#07080a');
         }}
       >
+        <fog attach="fog" args={['#07080a', 15, 60]} />
         <Suspense fallback={null}>
           <AuditoriumModel />
           <SeatInteraction onSeatClick={onSeatSelect} />

@@ -9,6 +9,7 @@ import type { SeatLayoutFile } from '@/lib/types';
 
 export function WayfindingLabels() {
   const cameraMode = useCinemaStore((s) => s.cameraMode);
+  const mode = useCinemaStore((s) => s.mode);
   const seats = (layoutData as unknown as SeatLayoutFile).seats;
 
   // Compute row aisle anchor positions
@@ -26,57 +27,58 @@ export function WayfindingLabels() {
       return {
         row: rowName,
         leftPos: [
-          minXSeat.position_gltf_y_up[0] - 0.85,
-          minXSeat.position_gltf_y_up[1] + 0.6,
+          minXSeat.position_gltf_y_up[0] - 0.72,
+          minXSeat.position_gltf_y_up[1] + 0.35,
           minXSeat.position_gltf_y_up[2],
         ] as [number, number, number],
         rightPos: [
-          maxXSeat.position_gltf_y_up[0] + 0.85,
-          maxXSeat.position_gltf_y_up[1] + 0.6,
+          maxXSeat.position_gltf_y_up[0] + 0.72,
+          maxXSeat.position_gltf_y_up[1] + 0.35,
           maxXSeat.position_gltf_y_up[2],
         ] as [number, number, number],
       };
     });
   }, [seats]);
 
-  if (cameraMode === 'pov') return null;
+  // Hide in seated/POV modes per specification
+  if (cameraMode === 'pov' || mode === 'seated') return null;
 
   return (
     <group name="WayfindingLabelsLayer">
       {rowPositions.map(({ row, leftPos, rightPos }) => (
         <React.Fragment key={row}>
-          <RowBadge position={leftPos} letter={row} />
-          <RowBadge position={rightPos} letter={row} />
+          <CompactRowBadge position={leftPos} letter={row} />
+          <CompactRowBadge position={rightPos} letter={row} />
         </React.Fragment>
       ))}
     </group>
   );
 }
 
-function RowBadge({ position, letter }: { position: [number, number, number]; letter: string }) {
+function CompactRowBadge({ position, letter }: { position: [number, number, number]; letter: string }) {
   const texture = useMemo(() => {
     if (typeof document === 'undefined') return null;
     const canvas = document.createElement('canvas');
-    canvas.width = 128;
-    canvas.height = 128;
+    canvas.width = 64;
+    canvas.height = 64;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    // Glowing badge circle
-    ctx.fillStyle = 'rgba(24, 27, 34, 0.85)';
+    // Sleek, compact semi-transparent rounded pill
+    ctx.fillStyle = 'rgba(15, 17, 23, 0.75)';
     ctx.beginPath();
-    ctx.arc(64, 64, 52, 0, Math.PI * 2);
+    ctx.roundRect ? ctx.roundRect(8, 8, 48, 48, 10) : ctx.rect(8, 8, 48, 48);
     ctx.fill();
 
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = '#e50914';
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
     ctx.stroke();
 
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 56px sans-serif';
+    ctx.fillStyle = '#f1f5f9';
+    ctx.font = 'bold 30px sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(letter, 64, 66);
+    ctx.fillText(letter, 32, 33);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -88,10 +90,11 @@ function RowBadge({ position, letter }: { position: [number, number, number]; le
   return (
     <Billboard position={position}>
       <mesh>
-        <planeGeometry args={[0.55, 0.55]} />
+        <planeGeometry args={[0.28, 0.28]} />
         <meshBasicMaterial
           map={texture}
           transparent
+          opacity={0.85}
           depthWrite={false}
           side={THREE.DoubleSide}
         />
@@ -99,4 +102,3 @@ function RowBadge({ position, letter }: { position: [number, number, number]; le
     </Billboard>
   );
 }
-

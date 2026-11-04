@@ -223,7 +223,8 @@ export function CinemaScreen() {
   });
 
   const activeTexture = videoLoaded && !videoError ? videoTextureRef.current : fallbackTexture;
-  const screenBrightness = houseLights === 'show' ? 1.5 : houseLights === 'dim' ? 1.15 : 0.85;
+  // Tone-mapped screen brightness clamped <= 1.0 to preserve contrast and prevent pure-white pixel clipping
+  const screenBrightness = houseLights === 'show' ? 1.0 : houseLights === 'dim' ? 0.88 : 0.75;
 
   return (
     <group name="ScreenContainer">
@@ -242,7 +243,7 @@ export function CinemaScreen() {
         <planeGeometry args={[15.6, 7.25]} />
         <meshBasicMaterial
           map={activeTexture}
-          toneMapped={false}
+          toneMapped={true}
           color={new THREE.Color(screenBrightness, screenBrightness, screenBrightness)}
         />
       </mesh>

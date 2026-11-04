@@ -10,6 +10,7 @@ export function TheatreLighting() {
   const qualityTier = useCinemaStore((s) => s.qualityTier);
 
   const ambientRef = useRef<THREE.AmbientLight>(null);
+  const hemiRef = useRef<THREE.HemisphereLight>(null);
   const screenSpillRef = useRef<THREE.SpotLight>(null);
   const ceilingL1Ref = useRef<THREE.PointLight>(null);
   const ceilingR1Ref = useRef<THREE.PointLight>(null);
@@ -20,9 +21,10 @@ export function TheatreLighting() {
     const isDim = houseLights === 'dim';
 
     // Target intensities
-    const targetAmbient = isShow ? 0.12 : isDim ? 0.35 : 0.65;
-    const targetScreenSpill = isShow ? 2.8 : isDim ? 1.6 : 0.8;
-    const targetCeiling = isShow ? 0.05 : isDim ? 0.3 : 0.9;
+    const targetAmbient = isShow ? 0.10 : isDim ? 0.28 : 0.55;
+    const targetHemi = isShow ? 0.25 : isDim ? 0.45 : 0.75;
+    const targetScreenSpill = isShow ? 2.4 : isDim ? 1.5 : 0.7;
+    const targetCeiling = isShow ? 0.05 : isDim ? 0.25 : 0.85;
 
     const lerpSpeed = Math.min(delta * 4, 1);
 
@@ -30,6 +32,14 @@ export function TheatreLighting() {
       ambientRef.current.intensity = THREE.MathUtils.lerp(
         ambientRef.current.intensity,
         targetAmbient,
+        lerpSpeed
+      );
+    }
+
+    if (hemiRef.current) {
+      hemiRef.current.intensity = THREE.MathUtils.lerp(
+        hemiRef.current.intensity,
+        targetHemi,
         lerpSpeed
       );
     }
@@ -62,7 +72,15 @@ export function TheatreLighting() {
   return (
     <group name="TheatreLightingRig">
       {/* Soft atmospheric ambient light */}
-      <ambientLight ref={ambientRef} color="#f0f4ff" intensity={0.65} />
+      <ambientLight ref={ambientRef} color="#f0f4ff" intensity={0.55} />
+
+      {/* Natural hemisphere ambient fill: cool sky (ceiling), warm floor bounce */}
+      <hemisphereLight
+        ref={hemiRef}
+        color="#38455e"
+        groundColor="#181a20"
+        intensity={0.75}
+      />
 
       {/* Screen illumination spill projecting back onto audience */}
       <spotLight
@@ -70,43 +88,81 @@ export function TheatreLighting() {
         position={[0, 5.55, -1.0]}
         target-position={[0, 2.0, -14.0]}
         color="#8ab4f8"
-        intensity={0.8}
+        intensity={0.7}
         angle={Math.PI / 2.5}
         penumbra={0.85}
         distance={30}
         decay={1.6}
       />
 
-      {/* Warm downlights over audience rows */}
+      {/* Warm downlights over audience rows (shadow-casting limited to <= 2) */}
       <pointLight
         ref={ceilingL1Ref}
         position={[-4.5, 9.8, -12.0]}
         color="#ffe8cc"
-        intensity={0.9}
+        intensity={0.85}
         distance={22}
         decay={2}
+        castShadow={qualityTier === 'high'}
+        shadow-mapSize-width={512}
+        shadow-mapSize-height={512}
       />
       <pointLight
         ref={ceilingR1Ref}
         position={[4.5, 9.8, -12.0]}
         color="#ffe8cc"
-        intensity={0.9}
+        intensity={0.85}
         distance={22}
         decay={2}
+        castShadow={qualityTier === 'high'}
+        shadow-mapSize-width={512}
+        shadow-mapSize-height={512}
       />
 
       {/* Rear fill to prevent dark clipping at back rows */}
       <pointLight
         position={[0, 8.5, -24.0]}
         color="#e2e8f0"
-        intensity={houseLights === 'show' ? 0.08 : 0.45}
+        intensity={houseLights === 'show' ? 0.08 : 0.40}
         distance={18}
         decay={2}
       />
 
-      {/* Subtle floor aisle blue/amber path guides */}
+      {/* Warm wall sconces and aisle lights on mid/high quality */}
       {qualityTier !== 'low' && (
         <>
+          {/* Left wall sconces */}
+          <pointLight
+            position={[-10.2, 4.2, -11.0]}
+            color="#fde68a"
+            intensity={houseLights === 'show' ? 0.12 : 0.50}
+            distance={8}
+            decay={2}
+          />
+          <pointLight
+            position={[-10.2, 5.5, -18.0]}
+            color="#fde68a"
+            intensity={houseLights === 'show' ? 0.12 : 0.50}
+            distance={8}
+            decay={2}
+          />
+          {/* Right wall sconces */}
+          <pointLight
+            position={[10.2, 4.2, -11.0]}
+            color="#fde68a"
+            intensity={houseLights === 'show' ? 0.12 : 0.50}
+            distance={8}
+            decay={2}
+          />
+          <pointLight
+            position={[10.2, 5.5, -18.0]}
+            color="#fde68a"
+            intensity={houseLights === 'show' ? 0.12 : 0.50}
+            distance={8}
+            decay={2}
+          />
+
+          {/* Floor aisle path guides */}
           <pointLight
             position={[-4.2, 0.4, -9.0]}
             color="#38bdf8"
@@ -124,4 +180,3 @@ export function TheatreLighting() {
     </group>
   );
 }
-

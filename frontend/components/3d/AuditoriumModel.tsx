@@ -22,6 +22,7 @@ export function AuditoriumModel() {
   const selectedSeats = useCinemaStore((s) => s.selectedSeats);
   const hoveredSeatId = useCinemaStore((s) => s.hoveredSeatId);
   const seatStatuses = useCinemaStore((s) => s.seatStatuses);
+  const houseLights = useCinemaStore((s) => s.houseLights);
 
   const seats = (layoutData as unknown as SeatLayoutFile).seats;
   const seatNodeMap = useMemo(() => {
@@ -34,18 +35,144 @@ export function AuditoriumModel() {
 
   const seatMaterials = useRef<Map<string, THREE.MeshStandardMaterial>>(new Map());
 
-  // Clone materials per seat on model load so seat states render on actual seat meshes
+  // Assign rich physically-based materials across all node groups on load
   useEffect(() => {
     if (!scene) return;
     seatMaterials.current.clear();
 
-    seatNodeMap.forEach((nodeName, seatId) => {
-      const node = scene.getObjectByName(nodeName) as THREE.Mesh | undefined;
-      if (node && (node as any).isMesh) {
-        const origMat = Array.isArray(node.material) ? node.material[0] : node.material;
+    // Reusable shared materials by group
+    const floorMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#131418'),
+      roughness: 0.88,
+      metalness: 0.02,
+    });
+    const tierMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#15161b'),
+      roughness: 0.88,
+      metalness: 0.02,
+    });
+    const treadMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#1c1e24'),
+      roughness: 0.70,
+      metalness: 0.10,
+    });
+    const wallMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#171920'),
+      roughness: 0.92,
+      metalness: 0.02,
+    });
+    const acousticPanelMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#1c1e26'),
+      roughness: 0.85,
+      metalness: 0.04,
+    });
+    const panelTrimMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#2d323e'),
+      roughness: 0.35,
+      metalness: 0.80,
+    });
+    const ceilingMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#0c0d11'),
+      roughness: 0.95,
+      metalness: 0.00,
+    });
+    const screenFrameMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#08090b'),
+      roughness: 0.85,
+      metalness: 0.20,
+    });
+    const stageLipMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#14161c'),
+      roughness: 0.80,
+      metalness: 0.15,
+    });
+    const speakerMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#181a20'),
+      roughness: 0.45,
+      metalness: 0.70,
+    });
+    const railMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#475569'),
+      roughness: 0.30,
+      metalness: 0.85,
+    });
+    const stepLightMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#38bdf8'),
+      emissive: new THREE.Color('#38bdf8'),
+      emissiveIntensity: 1.20,
+      roughness: 0.30,
+      metalness: 0.00,
+    });
+    const architecturalLightMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#fef3c7'),
+      emissive: new THREE.Color('#fef3c7'),
+      emissiveIntensity: 1.50,
+      roughness: 0.20,
+      metalness: 0.00,
+    });
+    const exitMarkerMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#22c55e'),
+      emissive: new THREE.Color('#22c55e'),
+      emissiveIntensity: 1.50,
+      roughness: 0.40,
+      metalness: 0.00,
+    });
+    const exitDoorMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color('#16181f'),
+      roughness: 0.80,
+      metalness: 0.10,
+    });
+
+    scene.traverse((obj) => {
+      if (!(obj instanceof THREE.Mesh)) return;
+      const name = obj.name;
+
+      if (name.startsWith('seat_')) {
+        // Individual cloned velvet material per seat for dynamic states
+        const origMat = Array.isArray(obj.material) ? obj.material[0] : obj.material;
         const cloned = (origMat as THREE.MeshStandardMaterial).clone();
-        node.material = cloned;
-        seatMaterials.current.set(seatId, cloned);
+        cloned.color.set('#78141b');
+        cloned.roughness = 0.75;
+        cloned.metalness = 0.05;
+        obj.material = cloned;
+
+        // Map back from node_name to seat_id
+        for (const [sId, nName] of seatNodeMap.entries()) {
+          if (nName === name) {
+            seatMaterials.current.set(sId, cloned);
+            break;
+          }
+        }
+      } else if (name === 'room_floor') {
+        obj.material = floorMaterial;
+      } else if (name.startsWith('tier_platform_') || name.startsWith('side_aisle_')) {
+        obj.material = tierMaterial;
+      } else if (name.startsWith('central_aisle_tread_')) {
+        obj.material = treadMaterial;
+      } else if (name.endsWith('_wall')) {
+        obj.material = wallMaterial;
+      } else if (name.startsWith('acoustic_panel_')) {
+        obj.material = acousticPanelMaterial;
+      } else if (name.startsWith('panel_trim_')) {
+        obj.material = panelTrimMaterial;
+      } else if (name === 'ceiling') {
+        obj.material = ceilingMaterial;
+      } else if (name === 'screen_outer_frame') {
+        obj.material = screenFrameMaterial;
+      } else if (name === 'screen_stage_lip') {
+        obj.material = stageLipMaterial;
+      } else if (name.startsWith('speaker_')) {
+        obj.material = speakerMaterial;
+      } else if (name.startsWith('handrail_') || name.startsWith('rail_post_')) {
+        obj.material = railMaterial;
+      } else if (name.startsWith('aisle_step_light_') || name.startsWith('aisle_edge_light_')) {
+        obj.material = stepLightMaterial;
+      } else if (name.startsWith('wall_sconce_') || name.startsWith('ceiling_light_')) {
+        obj.material = architecturalLightMaterial;
+      } else if (name.startsWith('exit_marker_')) {
+        obj.material = exitMarkerMaterial;
+      } else if (name.startsWith('exit_door_')) {
+        obj.material = exitDoorMaterial;
       }
     });
   }, [scene, seatNodeMap]);
@@ -85,6 +212,7 @@ export function AuditoriumModel() {
   useFrame(({ clock }) => {
     const time = clock.getElapsedTime();
     const pulse = 0.45 + Math.sin(time * 3.5) * 0.25;
+    const isShow = houseLights === 'show';
 
     for (const seat of seats) {
       const mat = seatMaterials.current.get(seat.seat_id);
@@ -100,7 +228,7 @@ export function AuditoriumModel() {
         // Selected: vibrant red accent + high emissive glow, readable from the back
         mat.color.set('#c81e28');
         mat.emissive.set('#ff2233');
-        mat.emissiveIntensity = 0.9;
+        mat.emissiveIntensity = 0.95;
         mat.roughness = 0.65;
       } else if (isHeld) {
         // Held by someone else: amber accent with gentle pulse
@@ -118,23 +246,23 @@ export function AuditoriumModel() {
         // Hover: soft outline / fresnel rim on the real seat mesh
         mat.color.set('#8e151d');
         mat.emissive.set('#ffffff');
-        mat.emissiveIntensity = 0.5;
-        mat.roughness = 0.7;
+        mat.emissiveIntensity = 0.55;
+        mat.roughness = 0.70;
       } else {
-        // Available: natural velvet seat colour with subtle category-coloured accent
-        mat.color.set('#78141b');
+        // Available: rich velvet seat with subtle category-coloured accent
+        mat.color.set(isShow ? '#5a1015' : '#78141b');
         switch (seat.category) {
           case 'front':
             mat.emissive.set('#c9a227');
-            mat.emissiveIntensity = 0.08;
+            mat.emissiveIntensity = isShow ? 0.05 : 0.08;
             break;
           case 'prime':
             mat.emissive.set('#3b82f6');
-            mat.emissiveIntensity = 0.08;
+            mat.emissiveIntensity = isShow ? 0.05 : 0.08;
             break;
           case 'premier':
             mat.emissive.set('#a855f7');
-            mat.emissiveIntensity = 0.08;
+            mat.emissiveIntensity = isShow ? 0.05 : 0.08;
             break;
           default:
             mat.emissive.set('#000000');
