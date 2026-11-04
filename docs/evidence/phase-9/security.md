@@ -87,3 +87,4 @@ backend/tests/test_phase9_voice_agent.py::test_safety_rule_4_prompt_injection_de
 2. **No Persistent Audio Recording**: Audio data processed via the browser's native Web Speech API (`webkitSpeechRecognition`) is transient and never buffered or recorded on CineVerse servers.
 3. **Data Minimization**: The conversation session state retains only transient dialog context for the active session, expiring automatically.
 4. **Audit Trail**: Every invocation of tools (`suggest_seats`, `prepare_seat_hold`, `prepare_booking_cancellation`) is logged with an immutable audit entry in the application database.
+

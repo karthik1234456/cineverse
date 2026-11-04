@@ -256,6 +256,8 @@ export interface ShowtimeSeatsResponse {
   start_time: string;
   glb_path: string;
   layout_path: string;
+  trailer_url?: string;
+  poster_url?: string;
   seats: SeatInventoryItem[];
 }
 

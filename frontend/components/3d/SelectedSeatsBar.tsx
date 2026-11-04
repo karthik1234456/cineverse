@@ -18,6 +18,7 @@ export function SelectedSeatsBar() {
   const selectedSeats = useCinemaStore((s) => s.selectedSeats);
   const deselectSeat = useCinemaStore((s) => s.deselectSeat);
   const clearSelection = useCinemaStore((s) => s.clearSelection);
+  const seatPrices = useCinemaStore((s) => s.seatPrices);
   const cameraMode = useCinemaStore((s) => s.cameraMode);
 
   const [isFnbModalOpen, setIsFnbModalOpen] = useState(false);
@@ -34,10 +35,12 @@ export function SelectedSeatsBar() {
 
   const totalPrice = useMemo(() => {
     return selectedSeats.reduce((acc, id) => {
+      const serverPrice = seatPrices[id]?.price;
+      if (serverPrice !== undefined) return acc + serverPrice;
       const seat = seatMap.get(id);
-      return acc + (seat ? seat.price : 0);
+      return acc + (seat ? seat.price : 380);
     }, 0);
-  }, [selectedSeats, seatMap]);
+  }, [selectedSeats, seatMap, seatPrices]);
 
   if (selectedSeats.length === 0) return null;
 
@@ -52,8 +55,7 @@ export function SelectedSeatsBar() {
     } catch (err: any) {
       console.warn('Hold seats error:', err);
       setErrorMessage(err.message || 'Seat selection conflict. Please select another seat.');
-      // Auto-clear error after 3s
-      setTimeout(() => setErrorMessage(null), 3000);
+      setTimeout(() => setErrorMessage(null), 3500);
     } finally {
       setHolding(false);
     }
@@ -71,34 +73,34 @@ export function SelectedSeatsBar() {
   return (
     <>
       <div
-        className={`pointer-events-none fixed bottom-4 left-1/2 z-30 w-full max-w-2xl -translate-x-1/2 px-4 transition-all duration-300 ${
+        className={`pointer-events-none fixed bottom-6 left-1/2 z-40 w-full max-w-2xl -translate-x-1/2 px-4 transition-all duration-300 ${
           cameraMode === 'pov' ? 'opacity-40 hover:opacity-100' : 'opacity-100'
         }`}
       >
-        <div className="pointer-events-auto flex flex-col sm:flex-row items-center justify-between gap-4 rounded-2xl border border-slate-800/90 bg-[#0e1117]/95 p-4 shadow-2xl backdrop-blur-md">
+        <div className="pointer-events-auto flex flex-col sm:flex-row items-center justify-between gap-4 rounded-3xl border border-[#E6DCD2] bg-white/95 p-5 shadow-2xl backdrop-blur-md text-[#1B1320]">
           {/* Selected Seat Chips */}
           <div className="flex flex-1 flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
-              <Ticket className="h-4 w-4 text-[#e50914]" />
+            <div className="flex items-center gap-1.5 text-sm font-bold text-slate-700">
+              <Ticket className="h-4 w-4 text-[#C8102E]" />
               <span>Seats ({selectedSeats.length}/8):</span>
             </div>
 
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {selectedSeats.map((seatId) => {
-                const seat = seatMap.get(seatId);
+                const price = seatPrices[seatId]?.price || seatMap.get(seatId)?.price || 380;
                 return (
                   <div
                     key={seatId}
-                    className="flex items-center gap-1.5 rounded-lg border border-red-900/60 bg-red-950/40 px-2.5 py-1 text-xs font-semibold text-red-200"
+                    className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1 text-sm font-bold text-[#9F1239]"
                   >
                     <span>{seatId}</span>
-                    <span className="text-[10px] text-slate-400">₹{seat?.price}</span>
+                    <span className="text-xs text-rose-700">₹{Math.round(price)}</span>
                     <button
                       onClick={() => deselectSeat(seatId)}
-                      className="ml-0.5 rounded p-0.5 text-red-400 hover:bg-red-900/60 hover:text-white"
+                      className="ml-1 rounded p-0.5 text-rose-500 hover:text-rose-800"
                       aria-label={`Remove seat ${seatId}`}
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-3.5 w-3.5" />
                     </button>
                   </div>
                 );
@@ -108,7 +110,7 @@ export function SelectedSeatsBar() {
             {selectedSeats.length > 1 && (
               <button
                 onClick={clearSelection}
-                className="text-[11px] text-slate-500 hover:text-slate-300 ml-1 underline"
+                className="text-xs text-slate-500 hover:text-[#C8102E] ml-2 underline font-semibold"
               >
                 Clear
               </button>
@@ -117,22 +119,23 @@ export function SelectedSeatsBar() {
 
           {/* Error notice if conflict */}
           {errorMessage && (
-            <div className="text-xs text-red-400 bg-red-950/80 px-2 py-1 rounded border border-red-500/30">
+            <div className="text-sm text-rose-900 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-300">
               {errorMessage}
             </div>
           )}
 
           {/* Total Price and Checkout Trigger */}
-          <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-slate-800 pt-2 sm:pt-0">
+          <div className="flex items-center gap-5 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-[#E6DCD2] pt-3 sm:pt-0">
             <div className="text-right">
-              <div className="text-[10px] uppercase tracking-wider text-slate-400">Total</div>
-              <div className="text-xl font-black text-white">₹{totalPrice}</div>
+              <div className="text-xs uppercase tracking-wider text-slate-500 font-bold">Total</div>
+              <div className="text-2xl font-black text-[#C8102E]">₹{totalPrice}</div>
             </div>
 
             <button
               onClick={handleInitialProceed}
               disabled={holding}
-              className="flex items-center gap-2 rounded-xl bg-[#e50914] px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-red-950/80 transition hover:bg-red-700 active:scale-95 disabled:opacity-50"
+              className="flex min-h-[48px] items-center gap-2 rounded-2xl bg-[#C8102E] px-6 py-3 text-base font-bold text-white shadow-xl hover:bg-[#A60D26] active:scale-95 disabled:opacity-50 transition"
+              data-testid="proceed-to-checkout-btn"
             >
               {holding ? (
                 <>

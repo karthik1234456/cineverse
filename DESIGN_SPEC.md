@@ -4,20 +4,22 @@ Authoritative for every screen. If a prompt and this file disagree on layout or 
 
 ## 1. Principles
 1. **Booking is a calm, linear flow** (showtime → seats → add-ons → pay). The standard seat map comes first and always works. **3D is an enhancement behind a clear button**, never a requirement.
-2. Poster-led, cinematic, dark, generous space; one primary action per screen.
+2. **Light, rich-colour and simple**: poster-led, generous white space, vivid colour bands, large readable text, one primary action per screen. Fewer things on screen is always the better choice.
 3. Real states everywhere: loading skeletons, empty, error, offline, sold out, expired hold.
 4. Mobile-first; thumb-reachable primary actions; no hover-only features.
 5. Accessible (WCAG 2.2 AA), fast (non-3D pages LCP under 2.5 s on a mid-range phone), honest (estimates are labelled).
 
-## 2. Tokens (Tailwind theme + CSS variables)
-- Surfaces: `--bg #0A0A0C`, `--surface-1 #121216`, `--surface-2 #1A1A20`, `--surface-3 #24242C`, `--border #2E2E38`.
-- Text: `--text #F4F4F6`, `--text-muted #A3A3B0` (min contrast 4.5:1 on surfaces), `--text-faint #6E6E7A` (decorative only).
-- Accent: `--red-600 #E50914`-family deep red `#D4101C` (primary), hover `#E8333D`, pressed `#A80C16`. Gold `#C9A227` for premium/ratings. Success `#2FBF71`, warning `#F5A524`, danger `#F0434F`, info `#4F8CFF`.
-- Seat states (never colour alone; each has a distinct icon/outline): available = outlined, category-tinted; selected = solid red + check; held by others = amber + clock; booked = dark grey + cross; accessible = blue + wheelchair icon; hover/focus = bright ring.
-- Type: display `Playfair Display` or similar serif for hero titles only; UI `Inter`; numerals tabular for prices/times. Scale (rem): 0.75, 0.875, 1, 1.125, 1.25, 1.5, 2, 3, 4. Self-host fonts.
-- Spacing 4-pt grid; radii 8 / 12 / 20; elevation by surface lightness and 1px borders, not heavy shadows; subtle red glow only on primary CTAs and selected seats.
-- Motion: 150–250 ms ease-out for UI, 400–700 ms for page/hero transitions; respect `prefers-reduced-motion`; no looping decorative animation except the hero.
-- Breakpoints: 360, 640, 768, 1024, 1280, 1536. Content max width 1280; booking pages use a 12-col grid.
+## 2. Tokens (LIGHT theme, Tailwind theme + CSS variables) — supersedes the earlier dark palette
+- Surfaces: `--bg #FFF8F1` (warm ivory page), `--surface #FFFFFF` (cards), `--tint-peach #FDEBD8`, `--tint-sky #EAF1FF`, `--tint-mint #E6F6F0`, `--border #E6DCD2`.
+- Rich colour bands (heroes, banners, step headers; always with white text, contrast checked): burgundy-magenta `linear-gradient(135deg,#7A0F2E,#C2185B)`, indigo-violet `linear-gradient(135deg,#2B1B6B,#5B3FD0)`, teal-emerald `linear-gradient(135deg,#0B6E6A,#12A594)`.
+- Text: `--text #1B1320` (about 15:1 on ivory), `--text-muted #4A4056` (at least 7:1), never lighter than 4.5:1 on its surface.
+- Accent: primary crimson `#C8102E` (hover `#A60D26`, pressed `#8B0A20`), gold `#F2A900` for ratings/premium, teal `#0E8F8A` for success/available accents, info blue `#2563EB`, warning amber `#D97706`, danger `#C62828`.
+- Seat states on light backgrounds (each also has a symbol): available = white seat with category-coloured border; yours/selected = solid crimson with tick; held by others = amber with clock; taken = grey with cross; accessible = blue with wheelchair icon. Category colours: Front amber-brown, Prime royal blue, Premier ruby.
+- Type: **body 18 px / line-height 1.6; nothing smaller than 14 px anywhere**; buttons and inputs 18 px; H1 40–48, H2 30–34, H3 22–24; prices bold and tabular. Friendly sans (Inter or Plus Jakarta Sans), self-hosted; optional display face for hero titles only. Use rem units; must work at 200% zoom.
+- Touch targets at least 48×48 px; buttons at least 48 px high; spacing 4-pt grid; radii 12 / 16 / 24; soft shadows (`0 8px 24px rgba(27,19,32,.08)`), no heavy borders.
+- Motion: 150–250 ms ease-out; hero transitions 400–600 ms; honour `prefers-reduced-motion`; no auto-playing sound; no looping decorative animation.
+- Breakpoints: 360, 640, 768, 1024, 1280, 1536. Content max width 1280.
+- **Simplicity budget:** one primary button per screen; at most 6 header items; 3 booking steps (Choose show, Choose seats, Pay); extras (snacks, coupon, details) collapsed by default; technical numbers hidden behind a "details" link.
 
 ## 3. Global shell
 ```
@@ -27,7 +29,7 @@ Authoritative for every screen. If a prompt and this file disagree on layout or 
 │  Movies  Cinemas  Offers  3D Theatres  Help                      │
 └───────────────────────────────────────────────────────────────┘
 ```
-Sticky, translucent blur on scroll. Mobile: top bar (logo, city, search icon, mic, profile) + bottom tab bar (Home, Movies, Cinemas, Tickets, Profile). City picker as a sheet. Footer with policies, language, social, app-store placeholders.
+Sticky, white with a soft shadow. Only Movies, Cinemas, My Tickets, city, search and Sign in are visible; everything else lives in a profile menu or the footer. Mobile: top bar (logo, city, search icon, mic, profile) + bottom tab bar (Home, Movies, Cinemas, Tickets, Profile). City picker as a sheet. Footer with policies, language, social, app-store placeholders.
 
 ## 4. Key screens
 
@@ -73,7 +75,7 @@ Desktop (12 cols): main 8 cols, sticky summary 4 cols.
 - Mobile: map fullscreen with pinch-zoom and pan, sticky bottom bar (selected seats, total, Continue), summary as a bottom sheet, "3D" as a floating pill beside the legend.
 - A seat's quick info (row, number, category, price, "≈ 9 m from screen, centre view") appears in a popover; viewing-quality text is geometric and labelled approximate.
 
-### 4.4 Booking step 1b: 3D theatre (opened from the button)
+### 4.4 Booking step 1b: 3D theatre (opened from the "See it in 3D" button) — keep it minimal
 Full-bleed canvas; thin top bar (back to map, showtime, hold timer, mode switch Overview/Walk/Seated, house lights, settings); left panel collapses to icon rail after first use; right seat panel; bottom bar with selected seats, total and **Continue**; control hints; **trailer plays on the cinema screen** (see §5). Mobile uses bottom sheets. Details in `ANTIGRAVITY_PROMPT.md`.
 
 ### 4.5 Step 2: add-ons, Step 3: review and pay
@@ -109,4 +111,4 @@ One reusable `TrailerPlayer` component used on cards, movie detail (modal and in
 `AppShell`, `CitySheet`, `SearchBox`, `MovieCard`, `MovieRow`, `HeroCarousel`, `DateStrip`, `FilterBar`, `ShowtimeChip`, `CinemaShowtimeRow`, `Stepper`, `SeatMap2D` (virtualised, zoomable), `SeatLegend`, `SeatPopover`, `BestAvailableButton`, `Explore3DButton`, `PriceSummary`, `HoldTimer`, `CouponField`, `QuantityStepper`, `TrailerPlayer`, `MiniPlayerDock`, `TicketCard`, `Toast`, `Sheet`, `EmptyState`, `ErrorState`, `Skeleton`. Storybook (or equivalent) with all states for each.
 
 ## 8. Quality gates for design
-Lighthouse (mobile) ≥ 90 performance/accessibility/best-practices/SEO on home, movie detail and the standard seat map; axe with zero serious violations; visual regression screenshots at 360, 768, 1280; keyboard-only run of the full booking journey; reduced-motion run; 200% zoom and 320 px reflow; colour-blind simulation check of seat states.
+No visible text under 14 px (automated scan); Lighthouse (mobile) ≥ 90 performance/accessibility/best-practices/SEO on home, movie detail and the standard seat map; axe with zero serious violations; visual regression screenshots at 360, 768, 1280; keyboard-only run of the full booking journey; reduced-motion run; 200% zoom and 320 px reflow; colour-blind simulation check of seat states.

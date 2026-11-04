@@ -11,12 +11,24 @@ import type { SeatLayoutFile } from '@/lib/types';
 
 const WEB_MODEL_PATH = '/models/cineverse_auditorium_v2.web.glb';
 const HQ_MODEL_PATH = '/models/cineverse_auditorium_v2.glb';
+const PREMIUM_SEAT_PATH = '/models/seat_premium.glb';
 
 export function AuditoriumModel() {
   const useHqModel = useCinemaStore((s) => s.useHqModel);
   const modelUrl = useHqModel ? HQ_MODEL_PATH : WEB_MODEL_PATH;
 
   const { scene } = useGLTF(modelUrl);
+  const premiumGltf = useGLTF(PREMIUM_SEAT_PATH);
+
+  // Check ?seats=original URL param
+  const [useOriginalSeats, setUseOriginalSeats] = React.useState(false);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setUseOriginalSeats(params.get('seats') === 'original');
+    }
+  }, []);
+
   const cameraMode = useCinemaStore((s) => s.cameraMode);
   const activeSeatId = useCinemaStore((s) => s.activeSeatId);
   const selectedSeats = useCinemaStore((s) => s.selectedSeats);
@@ -34,6 +46,17 @@ export function AuditoriumModel() {
   }, [seats]);
 
   const seatMaterials = useRef<Map<string, THREE.MeshStandardMaterial>>(new Map());
+
+  // Extract geometry from premium seat model
+  const premiumGeometry = useMemo(() => {
+    let geo: THREE.BufferGeometry | null = null;
+    premiumGltf.scene.traverse((o) => {
+      if (!geo && o instanceof THREE.Mesh) {
+        geo = o.geometry;
+      }
+    });
+    return geo;
+  }, [premiumGltf.scene]);
 
   // Assign rich physically-based materials across all node groups on load
   useEffect(() => {
@@ -123,25 +146,36 @@ export function AuditoriumModel() {
       metalness: 0.10,
     });
 
+    // Initialize materials for each seat
+    for (const seat of seats) {
+      let mat = seatMaterials.current.get(seat.seat_id);
+      if (!mat) {
+        mat = new THREE.MeshStandardMaterial({
+          roughness: 0.72,
+          metalness: 0.04,
+        });
+        seatMaterials.current.set(seat.seat_id, mat);
+      }
+    }
+
     scene.traverse((obj) => {
       if (!(obj instanceof THREE.Mesh)) return;
       const name = obj.name;
 
       if (name.startsWith('seat_')) {
-        // Individual cloned velvet material per seat for dynamic states
-        const origMat = Array.isArray(obj.material) ? obj.material[0] : obj.material;
-        const cloned = (origMat as THREE.MeshStandardMaterial).clone();
-        cloned.color.set('#78141b');
-        cloned.roughness = 0.75;
-        cloned.metalness = 0.05;
-        obj.material = cloned;
-
-        // Map back from node_name to seat_id
-        for (const [sId, nName] of seatNodeMap.entries()) {
-          if (nName === name) {
-            seatMaterials.current.set(sId, cloned);
-            break;
+        if (useOriginalSeats) {
+          obj.visible = true;
+          // Map back from node_name to seat_id
+          for (const [sId, nName] of seatNodeMap.entries()) {
+            if (nName === name) {
+              const mat = seatMaterials.current.get(sId);
+              if (mat) obj.material = mat;
+              break;
+            }
           }
+        } else {
+          // Hide baked original seat meshes when premium seats are enabled
+          obj.visible = false;
         }
       } else if (name === 'room_floor') {
         obj.material = floorMaterial;
@@ -225,15 +259,15 @@ export function AuditoriumModel() {
       const isHovered = hoveredSeatId === seat.seat_id;
 
       if (isSelected) {
-        // Selected: vibrant red accent + high emissive glow, readable from the back
-        mat.color.set('#c81e28');
-        mat.emissive.set('#ff2233');
-        mat.emissiveIntensity = 0.95;
+        // Selected: CineVerse crimson velvet + high emissive glow
+        mat.color.set('#C8102E');
+        mat.emissive.set('#FF2233');
+        mat.emissiveIntensity = 0.90;
         mat.roughness = 0.65;
       } else if (isHeld) {
         // Held by someone else: amber accent with gentle pulse
-        mat.color.set('#b45309');
-        mat.emissive.set('#f59e0b');
+        mat.color.set('#B45309');
+        mat.emissive.set('#F59E0B');
         mat.emissiveIntensity = pulse;
         mat.roughness = 0.75;
       } else if (isBooked) {
@@ -243,39 +277,89 @@ export function AuditoriumModel() {
         mat.emissiveIntensity = 0;
         mat.roughness = 0.95;
       } else if (isHovered) {
-        // Hover: soft outline / fresnel rim on the real seat mesh
-        mat.color.set('#8e151d');
-        mat.emissive.set('#ffffff');
-        mat.emissiveIntensity = 0.55;
+        // Hover: soft highlight rim
+        mat.color.set('#B91C1C');
+        mat.emissive.set('#FFFFFF');
+        mat.emissiveIntensity = 0.60;
         mat.roughness = 0.70;
       } else {
-        // Available: rich velvet seat with subtle category-coloured accent
-        mat.color.set(isShow ? '#5a1015' : '#78141b');
-        switch (seat.category) {
-          case 'front':
-            mat.emissive.set('#c9a227');
-            mat.emissiveIntensity = isShow ? 0.05 : 0.08;
-            break;
-          case 'prime':
-            mat.emissive.set('#3b82f6');
-            mat.emissiveIntensity = isShow ? 0.05 : 0.08;
-            break;
-          case 'premier':
-            mat.emissive.set('#a855f7');
-            mat.emissiveIntensity = isShow ? 0.05 : 0.08;
-            break;
-          default:
-            mat.emissive.set('#000000');
-            mat.emissiveIntensity = 0;
+        // Available: rich velvet seat with category colour (§ Task 3)
+        const cat = (seat.category || 'prime').toLowerCase();
+        if (cat === 'premier') {
+          mat.color.set(isShow ? '#7A0F2E' : '#9F1239'); // ruby
+          mat.emissive.set('#9F1239');
+          mat.emissiveIntensity = isShow ? 0.04 : 0.08;
+        } else if (cat === 'front') {
+          mat.color.set(isShow ? '#6B441D' : '#8D5B28'); // warm amber-brown
+          mat.emissive.set('#8D5B28');
+          mat.emissiveIntensity = isShow ? 0.04 : 0.08;
+        } else {
+          // prime
+          mat.color.set(isShow ? '#172554' : '#1E40AF'); // royal blue
+          mat.emissive.set('#1E40AF');
+          mat.emissiveIntensity = isShow ? 0.04 : 0.08;
         }
-        mat.roughness = 0.75;
+        mat.roughness = 0.72;
+        mat.metalness = 0.04;
       }
     }
   });
 
-  return <primitive object={scene} name="AuditoriumBaseModel" />;
+  return (
+    <group name="AuditoriumRootGroup">
+      <primitive object={scene} name="AuditoriumBaseModel" />
+
+      {/* Instanced Premium Seats with Ambient Occlusion Contact Shadows (§ Task 3) */}
+      {!useOriginalSeats && premiumGeometry && (
+        <group name="PremiumSeatsContainer">
+          {seats.map((seat) => {
+            const { min, max } = seat.bounds_gltf_y_up;
+            const posX = (min[0] + max[0]) / 2;
+            const posY = min[1];
+            const posZ = (min[2] + max[2]) / 2;
+            const isHiddenInPov = cameraMode === 'pov' && activeSeatId === seat.seat_id;
+            const mat = seatMaterials.current.get(seat.seat_id);
+
+            return (
+              <group
+                key={seat.seat_id}
+                name={`premium_${seat.seat_id}`}
+                position={[posX, posY, posZ]}
+                visible={!isHiddenInPov}
+              >
+                {/* Ambient Occlusion Contact Shadow */}
+                <mesh
+                  position={[0, 0.005, 0]}
+                  rotation={[-Math.PI / 2, 0, 0]}
+                  name={`ao_shadow_${seat.seat_id}`}
+                >
+                  <planeGeometry args={[1.22, 0.92]} />
+                  <meshBasicMaterial
+                    color="#030406"
+                    transparent
+                    opacity={0.50}
+                    depthWrite={false}
+                  />
+                </mesh>
+
+                {/* Premium Cinema Seat Mesh */}
+                {mat && (
+                  <mesh
+                    geometry={premiumGeometry}
+                    material={mat}
+                    name={`mesh_${seat.seat_id}`}
+                  />
+                )}
+              </group>
+            );
+          })}
+        </group>
+      )}
+    </group>
+  );
 }
 
 // Preload models for immediate fast rendering
 useGLTF.preload(WEB_MODEL_PATH);
 useGLTF.preload(HQ_MODEL_PATH);
+useGLTF.preload(PREMIUM_SEAT_PATH);

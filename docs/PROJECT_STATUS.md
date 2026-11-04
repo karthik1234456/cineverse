@@ -1,6 +1,6 @@
 # CineVerse Project Status
 
-**Last Audited:** 2026-11-03 (Updated after FIX-01 through FIX-06 remediation)  
+**Last Audited:** 2026-11-04 (Updated with Phase 2c completion)  
 **Specification Reference:** `phases/00_RUNBOOK.md`, `phases/phase-N.md`, `SECURITY_SPEC.md`  
 **Phase Execution Note:** Phases 9 (Voice Agent) and 12 (Venue Operations) were implemented out of chronological sequence before Phases 10 & 11.
 
@@ -13,6 +13,7 @@
 | **Phase 1: Foundation** | `phases/phase-1.md` | `PASSED` | `PASS` | Async SQLAlchemy, Alembic migrations (`e9d50b3feda9` $\leftrightarrow$ `0f41eaaa443b`), idempotent seeds (7 cities, 4 cinemas, 12 movies, 100 seats), `/health` & `/ready` pass. |
 | **Phase 2: 3D Auditorium** | `phases/phase-2.md` | `PASSED` | `PASS` | Three.js R3F auditorium, 100 seats, Walk Mode with AABB collision (122 colliders), Seated POV (A05/E05/J10), screen shaders. Vitest & Playwright E2E passed. |
 | **Phase 2b: 3D Visual Overhaul & HUD** | Phase 2b Prompt | `PASSED` | `PASS` | Invisible proxies (0 visible pixels), real mesh state materials, eliminated stray red triangle, unclipped tonemapped screen (0.008% clipped white), minimal first-person HUD, mirrored numbering (Seat 01 on left), legend $A+H+B+S \equiv 100$. All 14 visual screenshots verified. |
+| **Phase 2c: Light & Colourful UI, Large Text, 3D Seats & Trailers** | `phase-2c-simple-light-ui.md` | `PASSED` | `PASS` | Body text 18px, min visible text $\ge 14\text{px}$, warm ivory (`#FFF8F1`) palette, luxury instanced 3D seat model (`seat_premium.glb`, 2016 tris) with contact shadows, server-side context-aware movie trailer playback, instant seat hover tooltip with price in ₹, simplicity budget (max 2 clicks to seats, 3 numbered steps). Tag `phase-2c-done`. |
 | **Phase 3: Core Site & Discovery** | `phases/phase-3.md` | `PASSED` | `PASS` | Homepage, city selector modal, movie catalog, search autocomplete, 7-day showtime matrix. Playwright browse tests pass. |
 | **Phase 4: Booking Engine** | `phases/phase-4.md` | `PASSED` | `PASS` | 2D/3D shared selection state, 50-client concurrency race verification (1 winner, 49 rejected), database unique constraint, WebSocket live sync. |
 | **Phase 5: Payments & Tickets** | `phases/phase-5.md` | `PASSED` | `PASS (Remediated)` | **Gate previously failed (Finding FIX-01)**: `test_signature_valid` bypass was deleted from backend. Real Razorpay Checkout test mode integrated on frontend. HMAC-SHA256 signature verification, webhook signature validation, replay attack rejection, and expired hold auto-refund tested. |

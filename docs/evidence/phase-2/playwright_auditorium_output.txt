@@ -14,3 +14,4 @@ Running 11 tests using 1 worker
   ok 11 [chromium] › e2e\auditorium.spec.ts:284:7 › CineVerse 3D — Complete Interactive 3D Theatre Experience › 11. WebGL failure fallback test (7.9s)
 
   11 passed (1.7m)
+

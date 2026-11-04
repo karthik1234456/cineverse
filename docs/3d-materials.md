@@ -60,3 +60,4 @@ Rather than rendering translucent proxy box shells that obstruct seats and clip 
 - Material: `MeshBasicMaterial` with `toneMapped = true`.
 - Texture Color Space: `THREE.SRGBColorSpace`.
 - ACES Filmic Tone Mapping compresses dynamic highlights so high-luminance titles ("QUANTUM ODYSSEY") and video trailers retain edge definition and gradient contrast without blowing out to pure white ($< 2\%$ pure-white pixels).
+

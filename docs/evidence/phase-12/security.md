@@ -70,3 +70,4 @@ The 3D Auditorium Onboarding tool processes untrusted GLB files uploaded by venu
 2. **Coordinate Space Detection**: Detects column-major transformation matrices (e.g. Blender Z-up converted to glTF Y-up) and maps node geometries to standard `glTF_Y_UP`.
 3. **Budget Enforcement**: Rejects models missing screen nodes (`MISSING_SCREEN`) and flags meshes exceeding the recommended triangle budget (> 300,000 triangles).
 4. **Version Rollback**: Asset versions (`TheatreAssetVersion`) are stored immutably. Rollbacks re-activate previous versions atomically without dropping history.
+

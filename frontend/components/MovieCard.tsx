@@ -11,84 +11,77 @@ interface MovieCardProps {
 }
 
 export function MovieCard({ movie }: MovieCardProps) {
-  // Deterministic local color for SVG placeholder posters if image is not loaded
-  const posterPlaceholder = (
-    <div className="absolute inset-0 flex flex-col justify-end p-4 bg-gradient-to-t from-black via-zinc-900/60 to-transparent">
-      <div className="text-sm font-bold text-white line-clamp-2">{movie.title}</div>
-      <div className="text-[11px] text-zinc-400 mt-1">{movie.genres?.join(', ')}</div>
-    </div>
-  );
-
   return (
     <Link
       href={`/movies/${movie.slug}`}
-      className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/5 bg-[#12131a] transition duration-300 hover:-translate-y-1 hover:border-[#e50914]/40 hover:shadow-2xl hover:shadow-red-950/20"
+      className="group relative flex flex-col overflow-hidden rounded-2xl border border-[#E6DCD2] bg-white transition duration-200 hover:-translate-y-1 hover:shadow-dropdown shadow-card text-[#1B1320]"
     >
       {/* Poster image container */}
-      <div className="relative aspect-[2/3] w-full overflow-hidden bg-zinc-900">
+      <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#FDEBD8]">
         <img
           src={movie.poster_url}
           alt={movie.title}
-          className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+          className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
           onError={(e) => {
-            // Replace with stylized CSS poster fallback
             (e.target as HTMLElement).style.display = 'none';
           }}
         />
-        {posterPlaceholder}
 
-        {/* Certificate Badge */}
-        <div className="absolute left-2.5 top-2.5 rounded-md bg-black/60 backdrop-blur-md px-2 py-0.5 text-[10px] font-bold text-zinc-200 border border-white/10">
+        {/* Certificate Badge (>= 14px text) */}
+        <div className="absolute left-3 top-3 rounded-lg bg-white/95 backdrop-blur-md px-2.5 py-1 text-sm font-bold text-[#1B1320] border border-[#E6DCD2] shadow-sm">
           {movie.certificate}
         </div>
 
-        {/* Rating or Interested Badge */}
-        <div className="absolute right-2.5 top-2.5 flex items-center gap-1 rounded-md bg-black/60 backdrop-blur-md px-2 py-0.5 text-[11px] font-bold border border-white/10">
+        {/* Rating or Interested Badge (>= 14px text) */}
+        <div className="absolute right-3 top-3 flex items-center gap-1.5 rounded-lg bg-white/95 backdrop-blur-md px-2.5 py-1 text-sm font-bold border border-[#E6DCD2] shadow-sm">
           {movie.is_now_showing ? (
             <>
-              <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
-              <span className="text-white">{movie.rating_avg.toFixed(1)}</span>
+              <Star className="h-4 w-4 fill-[#F2A900] text-[#F2A900]" />
+              <span className="text-[#1B1320]">{movie.rating_avg.toFixed(1)}</span>
             </>
           ) : (
             <>
-              <Heart className="h-3 w-3 fill-red-500 text-red-500" />
-              <span className="text-zinc-300">{(movie.interested_count / 1000).toFixed(1)}k</span>
+              <Heart className="h-4 w-4 fill-[#C8102E] text-[#C8102E]" />
+              <span className="text-[#1B1320]">{(movie.interested_count / 1000).toFixed(1)}k</span>
             </>
           )}
         </div>
 
         {/* Formats banner at bottom of poster */}
-        <div className="absolute bottom-2 left-2 right-2 flex flex-wrap gap-1">
-          {movie.formats?.slice(0, 2).map((fmt) => (
-            <span
-              key={fmt}
-              className="rounded bg-black/70 backdrop-blur-sm px-1.5 py-0.5 text-[9px] font-semibold text-zinc-300 border border-white/5"
-            >
-              {fmt}
-            </span>
-          ))}
-        </div>
+        {movie.formats && movie.formats.length > 0 && (
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-3 pt-6 flex items-center gap-2">
+            {movie.formats.slice(0, 2).map((fmt) => (
+              <span
+                key={fmt}
+                className="rounded-md bg-white/90 px-2 py-0.5 text-sm font-bold text-[#1B1320]"
+              >
+                {fmt}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Details info */}
-      <div className="flex flex-1 flex-col justify-between p-3.5">
-        <div>
-          <h3 className="text-sm font-bold text-white group-hover:text-[#e50914] transition line-clamp-1">
-            {movie.title}
-          </h3>
-          <p className="text-[11px] text-zinc-400 mt-1 line-clamp-1">
-            {movie.languages?.join(', ')}
-          </p>
-        </div>
+      {/* Card Details (all text >= 14px, title >= 18px) */}
+      <div className="flex flex-1 flex-col p-4">
+        <h3 className="text-xl font-bold text-[#1B1320] group-hover:text-[#C8102E] transition line-clamp-1">
+          {movie.title}
+        </h3>
 
-        <div className="mt-3 flex items-center justify-between border-t border-white/5 pt-2 text-[11px] text-zinc-500">
-          <span>{movie.duration_minutes}m</span>
-          <span className="font-semibold text-zinc-300 group-hover:text-[#e50914] transition">
-            Book Tickets →
+        <p className="mt-1 text-sm font-medium text-[#4A4056] line-clamp-1">
+          {movie.genres?.join(', ')} · {movie.languages?.[0]}
+        </p>
+
+        <div className="mt-4 pt-3 border-t border-[#E6DCD2] flex items-center justify-between">
+          <span className="text-sm font-medium text-[#4A4056]">{movie.duration_minutes} mins</span>
+          <span
+            data-testid="movie-card-book-btn"
+            className="inline-flex items-center justify-center rounded-xl bg-[#C8102E] px-4 py-2 text-sm font-bold text-white group-hover:bg-[#A60D26] transition shadow-sm min-h-[40px]"
+          >
+            Book
           </span>
         </div>
       </div>
     </Link>
   );
 }
-

@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   MapPin, Search, User, LogOut, Ticket, ShieldCheck,
-  Film, Compass, History, X, Star, Building2
+  Film, History, X, Star, Building2
 } from 'lucide-react';
 import { CityModal } from './CityModal';
 import { AuthModal } from './AuthModal';
@@ -40,7 +40,6 @@ export function Navbar() {
           setSelectedCity(matched);
         } else if (data.length > 0) {
           setSelectedCity(data[0]);
-          // Prompt city modal if never selected
           if (!storedCitySlug) {
             setIsCityModalOpen(true);
           }
@@ -123,22 +122,23 @@ export function Navbar() {
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-[#0b0c10]/95 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+      <header className="sticky top-0 z-40 w-full border-b border-[#E6DCD2] bg-white/95 backdrop-blur-md shadow-sm">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           {/* Logo & City Selector */}
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-5">
             <Link href="/" className="flex items-center gap-2 group">
-              <span className="text-2xl font-black tracking-wider text-[#e50914] drop-shadow-[0_0_12px_rgba(229,9,20,0.5)]">
+              <span className="text-3xl font-black tracking-tight text-[#C8102E]">
                 CINEVERSE
               </span>
             </Link>
 
             <button
               onClick={() => setIsCityModalOpen(true)}
-              className="hidden sm:flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:border-white/25 hover:bg-white/10 transition"
+              className="flex items-center gap-2 rounded-full border border-[#E6DCD2] bg-[#FDEBD8] px-3.5 py-2 text-sm font-semibold text-[#1B1320] hover:bg-[#fbdcb9] hover:border-[#d4c2b0] transition shadow-sm min-h-[44px]"
               data-testid="city-selector-button"
+              aria-label="Select City"
             >
-              <MapPin className="h-3.5 w-3.5 text-[#e50914]" />
+              <MapPin className="h-4 w-4 text-[#C8102E]" />
               <span>{selectedCity ? selectedCity.name : 'Select City'}</span>
             </button>
           </div>
@@ -147,14 +147,14 @@ export function Navbar() {
           <div ref={searchContainerRef} className="relative hidden md:flex flex-1 max-w-md mx-6">
             <form onSubmit={handleSearchSubmit} className="w-full">
               <div className="relative w-full">
-                <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-zinc-500" />
+                <Search className="absolute left-4 top-3.5 h-5 w-5 text-[#4A4056]" />
                 <input
                   type="text"
                   placeholder="Search movies, cinemas, genres..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setSearchFocused(true)}
-                  className="w-full rounded-full border border-white/10 bg-[#16181f] py-2 pl-10 pr-9 text-xs text-white placeholder-zinc-500 focus:border-[#e50914] focus:outline-none transition shadow-inner"
+                  className="w-full rounded-full border border-[#E6DCD2] bg-[#FFF8F1] py-2.5 pl-12 pr-10 text-base text-[#1B1320] placeholder-[#4A4056] focus:border-[#C8102E] focus:bg-white focus:outline-none transition shadow-inner min-h-[48px]"
                   data-testid="global-search-input"
                 />
                 {searchQuery && (
@@ -164,9 +164,10 @@ export function Navbar() {
                       setSearchQuery('');
                       setSearchResults(null);
                     }}
-                    className="absolute right-3 top-2.5 text-zinc-500 hover:text-zinc-300"
+                    className="absolute right-3.5 top-3.5 text-[#4A4056] hover:text-[#1B1320]"
+                    aria-label="Clear search"
                   >
-                    <X className="h-3.5 w-3.5" />
+                    <X className="h-4 w-4" />
                   </button>
                 )}
               </div>
@@ -175,21 +176,21 @@ export function Navbar() {
             {/* Suggestions / Recent Searches Dropdown */}
             {searchFocused && (
               <div
-                className="absolute left-0 right-0 top-11 rounded-2xl border border-white/10 bg-[#14161f] p-3 shadow-2xl backdrop-blur-xl z-50 overflow-hidden"
+                className="absolute left-0 right-0 top-14 rounded-2xl border border-[#E6DCD2] bg-white p-4 shadow-dropdown z-50 overflow-hidden"
                 data-testid="search-suggestions-dropdown"
               >
                 {searchLoading ? (
-                  <div className="p-3 text-center text-xs text-zinc-400">Searching catalog...</div>
+                  <div className="p-4 text-center text-sm text-[#4A4056]">Searching catalog...</div>
                 ) : searchResults ? (
-                  <div className="space-y-3">
+                  <div className="space-y-4">
                     {/* Movies Section */}
                     {searchResults.movies && searchResults.movies.length > 0 && (
                       <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-2 py-1 flex items-center gap-1">
-                          <Film className="h-3 w-3 text-[#e50914]" />
+                        <div className="text-xs font-bold uppercase tracking-wider text-[#4A4056] px-2 py-1 flex items-center gap-1.5">
+                          <Film className="h-4 w-4 text-[#C8102E]" />
                           <span>Movies</span>
                         </div>
-                        <div className="space-y-1 mt-1">
+                        <div className="space-y-1 mt-1.5">
                           {searchResults.movies.map((m) => (
                             <Link
                               key={m.id}
@@ -198,9 +199,9 @@ export function Navbar() {
                                 saveRecentSearch(m.title);
                                 setSearchFocused(false);
                               }}
-                              className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 hover:bg-white/10 transition group"
+                              className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-[#FDEBD8] transition group"
                             >
-                              <div className="h-10 w-7 rounded bg-zinc-800 shrink-0 overflow-hidden">
+                              <div className="h-12 w-9 rounded-lg bg-[#E6DCD2] shrink-0 overflow-hidden border border-[#E6DCD2]">
                                 <img
                                   src={m.poster_url}
                                   alt={m.title}
@@ -211,18 +212,18 @@ export function Navbar() {
                                 />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="text-xs font-bold text-white group-hover:text-[#e50914] truncate">
+                                <div className="text-base font-bold text-[#1B1320] group-hover:text-[#C8102E] truncate">
                                   {m.title}
                                 </div>
-                                <div className="flex items-center gap-2 text-[10px] text-zinc-400">
+                                <div className="flex items-center gap-2 text-sm text-[#4A4056]">
                                   <span>{m.certificate}</span>
                                   <span>•</span>
                                   <span>{m.languages?.slice(0, 2).join(', ')}</span>
                                   {m.rating_avg > 0 && (
                                     <>
                                       <span>•</span>
-                                      <span className="flex items-center gap-0.5 text-amber-400 font-bold">
-                                        <Star className="h-2.5 w-2.5 fill-amber-400" />
+                                      <span className="flex items-center gap-1 text-[#F2A900] font-bold">
+                                        <Star className="h-3.5 w-3.5 fill-[#F2A900]" />
                                         {m.rating_avg.toFixed(1)}
                                       </span>
                                     </>
@@ -237,12 +238,12 @@ export function Navbar() {
 
                     {/* Cinemas Section */}
                     {searchResults.cinemas && searchResults.cinemas.length > 0 && (
-                      <div className="pt-2 border-t border-white/5">
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 px-2 py-1 flex items-center gap-1">
-                          <Building2 className="h-3 w-3 text-amber-400" />
+                      <div className="pt-2 border-t border-[#E6DCD2]">
+                        <div className="text-xs font-bold uppercase tracking-wider text-[#4A4056] px-2 py-1 flex items-center gap-1.5">
+                          <Building2 className="h-4 w-4 text-[#F2A900]" />
                           <span>Cinemas</span>
                         </div>
-                        <div className="space-y-1 mt-1">
+                        <div className="space-y-1 mt-1.5">
                           {searchResults.cinemas.map((c) => (
                             <Link
                               key={c.id}
@@ -251,16 +252,16 @@ export function Navbar() {
                                 saveRecentSearch(c.name);
                                 setSearchFocused(false);
                               }}
-                              className="flex items-center gap-2.5 rounded-xl px-2.5 py-1.5 hover:bg-white/10 transition group"
+                              className="flex items-center gap-3 rounded-xl px-3 py-2 hover:bg-[#FDEBD8] transition group"
                             >
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-600/10 text-red-400 shrink-0">
-                                <Building2 className="h-4 w-4" />
+                              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#FDEBD8] text-[#C8102E] shrink-0">
+                                <Building2 className="h-5 w-5" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <div className="text-xs font-bold text-white group-hover:text-red-400 truncate">
+                                <div className="text-base font-bold text-[#1B1320] group-hover:text-[#C8102E] truncate">
                                   {c.name}
                                 </div>
-                                <div className="text-[10px] text-zinc-400 truncate">{c.address}</div>
+                                <div className="text-sm text-[#4A4056] truncate">{c.address}</div>
                               </div>
                             </Link>
                           ))}
@@ -269,16 +270,16 @@ export function Navbar() {
                     )}
 
                     {searchResults.total_results === 0 && (
-                      <div className="p-4 text-center text-xs text-zinc-400">
+                      <div className="p-4 text-center text-sm text-[#4A4056]">
                         No matches found for &ldquo;{searchQuery}&rdquo;
                       </div>
                     )}
                   </div>
                 ) : recentSearches.length > 0 ? (
                   <div>
-                    <div className="flex items-center justify-between px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-zinc-400">
-                      <span className="flex items-center gap-1">
-                        <History className="h-3 w-3" />
+                    <div className="flex items-center justify-between px-2 py-1 text-xs font-bold uppercase tracking-wider text-[#4A4056]">
+                      <span className="flex items-center gap-1.5">
+                        <History className="h-3.5 w-3.5" />
                         Recent Searches
                       </span>
                       <button
@@ -287,12 +288,12 @@ export function Navbar() {
                           setRecentSearches([]);
                           localStorage.removeItem('cineverse_recent_searches');
                         }}
-                        className="text-zinc-500 hover:text-zinc-300 lowercase text-[10px]"
+                        className="text-[#C8102E] hover:underline text-xs font-medium"
                       >
                         clear
                       </button>
                     </div>
-                    <div className="mt-1 space-y-0.5">
+                    <div className="mt-1.5 space-y-1">
                       {recentSearches.map((item) => (
                         <button
                           key={item}
@@ -303,16 +304,16 @@ export function Navbar() {
                             setSearchFocused(false);
                             router.push(`/movies?search=${encodeURIComponent(item)}`);
                           }}
-                          className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-xs text-zinc-300 hover:bg-white/10 hover:text-white transition"
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm text-[#1B1320] hover:bg-[#FDEBD8] transition"
                         >
-                          <Search className="h-3 w-3 text-zinc-500" />
+                          <Search className="h-4 w-4 text-[#4A4056]" />
                           <span>{item}</span>
                         </button>
                       ))}
                     </div>
                   </div>
                 ) : (
-                  <div className="p-3 text-center text-xs text-zinc-500">
+                  <div className="p-4 text-center text-sm text-[#4A4056]">
                     Type a movie title, cinema name, or genre...
                   </div>
                 )}
@@ -320,65 +321,65 @@ export function Navbar() {
             )}
           </div>
 
-          {/* Nav links & Account */}
-          <div className="flex items-center gap-3">
+          {/* Simple Navigation Links & Account (< 6 visible items) */}
+          <div className="flex items-center gap-4">
             <Link
               href="/movies"
-              className="text-xs font-medium text-zinc-300 hover:text-white px-2 py-1 transition"
+              className="text-base font-semibold text-[#1B1320] hover:text-[#C8102E] px-3 py-2 rounded-lg transition min-h-[44px] flex items-center"
             >
               Movies
             </Link>
 
             <Link
               href="/cinemas"
-              className="hidden sm:inline-block text-xs font-medium text-zinc-300 hover:text-white px-2 py-1 transition"
+              className="hidden sm:flex text-base font-semibold text-[#1B1320] hover:text-[#C8102E] px-3 py-2 rounded-lg transition min-h-[44px] items-center"
             >
               Cinemas
             </Link>
 
             <Link
-              href="/cinemas/1/auditorium/1?showtime=1"
-              className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-red-600/30 to-amber-600/30 border border-[#e50914]/40 px-3 py-1 text-xs font-semibold text-white hover:from-red-600/50 hover:to-amber-600/50 transition shadow-[0_0_15px_rgba(229,9,20,0.25)]"
+              href="/profile"
+              className="hidden sm:flex text-base font-semibold text-[#1B1320] hover:text-[#C8102E] px-3 py-2 rounded-lg transition min-h-[44px] items-center"
             >
-              <Compass className="h-3.5 w-3.5 text-amber-400" />
-              <span>3D Preview</span>
+              My Tickets
             </Link>
 
             {currentUser ? (
-              <div className="flex items-center gap-2 pl-2 border-l border-white/10">
+              <div className="flex items-center gap-2 pl-2 border-l border-[#E6DCD2]">
                 <Link
                   href="/profile"
-                  className="flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-medium text-zinc-200 hover:bg-white/10 transition"
-                  title="My Profile & Bookings"
+                  className="flex items-center gap-2 rounded-xl border border-[#E6DCD2] bg-[#FDEBD8] px-3.5 py-2 text-sm font-bold text-[#1B1320] hover:bg-[#fbdcb9] transition min-h-[44px]"
+                  title="My Profile"
                 >
-                  <Ticket className="h-3.5 w-3.5 text-[#e50914]" />
-                  <span className="hidden md:inline">{currentUser.full_name?.split(' ')[0] || 'Profile'}</span>
+                  <Ticket className="h-4 w-4 text-[#C8102E]" />
+                  <span>{currentUser.full_name?.split(' ')[0] || 'Profile'}</span>
                 </Link>
 
                 {currentUser.role === 'admin' && (
                   <Link
                     href="/admin"
-                    className="flex items-center gap-1 rounded-lg bg-red-950/80 border border-red-500/40 px-2 py-1.5 text-xs font-medium text-red-200 hover:bg-red-900 transition"
+                    className="flex items-center justify-center rounded-xl bg-red-100 border border-red-300 p-2 text-[#C8102E] hover:bg-red-200 transition min-w-[44px] min-h-[44px]"
                     title="Admin Portal"
                   >
-                    <ShieldCheck className="h-3.5 w-3.5 text-red-400" />
+                    <ShieldCheck className="h-5 w-5" />
                   </Link>
                 )}
 
                 <button
                   onClick={handleLogout}
-                  className="rounded-lg p-1.5 text-zinc-400 hover:text-white hover:bg-white/5 transition"
+                  className="rounded-xl p-2.5 text-[#4A4056] hover:text-[#C8102E] hover:bg-[#FDEBD8] transition min-w-[44px] min-h-[44px] flex items-center justify-center"
                   title="Sign Out"
+                  aria-label="Sign Out"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-5 w-5" />
                 </button>
               </div>
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="flex items-center gap-1.5 rounded-full bg-[#e50914] px-4 py-1.5 text-xs font-bold text-white hover:bg-red-700 transition shadow-lg shadow-red-950/50"
+                className="flex items-center gap-2 rounded-xl bg-[#C8102E] px-5 py-2.5 text-base font-bold text-white hover:bg-[#A60D26] active:bg-[#8B0A20] transition shadow-md min-h-[48px]"
               >
-                <User className="h-3.5 w-3.5" />
+                <User className="h-5 w-5" />
                 <span>Sign In</span>
               </button>
             )}

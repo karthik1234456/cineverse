@@ -2,11 +2,9 @@
 
 import React, { useRef, useMemo, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useCinemaStore } from '@/store/useCinemaStore';
-
-// Safe public sample video with open CORS (Big Buck Bunny teaser trailer)
-const DEFAULT_TRAILER_URL = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
 
 export function CinemaScreen() {
   const meshRef = useRef<THREE.Mesh>(null);
@@ -118,6 +116,22 @@ export function CinemaScreen() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [toggleTrailerPlay, toggleTrailerMute]);
 
+  // Pause on hidden tab / departure
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!videoRef.current) return;
+      if (document.visibilityState === 'hidden') {
+        videoRef.current.pause();
+      } else if (document.visibilityState === 'visible' && trailer.isPlaying) {
+        videoRef.current.play().catch(() => {});
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [trailer.isPlaying]);
+
   // Fallback procedural canvas
   const canvas = useMemo(() => {
     if (typeof document === 'undefined') return null;
@@ -205,17 +219,31 @@ export function CinemaScreen() {
       ctx.fillStyle = '#ffffff';
       ctx.shadowColor = 'rgba(255, 200, 100, 0.8)';
       ctx.shadowBlur = 18;
-      ctx.fillText('QUANTUM ODYSSEY', w / 2, h * 0.44);
+      const displayTitle = (trailer.movieTitle || 'QUANTUM ODYSSEY').toUpperCase();
+      ctx.fillText(displayTitle, w / 2, h * 0.42);
 
-      ctx.font = '600 18px sans-serif';
-      ctx.fillStyle = '#cbd5e1';
-      ctx.shadowBlur = 6;
-      ctx.fillText('C I N E V E R S E   I M A X   3 D', w / 2, h * 0.56);
+      if (!trailer.trailerUrl) {
+        ctx.font = 'bold 26px sans-serif';
+        ctx.fillStyle = '#f87171'; // Coral red
+        ctx.shadowColor = 'rgba(248, 113, 113, 0.9)';
+        ctx.shadowBlur = 12;
+        ctx.fillText('Trailer not available', w / 2, h * 0.54);
 
-      ctx.font = 'italic 14px sans-serif';
-      ctx.fillStyle = '#94a3b8';
-      ctx.shadowBlur = 0;
-      ctx.fillText('Press [K] to Play Trailer • [M] to Unmute', w / 2, h * 0.65);
+        ctx.font = '600 18px sans-serif';
+        ctx.fillStyle = '#cbd5e1';
+        ctx.shadowBlur = 4;
+        ctx.fillText('C I N E V E R S E   I M A X   3 D', w / 2, h * 0.65);
+      } else {
+        ctx.font = '600 18px sans-serif';
+        ctx.fillStyle = '#cbd5e1';
+        ctx.shadowBlur = 6;
+        ctx.fillText('C I N E V E R S E   I M A X   3 D', w / 2, h * 0.56);
+
+        ctx.font = 'italic 14px sans-serif';
+        ctx.fillStyle = '#94a3b8';
+        ctx.shadowBlur = 0;
+        ctx.fillText('Press [K] to Play Trailer • [M] to Unmute', w / 2, h * 0.65);
+      }
       ctx.restore();
 
       fallbackTextureRef.current.needsUpdate = true;
@@ -247,6 +275,25 @@ export function CinemaScreen() {
           color={new THREE.Color(screenBrightness, screenBrightness, screenBrightness)}
         />
       </mesh>
+
+      {/* Screen dynamic unmute button overlay */}
+      {videoLoaded && trailer.isMuted && (
+        <group position={[0, 3.2, -1.24]}>
+          <Html center distanceFactor={14}>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleTrailerMute();
+              }}
+              data-testid="screen-unmute-button"
+              className="flex items-center gap-2 rounded-full border border-white/40 bg-black/85 px-6 py-3 text-base font-bold text-white shadow-2xl backdrop-blur-md transition hover:scale-105 hover:bg-[#C8102E]"
+            >
+              <span>🔊</span>
+              <span>Tap to turn sound on</span>
+            </button>
+          </Html>
+        </group>
+      )}
 
       {/* Screen dynamic light spill into the auditorium */}
       {qualityTier !== 'low' && (

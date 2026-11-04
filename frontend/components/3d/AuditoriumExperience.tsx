@@ -10,6 +10,7 @@ import { ViewModeToggle } from './ViewModeToggle';
 import { CompareView } from './CompareView';
 import { MobileControls } from './MobileControls';
 import { WalkHUD } from './WalkHUD';
+import { TrailerControls } from './TrailerControls';
 import { ToastNotification } from '../ui/ToastNotification';
 import { useCinemaStore } from '@/store/useCinemaStore';
 
@@ -65,11 +66,30 @@ export function AuditoriumExperience({
       {/* Full-viewport Canvas */}
       <CinemaWorld />
 
+      {/* 3-Step Numbered Flow Indicator (§ Task 7 Simplicity Budget) */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 z-20 hidden sm:flex items-center gap-3 rounded-full bg-white/95 backdrop-blur-md px-6 py-2 shadow-card border border-[#E6DCD2]">
+        <div className="flex items-center gap-2 text-sm font-semibold text-[#4A4056]">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-600 text-white text-xs font-bold">✓</span>
+          <span>1. Show</span>
+        </div>
+        <div className="h-0.5 w-6 bg-[#E6DCD2]" />
+        <div className="flex items-center gap-2 text-sm font-bold text-[#C8102E]">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#C8102E] text-white text-xs font-bold shadow-sm">2</span>
+          <span>2. Seats</span>
+        </div>
+        <div className="h-0.5 w-6 bg-[#E6DCD2]" />
+        <div className="flex items-center gap-2 text-sm font-medium text-[#4A4056]">
+          <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#FAF6F0] text-[#4A4056] text-xs font-bold border border-[#E6DCD2]">3</span>
+          <span>3. Pay</span>
+        </div>
+      </div>
+
       {/* Overlaid UI elements */}
       <AuditoriumInfoPanel />
       <SeatInformationPanel />
       <SelectedSeatsBar />
       <ViewModeToggle />
+      <TrailerControls />
       <WalkHUD />
       <CompareView />
       <MobileControls />

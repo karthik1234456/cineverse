@@ -32,31 +32,31 @@ export function ViewModeToggle() {
   return (
     <div className="pointer-events-none fixed top-20 left-1/2 z-30 -translate-x-1/2 flex flex-col items-center gap-2">
       {/* Main Mode Switcher Pill */}
-      <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-slate-800/80 bg-[#0e1117]/95 p-1.5 shadow-2xl backdrop-blur-md">
+      <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-[#E6DCD2] bg-white/95 p-2 shadow-2xl backdrop-blur-md text-[#1B1320]">
         {/* Three Primary Modes (§5b) */}
         <button
           onClick={() => setMode('overview')}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+          className={`flex min-h-[40px] items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${
             currentMode === 'overview'
-              ? 'bg-[#e50914] text-white shadow'
-              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              ? 'bg-[#C8102E] text-white shadow'
+              : 'text-slate-700 hover:bg-slate-100 hover:text-[#1B1320]'
           }`}
           title="Overview 3D Orbit View"
         >
-          <Orbit className="h-3.5 w-3.5" />
+          <Orbit className="h-4 w-4" />
           <span>Overview</span>
         </button>
 
         <button
           onClick={() => setMode('walk')}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+          className={`flex min-h-[40px] items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${
             currentMode === 'walk'
-              ? 'bg-[#e50914] text-white shadow'
-              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              ? 'bg-[#C8102E] text-white shadow'
+              : 'text-slate-700 hover:bg-slate-100 hover:text-[#1B1320]'
           }`}
           title="Walk around auditorium in first-person"
         >
-          <Footprints className="h-3.5 w-3.5" />
+          <Footprints className="h-4 w-4" />
           <span>Walk Mode</span>
         </button>
 
@@ -65,14 +65,14 @@ export function ViewModeToggle() {
             if (activeSeatId) sitAt(activeSeatId);
             else setMode('seated');
           }}
-          className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+          className={`flex min-h-[40px] items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${
             currentMode === 'seated'
-              ? 'bg-[#e50914] text-white shadow'
-              : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+              ? 'bg-[#C8102E] text-white shadow'
+              : 'text-slate-700 hover:bg-slate-100 hover:text-[#1B1320]'
           }`}
           title="Seated sightline POV"
         >
-          <Eye className="h-3.5 w-3.5" />
+          <Eye className="h-4 w-4" />
           <span>Seated POV {activeSeatId ? `(${activeSeatId})` : ''}</span>
         </button>
 
@@ -151,12 +151,12 @@ export function ViewModeToggle() {
 
         {/* Camera Lens FOV Selector */}
         <div className="flex items-center gap-1 pl-2 border-l border-slate-800">
-          <span className="text-[10px] uppercase font-bold text-slate-400 px-1">FOV</span>
+          <span className="text-xs uppercase font-bold text-slate-400 px-1">FOV</span>
           {[50, 60, 70, 75].map((val) => (
             <button
               key={val}
               onClick={() => setFOV(val)}
-              className={`rounded px-1.5 py-0.5 text-[10px] font-mono font-bold ${
+              className={`rounded px-2 py-0.5 text-xs font-mono font-bold ${
                 storeFov === val
                   ? 'bg-slate-700 text-sky-400'
                   : 'text-slate-400 hover:text-slate-200'
@@ -183,10 +183,10 @@ function PresetButton({
   return (
     <button
       onClick={onClick}
-      className={`rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+      className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${
         active
-          ? 'bg-slate-800 text-white font-semibold'
-          : 'text-slate-400 hover:text-slate-200'
+          ? 'bg-[#C8102E] text-white'
+          : 'text-slate-600 hover:text-[#1B1320] hover:bg-slate-100'
       }`}
     >
       {label}

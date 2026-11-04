@@ -51,10 +51,10 @@ export function WalkHUD() {
               <span className="font-mono text-base font-bold text-white">
                 Seat {hoveredSeat.seat_id}
               </span>
-              <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-300">
+              <span className="rounded bg-white/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-slate-300">
                 {hoveredSeat.category}
               </span>
-              <span className="text-xs font-semibold text-emerald-400">
+              <span className="text-sm font-bold text-emerald-400">
                 ₹{hoveredSeat.price}
               </span>
             </div>
@@ -74,10 +74,10 @@ export function WalkHUD() {
 
             <button
               onClick={() => sitAt(hoveredSeat.seat_id)}
-              className="mt-1 flex items-center gap-1.5 rounded bg-[#e50914] px-3 py-1 text-xs font-semibold text-white shadow hover:bg-[#b80710]"
+              className="mt-1 flex items-center gap-1.5 rounded bg-[#C8102E] px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-[#A60D26]"
             >
               <span>Sit Down</span>
-              <kbd className="rounded bg-black/30 px-1 text-[10px] text-white/80">E</kbd>
+              <kbd className="rounded bg-black/30 px-1.5 py-0.5 text-xs font-mono text-white/90">E</kbd>
             </button>
           </div>
         )}
@@ -87,11 +87,11 @@ export function WalkHUD() {
       {!hasDismissedHint && !isLocked && (
         <div className="pointer-events-auto mx-auto mt-4 max-w-md rounded-xl border border-white/10 bg-black/80 p-3.5 text-center shadow-xl backdrop-blur-md">
           <p className="text-xs font-medium text-slate-200">
-            <span className="font-bold text-[#e50914]">First-Person Walk Mode:</span> Click canvas to lock mouse view. Use <kbd className="rounded bg-white/20 px-1 py-0.5 text-[10px]">W</kbd> <kbd className="rounded bg-white/20 px-1 py-0.5 text-[10px]">A</kbd> <kbd className="rounded bg-white/20 px-1 py-0.5 text-[10px]">S</kbd> <kbd className="rounded bg-white/20 px-1 py-0.5 text-[10px]">D</kbd> or <kbd className="rounded bg-white/20 px-1 py-0.5 text-[10px]">↑</kbd> <kbd className="rounded bg-white/20 px-1 py-0.5 text-[10px]">←</kbd> <kbd className="rounded bg-white/20 px-1 py-0.5 text-[10px]">↓</kbd> <kbd className="rounded bg-white/20 px-1 py-0.5 text-[10px]">→</kbd> to walk up the aisle.
+            <span className="font-bold text-[#C8102E]">First-Person Walk Mode:</span> Click canvas to lock mouse view. Use <kbd className="rounded bg-white/20 px-1.5 py-0.5 text-xs font-mono">W</kbd> <kbd className="rounded bg-white/20 px-1.5 py-0.5 text-xs font-mono">A</kbd> <kbd className="rounded bg-white/20 px-1.5 py-0.5 text-xs font-mono">S</kbd> <kbd className="rounded bg-white/20 px-1.5 py-0.5 text-xs font-mono">D</kbd> or arrow keys to walk up the aisle.
           </p>
           <button
             onClick={() => setHasDismissedHint(true)}
-            className="mt-2 text-[11px] font-semibold text-slate-400 underline hover:text-white"
+            className="mt-2 text-xs font-semibold text-slate-300 underline hover:text-white"
           >
             Got it, dismiss
           </button>
@@ -103,19 +103,19 @@ export function WalkHUD() {
         {/* Key Hints */}
         <div className="hidden md:flex items-center gap-4 text-xs text-slate-300">
           <div className="flex items-center gap-1.5">
-            <span className="rounded border border-white/20 bg-white/10 px-1.5 py-0.5 font-mono text-[11px] font-bold">W A S D</span>
+            <span className="rounded border border-white/20 bg-white/10 px-2 py-0.5 font-mono text-xs font-bold">W A S D</span>
             <span>Move</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="rounded border border-white/20 bg-white/10 px-1.5 py-0.5 font-mono text-[11px] font-bold">Shift</span>
+            <span className="rounded border border-white/20 bg-white/10 px-2 py-0.5 font-mono text-xs font-bold">Shift</span>
             <span>Run</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="rounded border border-white/20 bg-white/10 px-1.5 py-0.5 font-mono text-[11px] font-bold">Mouse</span>
+            <span className="rounded border border-white/20 bg-white/10 px-2 py-0.5 font-mono text-xs font-bold">Mouse</span>
             <span>Look</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <span className="rounded border border-white/20 bg-white/10 px-1.5 py-0.5 font-mono text-[11px] font-bold">E / Enter</span>
+            <span className="rounded border border-white/20 bg-white/10 px-2 py-0.5 font-mono text-xs font-bold">E / Enter</span>
             <span>Sit in Seat</span>
           </div>
         </div>

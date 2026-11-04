@@ -67,103 +67,103 @@ export function AuditoriumInfoPanel() {
         className="pointer-events-none fixed left-4 top-20 z-20 hidden w-80 max-h-[calc(100dvh-6rem)] flex-col gap-3 overflow-y-auto transition-opacity duration-300 md:flex"
       >
         {/* Theatre Title & Screen Spec Card */}
-        <div className="pointer-events-auto rounded-xl border border-slate-800/80 bg-[#0e1117]/85 p-4 shadow-2xl backdrop-blur-md">
+        <div className="pointer-events-auto rounded-3xl border border-[#E6DCD2] bg-white/95 p-5 shadow-2xl backdrop-blur-md text-[#1B1320]">
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#e50914] shadow-[0_0_8px_#e50914]" />
-                <h1 className="text-sm font-bold tracking-tight text-white">
+                <span className="h-2.5 w-2.5 rounded-full bg-[#C8102E] shadow-[0_0_8px_#C8102E]" />
+                <h1 className="text-base font-bold tracking-tight text-[#1B1320]">
                   Auditorium 1 — 3D Laser IMAX
                 </h1>
               </div>
-              <p className="mt-0.5 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-slate-500">
                 100 Luxury Recliners • 10 Rows (A–J)
               </p>
             </div>
 
             <button
               onClick={() => setShowHonestyModal(true)}
-              className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#1B1320] transition"
               title="How CineVerse 3D calculates sightlines"
             >
               <Info className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-900/60 px-3 py-2 text-xs">
-            <span className="text-slate-400">Screen Format</span>
-            <span className="font-medium text-slate-200">
+          <div className="mt-3 flex items-center justify-between rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] px-3 py-2 text-xs">
+            <span className="text-slate-600 font-medium">Screen Format</span>
+            <span className="font-bold text-[#1B1320]">
               {layout.screen.aspect}:1 Aspect ({layout.screen.width}m × {layout.screen.height}m)
             </span>
           </div>
 
-          {/* Seat Categories & Pricing */}
-          <div className="mt-3 space-y-1.5 border-t border-slate-800/60 pt-3">
-            <div className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
+          {/* Seat Categories & Pricing (§ Task 3) */}
+          <div className="mt-4 space-y-2 border-t border-[#E6DCD2] pt-3">
+            <div className="text-xs font-bold tracking-wider text-slate-500 uppercase">
               Tiers & Pricing
             </div>
-            <div className="grid grid-cols-3 gap-1.5 text-center text-xs">
-              <div className="rounded border border-amber-500/30 bg-amber-950/20 py-1.5">
-                <div className="font-semibold text-amber-300">Front</div>
-                <div className="text-[10px] text-slate-400">Rows A-C</div>
-                <div className="mt-0.5 font-bold text-slate-100">₹150</div>
+            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+              <div className="rounded-xl border border-amber-300 bg-amber-50 py-2">
+                <div className="font-bold text-[#8D5B28]">Front</div>
+                <div className="text-xs text-slate-500">Rows A-B</div>
+                <div className="mt-0.5 font-black text-sm text-[#8D5B28]">₹280</div>
               </div>
-              <div className="rounded border border-blue-500/30 bg-blue-950/20 py-1.5">
-                <div className="font-semibold text-blue-300">Prime</div>
-                <div className="text-[10px] text-slate-400">Rows D-G</div>
-                <div className="mt-0.5 font-bold text-slate-100">₹250</div>
+              <div className="rounded-xl border border-blue-300 bg-blue-50 py-2">
+                <div className="font-bold text-[#1E40AF]">Prime</div>
+                <div className="text-xs text-slate-500">Rows C-H</div>
+                <div className="mt-0.5 font-black text-sm text-[#1E40AF]">₹380</div>
               </div>
-              <div className="rounded border border-purple-500/30 bg-purple-950/20 py-1.5">
-                <div className="font-semibold text-purple-300">Premier</div>
-                <div className="text-[10px] text-slate-400">Rows H-J</div>
-                <div className="mt-0.5 font-bold text-slate-100">₹350</div>
+              <div className="rounded-xl border border-rose-300 bg-rose-50 py-2">
+                <div className="font-bold text-[#9F1239]">Premier</div>
+                <div className="text-xs text-slate-500">Rows I-J</div>
+                <div className="mt-0.5 font-black text-sm text-[#9F1239]">₹520</div>
               </div>
             </div>
           </div>
 
           {/* Seat Availability Counts & Legend (Strictly sums to 100) */}
-          <div className="mt-3 border-t border-slate-800/60 pt-3">
-            <div className="flex items-center justify-between text-xs text-slate-300">
+          <div className="mt-4 border-t border-[#E6DCD2] pt-3">
+            <div className="flex items-center justify-between text-xs text-slate-700">
               <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full border border-sky-400 bg-sky-900/60" />
-                <span>Available</span>
-                <span className="font-semibold text-slate-400">({counts.available})</span>
+                <span className="h-3 w-3 rounded-full border border-slate-300 bg-[#FAF6F0]" />
+                <span className="font-medium">Available</span>
+                <span className="font-bold text-slate-500">({counts.available})</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full border border-red-500 bg-[#e50914]" />
-                <span>Selected</span>
-                <span className="font-semibold text-red-400">({counts.selected})</span>
+                <span className="h-3 w-3 rounded-full bg-[#C8102E]" />
+                <span className="font-bold text-[#C8102E]">Selected</span>
+                <span className="font-bold text-[#C8102E]">({counts.selected})</span>
               </div>
             </div>
 
-            <div className="mt-2 flex items-center justify-between text-xs text-slate-300">
+            <div className="mt-2.5 flex items-center justify-between text-xs text-slate-700">
               <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full border border-amber-500 bg-amber-600 animate-pulse" />
-                <span>Held</span>
-                <span className="font-semibold text-amber-400">({counts.held})</span>
+                <span className="h-3 w-3 rounded-full bg-amber-500 animate-pulse" />
+                <span className="font-medium">Held</span>
+                <span className="font-bold text-amber-700">({counts.held})</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="h-2.5 w-2.5 rounded-full border border-zinc-600 bg-zinc-800" />
-                <span>Booked</span>
-                <span className="font-semibold text-zinc-500">({counts.booked})</span>
+                <span className="h-3 w-3 rounded-full bg-slate-300" />
+                <span className="font-medium">Booked</span>
+                <span className="font-bold text-slate-400">({counts.booked})</span>
               </div>
             </div>
           </div>
 
           {/* Quick Environment Controls */}
-          <div className="mt-4 flex items-center justify-between border-t border-slate-800/60 pt-3 text-xs">
+          <div className="mt-4 flex items-center justify-between border-t border-[#E6DCD2] pt-3 text-xs">
             <button
               onClick={() => setHouseLights(houseLights === 'full' ? 'show' : 'full')}
-              className="flex items-center gap-1.5 rounded-md bg-slate-800/80 px-2.5 py-1.5 text-slate-300 transition hover:bg-slate-700 hover:text-white"
+              className="flex min-h-[36px] items-center gap-1.5 rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3 py-1.5 text-slate-700 font-bold transition hover:bg-slate-100"
             >
               {houseLights === 'full' ? (
                 <>
-                  <Sun className="h-3.5 w-3.5 text-amber-400" />
+                  <Sun className="h-4 w-4 text-amber-500" />
                   <span>Lights Up</span>
                 </>
               ) : (
                 <>
-                  <Moon className="h-3.5 w-3.5 text-blue-400" />
+                  <Moon className="h-4 w-4 text-blue-600" />
                   <span>Show Mode</span>
                 </>
               )}
@@ -173,7 +173,7 @@ export function AuditoriumInfoPanel() {
             {isDebugMode && (
               <button
                 onClick={() => setShowDevControls(!showDevControls)}
-                className="flex items-center gap-1.5 rounded-md bg-slate-800/60 px-2 py-1.5 text-[11px] text-slate-400 transition hover:bg-slate-700 hover:text-slate-200"
+                className="flex items-center gap-1.5 rounded-md bg-slate-800/60 px-2 py-1.5 text-xs text-slate-400 transition hover:bg-slate-700 hover:text-slate-200"
               >
                 <Sliders className="h-3.5 w-3.5" />
                 <span>Dev Tools</span>
@@ -191,7 +191,7 @@ export function AuditoriumInfoPanel() {
                     updateSeatStatus('D05', 'held');
                     showToast('Simulated: Another patron held seat D05');
                   }}
-                  className="flex-1 rounded bg-amber-950/60 border border-amber-600/40 px-2 py-1 text-[11px] text-amber-300 hover:bg-amber-900/60"
+                  className="flex-1 rounded bg-amber-950/60 border border-amber-600/40 px-2 py-1 text-xs text-amber-300 hover:bg-amber-900/60"
                 >
                   Hold D05
                 </button>
@@ -200,18 +200,18 @@ export function AuditoriumInfoPanel() {
                     updateSeatStatus('D05', 'available');
                     showToast('Simulated: Seat D05 released');
                   }}
-                  className="flex-1 rounded bg-slate-800 px-2 py-1 text-[11px] text-slate-300 hover:bg-slate-700"
+                  className="flex-1 rounded bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
                 >
                   Release D05
                 </button>
               </div>
 
               <div className="flex items-center justify-between pt-1">
-                <span className="text-[11px] text-slate-400">Quality Tier</span>
+                <span className="text-xs text-slate-400">Quality Tier</span>
                 <select
                   value={qualityTier}
                   onChange={(e) => setQualityTier(e.target.value as QualityTier)}
-                  className="rounded bg-slate-900 px-1.5 py-0.5 text-[11px] text-slate-200"
+                  className="rounded bg-slate-900 px-1.5 py-0.5 text-xs text-slate-200"
                 >
                   <option value="high">High (Full fx)</option>
                   <option value="medium">Medium</option>
@@ -220,7 +220,7 @@ export function AuditoriumInfoPanel() {
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-slate-400">HQ Model (9.5MB)</span>
+                <span className="text-xs text-slate-400">HQ Model (9.5MB)</span>
                 <input
                   type="checkbox"
                   checked={useHqModel}

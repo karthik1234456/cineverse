@@ -188,6 +188,8 @@ declare global {
       setHouseLights: (mode: HouseLightsMode) => void;
       setQualityTier: (tier: QualityTier) => void;
       setFOV: (fov: number) => void;
+      setHoveredSeat?: (seatId: string | null) => void;
+      getStore?: () => any;
       getVisibleProxiesCount?: () => number;
     };
   }

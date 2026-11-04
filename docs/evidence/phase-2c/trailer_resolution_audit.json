@@ -1,0 +1,26 @@
+[
+  {
+    "showtimeId": 1,
+    "movieTitle": "Quantum Odyssey",
+    "resolvedTrailerUrl": "/trailers/quantum_odyssey.webm",
+    "isFallbackPoster": false
+  },
+  {
+    "showtimeId": 2,
+    "movieTitle": "Astra",
+    "resolvedTrailerUrl": "/trailers/astra.webm",
+    "isFallbackPoster": false
+  },
+  {
+    "showtimeId": 3,
+    "movieTitle": "Shadow Protocol",
+    "resolvedTrailerUrl": "/trailers/shadow_protocol.ogv",
+    "isFallbackPoster": false
+  },
+  {
+    "showtimeId": 4,
+    "movieTitle": "Echoes of the Western Ghats",
+    "resolvedTrailerUrl": null,
+    "isFallbackPoster": true
+  }
+]

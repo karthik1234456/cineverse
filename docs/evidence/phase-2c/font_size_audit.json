@@ -1,0 +1,26 @@
+[
+  {
+    "route": "/",
+    "minFontSize": 14,
+    "bodyFontSize": 18,
+    "passed": true
+  },
+  {
+    "route": "/movies",
+    "minFontSize": 14,
+    "bodyFontSize": 18,
+    "passed": true
+  },
+  {
+    "route": "/cinemas",
+    "minFontSize": 14,
+    "bodyFontSize": 18,
+    "passed": true
+  },
+  {
+    "route": "/cinemas/1/auditorium/1?showtime=1&mode=2d",
+    "minFontSize": 14,
+    "bodyFontSize": 18,
+    "passed": true
+  }
+]

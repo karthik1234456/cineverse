@@ -61,5 +61,7 @@ class ShowtimeSeatsResponse(BaseModel):
     start_time: datetime
     glb_path: str = "/models/cineverse_auditorium_v2.web.glb"
     layout_path: str = "/models/seat_layout_v2.json"
+    trailer_url: Optional[str] = None
+    poster_url: Optional[str] = None
     seats: List[SeatInventoryItem]
 

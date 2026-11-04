@@ -5,8 +5,8 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
-  CheckCircle2, Ticket, QrCode, Printer, Calendar,
-  Share2, ArrowLeft, ShieldCheck, MapPin, AlertCircle, XCircle
+  CheckCircle2, Printer, Calendar,
+  ArrowLeft, ShieldCheck, MapPin, XCircle
 } from 'lucide-react';
 import { getBooking, cancelBooking, type BookingResponse } from '@/services/api';
 
@@ -78,13 +78,16 @@ export default function BookingConfirmationPage() {
   }
 
   if (loading && !booking) {
-    return <div className="p-12 text-center text-zinc-400">Loading booking receipt...</div>;
+    return <div className="p-16 text-center text-lg font-medium text-slate-600">Loading booking receipt...</div>;
   }
 
   if (!booking) {
     return (
-      <div className="p-12 text-center text-zinc-400">
-        Booking not found. <Link href="/" className="text-[#e50914] underline">Return Home</Link>
+      <div className="p-16 text-center text-slate-600">
+        <p className="text-xl font-bold text-[#1B1320]">Booking not found</p>
+        <Link href="/" className="mt-4 inline-block text-base font-bold text-[#C8102E] underline">
+          Return Home
+        </Link>
       </div>
     );
   }
@@ -92,34 +95,34 @@ export default function BookingConfirmationPage() {
   const isCancelled = booking.status === 'CANCELLED';
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:px-8 w-full text-white space-y-8">
+    <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:px-8 w-full text-[#1B1320] space-y-8">
       {/* Top Status Banner */}
-      <div className={`rounded-2xl border p-6 flex flex-col sm:flex-row items-center justify-between gap-4 ${
+      <div className={`rounded-3xl border-2 p-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm ${
         isCancelled
-          ? 'border-red-500/40 bg-red-950/20 text-red-200'
-          : 'border-emerald-500/40 bg-emerald-950/20 text-emerald-200'
+          ? 'border-rose-300 bg-rose-50 text-rose-900'
+          : 'border-emerald-300 bg-emerald-50 text-emerald-900'
       }`}>
         <div className="flex items-center gap-4 text-center sm:text-left">
-          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
-            isCancelled ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/20 text-emerald-400'
+          <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${
+            isCancelled ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-700'
           }`}>
-            {isCancelled ? <XCircle className="h-6 w-6" /> : <CheckCircle2 className="h-6 w-6" />}
+            {isCancelled ? <XCircle className="h-7 w-7" /> : <CheckCircle2 className="h-7 w-7" />}
           </div>
           <div>
             <div className="text-xs font-bold uppercase tracking-wider">
               {isCancelled ? 'Booking Cancelled & Refunded' : 'Booking Confirmed'}
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-white mt-0.5">
+            <h1 className="text-xl sm:text-2xl font-black text-[#1B1320] mt-0.5">
               Admission Code: {booking.booking_code}
             </h1>
-            <p className="text-xs text-zinc-400 mt-1">
+            <p className="text-sm text-slate-600 mt-1">
               Confirmation sent to {booking.contact_email} and {booking.contact_phone}
             </p>
           </div>
         </div>
 
         {!isCancelled && (
-          <span className="flex items-center gap-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/30 px-3 py-1 text-xs font-bold text-emerald-400">
+          <span className="flex items-center gap-1.5 rounded-full bg-emerald-100 border border-emerald-300 px-4 py-1.5 text-sm font-bold text-emerald-800">
             <ShieldCheck className="h-4 w-4" />
             <span>Gate Ready</span>
           </span>
@@ -127,24 +130,24 @@ export default function BookingConfirmationPage() {
       </div>
 
       {cancelNotice && (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-950/30 p-4 text-xs text-amber-300">
+        <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           {cancelNotice}
         </div>
       )}
 
       {/* Main E-Ticket Display */}
-      <div className="rounded-2xl border border-white/10 bg-[#12131a] p-8 shadow-2xl space-y-6">
-        <div className="flex flex-col md:flex-row gap-6 items-center justify-between pb-6 border-b border-white/10">
+      <div className="rounded-3xl border border-[#E6DCD2] bg-white p-8 shadow-sm space-y-6">
+        <div className="flex flex-col md:flex-row gap-6 items-center justify-between pb-6 border-b border-[#E6DCD2]">
           <div>
-            <span className="rounded bg-red-600/20 px-2.5 py-0.5 text-[10px] font-bold text-red-400 border border-red-500/30">
+            <span className="rounded-lg bg-rose-50 px-3 py-1 text-xs font-bold text-[#9F1239] border border-rose-200">
               {booking.screen_type}
             </span>
-            <h2 className="text-2xl font-black text-white mt-2">{booking.movie_title}</h2>
-            <p className="text-xs text-zinc-400 flex items-center gap-1.5 mt-1">
-              <MapPin className="h-3.5 w-3.5 text-zinc-500" />
+            <h2 className="text-2xl font-black text-[#1B1320] mt-2">{booking.movie_title}</h2>
+            <p className="text-sm text-slate-600 flex items-center gap-1.5 mt-1">
+              <MapPin className="h-4 w-4 text-slate-400" />
               <span>{booking.cinema_name} • {booking.auditorium_name}</span>
             </p>
-            <div className="text-xs font-semibold text-zinc-300 mt-2">
+            <div className="text-sm font-bold text-slate-700 mt-2">
               {new Date(booking.start_time).toLocaleString('en-US', {
                 weekday: 'short',
                 day: 'numeric',
@@ -159,29 +162,29 @@ export default function BookingConfirmationPage() {
 
           {/* QR Code Container */}
           {booking.ticket && (
-            <div className="flex flex-col items-center rounded-2xl border border-white/10 bg-[#0f1014] p-4 text-center">
+            <div className="flex flex-col items-center rounded-2xl border border-[#E6DCD2] bg-[#FAF6F0] p-4 text-center">
               <img
                 src={booking.ticket.qr_code_url}
                 alt="Ticket QR Code"
-                className="h-36 w-36 rounded-xl"
+                className="h-36 w-36 rounded-xl border border-[#E6DCD2]"
               />
-              <span className="font-mono text-[11px] font-bold text-zinc-400 mt-2">
+              <span className="font-mono text-xs font-bold text-slate-700 mt-2">
                 {booking.ticket.ticket_number}
               </span>
-              <span className="text-[10px] text-zinc-500">Scan at entrance turnstile</span>
+              <span className="text-xs text-slate-500">Scan at entrance turnstile</span>
             </div>
           )}
         </div>
 
         {/* Seat breakdown & Pricing */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          <div className="space-y-1">
-            <span className="text-zinc-500">SEATS CONFIRMED ({booking.seats.length})</span>
-            <div className="flex flex-wrap gap-1.5 pt-1">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+          <div className="space-y-1.5">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Seats Confirmed ({booking.seats.length})</span>
+            <div className="flex flex-wrap gap-2 pt-1">
               {booking.seats.map((s) => (
                 <span
                   key={s.seat_id}
-                  className="rounded-lg border border-red-500/40 bg-red-950/40 px-3 py-1 text-xs font-bold text-red-200"
+                  className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm font-bold text-[#9F1239]"
                 >
                   {s.seat_id} ({s.category})
                 </span>
@@ -189,22 +192,22 @@ export default function BookingConfirmationPage() {
             </div>
           </div>
 
-          <div className="space-y-1 text-right">
-            <span className="text-zinc-500">AMOUNT PAID</span>
-            <div className="text-2xl font-black text-white">₹{booking.final_total_amount}</div>
-            <div className="text-[10px] text-zinc-500">Inclusive of taxes & convenience fee</div>
+          <div className="space-y-1 sm:text-right">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Amount Paid</span>
+            <div className="text-3xl font-black text-[#C8102E]">₹{booking.final_total_amount}</div>
+            <div className="text-xs text-slate-500">Inclusive of taxes & convenience fee</div>
           </div>
         </div>
 
         {/* Addons if any */}
         {booking.addons && booking.addons.length > 0 && (
-          <div className="pt-4 border-t border-white/5">
-            <span className="text-xs text-zinc-500 font-semibold">PRE-BOOKED CONCESSIONS:</span>
-            <div className="mt-2 space-y-1">
+          <div className="pt-4 border-t border-[#E6DCD2]">
+            <span className="text-sm text-slate-700 font-bold">Pre-Booked Concessions:</span>
+            <div className="mt-2 space-y-1.5">
               {booking.addons.map((a) => (
-                <div key={a.fnb_item_id} className="flex justify-between text-xs text-zinc-300">
+                <div key={a.fnb_item_id} className="flex justify-between text-sm text-slate-600">
                   <span>{a.quantity}x {a.name}</span>
-                  <span className="font-bold">₹{a.total_price}</span>
+                  <span className="font-bold text-[#1B1320]">₹{a.total_price}</span>
                 </div>
               ))}
             </div>
@@ -212,13 +215,13 @@ export default function BookingConfirmationPage() {
         )}
 
         {/* Actions bar */}
-        <div className="pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex gap-2">
+        <div className="pt-6 border-t border-[#E6DCD2] flex flex-wrap items-center justify-between gap-4">
+          <div className="flex gap-3">
             <a
               href={`/api/v1/tickets/${booking.booking_code}/print`}
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-white hover:bg-white/10 transition"
+              className="flex min-h-[44px] items-center gap-2 rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-5 py-2.5 text-sm font-bold text-[#1B1320] hover:bg-slate-100 transition shadow-sm"
             >
               <Printer className="h-4 w-4" />
               <span>Print Ticket</span>
@@ -226,7 +229,7 @@ export default function BookingConfirmationPage() {
 
             <button
               onClick={handleAddToCalendar}
-              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-white hover:bg-white/10 transition"
+              className="flex min-h-[44px] items-center gap-2 rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-5 py-2.5 text-sm font-bold text-[#1B1320] hover:bg-slate-100 transition shadow-sm"
             >
               <Calendar className="h-4 w-4" />
               <span>Add to Calendar</span>
@@ -237,7 +240,7 @@ export default function BookingConfirmationPage() {
             <button
               onClick={handleCancel}
               disabled={cancelling}
-              className="text-xs text-zinc-500 hover:text-red-400 underline transition disabled:opacity-50"
+              className="text-sm font-semibold text-slate-500 hover:text-rose-600 underline transition disabled:opacity-50"
             >
               {cancelling ? 'Cancelling...' : 'Cancel Booking & Refund'}
             </button>
@@ -245,10 +248,10 @@ export default function BookingConfirmationPage() {
         </div>
       </div>
 
-      <div className="text-center">
+      <div className="text-center pt-4">
         <Link
           href="/"
-          className="inline-flex items-center gap-2 text-xs font-bold text-[#e50914] hover:underline"
+          className="inline-flex items-center gap-2 text-base font-bold text-[#C8102E] hover:underline"
         >
           <ArrowLeft className="h-4 w-4" />
           <span>Browse More Movies</span>
@@ -257,4 +260,3 @@ export default function BookingConfirmationPage() {
     </div>
   );
 }
-

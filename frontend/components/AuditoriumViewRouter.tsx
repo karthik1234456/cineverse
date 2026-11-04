@@ -56,10 +56,10 @@ export function AuditoriumViewRouter({
           <button
             onClick={handleSwitchTo2D}
             data-testid="switch-to-2d-button"
-            className="flex items-center gap-2 rounded-full border border-white/20 bg-[#0e1117]/90 px-4 py-2 text-xs font-bold text-white shadow-2xl backdrop-blur-md hover:bg-white/20 transition"
+            className="flex min-h-[44px] items-center gap-2 rounded-full border border-[#E6DCD2] bg-white/95 px-5 py-2.5 text-sm font-bold text-[#1B1320] shadow-xl backdrop-blur-md hover:bg-slate-50 transition"
             aria-label="Switch back to 2D Seat Map"
           >
-            <LayoutGrid className="h-4 w-4 text-red-500" />
+            <LayoutGrid className="h-4 w-4 text-[#C8102E]" />
             <span>2D Seat Map</span>
           </button>
         </div>

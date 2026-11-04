@@ -106,8 +106,8 @@ export default function CinemaDetailPage() {
                   : 'border-white/5 bg-[#12131a] text-zinc-400 hover:border-white/20 hover:text-white'
               }`}
             >
-              <span className="text-[11px] uppercase tracking-wider">{d.dayName}</span>
-              <span className="text-sm font-black mt-0.5">{d.dateFormatted}</span>
+              <span className="text-xs uppercase tracking-wider font-semibold">{d.dayName}</span>
+              <span className="text-base font-black mt-0.5">{d.dateFormatted}</span>
             </button>
           );
         })}
@@ -145,7 +145,7 @@ export default function CinemaDetailPage() {
                         >
                           {item.title}
                         </Link>
-                        <span className="rounded bg-white/10 px-2 py-0.5 text-[10px] font-bold text-zinc-300">
+                        <span className="rounded bg-white/10 px-2.5 py-0.5 text-xs font-bold text-zinc-300">
                           {item.certificate}
                         </span>
                       </div>
@@ -194,12 +194,12 @@ export default function CinemaDetailPage() {
                         data-testid="cinema-showtime-chip"
                         className={`group flex flex-col items-center justify-center rounded-xl border px-4 py-2.5 transition duration-200 hover:scale-105 hover:border-white/40 ${statusColor}`}
                       >
-                        <span className="text-sm font-black text-white">{timeString}</span>
-                        <span className="text-[10px] font-semibold text-zinc-400 mt-0.5">
+                        <span className="text-base font-black text-white">{timeString}</span>
+                        <span className="text-xs font-semibold text-zinc-400 mt-0.5">
                           {st.format}
                         </span>
-                        <div className="flex items-center gap-1 mt-1 text-[9px] font-bold text-amber-400">
-                          {st.has_3d_preview && <Compass className="h-2.5 w-2.5" />}
+                        <div className="flex items-center gap-1 mt-1 text-xs font-bold text-amber-400">
+                          {st.has_3d_preview && <Compass className="h-3 w-3" />}
                           <span>₹{st.lowest_price}</span>
                         </div>
                       </Link>

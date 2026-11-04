@@ -35,7 +35,7 @@ export function VoiceAgentFloatingButton() {
           <div className="relative flex items-center gap-2">
             <Mic className="h-5 w-5 text-white" />
             <span className="hidden sm:inline text-xs font-bold tracking-wide">Ask CineVerse</span>
-            <div className="hidden lg:flex items-center gap-0.5 rounded bg-black/30 px-1.5 py-0.5 text-[9px] font-mono text-zinc-300 border border-white/10">
+            <div className="hidden lg:flex items-center gap-0.5 rounded bg-black/30 px-2 py-0.5 text-xs font-mono font-bold text-zinc-300 border border-white/10">
               Alt+V
             </div>
           </div>

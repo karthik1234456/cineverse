@@ -35,12 +35,15 @@ export interface TrailerState {
   isMuted: boolean;
   volume: number;
   trailerUrl: string;
+  posterUrl?: string;
+  movieTitle?: string;
   hasSpill: boolean;
 }
 
 export interface CinemaState {
   // Seat state
   seatStatuses: Record<string, SeatStatus>;
+  seatPrices: Record<string, { price: number; category: string }>;
   selectedSeats: string[];
   activeSeatId: string | null;
   hoveredSeatId: string | null;
@@ -88,6 +91,7 @@ export interface CinemaState {
 
   // Actions
   setSeatStatuses: (statuses: Record<string, SeatStatus>) => void;
+  setSeatPrices: (prices: Record<string, { price: number; category: string }>) => void;
   updateSeatStatus: (seatId: string, status: SeatStatus) => void;
   selectSeat: (seatId: string) => boolean;
   deselectSeat: (seatId: string) => void;
@@ -139,6 +143,7 @@ let toastTimer: any = null;
 
 export const useCinemaStore = create<CinemaState>((set, get) => ({
   seatStatuses: {},
+  seatPrices: {},
   selectedSeats: [],
   activeSeatId: 'F05',
   hoveredSeatId: null,
@@ -198,6 +203,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   },
 
   setSeatStatuses: (statuses) => set({ seatStatuses: statuses }),
+  setSeatPrices: (prices) => set({ seatPrices: prices }),
 
   updateSeatStatus: (seatId, status) =>
     set((state) => ({

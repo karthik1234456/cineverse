@@ -146,3 +146,4 @@ Measured in headless Chromium under SwiftShader / WebGL:
 2. `5aad48f`: *Part B: Invisible interaction proxies, eliminate stray red triangle, real seat mesh states, and fix 107 legend count bug*
 3. `cea8429`: *Part C: Procedural PBR materials by node group, fix blown-out screen tonemapping, theatre lighting rig, and docs/3d-materials.md*
 4. `bdfe9a9`: *Part D: Minimal first-person HUD, header offset and safe-area gutters, updated seat info copy, and dev tools production toggle*
+

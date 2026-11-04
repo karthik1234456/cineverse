@@ -154,6 +154,8 @@ function DevBridge() {
       setHouseLights,
       setQualityTier,
       setFOV,
+      setHoveredSeat: (seatId: string | null) => useCinemaStore.getState().setHoveredSeat(seatId),
+      getStore: () => useCinemaStore.getState(),
       getVisibleProxiesCount: () => {
         let count = 0;
         const layer = scene.getObjectByName('SeatInteractionLayer');
@@ -173,9 +175,11 @@ function DevBridge() {
         return count;
       },
     };
+    (window as any).useCinemaStore = useCinemaStore;
 
     return () => {
       delete window.__cineverse;
+      delete (window as any).useCinemaStore;
     };
   }, [
     gl,

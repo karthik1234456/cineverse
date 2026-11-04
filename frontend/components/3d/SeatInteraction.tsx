@@ -52,6 +52,7 @@ function SeatProxyItem({ seat, debugProxies, onSeatClick, onSeatDoubleClick }: S
   const edgesRef = useRef<THREE.LineSegments>(null);
 
   const seatStatuses = useCinemaStore((s) => s.seatStatuses);
+  const seatPrices = useCinemaStore((s) => s.seatPrices);
   const selectedSeats = useCinemaStore((s) => s.selectedSeats);
   const hoveredSeatId = useCinemaStore((s) => s.hoveredSeatId);
   const setHoveredSeat = useCinemaStore((s) => s.setHoveredSeat);
@@ -84,6 +85,10 @@ function SeatProxyItem({ seat, debugProxies, onSeatClick, onSeatDoubleClick }: S
   const isHovered = hoveredSeatId === seat.seat_id;
   const isBooked = rawStatus === 'booked';
   const isHeld = rawStatus === 'held';
+
+  const priceInfo = seatPrices[seat.seat_id];
+  const price = priceInfo ? Math.round(priceInfo.price) : (seat.price || 380);
+  const categoryName = (priceInfo?.category || seat.category || 'Prime').toUpperCase();
 
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
@@ -146,7 +151,7 @@ function SeatProxyItem({ seat, debugProxies, onSeatClick, onSeatDoubleClick }: S
       {isSelected && (
         <group position={[0, size[1] / 2 + 0.18, 0]}>
           <Html center distanceFactor={18} position={[0, 0, 0]}>
-            <div className="pointer-events-none flex h-4 w-4 items-center justify-center rounded-full bg-[#e50914] text-[9px] font-bold text-white shadow-[0_0_8px_#e50914]">
+            <div className="pointer-events-none flex h-5 w-5 items-center justify-center rounded-full bg-[#C8102E] text-xs font-bold text-white shadow-[0_0_8px_#C8102E]">
               ✓
             </div>
           </Html>
@@ -157,7 +162,7 @@ function SeatProxyItem({ seat, debugProxies, onSeatClick, onSeatDoubleClick }: S
       {isHeld && (
         <group position={[0, size[1] / 2 + 0.18, 0]}>
           <Html center distanceFactor={18} position={[0, 0, 0]}>
-            <div className="pointer-events-none flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-black shadow-[0_0_8px_#f59e0b] animate-pulse">
+            <div className="pointer-events-none flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-black shadow-[0_0_8px_#f59e0b] animate-pulse">
               ●
             </div>
           </Html>
@@ -175,12 +180,49 @@ function SeatProxyItem({ seat, debugProxies, onSeatClick, onSeatDoubleClick }: S
         </group>
       )}
 
-      {/* Hovered indicator (if not selected/booked/held) */}
-      {isHovered && !isSelected && !isBooked && !isHeld && (
-        <group position={[0, size[1] / 2 + 0.18, 0]}>
-          <Html center distanceFactor={18} position={[0, 0, 0]}>
-            <div className="pointer-events-none whitespace-nowrap rounded bg-slate-900/90 px-1.5 py-0.5 text-[10px] font-medium text-slate-100 border border-slate-700 shadow-md">
-              {seat.seat_id}
+      {/* Rich Seat Hover Tooltip (§ Task 5) */}
+      {isHovered && (
+        <group position={[0, size[1] / 2 + 0.35, 0]}>
+          <Html
+            center
+            distanceFactor={16}
+            position={[0, 0, 0]}
+            style={{ pointerEvents: 'auto', zIndex: 50 }}
+          >
+            <div
+              data-testid={`seat-tooltip-${seat.seat_id}`}
+              className="pointer-events-auto min-w-[170px] rounded-2xl border border-[#E6DCD2] bg-white/95 p-3.5 text-center text-[#1B1320] shadow-2xl backdrop-blur-md"
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-[#E6DCD2] pb-1.5">
+                <span className="text-base font-black tracking-tight text-[#1B1320]">
+                  Seat {seat.seat_id}
+                </span>
+                <span className="rounded-md bg-rose-50 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-[#9F1239] border border-rose-200">
+                  {categoryName}
+                </span>
+              </div>
+              <div className="my-2 text-2xl font-black tracking-tight text-[#C8102E]">
+                ₹{price}
+              </div>
+              <div className="text-xs font-semibold text-slate-600">
+                {isBooked ? 'Booked (Sold Out)' : isHeld ? 'Held by patron' : isSelected ? 'Selected' : 'Available • Click to select'}
+              </div>
+              {!isHeld && !isBooked && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleSeat(seat.seat_id);
+                  }}
+                  data-testid={`seat-select-btn-${seat.seat_id}`}
+                  className={`mt-2.5 w-full rounded-xl py-2 text-xs font-bold transition shadow-sm ${
+                    isSelected
+                      ? 'bg-slate-200 text-slate-800 hover:bg-slate-300'
+                      : 'bg-[#C8102E] text-white hover:bg-[#A60D26]'
+                  }`}
+                >
+                  {isSelected ? 'Deselect' : 'Select Seat'}
+                </button>
+              )}
             </div>
           </Html>
         </group>

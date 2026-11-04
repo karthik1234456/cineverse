@@ -1,0 +1,227 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.13.7, pytest-9.2.0, pluggy-1.7.0 -- D:\projects\CineVerse\backend\.venv\Scripts\python.exe
+cachedir: .pytest_cache
+rootdir: D:\projects\CineVerse\backend
+configfile: pytest.ini
+plugins: anyio-4.16.0, asyncio-1.4.1.post1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=function, asyncio_default_test_loop_scope=function
+collecting ... collected 46 items
+
+backend\tests\test_api_and_concurrency.py::test_health_check PASSED      [  2%]
+backend\tests\test_api_and_concurrency.py::test_cities_and_movies_listing PASSED [  4%]
+backend\tests\test_api_and_concurrency.py::test_showtimes_and_seats_inventory FAILED [  6%]
+backend\tests\test_api_and_concurrency.py::test_seat_hold_concurrency_race_condition FAILED [  8%]
+backend\tests\test_api_and_concurrency.py::test_pricing_tax_and_coupon_math PASSED [ 10%]
+backend\tests\test_api_and_concurrency.py::test_full_booking_payment_and_qr_ticket_lifecycle FAILED [ 13%]
+backend\tests\test_auth_and_expiry.py::test_auth_registration_and_login_lifecycle PASSED [ 15%]
+backend\tests\test_auth_and_expiry.py::test_otp_send_and_verify PASSED   [ 17%]
+backend\tests\test_auth_and_expiry.py::test_admin_rbac_protection PASSED [ 19%]
+backend\tests\test_phase1.py::test_seeding_twice_idempotent PASSED       [ 21%]
+backend\tests\test_phase1.py::test_100_seats_match_json_ids PASSED       [ 23%]
+backend\tests\test_phase1.py::test_two_confirmed_bookings_rejected PASSED [ 26%]
+backend\tests\test_phase1.py::test_health_and_readiness PASSED           [ 28%]
+backend\tests\test_phase1.py::test_auditorium_layout_served_from_db PASSED [ 30%]
+backend\tests\test_phase12_operations.py::test_onboarding_pipeline_with_supplied_glb PASSED [ 32%]
+backend\tests\test_phase12_operations.py::test_onboarding_defect_detection_broken_glb PASSED [ 34%]
+backend\tests\test_phase12_operations.py::test_onboarding_synthetic_glb_native_y_up PASSED [ 36%]
+backend\tests\test_phase12_operations.py::test_asset_versioning_and_rollback PASSED [ 39%]
+backend\tests\test_phase12_operations.py::test_staff_device_registration_and_entry_scanning PASSED [ 41%]
+backend\tests\test_phase12_operations.py::test_at_seat_food_pre_order_and_kds_lifecycle PASSED [ 43%]
+backend\tests\test_phase12_operations.py::test_loyalty_points_ledger_and_cinepass_entitlement PASSED [ 45%]
+backend\tests\test_phase12_operations.py::test_ticket_transfer_flow_and_security_limits FAILED [ 47%]
+backend\tests\test_phase3_apis.py::test_cities_api PASSED                [ 50%]
+backend\tests\test_phase3_apis.py::test_movies_filters_and_sorting PASSED [ 52%]
+backend\tests\test_phase3_apis.py::test_movie_detail_api PASSED          [ 54%]
+backend\tests\test_phase3_apis.py::test_cinema_and_showtimes_api PASSED  [ 56%]
+backend\tests\test_phase3_apis.py::test_movie_showtimes_api PASSED       [ 58%]
+backend\tests\test_phase3_apis.py::test_global_search_api PASSED         [ 60%]
+backend\tests\test_phase4_booking_engine.py::test_50_parallel_concurrency_race PASSED [ 63%]
+backend\tests\test_phase4_booking_engine.py::test_hold_expiry_and_late_confirmation_refusal PASSED [ 65%]
+backend\tests\test_phase4_booking_engine.py::test_idempotent_hold_request_creates_no_duplicate PASSED [ 67%]
+backend\tests\test_phase4_booking_engine.py::test_hold_extend_once_limit PASSED [ 69%]
+backend\tests\test_phase4_booking_engine.py::test_price_convenience_fee_and_gst_math PASSED [ 71%]
+backend\tests\test_phase4_booking_engine.py::test_coupon_validation_and_limits PASSED [ 73%]
+backend\tests\test_phase4_booking_engine.py::test_security_seat_hoarding_bot_protection PASSED [ 76%]
+backend\tests\test_phase4_booking_engine.py::test_security_idor_booking_isolation PASSED [ 78%]
+backend\tests\test_phase5_payments.py::test_razorpay_order_creation_server_computed_amount PASSED [ 80%]
+backend\tests\test_phase5_payments.py::test_razorpay_signature_validation_constant_time PASSED [ 82%]
+backend\tests\test_phase5_payments.py::test_payment_webhook_idempotency_and_duplicate_suppression PASSED [ 84%]
+backend\tests\test_phase5_payments.py::test_signed_qr_ticket_roundtrip_verification PASSED [ 86%]
+backend\tests\test_phase5_payments.py::test_cancellation_and_refund_policy PASSED [ 89%]
+backend\tests\test_phase9_voice_agent.py::test_tool_calling_eval_set_60_utterances PASSED [ 91%]
+backend\tests\test_phase9_voice_agent.py::test_safety_rule_1_voice_payment_banned PASSED [ 93%]
+backend\tests\test_phase9_voice_agent.py::test_safety_rule_2_state_mutations_require_explicit_confirmation PASSED [ 95%]
+backend\tests\test_phase9_voice_agent.py::test_safety_rule_3_guest_cannot_mutate_state PASSED [ 97%]
+backend\tests\test_phase9_voice_agent.py::test_safety_rule_4_prompt_injection_defense PASSED [100%]
+
+================================== FAILURES ===================================
+_____________________ test_showtimes_and_seats_inventory ______________________
+
+client = <httpx.AsyncClient object at 0x000001EF89CBD090>
+
+    @pytest.mark.asyncio
+    async def test_showtimes_and_seats_inventory(client: AsyncClient):
+        movies_resp = await client.get("/api/v1/movies/")
+        movie_id = movies_resp.json()[0]["id"]
+    
+        showtimes_resp = await client.get(f"/api/v1/movies/{movie_id}/showtimes")
+        assert showtimes_resp.status_code == 200
+        grouped = showtimes_resp.json()
+>       assert len(grouped) > 0
+E       assert 0 > 0
+E        +  where 0 = len([])
+
+backend\tests\test_api_and_concurrency.py:54: AssertionError
+---------------------------- Captured stderr call -----------------------------
+2026-11-03 15:34:31,672 [INFO] cineverse.main: [REQ c6b99338-7ea0-4771-8e8f-be2d2dce0d93] GET /api/v1/movies/ -> 200 (2.38ms)
+2026-11-03 15:34:31,673 [INFO] httpx: HTTP Request: GET http://test/api/v1/movies/ "HTTP/1.1 200 OK"
+2026-11-03 15:34:31,681 [INFO] cineverse.main: [REQ f7f210d0-d320-4d4c-af96-3b4d0ece9e0c] GET /api/v1/movies/1/showtimes -> 200 (6.12ms)
+2026-11-03 15:34:31,682 [INFO] httpx: HTTP Request: GET http://test/api/v1/movies/1/showtimes "HTTP/1.1 200 OK"
+------------------------------ Captured log call ------------------------------
+INFO     cineverse.main:main.py:100 [REQ c6b99338-7ea0-4771-8e8f-be2d2dce0d93] GET /api/v1/movies/ -> 200 (2.38ms)
+INFO     httpx:_client.py:1740 HTTP Request: GET http://test/api/v1/movies/ "HTTP/1.1 200 OK"
+INFO     cineverse.main:main.py:100 [REQ f7f210d0-d320-4d4c-af96-3b4d0ece9e0c] GET /api/v1/movies/1/showtimes -> 200 (6.12ms)
+INFO     httpx:_client.py:1740 HTTP Request: GET http://test/api/v1/movies/1/showtimes "HTTP/1.1 200 OK"
+__________________ test_seat_hold_concurrency_race_condition __________________
+
+client = <httpx.AsyncClient object at 0x000001EF89E88FC0>
+
+    @pytest.mark.asyncio
+    async def test_seat_hold_concurrency_race_condition(client: AsyncClient):
+        """
+        RACE CONDITION TEST:
+        5 concurrent clients attempt to hold the EXACT SAME SEAT (B05) simultaneously.
+        Guarantee: Exactly 1 client must succeed (200 OK), and 4 must fail with 409 Conflict.
+        """
+        # Find a showtime with available B05
+        movies_resp = await client.get("/api/v1/movies/")
+        movie_id = movies_resp.json()[0]["id"]
+        showtimes_resp = await client.get(f"/api/v1/movies/{movie_id}/showtimes")
+>       st_id = showtimes_resp.json()[0]["showtimes"][0]["id"]
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+backend\tests\test_api_and_concurrency.py:84: IndexError
+---------------------------- Captured stderr call -----------------------------
+2026-11-03 15:34:31,821 [INFO] cineverse.main: [REQ 629f649b-3fea-4e39-9cf8-4f11ab80f155] GET /api/v1/movies/ -> 200 (2.46ms)
+2026-11-03 15:34:31,822 [INFO] httpx: HTTP Request: GET http://test/api/v1/movies/ "HTTP/1.1 200 OK"
+2026-11-03 15:34:31,825 [INFO] cineverse.main: [REQ f38c0a58-eae5-4782-888a-a25cac27080f] GET /api/v1/movies/1/showtimes -> 200 (1.88ms)
+2026-11-03 15:34:31,826 [INFO] httpx: HTTP Request: GET http://test/api/v1/movies/1/showtimes "HTTP/1.1 200 OK"
+------------------------------ Captured log call ------------------------------
+INFO     cineverse.main:main.py:100 [REQ 629f649b-3fea-4e39-9cf8-4f11ab80f155] GET /api/v1/movies/ -> 200 (2.46ms)
+INFO     httpx:_client.py:1740 HTTP Request: GET http://test/api/v1/movies/ "HTTP/1.1 200 OK"
+INFO     cineverse.main:main.py:100 [REQ f38c0a58-eae5-4782-888a-a25cac27080f] GET /api/v1/movies/1/showtimes -> 200 (1.88ms)
+INFO     httpx:_client.py:1740 HTTP Request: GET http://test/api/v1/movies/1/showtimes "HTTP/1.1 200 OK"
+______________ test_full_booking_payment_and_qr_ticket_lifecycle ______________
+
+client = <httpx.AsyncClient object at 0x000001EF89EFB1D0>
+
+    @pytest.mark.asyncio
+    async def test_full_booking_payment_and_qr_ticket_lifecycle(client: AsyncClient):
+        """
+        End-to-End Booking Lifecycle:
+        1. Select showtime
+        2. Dynamically pick 2 AVAILABLE seats
+        3. Hold seats
+        4. Create booking with F&B addon + coupon
+        5. Verify server-created Razorpay order
+        6. Verify HMAC payment signature
+        7. Ensure status becomes CONFIRMED with verifiable QR ticket
+        8. Cancel booking and verify refund
+        """
+        # 1. Showtime
+        movies_resp = await client.get("/api/v1/movies/")
+        movie_id = movies_resp.json()[0]["id"]
+        showtimes_resp = await client.get(f"/api/v1/movies/{movie_id}/showtimes")
+>       st_id = showtimes_resp.json()[0]["showtimes"][0]["id"]
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+E       IndexError: list index out of range
+
+backend\tests\test_api_and_concurrency.py:166: IndexError
+---------------------------- Captured stderr call -----------------------------
+2026-11-03 15:34:31,864 [INFO] cineverse.main: [REQ 1431ea85-832c-4c6c-8a5f-6e751da2d7ae] GET /api/v1/movies/ -> 200 (2.22ms)
+2026-11-03 15:34:31,865 [INFO] httpx: HTTP Request: GET http://test/api/v1/movies/ "HTTP/1.1 200 OK"
+2026-11-03 15:34:31,868 [INFO] cineverse.main: [REQ c3000e2c-77ba-439d-832f-4b561cb11b4e] GET /api/v1/movies/1/showtimes -> 200 (1.88ms)
+2026-11-03 15:34:31,869 [INFO] httpx: HTTP Request: GET http://test/api/v1/movies/1/showtimes "HTTP/1.1 200 OK"
+------------------------------ Captured log call ------------------------------
+INFO     cineverse.main:main.py:100 [REQ 1431ea85-832c-4c6c-8a5f-6e751da2d7ae] GET /api/v1/movies/ -> 200 (2.22ms)
+INFO     httpx:_client.py:1740 HTTP Request: GET http://test/api/v1/movies/ "HTTP/1.1 200 OK"
+INFO     cineverse.main:main.py:100 [REQ c3000e2c-77ba-439d-832f-4b561cb11b4e] GET /api/v1/movies/1/showtimes -> 200 (1.88ms)
+INFO     httpx:_client.py:1740 HTTP Request: GET http://test/api/v1/movies/1/showtimes "HTTP/1.1 200 OK"
+________________ test_ticket_transfer_flow_and_security_limits ________________
+
+client = <httpx.AsyncClient object at 0x000001EF8BC13890>
+
+    @pytest.mark.asyncio
+    async def test_ticket_transfer_flow_and_security_limits(client: AsyncClient):
+        """
+        Task 6: Safe ticket transfer to another registered account,
+        invalidation of original QR code, and monthly transfer rate limit enforcement.
+        """
+        token_sender = create_access_token({"sub": "3", "email": "customer@cineverse.in", "role": "CUSTOMER"})
+        headers_sender = {"Authorization": f"Bearer {token_sender}"}
+    
+        # Ensure recipient account exists and clear conflicting seat
+        async with AsyncSessionLocal() as db:
+            await db.execute(delete(BookingSeat).where(BookingSeat.showtime_id == 1, BookingSeat.seat_id == "E05"))
+    
+            recip_res = await db.execute(select(User).where(User.email == "recipient@cineverse.in"))
+            recip = recip_res.scalars().first()
+            if not recip:
+                recip = User(email="recipient@cineverse.in", hashed_password="hashed_pw", role="CUSTOMER")
+                db.add(recip)
+    
+            st = await db.get(Showtime, 1)
+            if st:
+                st.start_time = datetime.utcnow() + timedelta(days=2)
+                st.end_time = datetime.utcnow() + timedelta(days=2, hours=3)
+    
+            bkg = Booking(
+                booking_code=f"CV-{uuid.uuid4().hex[:6].upper()}",
+                user_id=3,
+                showtime_id=1,
+                status=BookingStatusEnum.CONFIRMED,
+                final_total_amount=380.0
+            )
+            db.add(bkg)
+            await db.flush()
+            db.add(BookingSeat(booking_id=bkg.id, showtime_id=1, seat_id="E05", category="Prime", price=380.0))
+    
+            ticket_num = f"TKT-{uuid.uuid4().hex[:8].upper()}"
+            qr_sig = generate_ticket_signature(ticket_num, 1, ["E05"])
+            qr = generate_qr_data(ticket_num, 1, ["E05"], qr_sig)
+            tkt = Ticket(
+                booking_id=bkg.id,
+                ticket_number=ticket_num,
+                qr_data=qr,
+                qr_code_url=generate_qr_code_base64(qr),
+                hmac_signature=qr_sig,
+                is_used=False
+            )
+            db.add(tkt)
+            await db.commit()
+            tkt_id = tkt.id
+    
+        # 1. Transfer ticket to recipient
+        xfer_resp = await client.post(
+            f"/api/v1/tickets/{tkt_id}/transfer",
+            json={"recipient_email": "recipient@cineverse.in"},
+            headers=headers_sender
+        )
+>       assert xfer_resp.status_code == 200
+E       assert 429 == 200
+E        +  where 429 = <Response [429 Too Many Requests]>.status_code
+
+backend\tests\test_phase12_operations.py:538: AssertionError
+---------------------------- Captured stderr call -----------------------------
+2026-11-03 15:34:35,065 [INFO] cineverse.main: [REQ 1e03903a-5b79-47a9-9a8d-6a01b7125b83] POST /api/v1/tickets/50/transfer -> 429 (11.53ms)
+2026-11-03 15:34:35,065 [INFO] httpx: HTTP Request: POST http://test/api/v1/tickets/50/transfer "HTTP/1.1 429 Too Many Requests"
+------------------------------ Captured log call ------------------------------
+INFO     cineverse.main:main.py:100 [REQ 1e03903a-5b79-47a9-9a8d-6a01b7125b83] POST /api/v1/tickets/50/transfer -> 429 (11.53ms)
+INFO     httpx:_client.py:1740 HTTP Request: POST http://test/api/v1/tickets/50/transfer "HTTP/1.1 429 Too Many Requests"
+=========================== short test summary info ===========================
+FAILED backend\tests\test_api_and_concurrency.py::test_showtimes_and_seats_inventory
+FAILED backend\tests\test_api_and_concurrency.py::test_seat_hold_concurrency_race_condition
+FAILED backend\tests\test_api_and_concurrency.py::test_full_booking_payment_and_qr_ticket_lifecycle
+FAILED backend\tests\test_phase12_operations.py::test_ticket_transfer_flow_and_security_limits
+======================== 4 failed, 42 passed in 5.60s =========================

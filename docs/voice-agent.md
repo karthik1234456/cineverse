@@ -144,3 +144,4 @@ Overall Benchmark Accuracy: 100.0%
 4. **Latency & Cost Model**:
    - **Deterministic Mode (Default)**: Latency < 25 ms, Cost: ₹0.00 / session. Runs completely in memory with zero external LLM API dependency.
    - **LLM Augmented Mode (Optional fallback)**: Estimated tokens per turn: ~320 input, ~85 output. At Gemini 1.5 Flash rates, total cost per 10-turn voice session is less than ₹0.04 ($0.0005 USD).
+

@@ -88,6 +88,8 @@ async def get_showtime_seats(
         start_time=showtime.start_time,
         glb_path="/models/cineverse_auditorium_v2.web.glb",
         layout_path="/models/seat_layout_v2.json",
+        trailer_url=showtime.movie.trailer_url if showtime.movie else None,
+        poster_url=showtime.movie.poster_url if showtime.movie else None,
         seats=seat_items
     )
 

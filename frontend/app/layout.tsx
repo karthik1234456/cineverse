@@ -1,15 +1,19 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { QueryProvider } from '@/components/providers/QueryProvider';
 import { Navbar } from '@/components/Navbar';
 import { VoiceAgentFloatingButton } from '@/components/agent/VoiceAgentFloatingButton';
 
 export const metadata: Metadata = {
-  title: 'CineVerse — Movie Tickets & Real 3D Auditorium Seat Preview',
+  title: 'CineVerse — Experience The Theatre Before Booking Your Movie',
   description: 'Book movie tickets with real-time 3D seat preview, sightline POV comparison, and instant entry QR tickets.',
   manifest: '/manifest.json',
-  themeColor: '#e50914',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+};
+
+export const viewport: Viewport = {
+  themeColor: '#C8102E',
+  width: 'device-width',
+  initialScale: 1,
 };
 
 export default function RootLayout({
@@ -18,15 +22,30 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#e50914" />
       </head>
-      <body className="bg-[#0b0c10] text-slate-100 antialiased min-h-screen flex flex-col">
+      <body className="bg-[#FFF8F1] text-[#1B1320] text-base antialiased min-h-screen flex flex-col font-sans">
         <QueryProvider>
           <Navbar />
           <main className="flex-1 flex flex-col">{children}</main>
+          {/* Simple, friendly footer */}
+          <footer className="mt-auto border-t border-[#E6DCD2] bg-white py-8 px-4 text-center text-sm text-[#4A4056]">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-xl font-black text-[#C8102E]">CINEVERSE</span>
+                <span className="text-sm">· Experience the theatre before booking</span>
+              </div>
+              <div className="flex items-center gap-6 text-sm font-medium">
+                <a href="/movies" className="hover:text-[#C8102E] transition">Movies</a>
+                <a href="/cinemas" className="hover:text-[#C8102E] transition">Cinemas</a>
+                <a href="/profile" className="hover:text-[#C8102E] transition">My Tickets</a>
+                <span className="text-[#E6DCD2]">|</span>
+                <span>© 2026 CineVerse Cinemas India</span>
+              </div>
+            </div>
+          </footer>
           <VoiceAgentFloatingButton />
         </QueryProvider>
         <script

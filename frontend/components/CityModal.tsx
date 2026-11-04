@@ -61,8 +61,8 @@ export function CityModal({
                 }`}
               >
                 <div>
-                  <div className="text-sm font-medium">{city.name}</div>
-                  <div className="text-[11px] text-zinc-500">{city.state}</div>
+                  <div className="text-base font-semibold">{city.name}</div>
+                  <div className="text-xs text-zinc-400">{city.state}</div>
                 </div>
                 {isSelected && <Check className="h-4 w-4 text-[#e50914]" />}
               </button>

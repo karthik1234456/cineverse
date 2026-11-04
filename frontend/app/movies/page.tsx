@@ -116,38 +116,44 @@ function MoviesListContent() {
     selectedTab !== 'now_showing';
 
   return (
-    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 w-full" data-testid="movies-catalog-page">
+    <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-10 w-full" data-testid="movies-catalog-page">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div>
-          <h1 className="text-3xl font-black text-white">Explore Movies</h1>
-          <p className="text-xs text-zinc-400 mt-1">
-            Browse currently running blockbusters and upcoming theatrical releases
+          <h1 className="text-3xl md:text-4xl font-black text-[#1B1320] tracking-tight">Explore Movies</h1>
+          <p className="text-base text-slate-600 mt-2">
+            Browse currently running blockbusters and upcoming theatrical releases with verified 3D previews
           </p>
         </div>
 
         {/* Tab switch */}
-        <div className="flex rounded-xl bg-[#16181f] p-1 border border-white/5">
+        <div className="flex rounded-2xl bg-white p-1.5 border border-[#E6DCD2] shadow-sm">
           <button
             onClick={() => handleTabChange('now_showing')}
-            className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition ${
-              selectedTab === 'now_showing' ? 'bg-[#e50914] text-white shadow' : 'text-zinc-400 hover:text-white'
+            className={`rounded-xl px-5 py-2.5 text-sm font-bold transition ${
+              selectedTab === 'now_showing'
+                ? 'bg-[#C8102E] text-white shadow'
+                : 'text-slate-600 hover:text-[#1B1320]'
             }`}
           >
             Now Showing
           </button>
           <button
             onClick={() => handleTabChange('coming_soon')}
-            className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition ${
-              selectedTab === 'coming_soon' ? 'bg-[#e50914] text-white shadow' : 'text-zinc-400 hover:text-white'
+            className={`rounded-xl px-5 py-2.5 text-sm font-bold transition ${
+              selectedTab === 'coming_soon'
+                ? 'bg-[#C8102E] text-white shadow'
+                : 'text-slate-600 hover:text-[#1B1320]'
             }`}
           >
             Coming Soon
           </button>
           <button
             onClick={() => handleTabChange('all')}
-            className={`rounded-lg px-4 py-1.5 text-xs font-semibold transition ${
-              selectedTab === 'all' ? 'bg-[#e50914] text-white shadow' : 'text-zinc-400 hover:text-white'
+            className={`rounded-xl px-5 py-2.5 text-sm font-bold transition ${
+              selectedTab === 'all'
+                ? 'bg-[#C8102E] text-white shadow'
+                : 'text-slate-600 hover:text-[#1B1320]'
             }`}
           >
             All Movies
@@ -156,17 +162,17 @@ function MoviesListContent() {
       </div>
 
       {/* Filter and Sort bar */}
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-white/10 bg-[#12131a] p-4 mb-8">
-        <div className="flex items-center gap-2 text-xs font-bold text-zinc-300 pr-2 border-r border-white/10">
-          <SlidersHorizontal className="h-4 w-4 text-[#e50914]" />
-          <span>Filters:</span>
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-[#E6DCD2] bg-white p-4 shadow-sm mb-10">
+        <div className="flex items-center gap-2 text-sm font-bold text-slate-800 pr-3 border-r border-[#E6DCD2]">
+          <SlidersHorizontal className="h-5 w-5 text-[#C8102E]" />
+          <span>Filters</span>
         </div>
 
         {/* Languages */}
         <select
           value={selectedLanguage}
           onChange={(e) => handleLanguageChange(e.target.value)}
-          className="rounded-xl border border-white/10 bg-[#16181f] px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-[#e50914]"
+          className="rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3.5 py-2.5 text-sm font-medium text-[#1B1320] focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           data-testid="language-filter"
         >
           <option value="All">All Languages</option>
@@ -182,7 +188,7 @@ function MoviesListContent() {
         <select
           value={selectedGenre}
           onChange={(e) => handleGenreChange(e.target.value)}
-          className="rounded-xl border border-white/10 bg-[#16181f] px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-[#e50914]"
+          className="rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3.5 py-2.5 text-sm font-medium text-[#1B1320] focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           data-testid="genre-filter"
         >
           <option value="All">All Genres</option>
@@ -198,7 +204,7 @@ function MoviesListContent() {
         <select
           value={selectedFormat}
           onChange={(e) => handleFormatChange(e.target.value)}
-          className="rounded-xl border border-white/10 bg-[#16181f] px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-[#e50914]"
+          className="rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3.5 py-2.5 text-sm font-medium text-[#1B1320] focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           data-testid="format-filter"
         >
           <option value="All">All Formats</option>
@@ -212,7 +218,7 @@ function MoviesListContent() {
         <select
           value={selectedCertificate}
           onChange={(e) => handleCertChange(e.target.value)}
-          className="rounded-xl border border-white/10 bg-[#16181f] px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-[#e50914]"
+          className="rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3.5 py-2.5 text-sm font-medium text-[#1B1320] focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           data-testid="certificate-filter"
         >
           <option value="All">All Ratings</option>
@@ -222,12 +228,12 @@ function MoviesListContent() {
         </select>
 
         {/* Sort */}
-        <div className="flex items-center gap-1.5 pl-2 border-l border-white/10">
-          <ArrowUpDown className="h-3.5 w-3.5 text-zinc-400" />
+        <div className="flex items-center gap-2 pl-3 border-l border-[#E6DCD2]">
+          <ArrowUpDown className="h-4 w-4 text-slate-500" />
           <select
             value={selectedSort}
             onChange={(e) => handleSortChange(e.target.value)}
-            className="rounded-xl border border-white/10 bg-[#16181f] px-3 py-1.5 text-xs text-zinc-200 focus:outline-none focus:border-[#e50914]"
+            className="rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3.5 py-2.5 text-sm font-medium text-[#1B1320] focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
             data-testid="sort-filter"
           >
             <option value="popularity">Popularity</option>
@@ -241,10 +247,10 @@ function MoviesListContent() {
         {isFiltered && (
           <button
             onClick={handleReset}
-            className="flex items-center gap-1 text-xs text-[#e50914] hover:underline ml-auto font-medium"
+            className="flex items-center gap-1.5 text-sm text-[#C8102E] hover:underline ml-auto font-bold"
             data-testid="reset-filters-button"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-4 w-4" />
             <span>Reset Filters</span>
           </button>
         )}
@@ -252,24 +258,24 @@ function MoviesListContent() {
 
       {/* Movie Grid */}
       {loading ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="aspect-[2/3] rounded-2xl bg-zinc-900 animate-pulse border border-white/5" />
+            <div key={i} className="aspect-[2/3] rounded-2xl bg-white/70 animate-pulse border border-[#E6DCD2]" />
           ))}
         </div>
       ) : movies.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-6">
           {movies.map((movie) => (
             <MovieCard key={movie.id} movie={movie} />
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border border-white/10 bg-[#12131a] p-12 text-center text-zinc-400">
-          <p className="text-base font-bold text-white">No movies found matching criteria</p>
-          <p className="text-xs mt-1">Try adjusting your filters or search keywords</p>
+        <div className="rounded-3xl border border-[#E6DCD2] bg-white p-12 text-center text-slate-600 shadow-sm">
+          <p className="text-xl font-bold text-[#1B1320]">No movies found matching criteria</p>
+          <p className="text-sm mt-2">Try adjusting your filters or search keywords</p>
           <button
             onClick={handleReset}
-            className="mt-4 rounded-xl bg-white/10 px-4 py-2 text-xs font-semibold text-white hover:bg-white/20 transition"
+            className="mt-6 rounded-xl bg-[#C8102E] px-6 py-3 text-sm font-bold text-white hover:bg-[#A60D26] transition shadow"
           >
             Clear All Filters
           </button>
@@ -281,7 +287,7 @@ function MoviesListContent() {
 
 export default function MoviesPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-zinc-400">Loading catalog...</div>}>
+    <Suspense fallback={<div className="p-12 text-center text-base text-slate-600">Loading catalog...</div>}>
       <MoviesListContent />
     </Suspense>
   );

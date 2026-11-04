@@ -14,3 +14,4 @@
 - **WebGL Failure Fallback**: Tested and verified with context blocking: users without WebGL or hardware acceleration receive a user-friendly fallback modal explaining requirements without application crashes.
 - **CORS Failure / Offline Fallback**: If an external trailer video URL fails to load due to CORS restrictions or network outage, `Screen.tsx` seamlessly falls back to a procedural, animated cinematic film canvas without console error cascades or rendering freezes.
 - **Mobile Touch Clamps**: Touch gesture inputs for virtual joystick and drag-look utilize `touch-action: none` and coordinate bounds clamping to prevent page scroll bleed or viewport ejection.
+

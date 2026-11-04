@@ -3,17 +3,39 @@
 @tailwind utilities;
 
 :root {
-  --background: #07080a;
-  --foreground: #f8fafc;
+  --background: #FFF8F1;
+  --foreground: #1B1320;
+  --text-muted: #4A4056;
+  --card-bg: #FFFFFF;
+  --border-color: #E6DCD2;
+  --primary-crimson: #C8102E;
+  --primary-hover: #A60D26;
+  --primary-pressed: #8B0A20;
+  --accent-gold: #F2A900;
+  --accent-teal: #0E8F8A;
+}
+
+html {
+  font-size: 16px;
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 body {
   color: var(--foreground);
-  background: var(--background);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  background-color: var(--background);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', 'Plus Jakarta Sans', sans-serif;
+  font-size: 1.125rem; /* 18px body baseline */
+  line-height: 1.6;
   margin: 0;
   padding: 0;
-  overflow: hidden;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ensure no text anywhere renders below 14px */
+* {
+  min-font-size: 14px;
 }
 
 canvas {
@@ -23,18 +45,89 @@ canvas {
   -webkit-user-select: none !important;
 }
 
-/* Custom sleek dark scrollbar */
+/* Accessible focus ring on all interactive elements */
+:focus-visible {
+  outline: 3px solid #C8102E;
+  outline-offset: 2px;
+}
+
+/* Clean, warm scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #090a0f;
+  background: #FDEBD8;
 }
 ::-webkit-scrollbar-thumb {
-  background: #27272a;
+  background: #D4C3B3;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+  background: #BAA694;
+}
+
+/* Rich colour bands defined in DESIGN_SPEC.md */
+.bg-band-burgundy {
+  background: linear-gradient(135deg, #7A0F2E 0%, #C2185B 100%);
+  color: #FFFFFF;
+}
+
+.bg-band-indigo {
+  background: linear-gradient(135deg, #2B1B6B 0%, #5B3FD0 100%);
+  color: #FFFFFF;
+}
+
+.bg-band-teal {
+  background: linear-gradient(135deg, #0B6E6A 0%, #12A594 100%);
+  color: #FFFFFF;
+}
+
+/* Primary colourful button standard */
+.btn-primary {
+  min-height: 48px;
+  padding: 0.75rem 1.75rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-radius: 12px;
+  background-color: #C8102E;
+  color: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 180ms ease-out;
+  box-shadow: 0 4px 12px rgba(200, 16, 46, 0.25);
+}
+
+.btn-primary:hover {
+  background-color: #A60D26;
+  box-shadow: 0 6px 16px rgba(200, 16, 46, 0.35);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  background-color: #8B0A20;
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  min-height: 48px;
+  padding: 0.75rem 1.5rem;
+  font-size: 1.125rem;
+  font-weight: 600;
+  border-radius: 12px;
+  background-color: #FFFFFF;
+  color: #1B1320;
+  border: 1.5px solid #E6DCD2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: all 180ms ease-out;
+}
+
+.btn-secondary:hover {
+  background-color: #FDEBD8;
+  border-color: #D4C3B3;
 }
