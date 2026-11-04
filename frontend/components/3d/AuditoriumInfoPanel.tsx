@@ -1,15 +1,15 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import layoutData from '@/public/models/seat_layout_v2.json';
-import type { SeatLayoutFile, SeatStatus } from '@/lib/types';
+import type { SeatLayoutFile, SeatStatus, QualityTier } from '@/lib/types';
 import { Info, Sliders, Sun, Moon } from 'lucide-react';
-import type { QualityTier } from '@/lib/types';
 
 export function AuditoriumInfoPanel() {
   const [showHonestyModal, setShowHonestyModal] = useState(false);
   const [showDevControls, setShowDevControls] = useState(false);
+  const [isDebugMode, setIsDebugMode] = useState(false);
 
   const seatStatuses = useCinemaStore((s) => s.seatStatuses);
   const selectedSeats = useCinemaStore((s) => s.selectedSeats);
@@ -22,6 +22,15 @@ export function AuditoriumInfoPanel() {
   const updateSeatStatus = useCinemaStore((s) => s.updateSeatStatus);
   const showToast = useCinemaStore((s) => s.showToast);
   const cameraMode = useCinemaStore((s) => s.cameraMode);
+  const mode = useCinemaStore((s) => s.mode);
+
+  // Check URL query flag ?debug=1 (dev builds only)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+      const params = new URLSearchParams(window.location.search);
+      setIsDebugMode(params.get('debug') === '1');
+    }
+  }, []);
 
   const layout = layoutData as unknown as SeatLayoutFile;
 
@@ -46,13 +55,16 @@ export function AuditoriumInfoPanel() {
     return { available, booked, held, selected };
   }, [seatStatuses, selectedSeats, layout.seats]);
 
-  // Hide left panel on mobile or in POV mode to keep view unobstructed
+  // First-person modes (Walk/Seated/POV) are minimal: auto-hide the panel
+  const isFirstPerson = mode === 'walk' || mode === 'seated' || cameraMode === 'pov' || cameraMode === 'walk';
+  if (isFirstPerson) {
+    return null;
+  }
+
   return (
     <>
       <div
-        className={`pointer-events-none absolute left-5 top-5 z-20 hidden w-80 flex-col gap-3 transition-opacity duration-300 md:flex ${
-          cameraMode === 'pov' ? 'opacity-30 hover:opacity-100' : 'opacity-100'
-        }`}
+        className="pointer-events-none fixed left-4 top-20 z-20 hidden w-80 max-h-[calc(100dvh-6rem)] flex-col gap-3 overflow-y-auto transition-opacity duration-300 md:flex"
       >
         {/* Theatre Title & Screen Spec Card */}
         <div className="pointer-events-auto rounded-xl border border-slate-800/80 bg-[#0e1117]/85 p-4 shadow-2xl backdrop-blur-md">
@@ -60,25 +72,25 @@ export function AuditoriumInfoPanel() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="h-2 w-2 rounded-full bg-[#e50914] shadow-[0_0_8px_#e50914]" />
-                <span className="text-[11px] font-semibold tracking-wider text-slate-400 uppercase">
-                  Auditorium 1
-                </span>
+                <h1 className="text-sm font-bold tracking-tight text-white">
+                  Auditorium 1 — 3D Laser IMAX
+                </h1>
               </div>
-              <h1 className="mt-0.5 text-lg font-bold tracking-tight text-white">
-                IMAX Laser Theatre
-              </h1>
+              <p className="mt-0.5 text-xs text-slate-400">
+                100 Luxury Recliners • 10 Rows (A–J)
+              </p>
             </div>
+
             <button
               onClick={() => setShowHonestyModal(true)}
-              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-800 hover:text-white"
-              title="How is this calculated?"
-              aria-label="How is this calculated?"
+              className="rounded p-1 text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition"
+              title="How CineVerse 3D calculates sightlines"
             >
               <Info className="h-4 w-4" />
             </button>
           </div>
 
-          <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-900/70 px-3 py-2 text-xs">
+          <div className="mt-3 flex items-center justify-between rounded-lg bg-slate-900/60 px-3 py-2 text-xs">
             <span className="text-slate-400">Screen Format</span>
             <span className="font-medium text-slate-200">
               {layout.screen.aspect}:1 Aspect ({layout.screen.width}m × {layout.screen.height}m)
@@ -109,7 +121,7 @@ export function AuditoriumInfoPanel() {
             </div>
           </div>
 
-          {/* Seat Availability Counts & Legend */}
+          {/* Seat Availability Counts & Legend (Strictly sums to 100) */}
           <div className="mt-3 border-t border-slate-800/60 pt-3">
             <div className="flex items-center justify-between text-xs text-slate-300">
               <div className="flex items-center gap-1.5">
@@ -157,17 +169,20 @@ export function AuditoriumInfoPanel() {
               )}
             </button>
 
-            <button
-              onClick={() => setShowDevControls(!showDevControls)}
-              className="flex items-center gap-1.5 rounded-md bg-slate-800/60 px-2 py-1.5 text-[11px] text-slate-400 transition hover:bg-slate-700 hover:text-slate-200"
-            >
-              <Sliders className="h-3.5 w-3.5" />
-              <span>Dev Tools</span>
-            </button>
+            {/* Dev Tools: only visible when ?debug=1 in dev */}
+            {isDebugMode && (
+              <button
+                onClick={() => setShowDevControls(!showDevControls)}
+                className="flex items-center gap-1.5 rounded-md bg-slate-800/60 px-2 py-1.5 text-[11px] text-slate-400 transition hover:bg-slate-700 hover:text-slate-200"
+              >
+                <Sliders className="h-3.5 w-3.5" />
+                <span>Dev Tools</span>
+              </button>
+            )}
           </div>
 
-          {/* Dev Simulation Drawer */}
-          {showDevControls && (
+          {/* Dev Simulation Drawer (only when debug enabled) */}
+          {isDebugMode && showDevControls && (
             <div className="mt-3 space-y-2 rounded-lg border border-slate-800 bg-slate-950/70 p-2.5 text-xs text-slate-300">
               <div className="font-semibold text-slate-400">Dev & Test Diagnostics</div>
               <div className="flex gap-2">
@@ -248,36 +263,27 @@ export function AuditoriumInfoPanel() {
               <div className="rounded-lg bg-slate-900/80 p-3">
                 <div className="font-semibold text-white">Geometric Eye Model</div>
                 <p className="mt-1">
-                  Seat POV places the camera at an estimated adult eye height: seat cushion top + 0.65 m,
-                  positioned 0.45 units forward from the backrest. This is a mathematical approximation,
-                  not a physical laser scan.
+                  Eye heights assume a seated adult with eyes approximately <strong>0.65m</strong> above
+                  the seat cushion top and <strong>0.45 units</strong> in front of the backrest.
+                  Viewing angles are geometric estimates. Heads of other people are not modelled.
                 </p>
               </div>
 
               <div className="rounded-lg bg-slate-900/80 p-3">
-                <div className="font-semibold text-white">No Obstruction Guarantee</div>
-                <p className="mt-1 text-amber-300/90">
-                  ⚠️ We do NOT claim views are completely unobstructed. Tall patrons in front rows, handrails,
-                  or stage edges are not dynamically simulated. The visibility metric represents pure
-                  <strong> Geometric Screen Coverage</strong> (visual angle subtended by the screen).
-                </p>
-              </div>
-
-              <div className="rounded-lg bg-slate-900/80 p-3">
-                <div className="font-semibold text-white">Audience Numbering Orientation</div>
+                <div className="font-semibold text-white">Cinema Standard Numbering</div>
                 <p className="mt-1">
-                  Facing the screen from the auditorium, Seat 01 is on the viewer&apos;s right, and Seat 10
-                  is on the viewer&apos;s left. Wayfinding labels follow the official venue coordinates.
+                  Seat 01 is on your left when facing the screen. Seats run left-to-right (01 to 10)
+                  across each row A through J.
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 flex justify-end">
+            <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setShowHonestyModal(false)}
-                className="rounded-lg bg-[#e50914] px-4 py-2 text-xs font-semibold text-white transition hover:bg-red-700"
+                className="rounded-lg bg-[#e50914] px-4 py-2 text-xs font-bold text-white hover:bg-red-700 transition"
               >
-                Got It
+                Understood
               </button>
             </div>
           </div>

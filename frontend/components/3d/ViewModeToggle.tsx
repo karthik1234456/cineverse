@@ -30,7 +30,7 @@ export function ViewModeToggle() {
   const setFOV = useCinemaStore((s) => s.setFOV);
 
   return (
-    <div className="pointer-events-none fixed top-4 left-1/2 z-30 -translate-x-1/2 flex flex-col items-center gap-2">
+    <div className="pointer-events-none fixed top-20 left-1/2 z-30 -translate-x-1/2 flex flex-col items-center gap-2">
       {/* Main Mode Switcher Pill */}
       <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-slate-800/80 bg-[#0e1117]/95 p-1.5 shadow-2xl backdrop-blur-md">
         {/* Three Primary Modes (§5b) */}
