@@ -67,7 +67,11 @@ function CompactRowBadge({ position, letter }: { position: [number, number, numb
     // Sleek, compact semi-transparent rounded pill
     ctx.fillStyle = 'rgba(15, 17, 23, 0.75)';
     ctx.beginPath();
-    ctx.roundRect ? ctx.roundRect(8, 8, 48, 48, 10) : ctx.rect(8, 8, 48, 48);
+    if (ctx.roundRect) {
+      ctx.roundRect(8, 8, 48, 48, 10);
+    } else {
+      ctx.rect(8, 8, 48, 48);
+    }
     ctx.fill();
 
     ctx.lineWidth = 2;

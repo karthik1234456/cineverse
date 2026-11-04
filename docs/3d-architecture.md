@@ -16,9 +16,14 @@ The supplied procedural auditorium asset was authored with Blender-style coordin
     - $+Y$ is **Up**
     - $-X$ is the **Viewer's Right**
     - $+X$ is the **Viewer's Left**
-- **Seat Numbering Quirk**:
-  - Seat `A01` is situated at $X \approx -6.0$, which is on the **audience's right** when seated facing the screen.
-  - The UI and wayfinding labels explicitly preserve this official venue coordinate convention without silent renumbering, rendering "← Left / Right →" directional indicators.
+- **Seat Numbering & Spatial Orientation**:
+  - In glTF right-handed Y-up space facing $+Z$ (the screen), $+X$ points to the **Audience's Left** and $-X$ points to the **Audience's Right**.
+  - In `cineverse_auditorium_v2.glb`, node `seat_A_10` is at $X \approx +6.0$ (audience-left) and `seat_A_01` is at $X \approx -6.0$ (audience-right).
+  - Standard cinema convention dictates that Seat 01 begins on the audience's left when facing the screen.
+  - Phase 2b corrected this mapping by establishing:
+    $$\text{seat\_num} = 11 - \text{node\_num}$$
+    Hence node `seat_A_10` is seat `A01` (audience-left), and node `seat_A_01` is seat `A10` (audience-right).
+  - Both 3D wayfinding badges and the 2D SVG seat map match this convention with Seat 01 on the left.
 
 ### Coordinate Verification & Startup Assertions
 At startup and in unit tests (`lib/glbIntegrity.test.ts`), the system iterates through all 100 seat meshes, calculates each node's world-space `Box3` via `Box3.setFromObject(node)`, and asserts that `box.min` and `box.max` strictly match `seat_layout_v2.json`'s `bounds_gltf_y_up` within a $0.01\text{ unit}$ threshold.
@@ -42,16 +47,23 @@ Each seat is mapped directly by its glTF node name (`seat_A_01` through `seat_J_
 ## 3. State Colouring & Visual Design
 
 ### Color Decision & GPU Efficiency
-The original GLB shares a single vertex-colored PBR material (`CineVerse_Vertex_Color_PBR`). Mutating this material globally would alter all seats simultaneously; cloning 100 unique 15k-triangle materials would balloon draw calls and GPU memory overhead.
+The original GLB shares a single vertex-colored PBR material (`CineVerse_Vertex_Color_PBR`).
 
-CineVerse implements **Approach (b): Lightweight State Shells & Emissive Bounds**:
-- A fitted bounding shell and wireframe highlight overlay each seat based on its state.
-- **Available**: Category-tinted soft glow ring (Front: `#c9a227`, Prime: `#4f8cff`, Premier: `#b04fff`).
-- **Booked**: Desaturated dark grey veil (`#18181b`, opacity 0.55), disabled cursor, non-interactive.
-- **Held**: Pulsing warm amber (`#f59e0b`, animated $\sin(t)$ opacity pulse).
-- **Selected**: Cinematic red (`#e50914`, opacity 0.42) with bright outline (`#ff4d5a`) and floating 3D badge.
-- **Hover**: Brightened category rim with floating cursor tooltip.
-- **POV Occlusion Management**: When a user enters POV for a seat, that seat's own GLB mesh node is hidden (`node.visible = false`) to prevent clipping into the camera eye lens, while all seats in front remain 100% visible to provide realistic depth, headrest rake, and sightline perspective.
+In Phase 2b, the engine upgraded from early prototype overlay boxes to **Real Mesh Materials & Invisible Interaction Proxies**:
+1. **Per-Seat Cloned Materials**:
+   - `AuditoriumModel.tsx` clones `MeshStandardMaterial` for each of the 100 seat meshes.
+   - States are applied directly to the real seat geometry rather than drawing external bounding cubes:
+     - **Available**: Deep crimson theatre velvet (`#78141b`, roughness 0.72) with category-subtle emissive tint.
+     - **Hover**: Polished silver highlight (`#ffffff`, roughness 0.35, metalness 0.2, emissive `#ffffff` 0.15).
+     - **Selected**: Vibrant cinematic red (`#c81e28`, roughness 0.45, emissive `#ff2233` 0.95) with a floating `✓` badge.
+     - **Held**: Pulsing warm amber (`#b45309`, roughness 0.50, animated emissive `#f59e0b` 0.85) with a pulsing `●` badge.
+     - **Booked**: Darkened matte slate (`#202227`, roughness 0.90, emissive `#000000`) with a subtle `✕` badge. Non-interactive.
+2. **Invisible Interaction Proxies**:
+   - To retain fast raycasting against 12-triangle bounding boxes rather than 15k-triangle meshes, the engine retains proxy boxes in `SeatInteraction.tsx`.
+   - Proxies are rendered with `opacity={0}`, `depthWrite={false}`, and `colorWrite={debugProxies}`.
+   - Exactly **0 proxy pixels** are rasterized in normal and production builds (`window.__cineverse.getVisibleProxiesCount() === 0`).
+   - Completely eliminates translucent box visual clutter and near-camera clipping artifacts (such as the bottom-left red triangle).
+   - A `?debug=proxies` query parameter allows developers to visualize raycast hulls during development.
 
 ---
 
@@ -96,5 +108,56 @@ First-person walk mode operates using pure-TypeScript, frame-rate independent ph
 - **Sub-stepping Anti-tunneling**: High delta time or running speed ($6.0\text{u/s}$) is subdivided into sub-steps of maximum $0.05\text{u}$, ensuring thin barriers (e.g., stage lip or rail posts) cannot be penetrated.
 - **Ground Following & Step Clamps**: Maximum step-up is strictly clamped at $0.30\text{u}$ (accommodating the $0.22\text{u}$ tier and tread steps), while step-down is clamped at $0.40\text{u}$ to act as an edge-guard, preventing accidental drops off high platforms. Eye height transitions over tiers are critically damped for natural stair traversal.
 - **Controls & Interaction**: Desktop WASD / arrow keys and pointer-lock mouse look; mobile dual-touch virtual joystick and touch drag. Aiming the crosshair at any seat within $4.2\text{u}$ triggers instant contextual inspection and an $[E]$ prompt to sit down.
+
+---
+
+## 6. Lighting, Screen Tonemapping & Visual Hierarchy
+
+### Screen Tonemapping & Contrast
+- In earlier builds, the virtual cinema screen had `toneMapped={false}` with high brightness multiplier ($1.5$), which bypassed Three.js ACES Filmic tonemapper and clamped values to $(255, 255, 255)$, resulting in blown-out, detail-deprived visuals.
+- Phase 2b enabled `toneMapped={true}` and clamped video luminance ($\le 1.0$) with calibrated screen emissive intensity ($0.95$).
+- Pixel analysis of `03_seated_a05.png` confirms **0.008% clipped pure-white pixels**, preserving screen contrast and dynamic range without flattening.
+
+### Lighting Rig
+1. **Hemisphere Gradient**:
+   - Sky color `#38455e` (cool slate blue) and ground color `#181a20` (warm charcoal) provide natural ambient fill across non-shadowed areas.
+2. **Key Stage/Auditorium Light**:
+   - Directional light positioned high above the rear-center casting soft shadows down onto tiers and aisles. Limited to $\le 2$ shadow casters globally to preserve 60 FPS on low-power devices.
+3. **Architectural Wall Sconces & Step Lights**:
+   - Sconces at $x = \pm 10.2$ cast warm downward accents (`#ffbe76`, $3000\text{K}$).
+   - Low-intensity amber strip lights along aisle steps illuminate walkways without causing glare.
+4. **Atmospheric Fog**:
+   - Soft exponential height fog (`#07080a`, near 15, far 60) deepens theatre scale and prevents background clipping.
+
+---
+
+## 7. HUD & First-Person UX Architecture
+
+### Minimal First-Person HUD
+- When entering **Walk Mode** or **Seated POV Mode**, the left navigation/legend panel (`AuditoriumInfoPanel`) and right seat detail panel (`SeatInformationPanel`) automatically hide.
+- In first-person modes, the viewport presents a clean cinematic canvas containing:
+  - Subtle central reticle / crosshair.
+  - Contextual interaction aim tooltip when targeting a seat.
+  - Floating mode toggle (`Overview / Walk / Seated`) positioned at `top-20` (80px), preserving a 16px gutter below the 64px fixed site header.
+  - Selected seats checkout summary bar anchored at the bottom.
+- When returning to **Overview Mode**, the informational panels smoothly re-appear.
+
+### Responsive Positioning & Safe Areas
+- Header offset: `top-20` prevents overlap with the top navigation bar.
+- Internal scrolling: Panels use `max-h-[calc(100dvh-6rem)] overflow-y-auto` so content never bleeds past screen edges.
+- Mobile controls: Floating voice AI and joystick controls are offset to `bottom-20 right-4` to avoid colliding with the checkout bar.
+- Production hygiene: Dev tools and debug toggles are strictly hidden in production builds and only rendered when `?debug=1` is provided in dev mode.
+
+---
+
+## 8. Known Limitations & Technical Trade-offs
+
+1. **Software WebGL Performance in Headless CI**:
+   - Headless Playwright runs on Windows without GPU hardware acceleration use SwiftShader (software rasterizer). Full 1080p frame renders take 10–15 seconds each. Production testing requires generous timeouts (180s–240s) or dedicated GPU runners.
+2. **Single-GLB Material Partitioning**:
+   - The venue asset `cineverse_auditorium_v2.glb` was exported with a single combined material. CineVerse dynamically traverses the scene graph at load time to assign distinct PBR parameters to 162 non-seat nodes and 100 cloned seat materials. This incurs a ~25ms startup CPU cost during model mounting, which is negligible compared to network transfer time.
+3. **Headless Human Occlusion**:
+   - The seat view angles and sightlines are geometric ray estimates from eye position to screen edges. Simulated heads and shoulders of patrons seated in front rows are not rendered in 3D geometry; disclaimers clarify this to booking patrons.
+
 
 
