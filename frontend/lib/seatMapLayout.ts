@@ -47,9 +47,9 @@ export function buildSeatMapLayout(seats: LayoutSeat[]): SeatMapLayout {
   }
 
   const rows: MapRow[] = [...byRow.entries()].map(([row, list]) => {
-    // Audience left is -X (A01: -6.0), audience right is +X (A10: +6.0).
-    // Sort ascending by X so seat 01 is on the left (col 0).
-    const sorted = [...list].sort((a, b) => a.position_gltf_y_up[0] - b.position_gltf_y_up[0]);
+    // Audience left is +X (seat 01: +6.0), audience right is -X (seat 10: -6.0).
+    // Sort descending by X so seat 01 is on the left (col 0).
+    const sorted = [...list].sort((a, b) => b.position_gltf_y_up[0] - a.position_gltf_y_up[0]);
     const z = list.reduce((t, s) => t + s.position_gltf_y_up[2], 0) / list.length;
     return {
       row,
@@ -68,7 +68,7 @@ export function buildSeatMapLayout(seats: LayoutSeat[]): SeatMapLayout {
   const gaps = new Set<number>();
   for (const r of rows) {
     const xs = r.seats.map((s) => s.x);
-    const pitches = xs.slice(1).map((x, i) => x - xs[i]);
+    const pitches = xs.slice(1).map((x, i) => Math.abs(xs[i] - x));
     const typical = [...pitches].sort((a, b) => a - b)[Math.floor(pitches.length / 2)];
     pitches.forEach((p, i) => {
       if (p > typical * 1.5) gaps.add(i);

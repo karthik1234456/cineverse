@@ -15,14 +15,14 @@ describe('seatMapLayout module', () => {
     expect(map.cols).toBe(10); // 10 seats per row
   });
 
-  it('places seat 01 on the audience left (-X in glTF space) for every row', () => {
+  it('places seat 01 on the audience left (+X in glTF space) for every row', () => {
     const map = buildSeatMapLayout(seats);
     for (const r of map.rows) {
       expect(r.seats[0].number).toBe(1);
       expect(r.seats[9].number).toBe(10);
-      // X coordinates increase left to right from audience perspective (-6.0 -> +6.0)
+      // X coordinates decrease left to right from audience perspective (+6.0 -> -6.0)
       for (let i = 1; i < r.seats.length; i++) {
-        expect(r.seats[i].x).toBeGreaterThan(r.seats[i - 1].x);
+        expect(r.seats[i].x).toBeLessThan(r.seats[i - 1].x);
       }
     }
   });

@@ -144,7 +144,7 @@ describe('Seat Layout Integrity and Uniqueness Tests', () => {
       nodeNames.add(seat.node_name);
 
       expect(seat.seat_id).toMatch(/^[A-J](0[1-9]|10)$/);
-      expect(seat.node_name).toBe(`seat_${seat.row}_${seat.number.toString().padStart(2, '0')}`);
+      expect(seat.node_name).toBe(`seat_${seat.row}_${(11 - seat.number).toString().padStart(2, '0')}`);
     }
   });
 

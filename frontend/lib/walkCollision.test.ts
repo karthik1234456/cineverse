@@ -156,5 +156,68 @@ describe('WalkCollision Physics & Navigation Engine', () => {
 
     expect(Math.abs(dist30 - dist144) / dist30).toBeLessThan(0.01);
   });
+
+  it('11. Back wall seals auditorium completely, including at exit door positions (x=-7.5, x=0, x=+7.5)', () => {
+    const backWall = colliders.find((c) => c.name === 'back_wall');
+    expect(backWall).toBeDefined();
+    expect(backWall!.bounds.min[0]).toBeLessThanOrEqual(-11.0);
+    expect(backWall!.bounds.max[0]).toBeGreaterThanOrEqual(11.0);
+
+    // Test multiple x coordinates: left exit door area (-7.5), center aisle (0), right exit door area (+7.5)
+    for (const testX of [-7.5, -4.0, 0.0, 4.0, 7.5]) {
+      const start = { x: testX, y: 0.0, z: -25.0 };
+      const move = { dx: 0.0, dz: -3.0 }; // attempt to push through back wall past -26.0
+      const res = stepPlayer(start, move, walkables, colliders, { radius: 0.30 });
+
+      expect(res.collidedWithWall).toBe(true);
+      expect(res.newPos.z).toBeGreaterThanOrEqual(backWall!.bounds.max[2]);
+      expect(res.newPos.z).toBeGreaterThan(-26.0);
+    }
+  });
+
+  it('12. Screen structures (outer frame and stage lip) prevent penetration to screen surface', () => {
+    const outerFrame = colliders.find((c) => c.name === 'screen_outer_frame');
+    const stageLip = colliders.find((c) => c.name === 'screen_stage_lip');
+    expect(outerFrame).toBeDefined();
+    expect(stageLip).toBeDefined();
+
+    // From z=-2.5 at various X coordinates facing the screen
+    for (const testX of [-5.0, -2.0, 0.0, 2.0, 5.0]) {
+      const start = { x: testX, y: 0.0, z: -2.0 };
+      const move = { dx: 0.0, dz: 3.0 }; // try to walk through screen at z=-1.255
+      const res = stepPlayer(start, move, walkables, colliders, { radius: 0.30 });
+
+      expect(res.collidedWithWall).toBe(true);
+      // Stopped before stage lip min z
+      expect(res.newPos.z).toBeLessThanOrEqual(stageLip!.bounds.min[2] + 0.01);
+    }
+  });
+
+  it('13. Perimeter walls contain player across the full length of the auditorium', () => {
+    const leftWall = colliders.find((c) => c.name === 'left_wall');
+    const rightWall = colliders.find((c) => c.name === 'right_wall');
+    expect(leftWall).toBeDefined();
+    expect(rightWall).toBeDefined();
+
+    // Left wall penetration attempt
+    const leftStart = { x: -10.0, y: 0.0, z: -10.0 };
+    const leftRes = stepPlayer(leftStart, { dx: -3.0, dz: 0.0 }, walkables, colliders, { radius: 0.30 });
+    expect(leftRes.collidedWithWall).toBe(true);
+    expect(leftRes.newPos.x).toBeGreaterThanOrEqual(leftWall!.bounds.max[0]);
+
+    // Right wall penetration attempt
+    const rightStart = { x: 10.0, y: 0.0, z: -10.0 };
+    const rightRes = stepPlayer(rightStart, { dx: 3.0, dz: 0.0 }, walkables, colliders, { radius: 0.30 });
+    expect(rightRes.collidedWithWall).toBe(true);
+    expect(rightRes.newPos.x).toBeLessThanOrEqual(rightWall!.bounds.min[0]);
+  });
+
+  it('14. Exactly 122 colliders present (100 seats + 22 architectural barriers)', () => {
+    expect(colliders.length).toBe(122);
+    const seatColliders = colliders.filter((c) => c.name.startsWith('seat_'));
+    expect(seatColliders.length).toBe(100);
+    const nonSeatColliders = colliders.filter((c) => !c.name.startsWith('seat_'));
+    expect(nonSeatColliders.length).toBe(22);
+  });
 });
 

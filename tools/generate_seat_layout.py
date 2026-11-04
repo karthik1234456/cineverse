@@ -50,6 +50,9 @@ def main(path):
     for name, n in by.items():
         if not name.startswith("seat_"): continue
         _, row, num = name.split("_")
+        node_num = int(num)
+        seat_num = 11 - node_num  # Mirrored numbering: seat 01 on audience-left (+X), seat 10 on audience-right (-X)
+        seat_id = f"{row}{seat_num:02d}"
         v = verts(j, b, n); mn, mx = v.min(0), v.max(0)
         center_g = to_gltf((mn + mx) / 2)
         cushion_top = mn[2] + CUSHION_TOP_ABOVE_SEAT_MIN
@@ -65,7 +68,7 @@ def main(path):
         v_fov = math.degrees(2 * math.atan((screen_h / 2) / zs))
         cat = category_of(row)
         seats.append({
-            "seat_id": f"{row}{int(num):02d}", "node_name": name, "row": row, "number": int(num),
+            "seat_id": seat_id, "node_name": name, "row": row, "number": seat_num,
             "category": cat, "price": CATEGORIES[cat]["price"],
             "position_gltf_y_up": [round(float(x), 3) for x in center_g],
             "bounds_gltf_y_up": {"min": [round(float(x), 3) for x in to_gltf(np.array([mn[0], mx[1], mn[2]]))],

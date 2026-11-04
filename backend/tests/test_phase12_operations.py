@@ -501,12 +501,11 @@ async def test_ticket_transfer_flow_and_security_limits(client: AsyncClient):
             recip = User(email="recipient@cineverse.in", hashed_password="hashed_pw", role="CUSTOMER")
             db.add(recip)
 
-        # Restore Showtime 1 to TODAY so browse / movie tests never find empty showtimes
+        # Use a future showtime (e.g. tomorrow or +5 hours) to satisfy the 2-hour transfer cutoff
         st = await db.get(Showtime, 1)
         if st:
-            today_date = datetime.utcnow().date()
-            st.start_time = datetime.combine(today_date, time(18, 0))
-            st.end_time = datetime.combine(today_date, time(20, 45))
+            st.start_time = datetime.utcnow() + timedelta(hours=4)
+            st.end_time = datetime.utcnow() + timedelta(hours=6, minutes=45)
 
         bkg = Booking(
             booking_code=f"CV-{uuid.uuid4().hex[:6].upper()}",
