@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import layoutData from '@/public/models/seat_layout_v2.json';
-import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
+import type { SeatLayoutFile } from '@/lib/types';
 import { VirtualJoystick } from './VirtualJoystick';
 
 export function WalkHUD() {
@@ -28,12 +28,12 @@ export function WalkHUD() {
     return () => document.removeEventListener('pointerlockchange', handleLock);
   }, []);
 
+  const seatPrices = useCinemaStore((s) => s.seatPrices);
   if (!isWalk) return null;
 
   const seats = (layoutData as unknown as SeatLayoutFile).seats;
   const hoveredSeat = hoveredSeatId ? seats.find((s) => s.seat_id === hoveredSeatId) : null;
   const status = hoveredSeatId ? seatStatuses[hoveredSeatId] || 'available' : 'available';
-  const seatPrices = useCinemaStore((s) => s.seatPrices);
   const priceInfo = hoveredSeatId ? seatPrices[hoveredSeatId] : null;
   const price = priceInfo ? Math.round(priceInfo.price) : (hoveredSeat?.price ?? 380);
   const category = (priceInfo?.category ?? hoveredSeat?.category ?? 'Prime').toUpperCase();

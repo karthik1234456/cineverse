@@ -144,7 +144,10 @@ export interface ObstructionEstimator {
 }
 
 export interface CineverseStateExport {
+  mode?: 'overview' | 'walk' | 'seated';
   cameraMode: CameraMode;
+  cameraPreset?: CameraPreset;
+  isHeatmapActive?: boolean;
   cameraPosition: [number, number, number];
   cameraTarget: [number, number, number];
   fov: number;
@@ -176,21 +179,21 @@ declare global {
       selectSeat: (seatId: string) => boolean;
       enterPOV: (seatId: string) => void;
       exitPOV: () => void;
-      setMode?: (mode: 'overview' | 'walk' | 'seated') => void;
-      sitAt?: (seatId: string) => void;
-      standUp?: () => void;
-      teleportToRow?: (row: string) => void;
-      walkToSeat?: (seatId: string) => void;
+      setMode: (mode: 'overview' | 'walk' | 'seated') => void;
+      sitAt: (seatId: string) => void;
+      standUp: () => void;
+      teleportToRow: (row: string) => void;
+      walkToSeat: (seatId: string) => void;
       setCameraPreset: (preset: CameraPreset) => void;
-      toggleCompare?: () => void;
+      toggleCompare: () => void;
       simulateHold: (seatId: string) => void;
-      updateSeatStatus?: (seatId: string, status: SeatStatus) => void;
+      updateSeatStatus: (seatId: string, status: SeatStatus) => void;
       setHouseLights: (mode: HouseLightsMode) => void;
       setQualityTier: (tier: QualityTier) => void;
       setFOV: (fov: number) => void;
-      setHoveredSeat?: (seatId: string | null) => void;
-      getStore?: () => any;
-      getVisibleProxiesCount?: () => number;
+      setHoveredSeat: (seatId: string | null) => void;
+      getStore: () => any;
+      getVisibleProxiesCount: () => number;
     };
   }
 }

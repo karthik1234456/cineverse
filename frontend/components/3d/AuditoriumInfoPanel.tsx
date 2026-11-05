@@ -24,7 +24,6 @@ export function AuditoriumInfoPanel() {
   const cameraMode = useCinemaStore((s) => s.cameraMode);
   const mode = useCinemaStore((s) => s.mode);
   const storeTiers = useCinemaStore((s) => s.tiers);
-  const seatPrices = useCinemaStore((s) => s.seatPrices);
 
   const displayTiers = React.useMemo(() => {
     if (storeTiers && storeTiers.length > 0) {

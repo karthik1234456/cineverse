@@ -100,3 +100,4 @@ async def test_part_a_booking_and_ticket_price_integrity(client: AsyncClient):
         assert inv is not None
         assert inv.category == "Prime"
         assert inv.price == 380.0
+

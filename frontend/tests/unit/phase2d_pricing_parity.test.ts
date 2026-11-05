@@ -78,3 +78,4 @@ describe('Phase 2d Part A: Price and Category Parity across 100 seats', () => {
     expect(layout.categoryBands[2]).toEqual({ category: 'premier', rows: ['H', 'I', 'J'] });
   });
 });
+

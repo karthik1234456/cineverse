@@ -511,7 +511,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   toggleCompare: () => {
     const { isComparing, activeSeatId, compareSeats } = get();
     if (!isComparing) {
-      const initial = activeSeatId ? [activeSeatId] : [];
+      const initial = compareSeats.length > 0 ? compareSeats : (activeSeatId ? [activeSeatId] : []);
       set({ isComparing: true, compareSeats: initial });
     } else {
       set({ isComparing: false });
@@ -558,7 +558,10 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   exportState: () => {
     const state = get();
     return {
+      mode: state.mode,
       cameraMode: state.cameraMode,
+      cameraPreset: state.cameraPreset,
+      isHeatmapActive: state.isHeatmapActive,
       cameraPosition: state.cameraPosition,
       cameraTarget: state.cameraTarget,
       fov: state.fov,
