@@ -44,25 +44,26 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
     <div className="relative h-[100dvh] w-full overflow-hidden bg-[#07080a] select-none touch-none">
       <Canvas
         camera={{
-          position: [6.5, 8.5, -23.0],
+          position: [6.5, 8.5, -22.5],
           fov: 60,
-          near: 0.05,
-          far: 150,
+          near: 0.1,
+          far: 90,
         }}
         gl={{
           antialias: true,
           alpha: false,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.05,
+          toneMappingExposure: 0.98,
         }}
         dpr={[1, 1.5]} // Clamp DPR for performance
         frameloop="always" // Active rendering for smooth camera slerp and screen trailer animation
-        onCreated={({ gl }) => {
-          gl.setClearColor('#07080a');
+        onCreated={({ gl, scene }) => {
+          gl.setClearColor('#07080a', 1.0);
+          scene.background = new THREE.Color('#07080a');
         }}
       >
-        <fog attach="fog" args={['#07080a', 15, 60]} />
+        <fog attach="fog" args={['#07080a', 18, 65]} />
         <Suspense fallback={null}>
           <AuditoriumModel />
           <SeatInteraction onSeatClick={onSeatSelect} />

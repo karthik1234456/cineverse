@@ -143,11 +143,13 @@ export function AuditoriumModel() {
       color: new THREE.Color(look.wallColor),
       roughness: 0.90,
       metalness: 0.02,
+      side: THREE.DoubleSide,
     });
     const acousticPanelMaterial = new THREE.MeshStandardMaterial({
       color: new THREE.Color(look.acousticPanelColor),
       roughness: 0.82,
       metalness: 0.04,
+      side: THREE.DoubleSide,
     });
     const panelTrimMaterial = new THREE.MeshStandardMaterial({
       color: new THREE.Color(look.panelTrimColor),
@@ -158,6 +160,7 @@ export function AuditoriumModel() {
       color: new THREE.Color(look.ceilingColor),
       roughness: 0.95,
       metalness: 0.00,
+      side: THREE.DoubleSide,
     });
     const screenFrameMaterial = new THREE.MeshStandardMaterial({
       color: new THREE.Color(look.screenFrameColor),

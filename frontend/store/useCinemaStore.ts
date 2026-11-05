@@ -12,8 +12,8 @@ import layoutData from '@/public/models/seat_layout_v2.json';
 import walkNavData from '@/public/models/walk_nav_v2.json';
 
 export const MAX_SELECTED_SEATS = 8;
-export const DEFAULT_CAMERA_POS: [number, number, number] = [0.0, 11.2, -25.5];
-export const DEFAULT_CAMERA_TARGET: [number, number, number] = [0.0, 4.2, -4.5];
+export const DEFAULT_CAMERA_POS: [number, number, number] = [0.0, 8.5, -22.5];
+export const DEFAULT_CAMERA_TARGET: [number, number, number] = [0.0, 4.0, -8.0];
 
 export interface WalkPlayerState {
   position: [number, number, number];
@@ -86,6 +86,8 @@ export interface CinemaState {
 
   // Feedback & Toast
   toastMessage: string | null;
+  lastBoundaryNoticeTime: number;
+  triggerBoundaryNotice: () => void;
 
   // Stats
   rendererInfo: {
@@ -210,6 +212,13 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   setHeatmapActive: (active) => set({ isHeatmapActive: active }),
 
   toastMessage: null,
+  lastBoundaryNoticeTime: 0,
+  triggerBoundaryNotice: () => {
+    const now = Date.now();
+    if (now - get().lastBoundaryNoticeTime > 1400) {
+      set({ lastBoundaryNoticeTime: now });
+    }
+  },
 
   rendererInfo: {
     triangles: 0,

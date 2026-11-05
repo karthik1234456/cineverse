@@ -1,0 +1,77 @@
+<USER_REQUEST>
+# Phase 2e — Fixes from the owner's hands-on testing (home page, seat tooltip, boundaries, POV from 2D, trailer, speed)
+
+> **Session preamble:** You are building CineVerse. First read `phases/COMMON_RULES.md`, `DESIGN_SPEC.md`, `ANTIGRAVITY_PROMPT.md`, `SECURITY_SPEC.md`, `docs/PROJECT_STATUS.md` and the latest phase reports (including Phase 2d if it was run). Do ONLY this task. Run every existing suite first and keep them green. The owner tested the running app and the problems below are still visible, so **nothing counts as fixed unless a screenshot, recording or test from the real running production build proves it**. Evidence goes in `docs/evidence/phase-2e/`. Commit each Part separately, write `docs/PHASE_2E_REPORT.md` with a table of findings E1 to E8 (reproduced yes/no, fixed yes/no, evidence file), and stop at the stop point marked below.
+>
+> If a Phase 2d item already fixed one of these, say so in the report and still verify it with evidence. Where this file is stricter than Phase 2d, this file wins.
+
+## Findings (owner testing, written out so they can be reproduced)
+
+**E1. The home-page movie banner (hero) looks unfinished.** It is a plain magenta gradient with no imagery. Text on its left is tiny and almost invisible (dark red on magenta, about 11 px: the title "Quantum Odyssey: Beyond the Singularity", the genre line and the rating), and the description is partly hidden under the sticky header.
+**E2. Movie cards use flat gradient "posters" with tiny embedded text** (about 8 px), titles are cut off with "…" ("Quantum Odyssey:…", "The Last Kingdom:…", "Astra: Chronicles of th…"), the genre line is also cut off, and several texts (duration, genre, format tags) are under 14 px.
+**E3. The seat hover card is too big and gets in the way.** Hovering a seat (for example J10) opens a large card with the price, a green "Viewing score 98.4 / 100", an explanatory sentence and a **Select Seat button**. When the owner tries to select the neighbouring seat, the card covers it or steals the hover, so selecting nearby seats is hard.
+**E4. No trailer plays on the 3D screens** (still), even after earlier attempts.
+**E5. The 3D theatre feels laggy.** (The "FPS 102" badge at the bottom right of the home page appears on a page with no 3D at all, so it comes from a browser or system overlay and not from the app; ignore it, and do not use it as evidence.)
+**E6. There are no boundaries.** Zooming out or moving too far makes the whole 3D view turn white; the camera can leave the theatre.
+**E7. After selecting a seat in the 2D seat map there is no way to see the view from that seat (POV).**
+**E8. Text-size and contrast rules are still broken on these screens** (see E1 and E2); the automated scan must cover the home page, movie cards and seat card.
+
+## Part 1: seat hover card must be small and never get in the way (E3)
+- The hover tooltip is **information only and non-interactive**: it must not capture the pointer (disable pointer events on it entirely), contain **no button** and **no numeric score**. Content: seat label, price (large, bold), category, status, and a short hint ("Click to select"). Maximum about 240 × 110 px, 16 px text, price 22 px bold.
+- Place it **away from the seats you are about to move to**: offset from the cursor (for example above and to the side), flip at the viewport edges, never cover the hovered seat or the next seat in the direction of movement. It follows the pointer smoothly and updates in place (no flicker, no reopening animation when moving between seats).
+- Moving the pointer across ten neighbouring seats must always target the seat actually under the cursor; clicking the neighbour right after selecting one works immediately (two clicks within 300 ms select two seats).
+- Details (view rating in plain words, distance, "How is this calculated?") live in the **docked seat card**, opened by clicking or by a small "i" control; the docked card is the only place for the numeric score and for the Select button, and only one is visible at a time.
+- **Tests:** computed style shows the tooltip ignores pointer events; its size stays within the limit at 1366×768 and 1920×1080 and on a phone; it contains no button or score; a Playwright sweep across a row hovers each of ten seats in order and the reported hovered seat matches; the two-quick-clicks test; tooltip stays inside the viewport at the edges. Screenshots of hovering near J10, E06 and an edge seat.
+
+## Part 2: boundaries and "never white" (E6)
+- Compute the theatre's interior bounds from the model and keep **the camera inside them with a margin** in every mode: Overview (orbit, zoom, pan), Walk, Seated look-around, and during mode transitions. Limit zoom out to a maximum distance that still sits inside the room, clamp the orbit target and the camera position to the interior box, limit the vertical angle so the camera cannot pass through the floor or ceiling, and let the camera glide along walls instead of stopping dead. When the user pushes against an edge, resist softly (a gentle spring) and show a small hint such as "Edge of the theatre" that fades out.
+- The 3D background must **never** be white: use a deliberate dark or rich gradient background and fog colour; set tone mapping and exposure so the screen glow and bloom cannot wash out the whole frame; make sure near and far clipping planes suit the room so nothing flashes white when very close to a surface.
+- **Tests:** a scripted "extremes" run (wheel zoom out to the maximum, pinch zoom, pan to every corner, orbit to the lowest and highest angles, walk into every wall and corner, rapidly switch modes) asserting through `window.__cineverse` that the camera position stays inside the interior bounds with margin at every frame, and that no captured frame has more than 5 percent near-white pixels outside the screen area. Screenshots at each extreme, desktop and phone (touch pinch and two-finger pan).
+
+## Part 3: see the view from my seat, starting from the 2D seat map (E7)
+- In the 2D map, **hovering or tapping a seat** shows a small popover (seat label, price, category, status) with a clear secondary button **"See view from this seat"**. After seats are selected, the summary list also has a "View from this seat" link next to each selected seat. It works on desktop, tablet and phone and for keyboard users.
+- It opens the 3D theatre **directly in Seated POV at that seat's exact eye position** (deep link such as `?mode=pov&seat=E06`, validated; an invalid seat falls back to the normal 3D view). Previous and next controls move through the user's **selected** seats first (the others in the row after that). A prominent **Back to seat map** button returns to the 2D map with the selection and hold timer unchanged. Selecting or deselecting the seat from inside POV updates the 2D map.
+- **Make it fast:** prefetch the 3D model and trailer metadata on idle once the user reaches the seat page (not on slow connections or Save-Data), cache them, and show a friendly progress screen while loading; the POV must appear within 2 seconds on a warm cache on a mid-range desktop. If 3D or WebGL is unavailable, hide the button and show "3D view not available on this device".
+- **Tests:** the button exists for every seat state that can be previewed (booked and held seats may be previewed but not selected), the exact eye position is reached, selection and hold survive the round trip, deep link validation, keyboard operation, phone viewport, WebGL-disabled fallback, timing with a warm cache.
+
+## Part 4: the trailer must really play (E4); prove it with video evidence
+Earlier attempts failed, so work in this order and record the result of every step in the report:
+1. **Check the files first.** Do the trailer files referenced by the seed data exist at those paths? Are they valid (`ffprobe`: container, H.264 video and AAC audio, duration, resolution), are the `moov` data at the start of the file for streaming (fast start), and does the server answer video requests with correct content types and byte-range support (status 200 or 206 in the browser network log)? If the seed points to missing or placeholder files, that is the likely cause.
+2. **If no real, licensed trailer files are available, generate clearly labelled sample clips locally** (for example with ffmpeg: animated gradient, the movie title, "SAMPLE TRAILER" watermark, 20 to 30 seconds, 720p, different colours and titles for at least three movies) so the whole pipeline can be tested. Real licensed trailers are added later through the admin upload.
+3. Prove the video element plays on its own (muted, inline, current time advances) on the movie page "Watch Trailer" modal and on the 3D page.
+4. Prove frames reach the screen: first a solid bright test colour on the screen plane seen from Overview, Walk and several seats (checks placement, facing direction toward the audience, depth fighting with the original screen surface), then the video texture with the correct colour space, updating on every new video frame even while the renderer renders on demand.
+5. Check the console and network for texture-upload or loading errors and fix their cause.
+- The trailer shown is that showtime's movie. If it cannot play, the screen shows that movie's poster with "Trailer not available" and the control bar must not say "Pause".
+- **Evidence (mandatory):** a Playwright screen recording of the real app showing the trailer playing on the 3D screen in Overview, then Walk at row E, then Seated at A05 and J10 for three different movies; two screenshots 2 seconds apart per case showing different frames, with an automated frame-difference check; the same for the movie-page trailer modal; and a phone viewport run.
+- **STOP after Parts 1 to 4.** Commit, write the first half of the report with evidence and wait for the owner's review.
+
+## Part 5: make the 3D theatre fast (E5)
+First measure on a **production build** (`next build` then `next start`) and, separately, on the dev server, and record frame time p50, p95 and p99, long tasks over 50 ms, input-to-feedback latency, draw calls, triangles, texture and heap memory, and the GPU name reported by the browser, over a scripted 60-second interaction, with and without 4× CPU throttling. Then fix what the traces show (Phase 2d Part D lists the usual causes: per-move React re-renders, per-frame raycasts and allocations, many draw calls, video texture uploads, post-processing, model parse stalls). Additional requirements:
+- **Adaptive quality by default:** on load run a short benchmark (about 1.5 seconds of frames) and choose the quality tier automatically; integrated or weak GPUs start on Low or Medium. Cap the device pixel ratio (about 1.25 on weak devices), disable multisampling, bloom and ambient occlusion on Low, and reduce dynamically if frame time rises (and recover if it falls).
+- **One simple control:** in Settings, a two-choice switch **"Smooth" / "Beautiful"** (plus Auto), with the current choice shown. Smooth must be genuinely fast on a mid-range laptop.
+- Render on demand when nothing moves; hover updates must not re-render the 3D tree; the room's static meshes merged into few draw calls; the trailer texture capped at 720p (480p on Smooth/mobile); seats instanced or level-of-detail based, keeping the silhouette.
+- **Targets (production build, mid-range desktop, Smooth):** p95 frame time under 16.7 ms, input-to-tooltip under 100 ms, no long task over 100 ms during interaction; phone at least 30 FPS. Report before and after. If a target is missed, say so and explain what limits it.
+- Attach the Chrome performance trace file (or a summary of its main findings) to the evidence folder.
+
+## Part 6: a proper home banner and poster art (E1, E2, E8)
+- **Hero banner:** a wide, cinematic backdrop image for the "movie of the day" under a colour gradient overlay, **left-aligned text on the gradient**: title (40 to 48 px, white, bold, wraps to two lines, never truncated), chips for language, format, certificate and runtime (at least 14 px, high contrast), rating, a 2 to 3 line description (18 px), buttons **Book tickets** and **Watch trailer**, and on large screens the poster at the right. The text must never sit under the sticky header (account for the header height, test after scrolling and with anchors). The **Watch trailer button opens the trailer modal and plays that movie's trailer.** Contrast of every text on the hero must pass 4.5:1 (check against the lightest and darkest parts of the image).
+- **Poster and backdrop art:** replace the flat gradients with real artwork. Create a local set for the invented movies: a 2:3 poster and a 16:9 backdrop per movie, saved in the project (optimised WebP/AVIF with responsive sizes and blur placeholders). Use image generation if available (for example Google AI Studio's image generation) with invented titles only, no real brands, actors or copyrighted characters, and **no text inside the generated images**: titles, taglines and badges are rendered as real HTML text so they stay crisp and accessible. Record the prompt and source of every image in `docs/design/art-sources.md`. If image generation is not available, build tasteful typographic and illustrated placeholders (large clean title treatment, layered shapes, grain) that look intentional, not like an empty gradient.
+- **Movie cards:** poster fills the card with no tiny embedded text; the title below wraps to two lines at 18 px bold (no ellipsis; give the card height for two lines); genre and language 15 px; duration and rating at least 14 px; format badges at least 14 px; a clear Book button; consistent spacing. Format filter chips (All, IMAX 3D, 4DX, 2D Dolby Atmos) stay but read clearly.
+- **Tests:** the automated text scan (no visible text under 14 px, body 18 px) passes on the home page, movies list, movie page and seat card; axe contrast on the hero for desktop and phone; screenshot of the hero at 360, 768, 1280 and 1920 widths; a test that no card title contains an ellipsis for the seeded movies at those widths; the hero is not covered by the header at any scroll position.
+
+## Evidence and exit gate
+Before and after screenshots of each finding E1 to E8, the recordings, the frame-diff results, performance tables, the text-size and contrast reports, `docs/design/art-sources.md`, and the report table. Tag `phase-2e-done` only if every gate passes. Exit gate: a polished home banner and posters with readable text; a small, non-blocking hover card; a camera that stays inside the theatre and a background that is never white; "See view from this seat" working from the 2D map; the movie's own trailer visibly playing on the 3D screen; a measurably smooth 3D theatre with an easy Smooth/Beautiful switch. List honestly anything that fell short, with numbers.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-11-05T21:57:33+05:30.
+
+The user's current state is as follows:
+Active Document: d:\projects\CineVerse\frontend\components\3d\CinemaWorld.tsx (LANGUAGE_UNSPECIFIED)
+Cursor is on line: 1
+Other open documents:
+- d:\projects\CineVerse\frontend\app\page.tsx (LANGUAGE_UNSPECIFIED)
+- d:\projects\CineVerse\backend\alembic\env.py (LANGUAGE_UNSPECIFIED)
+- d:\projects\CineVerse\frontend\hooks\useSeatData.ts (LANGUAGE_UNSPECIFIED)
+- d:\projects\CineVerse\frontend\components\MovieCard.tsx (LANGUAGE_UNSPECIFIED)
+- d:\projects\CineVerse\frontend\components\Navbar.tsx (LANGUAGE_UNSPECIFIED)
+</ADDITIONAL_METADATA>

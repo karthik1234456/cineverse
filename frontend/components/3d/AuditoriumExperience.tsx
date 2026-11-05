@@ -12,6 +12,7 @@ import { CompareView } from './CompareView';
 import { MobileControls } from './MobileControls';
 import { WalkHUD } from './WalkHUD';
 import { TrailerControls } from './TrailerControls';
+import { BoundaryNotice } from './BoundaryNotice';
 import { ToastNotification } from '../ui/ToastNotification';
 import { useCinemaStore } from '@/store/useCinemaStore';
 
@@ -77,6 +78,7 @@ export function AuditoriumExperience({
       <WalkHUD />
       <CompareView />
       <MobileControls />
+      <BoundaryNotice />
       <ToastNotification />
     </main>
   );

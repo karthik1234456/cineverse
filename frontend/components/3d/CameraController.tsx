@@ -11,13 +11,22 @@ import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
 import { WalkController } from './WalkController';
 
 // Safe boundary box inside auditorium interior to prevent clipping through geometry
-const AUDITORIUM_BOUNDS = {
-  minX: -9.8,
-  maxX: 9.8,
-  minY: 0.8,
-  maxY: 10.2,
-  minZ: -25.0,
-  maxZ: -0.6,
+export const AUDITORIUM_BOUNDS = {
+  minX: -9.2,
+  maxX: 9.2,
+  minY: 1.1,
+  maxY: 9.6,
+  minZ: -24.2,
+  maxZ: -2.2,
+};
+
+export const TARGET_BOUNDS = {
+  minX: -6.0,
+  maxX: 6.0,
+  minY: 1.5,
+  maxY: 6.5,
+  minZ: -19.0,
+  maxZ: -3.0,
 };
 
 function clampToAuditorium(pos: THREE.Vector3) {
@@ -175,9 +184,9 @@ export function CameraController() {
     t.endQuat.copy(targetPose.quaternion);
     t.endFov = targetPose.fov;
 
-    // Bezier arc control point: rise above seats (y ≥ 7.2) to clear obstacles
+    // Bezier arc control point: rise above seats, capped below ceiling
     const mid = t.startPos.clone().add(t.endPos).multiplyScalar(0.5);
-    const arcY = Math.max(t.startPos.y, t.endPos.y, 7.2) + 0.6;
+    const arcY = Math.min(AUDITORIUM_BOUNDS.maxY - 0.4, Math.max(t.startPos.y, t.endPos.y, 6.8) + 0.5);
     t.arcControl.set(mid.x, arcY, mid.z);
 
     t.startTime = performance.now();
@@ -361,7 +370,48 @@ export function CameraController() {
       persCam.quaternion.premultiply(yawQuat);
       persCam.quaternion.multiply(pitchQuat);
     } else if (isOverview) {
-      clampToAuditorium(persCam.position);
+      if (controlsRef.current) {
+        // Clamp orbit target to interior
+        const tgt = controlsRef.current.target;
+        tgt.x = THREE.MathUtils.clamp(tgt.x, TARGET_BOUNDS.minX, TARGET_BOUNDS.maxX);
+        tgt.y = THREE.MathUtils.clamp(tgt.y, TARGET_BOUNDS.minY, TARGET_BOUNDS.maxY);
+        tgt.z = THREE.MathUtils.clamp(tgt.z, TARGET_BOUNDS.minZ, TARGET_BOUNDS.maxZ);
+      }
+
+      const pos = persCam.position;
+      let hitEdge = false;
+
+      // Soft spring & wall gliding when pushing past bounds
+      if (pos.x < AUDITORIUM_BOUNDS.minX) {
+        pos.x = THREE.MathUtils.lerp(pos.x, AUDITORIUM_BOUNDS.minX, 0.35);
+        hitEdge = true;
+      } else if (pos.x > AUDITORIUM_BOUNDS.maxX) {
+        pos.x = THREE.MathUtils.lerp(pos.x, AUDITORIUM_BOUNDS.maxX, 0.35);
+        hitEdge = true;
+      }
+
+      if (pos.y < AUDITORIUM_BOUNDS.minY) {
+        pos.y = THREE.MathUtils.lerp(pos.y, AUDITORIUM_BOUNDS.minY, 0.35);
+        hitEdge = true;
+      } else if (pos.y > AUDITORIUM_BOUNDS.maxY) {
+        pos.y = THREE.MathUtils.lerp(pos.y, AUDITORIUM_BOUNDS.maxY, 0.35);
+        hitEdge = true;
+      }
+
+      if (pos.z < AUDITORIUM_BOUNDS.minZ) {
+        pos.z = THREE.MathUtils.lerp(pos.z, AUDITORIUM_BOUNDS.minZ, 0.35);
+        hitEdge = true;
+      } else if (pos.z > AUDITORIUM_BOUNDS.maxZ) {
+        pos.z = THREE.MathUtils.lerp(pos.z, AUDITORIUM_BOUNDS.maxZ, 0.35);
+        hitEdge = true;
+      }
+
+      // Hard clamp as invariant backstop
+      clampToAuditorium(pos);
+
+      if (hitEdge) {
+        useCinemaStore.getState().triggerBoundaryNotice();
+      }
     }
   });
 
@@ -374,9 +424,9 @@ export function CameraController() {
           enableDamping
           dampingFactor={0.06}
           minDistance={2.5}
-          maxDistance={32}
-          maxPolarAngle={Math.PI / 2 - 0.04}
-          minPolarAngle={0.08}
+          maxDistance={20.0}
+          maxPolarAngle={1.42}
+          minPolarAngle={0.35}
           target={DEFAULT_CAMERA_TARGET}
         />
       )}

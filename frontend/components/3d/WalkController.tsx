@@ -278,6 +278,24 @@ export function WalkController() {
       posRef.current.set(stepRes.newPos.x, stepRes.newPos.y, stepRes.newPos.z);
     }
 
+    // Boundary clamp with margin for walk player + edge notice
+    const walkBounds = {
+      minX: -9.2,
+      maxX: 9.2,
+      minZ: -24.2,
+      maxZ: -2.2,
+    };
+    if (
+      posRef.current.x < walkBounds.minX ||
+      posRef.current.x > walkBounds.maxX ||
+      posRef.current.z < walkBounds.minZ ||
+      posRef.current.z > walkBounds.maxZ
+    ) {
+      useCinemaStore.getState().triggerBoundaryNotice();
+      posRef.current.x = THREE.MathUtils.clamp(posRef.current.x, walkBounds.minX, walkBounds.maxX);
+      posRef.current.z = THREE.MathUtils.clamp(posRef.current.z, walkBounds.minZ, walkBounds.maxZ);
+    }
+
     // 4. Smooth eye height over tiers
     const targetEyeY = posRef.current.y + playerCfg.standing_eye_height;
     eyeHeightRef.current = smoothEyeHeight(eyeHeightRef.current, targetEyeY, clampedDelta, 14.0);
