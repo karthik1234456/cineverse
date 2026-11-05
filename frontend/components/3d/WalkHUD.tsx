@@ -33,6 +33,10 @@ export function WalkHUD() {
   const seats = (layoutData as unknown as SeatLayoutFile).seats;
   const hoveredSeat = hoveredSeatId ? seats.find((s) => s.seat_id === hoveredSeatId) : null;
   const status = hoveredSeatId ? seatStatuses[hoveredSeatId] || 'available' : 'available';
+  const seatPrices = useCinemaStore((s) => s.seatPrices);
+  const priceInfo = hoveredSeatId ? seatPrices[hoveredSeatId] : null;
+  const price = priceInfo ? Math.round(priceInfo.price) : (hoveredSeat?.price ?? 380);
+  const category = (priceInfo?.category ?? hoveredSeat?.category ?? 'Prime').toUpperCase();
 
   return (
     <div className="pointer-events-none absolute inset-0 z-30 flex flex-col justify-between overflow-hidden">
@@ -52,10 +56,10 @@ export function WalkHUD() {
                 Seat {hoveredSeat.seat_id}
               </span>
               <span className="rounded bg-white/10 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-slate-300">
-                {hoveredSeat.category}
+                {category}
               </span>
               <span className="text-sm font-bold text-emerald-400">
-                ₹{hoveredSeat.price}
+                ₹{price}
               </span>
             </div>
 

@@ -23,6 +23,30 @@ export function AuditoriumInfoPanel() {
   const showToast = useCinemaStore((s) => s.showToast);
   const cameraMode = useCinemaStore((s) => s.cameraMode);
   const mode = useCinemaStore((s) => s.mode);
+  const storeTiers = useCinemaStore((s) => s.tiers);
+  const seatPrices = useCinemaStore((s) => s.seatPrices);
+
+  const displayTiers = React.useMemo(() => {
+    if (storeTiers && storeTiers.length > 0) {
+      return storeTiers.map((t) => ({
+        name: t.name,
+        category: t.category,
+        rows: t.rows.length > 0 ? `Rows ${t.rows[0]}–${t.rows[t.rows.length - 1]}` : '',
+        price: t.price,
+        colorClass:
+          t.category.toLowerCase() === 'premier'
+            ? 'border-rose-300 bg-rose-50 text-[#9F1239]'
+            : t.category.toLowerCase() === 'front'
+            ? 'border-amber-300 bg-amber-50 text-[#8D5B28]'
+            : 'border-blue-300 bg-blue-50 text-[#1E40AF]',
+      }));
+    }
+    return [
+      { name: 'Front', category: 'front', rows: 'Rows A–C', price: 280, colorClass: 'border-amber-300 bg-amber-50 text-[#8D5B28]' },
+      { name: 'Prime', category: 'prime', rows: 'Rows D–G', price: 380, colorClass: 'border-blue-300 bg-blue-50 text-[#1E40AF]' },
+      { name: 'Premier', category: 'premier', rows: 'Rows H–J', price: 520, colorClass: 'border-rose-300 bg-rose-50 text-[#9F1239]' },
+    ];
+  }, [storeTiers]);
 
   // Check URL query flag ?debug=1 (dev builds only)
   useEffect(() => {
@@ -103,21 +127,13 @@ export function AuditoriumInfoPanel() {
               Tiers & Pricing
             </div>
             <div className="grid grid-cols-3 gap-2 text-center text-xs">
-              <div className="rounded-xl border border-amber-300 bg-amber-50 py-2">
-                <div className="font-bold text-[#8D5B28]">Front</div>
-                <div className="text-xs text-slate-500">Rows A-B</div>
-                <div className="mt-0.5 font-black text-sm text-[#8D5B28]">₹280</div>
-              </div>
-              <div className="rounded-xl border border-blue-300 bg-blue-50 py-2">
-                <div className="font-bold text-[#1E40AF]">Prime</div>
-                <div className="text-xs text-slate-500">Rows C-H</div>
-                <div className="mt-0.5 font-black text-sm text-[#1E40AF]">₹380</div>
-              </div>
-              <div className="rounded-xl border border-rose-300 bg-rose-50 py-2">
-                <div className="font-bold text-[#9F1239]">Premier</div>
-                <div className="text-xs text-slate-500">Rows I-J</div>
-                <div className="mt-0.5 font-black text-sm text-[#9F1239]">₹520</div>
-              </div>
+              {displayTiers.map((tier) => (
+                <div key={tier.name} className={`rounded-xl border py-2 ${tier.colorClass}`}>
+                  <div className="font-bold">{tier.name}</div>
+                  <div className="text-xs text-slate-500">{tier.rows}</div>
+                  <div className="mt-0.5 font-black text-sm">₹{Math.round(tier.price)}</div>
+                </div>
+              ))}
             </div>
           </div>
 

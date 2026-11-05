@@ -1,4 +1,5 @@
-from typing import Optional
+from typing import Optional, List
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -8,7 +9,7 @@ from app.database import get_db
 from app.models.showtime import Showtime, SeatInventory, SeatStatusEnum
 from app.models.cinema import Auditorium, Seat
 from app.models.auth import User
-from app.schemas.showtime import ShowtimeSeatsResponse, SeatInventoryItem
+from app.schemas.showtime import ShowtimeSeatsResponse, SeatInventoryItem, TierSummaryItem
 from app.services.auth_service import get_current_user
 
 router = APIRouter()
@@ -56,10 +57,14 @@ async def get_showtime_seats(
         except ValueError:
             num = 1
 
+        quote_id = f"cv-quote-{showtime.id}-{int(datetime.utcnow().timestamp())}"
+
         seat_items.append(SeatInventoryItem(
             seat_id=inv.seat_id,
             category=inv.category,
             price=inv.price,
+            currency="INR",
+            quote_id=quote_id,
             status=inv.status,
             held_by_current_user=is_held_by_me,
             row=row,
@@ -72,6 +77,53 @@ async def get_showtime_seats(
 
     # Sort seats alphabetically A01...J10
     seat_items.sort(key=lambda s: (s.row, s.number))
+
+    # Build dynamic tier summaries directly from seat inventories
+    tier_map = {}
+    tier_colors = {
+        "front": "#8D5B28",
+        "prime": "#1E40AF",
+        "premier": "#9F1239"
+    }
+    for item in seat_items:
+        cat_key = item.category.lower()
+        if cat_key not in tier_map:
+            tier_map[cat_key] = {
+                "name": item.category,
+                "category": cat_key,
+                "price": item.price,
+                "currency": "INR",
+                "rows": set(),
+                "color": tier_colors.get(cat_key, "#4A4056")
+            }
+        tier_map[cat_key]["rows"].add(item.row)
+        tier_map[cat_key]["price"] = item.price
+
+    tier_order = ["front", "prime", "premier"]
+    tiers = []
+    for k in tier_order:
+        if k in tier_map:
+            t = tier_map[k]
+            tiers.append(TierSummaryItem(
+                name=t["name"],
+                category=t["category"],
+                price=t["price"],
+                currency=t["currency"],
+                rows=sorted(list(t["rows"])),
+                color=t["color"]
+            ))
+    for k, t in tier_map.items():
+        if k not in tier_order:
+            tiers.append(TierSummaryItem(
+                name=t["name"],
+                category=t["category"],
+                price=t["price"],
+                currency=t["currency"],
+                rows=sorted(list(t["rows"])),
+                color=t["color"]
+            ))
+
+    quote_id = f"cv-quote-{showtime.id}-{int(datetime.utcnow().timestamp())}"
 
     return ShowtimeSeatsResponse(
         showtime_id=showtime.id,
@@ -86,10 +138,13 @@ async def get_showtime_seats(
         format=showtime.format,
         language=showtime.language,
         start_time=showtime.start_time,
+        currency="INR",
+        quote_id=quote_id,
         glb_path="/models/cineverse_auditorium_v2.web.glb",
         layout_path="/models/seat_layout_v2.json",
         trailer_url=showtime.movie.trailer_url if showtime.movie else None,
         poster_url=showtime.movie.poster_url if showtime.movie else None,
+        tiers=tiers,
         seats=seat_items
     )
 

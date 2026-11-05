@@ -32,10 +32,21 @@ class ShowtimeResponse(BaseModel):
         from_attributes = True
 
 
+class TierSummaryItem(BaseModel):
+    name: str              # e.g. "Front", "Prime", "Premier"
+    category: str          # e.g. "front", "prime", "premier"
+    price: float           # e.g. 280.0
+    currency: str = "INR"
+    rows: List[str]        # e.g. ["A", "B", "C"]
+    color: Optional[str] = None
+
+
 class SeatInventoryItem(BaseModel):
     seat_id: str
     category: str
     price: float
+    currency: str = "INR"
+    quote_id: Optional[str] = None
     status: SeatStatusEnum
     held_by_current_user: bool = False
     row: str
@@ -59,9 +70,12 @@ class ShowtimeSeatsResponse(BaseModel):
     format: str
     language: str
     start_time: datetime
+    currency: str = "INR"
+    quote_id: Optional[str] = None
     glb_path: str = "/models/cineverse_auditorium_v2.web.glb"
     layout_path: str = "/models/seat_layout_v2.json"
     trailer_url: Optional[str] = None
     poster_url: Optional[str] = None
+    tiers: List[TierSummaryItem] = []
     seats: List[SeatInventoryItem]
 

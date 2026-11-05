@@ -24,6 +24,7 @@ export function SeatInformationPanel() {
   const seatStatuses = useCinemaStore((s) => s.seatStatuses);
   const addToCompare = useCinemaStore((s) => s.addToCompare);
   const toggleCompare = useCinemaStore((s) => s.toggleCompare);
+  const seatPrices = useCinemaStore((s) => s.seatPrices);
 
   const [showCalculationInfo, setShowCalculationInfo] = useState(false);
 
@@ -72,18 +73,27 @@ export function SeatInformationPanel() {
             </div>
 
             <div className="text-right">
-              <span
-                className={`inline-block rounded-xl px-3 py-1 text-xs font-bold uppercase tracking-wider ${
-                  seat.category === 'front'
-                    ? 'bg-amber-50 text-[#8D5B28] border border-amber-300'
-                    : seat.category === 'prime'
-                    ? 'bg-blue-50 text-[#1E40AF] border border-blue-300'
-                    : 'bg-rose-50 text-[#9F1239] border border-rose-300'
-                }`}
-              >
-                {seat.category}
-              </span>
-              <div className="mt-1 text-xl font-black text-[#C8102E]">₹{seat.price}</div>
+              {(() => {
+                const quote = seat ? seatPrices[seat.seat_id] : null;
+                const displayPrice = quote ? Math.round(quote.price) : (seat?.price ?? 380);
+                const displayCategory = quote?.category ?? seat?.category ?? 'Prime';
+                return (
+                  <>
+                    <span
+                      className={`inline-block rounded-xl px-3 py-1 text-xs font-bold uppercase tracking-wider ${
+                        displayCategory.toLowerCase() === 'front'
+                          ? 'bg-amber-50 text-[#8D5B28] border border-amber-300'
+                          : displayCategory.toLowerCase() === 'prime'
+                          ? 'bg-blue-50 text-[#1E40AF] border border-blue-300'
+                          : 'bg-rose-50 text-[#9F1239] border border-rose-300'
+                      }`}
+                    >
+                      {displayCategory}
+                    </span>
+                    <div className="mt-1 text-xl font-black text-[#C8102E]">₹{displayPrice}</div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 

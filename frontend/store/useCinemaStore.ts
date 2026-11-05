@@ -7,6 +7,7 @@ import type {
   QualityTier,
   CineverseStateExport,
 } from '@/lib/types';
+import type { TierSummaryItem } from '@/services/api';
 import layoutData from '@/public/models/seat_layout_v2.json';
 import walkNavData from '@/public/models/walk_nav_v2.json';
 
@@ -43,7 +44,8 @@ export interface TrailerState {
 export interface CinemaState {
   // Seat state
   seatStatuses: Record<string, SeatStatus>;
-  seatPrices: Record<string, { price: number; category: string }>;
+  seatPrices: Record<string, { price: number; category: string; currency?: string; quote_id?: string }>;
+  tiers: TierSummaryItem[];
   selectedSeats: string[];
   activeSeatId: string | null;
   hoveredSeatId: string | null;
@@ -96,7 +98,8 @@ export interface CinemaState {
 
   // Actions
   setSeatStatuses: (statuses: Record<string, SeatStatus>) => void;
-  setSeatPrices: (prices: Record<string, { price: number; category: string }>) => void;
+  setSeatPrices: (prices: Record<string, { price: number; category: string; currency?: string; quote_id?: string }>) => void;
+  setTiers: (tiers: TierSummaryItem[]) => void;
   updateSeatStatus: (seatId: string, status: SeatStatus) => void;
   selectSeat: (seatId: string) => boolean;
   deselectSeat: (seatId: string) => void;
@@ -149,6 +152,7 @@ let toastTimer: any = null;
 export const useCinemaStore = create<CinemaState>((set, get) => ({
   seatStatuses: {},
   seatPrices: {},
+  tiers: [],
   selectedSeats: [],
   activeSeatId: 'F05',
   hoveredSeatId: null,
@@ -213,6 +217,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
   setSeatStatuses: (statuses) => set({ seatStatuses: statuses }),
   setSeatPrices: (prices) => set({ seatPrices: prices }),
+  setTiers: (tiers) => set({ tiers }),
 
   updateSeatStatus: (seatId, status) =>
     set((state) => ({

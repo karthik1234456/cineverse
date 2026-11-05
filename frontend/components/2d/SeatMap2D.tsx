@@ -121,16 +121,50 @@ export function SeatMap2D({
     return (obstructionsData as any).seats || {};
   }, []);
 
-  // Tier categorisation with rich theme colors
-  const categoryTiers = useMemo(
-    () => [
+  // Tier categorisation with rich theme colors, driven dynamically by server tiers
+  const categoryTiers = useMemo(() => {
+    if (showtimeDetails?.tiers && showtimeDetails.tiers.length > 0) {
+      return showtimeDetails.tiers.map((t) => {
+        const cat = t.category.toLowerCase();
+        let name = t.name;
+        if (cat === 'premier') name = 'Premier Recliner';
+        else if (cat === 'prime') name = 'Prime Standard';
+        else if (cat === 'front') name = 'Front Row';
+
+        const colorClass =
+          cat === 'premier'
+            ? 'text-[#9F1239] border-[#9F1239]/30 bg-rose-50'
+            : cat === 'front'
+            ? 'text-[#8D5B28] border-[#8D5B28]/30 bg-amber-50'
+            : 'text-[#1E40AF] border-[#1E40AF]/30 bg-blue-50';
+
+        const badgeColor =
+          cat === 'premier'
+            ? 'bg-[#9F1239] text-white'
+            : cat === 'front'
+            ? 'bg-[#8D5B28] text-white'
+            : 'bg-[#1E40AF] text-white';
+
+        return {
+          name,
+          category: cat,
+          price: t.price,
+          colorClass,
+          badgeColor,
+          rows: [...t.rows].reverse(),
+        };
+      });
+    }
+
+    // Canonical database bands fallback
+    return [
       {
         name: 'Premier Recliner',
         category: 'premier',
         price: 520,
         colorClass: 'text-[#9F1239] border-[#9F1239]/30 bg-rose-50',
         badgeColor: 'bg-[#9F1239] text-white',
-        rows: ['J', 'I'],
+        rows: ['J', 'I', 'H'],
       },
       {
         name: 'Prime Standard',
@@ -138,7 +172,7 @@ export function SeatMap2D({
         price: 380,
         colorClass: 'text-[#1E40AF] border-[#1E40AF]/30 bg-blue-50',
         badgeColor: 'bg-[#1E40AF] text-white',
-        rows: ['H', 'G', 'F', 'E', 'D', 'C'],
+        rows: ['G', 'F', 'E', 'D'],
       },
       {
         name: 'Front Row',
@@ -146,11 +180,10 @@ export function SeatMap2D({
         price: 280,
         colorClass: 'text-[#8D5B28] border-[#8D5B28]/30 bg-amber-50',
         badgeColor: 'bg-[#8D5B28] text-white',
-        rows: ['B', 'A'],
+        rows: ['C', 'B', 'A'],
       },
-    ],
-    []
-  );
+    ];
+  }, [showtimeDetails?.tiers]);
 
   // Total calculated price
   const totalPrice = useMemo(() => {
@@ -238,6 +271,9 @@ export function SeatMap2D({
   }
 
   const focusedSeat = focusedSeatId ? seatMap.get(focusedSeatId) : null;
+  const serverFocusedSeat = focusedSeatId ? showtimeDetails?.seats.find((s) => s.seat_id === focusedSeatId) : null;
+  const focusedPrice = serverFocusedSeat?.price ?? focusedSeat?.price ?? 380;
+  const focusedCategory = (serverFocusedSeat?.category ?? focusedSeat?.category ?? 'Prime').toUpperCase();
   const focusedScore = focusedSeat ? viewScore(focusedSeat as any) : null;
   const focusedObstruction = focusedSeatId ? seatObstructions[focusedSeatId] : null;
 
@@ -572,10 +608,10 @@ export function SeatMap2D({
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[#E6DCD2] pb-3">
               <div className="flex items-center gap-3">
                 <span className="text-xl font-black text-[#1B1320]">
-                  Seat {focusedSeat.seat_id} ({focusedSeat.category.toUpperCase()})
+                  Seat {focusedSeat.seat_id} ({focusedCategory})
                 </span>
                 <span className="text-sm font-bold text-[#C8102E]">
-                  ₹{focusedSeat.price}
+                  ₹{Math.round(focusedPrice)}
                 </span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold border border-slate-200">
                   {seatStatuses[focusedSeat.seat_id] || 'available'}

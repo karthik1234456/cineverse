@@ -15,6 +15,7 @@ export function CompareView() {
   const isComparing = useCinemaStore((s) => s.isComparing);
   const compareSeats = useCinemaStore((s) => s.compareSeats);
   const toggleCompare = useCinemaStore((s) => s.toggleCompare);
+  const seatPrices = useCinemaStore((s) => s.seatPrices);
   const removeFromCompare = useCinemaStore((s) => s.removeFromCompare);
   const enterPOV = useCinemaStore((s) => s.enterPOV);
   const selectSeat = useCinemaStore((s) => s.selectSeat);
@@ -93,9 +94,9 @@ export function CompareView() {
 
                     <div className="mt-2 flex items-center justify-between">
                       <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-300">
-                        {seat.category}
+                        {seatPrices[seat.seat_id]?.category ?? seat.category}
                       </span>
-                      <span className="font-bold text-white">₹{seat.price}</span>
+                      <span className="font-bold text-white">₹{Math.round(seatPrices[seat.seat_id]?.price ?? seat.price)}</span>
                     </div>
 
                     {/* Metrics */}

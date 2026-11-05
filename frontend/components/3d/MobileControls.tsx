@@ -31,6 +31,7 @@ export function MobileControls() {
   const houseLights = useCinemaStore((s) => s.houseLights);
   const setHouseLights = useCinemaStore((s) => s.setHouseLights);
   const seatStatuses = useCinemaStore((s) => s.seatStatuses);
+  const seatPrices = useCinemaStore((s) => s.seatPrices);
 
   const allSeats = (layoutData as unknown as SeatLayoutFile).seats;
   const seat = useMemo(() => {
@@ -51,10 +52,12 @@ export function MobileControls() {
 
   const totalPrice = useMemo(() => {
     return selectedSeats.reduce((acc, id) => {
+      const serverPrice = seatPrices[id]?.price;
+      if (serverPrice !== undefined) return acc + serverPrice;
       const s = seatMap.get(id);
-      return acc + (s ? s.price : 0);
+      return acc + (s ? s.price : 380);
     }, 0);
-  }, [selectedSeats, seatMap]);
+  }, [selectedSeats, seatMap, seatPrices]);
 
   return (
     <div className="md:hidden">
@@ -122,14 +125,23 @@ export function MobileControls() {
         {/* Peek View Header (Always Visible) */}
         <div className="flex items-center justify-between pb-2">
           <div>
-            <div className="flex items-baseline gap-2">
-              <span className="text-xl font-black text-white">{seat.seat_id}</span>
-              <span className="text-xs text-slate-400">Row {seat.row}</span>
-              <span className="text-xs font-semibold uppercase text-amber-400">
-                {seat.category}
-              </span>
-            </div>
-            <div className="text-xs text-slate-400 font-medium">₹{seat.price}</div>
+            {(() => {
+              const quote = seatPrices[seat.seat_id];
+              const displayPrice = quote ? Math.round(quote.price) : (seat.price || 380);
+              const displayCategory = quote?.category || seat.category || 'Prime';
+              return (
+                <>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xl font-black text-white">{seat.seat_id}</span>
+                    <span className="text-xs text-slate-400">Row {seat.row}</span>
+                    <span className="text-xs font-semibold uppercase text-amber-400">
+                      {displayCategory}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-400 font-medium">₹{displayPrice}</div>
+                </>
+              );
+            })()}
           </div>
 
           <div className="flex items-center gap-2">

@@ -10,6 +10,7 @@ import { useSeatSocket } from './useSeatSocket';
 export function useSeatData(showtimeId: string = '1') {
   const setSeatStatuses = useCinemaStore((s) => s.setSeatStatuses);
   const setSeatPrices = useCinemaStore((s) => s.setSeatPrices);
+  const setTiers = useCinemaStore((s) => s.setTiers);
   const updateSeatStatus = useCinemaStore((s) => s.updateSeatStatus);
   const setTrailerState = useCinemaStore((s) => s.setTrailerState);
 
@@ -50,7 +51,7 @@ export function useSeatData(showtimeId: string = '1') {
     if (data) {
       if (data.seats && data.seats.length > 0) {
         const statusMap: Record<string, SeatStatus> = {};
-        const priceMap: Record<string, { price: number; category: string }> = {};
+        const priceMap: Record<string, { price: number; category: string; currency?: string; quote_id?: string }> = {};
 
         for (const s of data.seats) {
           let st: SeatStatus = 'available';
@@ -60,10 +61,18 @@ export function useSeatData(showtimeId: string = '1') {
             st = 'held';
           }
           statusMap[s.seat_id] = st;
-          priceMap[s.seat_id] = { price: s.price, category: s.category };
+          priceMap[s.seat_id] = {
+            price: s.price,
+            category: s.category,
+            currency: s.currency || 'INR',
+            quote_id: s.quote_id,
+          };
         }
         setSeatStatuses(statusMap);
         setSeatPrices(priceMap);
+        if (data.tiers && data.tiers.length > 0) {
+          setTiers(data.tiers);
+        }
       }
 
       // Configure screen trailer from showtime movie data
@@ -75,7 +84,7 @@ export function useSeatData(showtimeId: string = '1') {
         isMuted: true,
       });
     }
-  }, [data, setSeatStatuses, setSeatPrices, setTrailerState]);
+  }, [data, setSeatStatuses, setSeatPrices, setTiers, setTrailerState]);
 
   // Hook up WebSocket stub for live updates
   const socket = useSeatSocket({

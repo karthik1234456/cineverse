@@ -227,10 +227,21 @@ export async function globalSearch(query: string, limit = 10): Promise<SearchRes
 }
 
 // ---------------- SHOWTIME SEATS ----------------
+export interface TierSummaryItem {
+  name: string;
+  category: string;
+  price: number;
+  currency: string;
+  rows: string[];
+  color?: string;
+}
+
 export interface SeatInventoryItem {
   seat_id: string;
   category: string;
   price: number;
+  currency?: string;
+  quote_id?: string;
   status: 'AVAILABLE' | 'HELD' | 'BOOKED' | 'PAYMENT_PENDING';
   held_by_current_user: boolean;
   row: string;
@@ -254,10 +265,13 @@ export interface ShowtimeSeatsResponse {
   format: string;
   language: string;
   start_time: string;
+  currency?: string;
+  quote_id?: string;
   glb_path: string;
   layout_path: string;
   trailer_url?: string;
   poster_url?: string;
+  tiers?: TierSummaryItem[];
   seats: SeatInventoryItem[];
 }
 
