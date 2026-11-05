@@ -1,0 +1,36 @@
+<USER_REQUEST>
+# Phase 2d — 3D theatre: fix what is broken, declutter, real lighting and realism, friendly controls
+
+> **Session preamble:** You are building CineVerse. First read `phases/COMMON_RULES.md` (mandatory rules for every phase), `ANTIGRAVITY_PROMPT.md`, `DESIGN_SPEC.md`, `SECURITY_SPEC.md`, `docs/PROJECT_STATUS.md` and the latest phase reports. Do ONLY this task. Run every existing suite first (backend, Vitest, `tsc --noEmit`, Playwright) and keep them green. Previous reports claimed PASS while the problems below were visible in the running app, so this time **nothing counts as fixed unless a screenshot or test from the real running app proves it**. Save evidence in `docs/evidence/phase-2d/`. Write `docs/PHASE_2D_REPORT.md` with a table of every finding F1 to F14 (reproduced yes/no, fixed yes/no, evidence file). Commit each Part separately. Stop for review at the two stop points marked below.
+
+The owner's screenshots of the running app (`/cinemas/1/auditorium/1?showtime=1&mode=3d`) are in `docs/evidence/phase-2d/reported/` (reported-1 walk mode seat D02, reported-2 overview seat I01 and D03, reported-3 tooltip for C06). If they are missing, ask the owner to add them. The findings below are written out in full so they can be reproduced without the images.
+
+## Findings to reproduce and fix
+
+**F1 (Critical, money): prices disagree inside the same screen.** Seat D02 shows ₹250 in the small tooltip and ₹380 in the large card at the same moment. The legend says Premier ₹520, but seat I01 shows ₹350. The left legend says Front = rows A–B, Prime = C–H, Premier = I–J, yet seat C06 is labelled FRONT ₹280, and D03 Prime shows ₹380. At least two price sources and two category mappings exist in the client.
+**F2: category bands differ** between the legend, the seat label and the original seed (A–C / D–G / H–J).
+**F3: the trailer does not appear on the screen.** The control bar says "Quantum Odyssey: Bey… Pause" (so it claims to be playing) but the screen is a flat grey slab.
+**F4: the roo
+<truncated 14259 bytes>
+rs on top:** Available (rich category colour, calm saturation), Selected (clearly distinct, bright accent with a tick above only for selected), Held by someone else (muted amber tint), Taken (desaturated grey with a subtle cross decal). Colour is never the only cue. Category colours harmonise with the chosen look and stay distinguishable at the back of the room.
+- Seat spacing and lighting such that every seat in every row is visible from the default view; no overlapping or flickering (z-fighting) seats.
+- Evidence: close-ups from the aisle, from behind a seat and from Seated; before/after at three distances; automated check that world bounds, eye positions and mapping are unchanged for all 100 seats.
+
+**STOP 2.** After Parts D, E, F and G: finish the report, tag `phase-2d-done` only if every gate passes, and wait for review.
+
+## Exit gate
+Prices and categories are identical everywhere (proven by test); the trailer visibly plays on the screen for each movie; the room is lit, colourful and readable with no black void; seats are clearly visible, uncluttered and attractive; only one friendly seat card is ever shown; the 3D page is truly full screen with a Full screen button; interaction is smooth with measured numbers; every control works or is removed; wording is honest; all earlier tests still pass. List honestly anything that fell short, with numbers.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-11-05T13:05:01+05:30.
+
+The user's current state is as follows:
+Active Document: d:\projects\CineVerse\frontend\components\3d\CinemaWorld.tsx (LANGUAGE_UNSPECIFIED)
+Cursor is on line: 1
+Other open documents:
+- d:\projects\CineVerse\backend\alembic\env.py (LANGUAGE_UNSPECIFIED)
+- d:\projects\CineVerse\frontend\hooks\useSeatData.ts (LANGUAGE_UNSPECIFIED)
+- d:\projects\CineVerse\frontend\app\page.tsx (LANGUAGE_UNSPECIFIED)
+- d:\projects\CineVerse\frontend\components\MovieCard.tsx (LANGUAGE_UNSPECIFIED)
+- d:\projects\CineVerse\frontend\components\Navbar.tsx (LANGUAGE_UNSPECIFIED)
+</ADDITIONAL_METADATA>

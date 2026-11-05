@@ -184,11 +184,15 @@ test.describe.serial('Phase 2d — Part B: Functional QA & Part C: Screen Traile
     let state = await page.evaluate(() => window.__cineverse!.getState());
     expect(state.mode).toBe('walk');
 
-    // Switch to Overview
-    await page.click('button:has-text("Overview")');
+    // Switch to Overview ("Look around")
+    await page.click('button:has-text("Look around")');
     await page.waitForTimeout(800);
     state = await page.evaluate(() => window.__cineverse!.getState());
     expect(state.mode).toBe('overview');
+
+    // Open settings popover to access Camera Presets, FOV, and Heatmap
+    await page.click('[data-testid="settings-menu-toggle"]');
+    await page.waitForTimeout(600);
 
     // Test Camera Presets: Front, Back, Aerial, Default
     await page.click('button:has-text("Front")');
