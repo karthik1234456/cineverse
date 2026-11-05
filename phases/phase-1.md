@@ -1,7 +1,7 @@
 # Phase 1 — Foundation, data model and seed
 
 > **Session preamble (paste at the top of every Antigravity session):**
-> You are building CineVerse. FIRST read `CINEVERSE_WEBSITE_PROMPT.md` (full scope), `ANTIGRAVITY_PROMPT.md` (3D spec and coordinate rules) and `docs/PROJECT_STATUS.md` (what is already done). Do ONLY this phase. Do not start the next phase. Do not break earlier phases: run their test suites first and fix regressions. Write real code, run it, test it. Never mark an item done without evidence saved under `docs/evidence/phase-1/`. If something fails, diagnose and fix it; do not bypass it. At the end, update `docs/PROJECT_STATUS.md` and write `docs/PHASE_1_REPORT.md` with a PASS / FAIL / NOT DONE table. Then STOP and wait for review.
+> You are building CineVerse. FIRST read `phases/COMMON_RULES.md` (mandatory rules for every phase), `CINEVERSE_WEBSITE_PROMPT.md` (full scope), `ANTIGRAVITY_PROMPT.md` (3D spec and coordinate rules) and `docs/PROJECT_STATUS.md` (what is already done). Do ONLY this phase. Do not start the next phase. Do not break earlier phases: run their test suites first and fix regressions. Write real code, run it, test it. Never mark an item done without evidence saved under `docs/evidence/phase-1/`. If something fails, diagnose and fix it; do not bypass it. At the end, update `docs/PROJECT_STATUS.md` and write `docs/PHASE_1_REPORT.md` with a PASS / FAIL / NOT DONE table. Then STOP and wait for review.
 
 **Entry gate:** Repo with the three supplied assets exists (`frontend/public/models/*.glb`, `seat_layout_v2.json`, `tools/`). Nothing else required.
 

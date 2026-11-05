@@ -1,7 +1,7 @@
 # Phase 9 — Voice agent (mic button): talk to CineVerse to find movies, pick seats and book
 
 > **Session preamble (paste at the top of every Antigravity session):**
-> You are building CineVerse. FIRST read `CINEVERSE_WEBSITE_PROMPT.md` (full scope), `ANTIGRAVITY_PROMPT.md` (3D spec and coordinate rules) and `docs/PROJECT_STATUS.md` (what is already done). Do ONLY this phase. Do not start the next phase. Do not break earlier phases: run their test suites first and fix regressions. Write real code, run it, test it. Never mark an item done without evidence saved under `docs/evidence/phase-9/`. If something fails, diagnose and fix it; do not bypass it. At the end, update `docs/PROJECT_STATUS.md` and write `docs/PHASE_9_REPORT.md` with a PASS / FAIL / NOT DONE table. Then STOP and wait for review.
+> You are building CineVerse. FIRST read `phases/COMMON_RULES.md` (mandatory rules for every phase), `CINEVERSE_WEBSITE_PROMPT.md` (full scope), `ANTIGRAVITY_PROMPT.md` (3D spec and coordinate rules) and `docs/PROJECT_STATUS.md` (what is already done). Do ONLY this phase. Do not start the next phase. Do not break earlier phases: run their test suites first and fix regressions. Write real code, run it, test it. Never mark an item done without evidence saved under `docs/evidence/phase-9/`. If something fails, diagnose and fix it; do not bypass it. At the end, update `docs/PROJECT_STATUS.md` and write `docs/PHASE_9_REPORT.md` with a PASS / FAIL / NOT DONE table. Then STOP and wait for review.
 
 **Entry gate:** Phases 1 to 5 passed (booking engine and payments work). Phase 6 (accounts) strongly recommended first, because the agent acts on behalf of a logged-in user.
 

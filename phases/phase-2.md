@@ -1,7 +1,7 @@
 # Phase 2 — The 3D auditorium experience (highest-risk phase, built early on purpose)
 
 > **Session preamble (paste at the top of every Antigravity session):**
-> You are building CineVerse. FIRST read `CINEVERSE_WEBSITE_PROMPT.md` (full scope), `ANTIGRAVITY_PROMPT.md` (3D spec and coordinate rules) and `docs/PROJECT_STATUS.md` (what is already done). Do ONLY this phase. Do not start the next phase. Do not break earlier phases: run their test suites first and fix regressions. Write real code, run it, test it. Never mark an item done without evidence saved under `docs/evidence/phase-2/`. If something fails, diagnose and fix it; do not bypass it. At the end, update `docs/PROJECT_STATUS.md` and write `docs/PHASE_2_REPORT.md` with a PASS / FAIL / NOT DONE table. Then STOP and wait for review.
+> You are building CineVerse. FIRST read `phases/COMMON_RULES.md` (mandatory rules for every phase), `CINEVERSE_WEBSITE_PROMPT.md` (full scope), `ANTIGRAVITY_PROMPT.md` (3D spec and coordinate rules) and `docs/PROJECT_STATUS.md` (what is already done). Do ONLY this phase. Do not start the next phase. Do not break earlier phases: run their test suites first and fix regressions. Write real code, run it, test it. Never mark an item done without evidence saved under `docs/evidence/phase-2/`. If something fails, diagnose and fix it; do not bypass it. At the end, update `docs/PROJECT_STATUS.md` and write `docs/PHASE_2_REPORT.md` with a PASS / FAIL / NOT DONE table. Then STOP and wait for review.
 
 **Entry gate:** Phase 1 passed (frontend runs, GLB and seat layout available from the API or static files).
 
@@ -20,6 +20,8 @@ Implement **everything in `ANTIGRAVITY_PROMPT.md`** with these notes:
 - **Trailer on the cinema screen per section 5c of `ANTIGRAVITY_PROMPT.md`** (video texture, fit, controls, spill light, fallbacks, single media element).
 - Realism: lighting rig, house-lights modes, screen content overlay, haze and dust (tier-gated).
 - Desktop panels and mobile bottom sheet, keyboard and reduced-motion support, WebGL-unavailable fallback.
+
+- **Start from the tested modules** in `frontend/lib/` (`seatView.ts`, `walkCollision.ts`); keep their 25 tests passing and add tests for anything new.
 
 ## Tests and evidence
 Follow section 9 of `ANTIGRAVITY_PROMPT.md`: Vitest fixtures (row A centre about 97.7 degrees, row E about 62.6, row J about 42.0), mapping test for all 100 nodes, Playwright with SwiftShader assertions through `window.__cineverse`, screenshots of POV from A05, E05 and J10, mobile touch tests, performance table.
