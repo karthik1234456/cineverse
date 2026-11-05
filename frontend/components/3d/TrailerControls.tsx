@@ -8,7 +8,6 @@ export function TrailerControls() {
   const trailer = useCinemaStore((s) => s.trailer);
   const toggleTrailerPlay = useCinemaStore((s) => s.toggleTrailerPlay);
   const toggleTrailerMute = useCinemaStore((s) => s.toggleTrailerMute);
-  const mode = useCinemaStore((s) => s.mode);
 
   // Auto-hide in first-person seated mode if desired, but keep accessible in overview/walk
   const hasTrailer = Boolean(trailer.trailerUrl);

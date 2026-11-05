@@ -193,6 +193,8 @@ export function AuditoriumModel() {
         obj.material = ceilingMaterial;
       } else if (name === 'screen_outer_frame') {
         obj.material = screenFrameMaterial;
+      } else if (name === 'cinema_screen_surface') {
+        obj.visible = false;
       } else if (name === 'screen_stage_lip') {
         obj.material = stageLipMaterial;
       } else if (name.startsWith('speaker_')) {

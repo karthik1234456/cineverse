@@ -2,7 +2,6 @@
 
 import React, { useRef, useMemo, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useCinemaStore } from '@/store/useCinemaStore';
 
@@ -37,23 +36,31 @@ export function CinemaScreen() {
   useEffect(() => {
     if (typeof document === 'undefined') return;
 
+    const activeUrl = trailer.trailerUrl;
+    if (!activeUrl) {
+      setVideoLoaded(false);
+      setVideoError(false);
+      return;
+    }
+
     const video = document.createElement('video');
     video.crossOrigin = 'anonymous';
     video.playsInline = true;
     video.muted = trailer.isMuted;
     video.loop = true;
-    video.preload = 'metadata';
-    const activeUrl = trailer.trailerUrl;
-    if (!activeUrl) {
-      setVideoLoaded(false);
-      return;
-    }
+    video.preload = 'auto';
+    video.style.display = 'none';
+    video.setAttribute('data-testid', 'cinema-screen-video');
+    document.body.appendChild(video);
+
     video.src = activeUrl;
+    video.load();
 
     videoRef.current = video;
 
     const vTex = new THREE.VideoTexture(video);
     vTex.colorSpace = THREE.SRGBColorSpace;
+    vTex.generateMipmaps = false;
     vTex.minFilter = THREE.LinearFilter;
     vTex.magFilter = THREE.LinearFilter;
     videoTextureRef.current = vTex;
@@ -80,6 +87,9 @@ export function CinemaScreen() {
       video.removeEventListener('playing', onPlay);
       video.removeEventListener('error', onError);
       video.pause();
+      if (video.parentNode) {
+        video.parentNode.removeChild(video);
+      }
       vTex.dispose();
     };
   }, [trailer.trailerUrl]);
@@ -150,9 +160,28 @@ export function CinemaScreen() {
     return tex;
   }, [canvas]);
 
-  // Frame update: update fallback procedural canvas or sample video for light spill
+  // Perfectly oriented screen geometry facing audience (-Z) with correct left-to-right UV mapping
+  const screenGeometry = useMemo(() => {
+    const geom = new THREE.PlaneGeometry(15.6, 7.25);
+    geom.rotateY(Math.PI);
+    const uvs = geom.attributes.uv;
+    for (let i = 0; i < uvs.count; i++) {
+      uvs.setX(i, 1 - uvs.getX(i));
+    }
+    geom.computeVertexNormals();
+    return geom;
+  }, []);
+
+  // Frame update: update video texture, fallback canvas and sample video for light spill
   const lastSampleTime = useRef(0);
-  useFrame(({ clock }) => {
+  useFrame(({ clock, invalidate }) => {
+    // If video is active and playing, update texture and trigger next frame
+    if (videoRef.current && !videoRef.current.paused && videoLoaded) {
+      if (videoTextureRef.current) {
+        videoTextureRef.current.needsUpdate = true;
+      }
+      invalidate();
+    }
     const now = clock.getElapsedTime();
 
     // 1. Light spill sampling every 250ms
@@ -265,35 +294,19 @@ export function CinemaScreen() {
       <mesh
         ref={meshRef}
         name="DynamicScreenOverlay"
-        position={[0, 5.55, -1.250]}
-        rotation={[0, 0, 0]}
+        geometry={screenGeometry}
+        position={[0, 5.55, -1.255]}
       >
-        <planeGeometry args={[15.6, 7.25]} />
         <meshBasicMaterial
           map={activeTexture}
           toneMapped={true}
+          side={THREE.DoubleSide}
+          polygonOffset={true}
+          polygonOffsetFactor={-2}
+          polygonOffsetUnits={-2}
           color={new THREE.Color(screenBrightness, screenBrightness, screenBrightness)}
         />
       </mesh>
-
-      {/* Screen dynamic unmute button overlay */}
-      {videoLoaded && trailer.isMuted && (
-        <group position={[0, 3.2, -1.24]}>
-          <Html center distanceFactor={14}>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                toggleTrailerMute();
-              }}
-              data-testid="screen-unmute-button"
-              className="flex items-center gap-2 rounded-full border border-white/40 bg-black/85 px-6 py-3 text-base font-bold text-white shadow-2xl backdrop-blur-md transition hover:scale-105 hover:bg-[#C8102E]"
-            >
-              <span>🔊</span>
-              <span>Tap to turn sound on</span>
-            </button>
-          </Html>
-        </group>
-      )}
 
       {/* Screen dynamic light spill into the auditorium */}
       {qualityTier !== 'low' && (
