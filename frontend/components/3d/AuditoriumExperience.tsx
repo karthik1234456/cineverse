@@ -5,6 +5,7 @@ import dynamic from 'next/dynamic';
 import { useSeatData } from '@/hooks/useSeatData';
 import { AuditoriumInfoPanel } from './AuditoriumInfoPanel';
 import { SeatInformationPanel } from './SeatInformationPanel';
+import { SeatHoverTooltip } from './SeatHoverTooltip';
 import { SelectedSeatsBar } from './SelectedSeatsBar';
 import { ViewModeToggle } from './ViewModeToggle';
 import { CompareView } from './CompareView';
@@ -69,6 +70,7 @@ export function AuditoriumExperience({
       {/* Overlaid UI elements */}
       <AuditoriumInfoPanel />
       <SeatInformationPanel />
+      <SeatHoverTooltip />
       <SelectedSeatsBar />
       <ViewModeToggle />
       <TrailerControls />
