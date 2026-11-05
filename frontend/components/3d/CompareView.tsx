@@ -40,25 +40,25 @@ export function CompareView() {
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/75 p-4 backdrop-blur-md">
-      <div className="w-full max-w-3xl rounded-2xl border border-slate-800 bg-[#0e1117] p-6 shadow-2xl text-white">
+      <div className="w-full max-w-3xl rounded-3xl border border-slate-800 bg-[#0e1117] p-6 shadow-2xl text-white">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4">
           <div className="flex items-center gap-2">
             <ArrowRightLeft className="h-5 w-5 text-[#e50914]" />
-            <h2 className="text-lg font-bold text-white">Seat View Comparison</h2>
-            <span className="text-xs text-slate-400">({items.length}/3 seats selected)</span>
+            <h2 className="text-xl font-bold text-white">Seat View Comparison</h2>
+            <span className="text-sm text-slate-400">({items.length}/3 seats selected)</span>
           </div>
 
           <button
             onClick={toggleCompare}
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-800 hover:text-white"
+            className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-800 hover:text-white"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {items.length === 0 ? (
-          <div className="py-12 text-center text-sm text-slate-400">
+          <div className="py-12 text-center text-base text-slate-400">
             No seats chosen for comparison. Click the compare button on any seat panel to add it.
           </div>
         ) : (
@@ -73,14 +73,14 @@ export function CompareView() {
               return (
                 <div
                   key={seat.seat_id}
-                  className="rounded-xl border border-slate-800 bg-slate-900/70 p-4 flex flex-col justify-between"
+                  className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 flex flex-col justify-between"
                 >
                   <div>
                     {/* Seat Header */}
                     <div className="flex items-start justify-between">
                       <div>
-                        <div className="text-xl font-black text-white">{seat.seat_id}</div>
-                        <div className="text-xs text-slate-400">
+                        <div className="text-2xl font-black text-white">{seat.seat_id}</div>
+                        <div className="text-sm text-slate-400">
                           Row {seat.row} • Seat {seat.number}
                         </div>
                       </div>
@@ -93,32 +93,32 @@ export function CompareView() {
                     </div>
 
                     <div className="mt-2 flex items-center justify-between">
-                      <span className="rounded bg-slate-800 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-300">
+                      <span className="rounded-lg bg-slate-800 px-2.5 py-1 text-sm font-semibold uppercase text-slate-300">
                         {seatPrices[seat.seat_id]?.category ?? seat.category}
                       </span>
-                      <span className="font-bold text-white">₹{Math.round(seatPrices[seat.seat_id]?.price ?? seat.price)}</span>
+                      <span className="text-lg font-bold text-white">₹{Math.round(seatPrices[seat.seat_id]?.price ?? seat.price)}</span>
                     </div>
 
                     {/* Metrics */}
-                    <div className="mt-4 space-y-2 text-xs">
-                      <div className="rounded bg-slate-950/60 p-2">
-                        <div className="text-[10px] text-slate-400">Distance to Screen</div>
+                    <div className="mt-4 space-y-2 text-sm">
+                      <div className="rounded-xl bg-slate-950/60 p-2.5">
+                        <div className="text-sm text-slate-400">Distance to Screen</div>
                         <div className="font-semibold text-slate-200">
                           ≈ {seat.screen_distance_m_est} m ({seat.screen_distance.toFixed(1)}u)
                         </div>
                       </div>
 
                       <div
-                        className={`rounded p-2 ${
+                        className={`rounded-xl p-2.5 ${
                           isMostCentered
                             ? 'border border-sky-500/40 bg-sky-950/30'
                             : 'bg-slate-950/60'
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400">Horizontal Angle</span>
+                          <span className="text-sm text-slate-400">Horizontal Angle</span>
                           {isMostCentered && (
-                            <span className="text-[9px] font-bold text-sky-400">Centered</span>
+                            <span className="text-sm font-bold text-sky-400">Centered</span>
                           )}
                         </div>
                         <div className="font-semibold text-slate-200">
@@ -126,24 +126,24 @@ export function CompareView() {
                         </div>
                       </div>
 
-                      <div className="rounded bg-slate-950/60 p-2">
-                        <div className="text-[10px] text-slate-400">Vertical Angle</div>
+                      <div className="rounded-xl bg-slate-950/60 p-2.5">
+                        <div className="text-sm text-slate-400">Vertical Angle</div>
                         <div className="font-semibold text-slate-200">
                           {formatVerticalAngle(seat.vertical_angle_deg)}
                         </div>
                       </div>
 
                       <div
-                        className={`rounded p-2 ${
+                        className={`rounded-xl p-2.5 ${
                           isWidestFov
                             ? 'border border-emerald-500/40 bg-emerald-950/30'
                             : 'bg-slate-950/60'
                         }`}
                       >
                         <div className="flex items-center justify-between">
-                          <span className="text-[10px] text-slate-400">Screen FOV</span>
+                          <span className="text-sm text-slate-400">Screen FOV</span>
                           {isWidestFov && (
-                            <span className="text-[9px] font-bold text-emerald-400">Widest</span>
+                            <span className="text-sm font-bold text-emerald-400">Widest</span>
                           )}
                         </div>
                         <div className="font-semibold text-slate-200">
@@ -151,12 +151,12 @@ export function CompareView() {
                         </div>
                       </div>
 
-                      <div className="rounded bg-slate-950/60 p-2">
-                        <div className="flex items-center justify-between text-[10px]">
+                      <div className="rounded-xl bg-slate-950/60 p-2.5">
+                        <div className="flex items-center justify-between text-sm">
                           <span className="text-slate-400">Coverage</span>
                           <span className="font-bold text-[#e50914]">{coverage}%</span>
                         </div>
-                        <div className="mt-1 h-1 w-full rounded-full bg-slate-800">
+                        <div className="mt-1.5 h-1.5 w-full rounded-full bg-slate-800">
                           <div
                             className="h-full rounded-full bg-[#e50914]"
                             style={{ width: `${coverage}%` }}
@@ -173,15 +173,15 @@ export function CompareView() {
                         enterPOV(seat.seat_id);
                         toggleCompare();
                       }}
-                      className="flex items-center justify-center gap-1.5 rounded-lg bg-slate-800 py-2 text-xs font-semibold text-sky-400 hover:bg-slate-700"
+                      className="flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl bg-slate-800 py-2.5 text-sm font-semibold text-sky-400 hover:bg-slate-700"
                     >
-                      <Eye className="h-3.5 w-3.5" />
+                      <Eye className="h-4 w-4" />
                       <span>Enter POV</span>
                     </button>
 
                     <button
                       onClick={() => selectSeat(seat.seat_id)}
-                      className={`flex items-center justify-center gap-1.5 rounded-lg py-2 text-xs font-bold transition ${
+                      className={`flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl py-2.5 text-sm font-bold transition ${
                         isSelected
                           ? 'border border-red-500/40 bg-zinc-800 text-red-400'
                           : 'bg-[#e50914] text-white hover:bg-red-700'
@@ -189,7 +189,7 @@ export function CompareView() {
                     >
                       {isSelected ? (
                         <>
-                          <Check className="h-3.5 w-3.5" /> Selected
+                          <Check className="h-4 w-4" /> Selected
                         </>
                       ) : (
                         'Select This Seat'
@@ -205,4 +205,3 @@ export function CompareView() {
     </div>
   );
 }
-

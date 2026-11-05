@@ -51,6 +51,19 @@ canvas {
   outline-offset: 2px;
 }
 
+/* Immersive full-screen layout for 3D route (Phase 2d Part E / Finding F8 fixed) */
+body:has([data-testid="auditorium-3d-wrapper"]) nav,
+body:has([data-testid="auditorium-3d-wrapper"]) footer,
+body:has([data-testid="auditorium-3d-wrapper"]) [data-testid="voice-agent-floating-trigger"] {
+  display: none !important;
+}
+
+body:has([data-testid="auditorium-3d-wrapper"]) main {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  overflow: hidden !important;
+}
+
 /* Clean, warm scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

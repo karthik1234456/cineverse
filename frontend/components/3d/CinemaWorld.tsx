@@ -152,6 +152,7 @@ function DevBridge() {
       simulateHold: (seatId: string) => updateSeatStatus(seatId, 'held'),
       updateSeatStatus,
       setHouseLights,
+      setTheatreLook: (look: 'a' | 'b' | 'c') => useCinemaStore.getState().setTheatreLook(look),
       setQualityTier,
       setFOV,
       setHoveredSeat: (seatId: string | null) => useCinemaStore.getState().setHoveredSeat(seatId),

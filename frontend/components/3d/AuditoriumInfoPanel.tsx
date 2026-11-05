@@ -4,12 +4,13 @@ import React, { useState, useEffect } from 'react';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import layoutData from '@/public/models/seat_layout_v2.json';
 import type { SeatLayoutFile, SeatStatus, QualityTier } from '@/lib/types';
-import { Info, Sliders, Sun, Moon } from 'lucide-react';
+import { Info, Sliders, Sun, Moon, X } from 'lucide-react';
 
 export function AuditoriumInfoPanel() {
   const [showHonestyModal, setShowHonestyModal] = useState(false);
   const [showDevControls, setShowDevControls] = useState(false);
   const [isDebugMode, setIsDebugMode] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const seatStatuses = useCinemaStore((s) => s.seatStatuses);
   const selectedSeats = useCinemaStore((s) => s.selectedSeats);
@@ -84,10 +85,25 @@ export function AuditoriumInfoPanel() {
     return null;
   }
 
+  if (isCollapsed) {
+    return (
+      <div className="fixed left-4 top-16 z-30 hidden md:block">
+        <button
+          onClick={() => setIsCollapsed(false)}
+          data-testid="expand-auditorium-info-btn"
+          className="flex min-h-[44px] items-center gap-2 rounded-2xl border border-[#E6DCD2] bg-white/95 px-4 py-2 text-sm font-bold text-[#1B1320] shadow-md backdrop-blur-md hover:bg-slate-50 transition active:scale-95"
+        >
+          <Info className="h-4 w-4 text-[#C8102E]" />
+          <span>Auditorium Info & Legend</span>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <>
       <div
-        className="pointer-events-none fixed left-4 top-20 z-20 hidden w-80 max-h-[calc(100dvh-6rem)] flex-col gap-3 overflow-y-auto transition-opacity duration-300 md:flex"
+        className="pointer-events-none fixed left-4 top-16 z-20 hidden w-80 max-h-[calc(100dvh-5rem)] flex-col gap-3 overflow-y-auto transition-opacity duration-300 md:flex"
       >
         {/* Theatre Title & Screen Spec Card */}
         <div className="pointer-events-auto rounded-3xl border border-[#E6DCD2] bg-white/95 p-5 shadow-2xl backdrop-blur-md text-[#1B1320]">
@@ -99,21 +115,30 @@ export function AuditoriumInfoPanel() {
                   Auditorium 1 — 3D Laser IMAX
                 </h1>
               </div>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-sm text-slate-500">
                 100 Luxury Recliners • 10 Rows (A–J)
               </p>
             </div>
 
-            <button
-              onClick={() => setShowHonestyModal(true)}
-              className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#1B1320] transition"
-              title="How CineVerse 3D calculates sightlines"
-            >
-              <Info className="h-4 w-4" />
-            </button>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setShowHonestyModal(true)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#1B1320] transition"
+                title="How CineVerse 3D calculates sightlines"
+              >
+                <Info className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setIsCollapsed(true)}
+                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-100 hover:text-[#1B1320] transition"
+                title="Collapse Panel"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] px-3 py-2 text-xs">
+          <div className="mt-3 flex items-center justify-between rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] px-3 py-2 text-sm">
             <span className="text-slate-600 font-medium">Screen Format</span>
             <span className="font-bold text-[#1B1320]">
               {layout.screen.aspect}:1 Aspect ({layout.screen.width}m × {layout.screen.height}m)
@@ -122,14 +147,14 @@ export function AuditoriumInfoPanel() {
 
           {/* Seat Categories & Pricing (§ Task 3) */}
           <div className="mt-4 space-y-2 border-t border-[#E6DCD2] pt-3">
-            <div className="text-xs font-bold tracking-wider text-slate-500 uppercase">
+            <div className="text-sm font-bold tracking-wider text-slate-500 uppercase">
               Tiers & Pricing
             </div>
-            <div className="grid grid-cols-3 gap-2 text-center text-xs">
+            <div className="grid grid-cols-3 gap-2 text-center text-sm">
               {displayTiers.map((tier) => (
                 <div key={tier.name} className={`rounded-xl border py-2 ${tier.colorClass}`}>
                   <div className="font-bold">{tier.name}</div>
-                  <div className="text-xs text-slate-500">{tier.rows}</div>
+                  <div className="text-sm text-slate-500">{tier.rows}</div>
                   <div className="mt-0.5 font-black text-sm">₹{Math.round(tier.price)}</div>
                 </div>
               ))}
@@ -138,7 +163,7 @@ export function AuditoriumInfoPanel() {
 
           {/* Seat Availability Counts & Legend (Strictly sums to 100) */}
           <div className="mt-4 border-t border-[#E6DCD2] pt-3">
-            <div className="flex items-center justify-between text-xs text-slate-700">
+            <div className="flex items-center justify-between text-sm text-slate-700">
               <div className="flex items-center gap-1.5">
                 <span className="h-3 w-3 rounded-full border border-slate-300 bg-[#FAF6F0]" />
                 <span className="font-medium">Available</span>
@@ -151,7 +176,7 @@ export function AuditoriumInfoPanel() {
               </div>
             </div>
 
-            <div className="mt-2.5 flex items-center justify-between text-xs text-slate-700">
+            <div className="mt-2.5 flex items-center justify-between text-sm text-slate-700">
               <div className="flex items-center gap-1.5">
                 <span className="h-3 w-3 rounded-full bg-amber-500 animate-pulse" />
                 <span className="font-medium">Held</span>
@@ -166,10 +191,10 @@ export function AuditoriumInfoPanel() {
           </div>
 
           {/* Quick Environment Controls */}
-          <div className="mt-4 flex items-center justify-between border-t border-[#E6DCD2] pt-3 text-xs">
+          <div className="mt-4 flex items-center justify-between border-t border-[#E6DCD2] pt-3 text-sm">
             <button
               onClick={() => setHouseLights(houseLights === 'full' ? 'show' : 'full')}
-              className="flex min-h-[36px] items-center gap-1.5 rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3 py-1.5 text-slate-700 font-bold transition hover:bg-slate-100"
+              className="flex min-h-[44px] items-center gap-1.5 rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3.5 py-2 text-slate-700 font-bold transition hover:bg-slate-100"
             >
               {houseLights === 'full' ? (
                 <>
@@ -188,7 +213,7 @@ export function AuditoriumInfoPanel() {
             {isDebugMode && (
               <button
                 onClick={() => setShowDevControls(!showDevControls)}
-                className="flex items-center gap-1.5 rounded-md bg-slate-800/60 px-2 py-1.5 text-xs text-slate-400 transition hover:bg-slate-700 hover:text-slate-200"
+                className="flex items-center gap-1.5 rounded-md bg-slate-800/60 px-2 py-1.5 text-sm text-slate-400 transition hover:bg-slate-700 hover:text-slate-200"
               >
                 <Sliders className="h-3.5 w-3.5" />
                 <span>Dev Tools</span>
@@ -198,7 +223,7 @@ export function AuditoriumInfoPanel() {
 
           {/* Dev Simulation Drawer (only when debug enabled) */}
           {isDebugMode && showDevControls && (
-            <div className="mt-3 space-y-2 rounded-lg border border-slate-800 bg-slate-950/70 p-2.5 text-xs text-slate-300">
+            <div className="mt-3 space-y-2 rounded-lg border border-slate-800 bg-slate-950/70 p-2.5 text-sm text-slate-300">
               <div className="font-semibold text-slate-400">Dev & Test Diagnostics</div>
               <div className="flex gap-2">
                 <button
@@ -206,7 +231,7 @@ export function AuditoriumInfoPanel() {
                     updateSeatStatus('D05', 'held');
                     showToast('Simulated: Another patron held seat D05');
                   }}
-                  className="flex-1 rounded bg-amber-950/60 border border-amber-600/40 px-2 py-1 text-xs text-amber-300 hover:bg-amber-900/60"
+                  className="flex-1 rounded bg-amber-950/60 border border-amber-600/40 px-2 py-1 text-sm text-amber-300 hover:bg-amber-900/60"
                 >
                   Hold D05
                 </button>
@@ -215,18 +240,18 @@ export function AuditoriumInfoPanel() {
                     updateSeatStatus('D05', 'available');
                     showToast('Simulated: Seat D05 released');
                   }}
-                  className="flex-1 rounded bg-slate-800 px-2 py-1 text-xs text-slate-300 hover:bg-slate-700"
+                  className="flex-1 rounded bg-slate-800 px-2 py-1 text-sm text-slate-300 hover:bg-slate-700"
                 >
                   Release D05
                 </button>
               </div>
 
               <div className="flex items-center justify-between pt-1">
-                <span className="text-xs text-slate-400">Quality Tier</span>
+                <span className="text-sm text-slate-400">Quality Tier</span>
                 <select
                   value={qualityTier}
                   onChange={(e) => setQualityTier(e.target.value as QualityTier)}
-                  className="rounded bg-slate-900 px-1.5 py-0.5 text-xs text-slate-200"
+                  className="rounded bg-slate-900 px-1.5 py-0.5 text-sm text-slate-200"
                 >
                   <option value="high">High (Full fx)</option>
                   <option value="medium">Medium</option>
@@ -235,7 +260,7 @@ export function AuditoriumInfoPanel() {
               </div>
 
               <div className="flex items-center justify-between">
-                <span className="text-xs text-slate-400">HQ Model (9.5MB)</span>
+                <span className="text-sm text-slate-400">HQ Model (9.5MB)</span>
                 <input
                   type="checkbox"
                   checked={useHqModel}
@@ -265,7 +290,7 @@ export function AuditoriumInfoPanel() {
               </button>
             </div>
 
-            <div className="mt-4 space-y-3 text-xs leading-relaxed text-slate-300">
+            <div className="mt-4 space-y-3 text-sm leading-relaxed text-slate-300">
               <div className="rounded-lg bg-slate-900/80 p-3">
                 <div className="font-semibold text-white">Estimated Measurements</div>
                 <p className="mt-1">
@@ -296,7 +321,7 @@ export function AuditoriumInfoPanel() {
             <div className="mt-6 flex justify-end">
               <button
                 onClick={() => setShowHonestyModal(false)}
-                className="rounded-lg bg-[#e50914] px-4 py-2 text-xs font-bold text-white hover:bg-red-700 transition"
+                className="rounded-lg bg-[#e50914] px-4 py-2 text-sm font-bold text-white hover:bg-red-700 transition"
               >
                 Understood
               </button>

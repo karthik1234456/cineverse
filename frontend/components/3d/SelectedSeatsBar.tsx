@@ -94,7 +94,7 @@ export function SelectedSeatsBar() {
                     className="flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1 text-sm font-bold text-[#9F1239]"
                   >
                     <span>{seatId}</span>
-                    <span className="text-xs text-rose-700">₹{Math.round(price)}</span>
+                    <span className="text-sm text-rose-700">₹{Math.round(price)}</span>
                     <button
                       onClick={() => deselectSeat(seatId)}
                       className="ml-1 rounded p-0.5 text-rose-500 hover:text-rose-800"
@@ -110,7 +110,7 @@ export function SelectedSeatsBar() {
             {selectedSeats.length > 1 && (
               <button
                 onClick={clearSelection}
-                className="text-xs text-slate-500 hover:text-[#C8102E] ml-2 underline font-semibold"
+                className="text-sm text-slate-500 hover:text-[#C8102E] ml-2 underline font-semibold"
               >
                 Clear
               </button>
@@ -127,7 +127,7 @@ export function SelectedSeatsBar() {
           {/* Total Price and Checkout Trigger */}
           <div className="flex items-center gap-5 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-[#E6DCD2] pt-3 sm:pt-0">
             <div className="text-right">
-              <div className="text-xs uppercase tracking-wider text-slate-500 font-bold">Total</div>
+              <div className="text-sm uppercase tracking-wider text-slate-500 font-bold">Total</div>
               <div className="text-2xl font-black text-[#C8102E]">₹{totalPrice}</div>
             </div>
 

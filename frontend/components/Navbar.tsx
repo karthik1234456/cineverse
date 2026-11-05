@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import {
   MapPin, Search, User, LogOut, Ticket, ShieldCheck,
   Film, History, X, Star, Building2
@@ -15,6 +15,7 @@ import { getCities, getStoredUser, logoutUser, globalSearch } from '@/services/a
 
 export function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const [cities, setCities] = useState<City[]>([]);
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [isCityModalOpen, setIsCityModalOpen] = useState(false);
@@ -118,6 +119,10 @@ export function Navbar() {
     logoutUser();
     setCurrentUser(null);
     router.refresh();
+  }
+
+  if (pathname?.includes('/auditorium/')) {
+    return null;
   }
 
   return (

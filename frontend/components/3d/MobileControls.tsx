@@ -67,7 +67,7 @@ export function MobileControls() {
           {cameraMode === 'pov' ? (
             <button
               onClick={exitPOV}
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-full bg-slate-800 px-3 text-xs font-semibold text-white"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-full bg-slate-800 px-3.5 text-sm font-semibold text-white"
             >
               <Orbit className="h-4 w-4 text-sky-400" />
               <span>Orbit</span>
@@ -75,7 +75,7 @@ export function MobileControls() {
           ) : (
             <button
               onClick={() => enterPOV(seat.seat_id)}
-              className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-full bg-slate-800 px-3 text-xs font-semibold text-white"
+              className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-full bg-slate-800 px-3.5 text-sm font-semibold text-white"
             >
               <Eye className="h-4 w-4 text-sky-400" />
               <span>POV {seat.seat_id}</span>
@@ -96,7 +96,7 @@ export function MobileControls() {
         </div>
 
         {selectedSeats.length > 0 && (
-          <div className="pointer-events-auto rounded-full bg-[#e50914] px-3.5 py-2 text-xs font-bold text-white shadow-lg shadow-red-950">
+          <div className="pointer-events-auto rounded-full bg-[#e50914] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-red-950">
             {selectedSeats.length} Selected (₹{totalPrice})
           </div>
         )}
@@ -133,12 +133,12 @@ export function MobileControls() {
                 <>
                   <div className="flex items-baseline gap-2">
                     <span className="text-xl font-black text-white">{seat.seat_id}</span>
-                    <span className="text-xs text-slate-400">Row {seat.row}</span>
-                    <span className="text-xs font-semibold uppercase text-amber-400">
+                    <span className="text-sm text-slate-400">Row {seat.row}</span>
+                    <span className="text-sm font-semibold uppercase text-amber-400">
                       {displayCategory}
                     </span>
                   </div>
-                  <div className="text-xs text-slate-400 font-medium">₹{displayPrice}</div>
+                  <div className="text-sm text-slate-400 font-medium">₹{displayPrice}</div>
                 </>
               );
             })()}
@@ -151,7 +151,7 @@ export function MobileControls() {
                 if (isSelected) deselectSeat(seat.seat_id);
                 else selectSeat(seat.seat_id);
               }}
-              className={`flex min-h-[44px] min-w-[120px] items-center justify-center gap-1.5 rounded-xl px-4 text-xs font-bold transition ${
+              className={`flex min-h-[44px] min-w-[120px] items-center justify-center gap-1.5 rounded-xl px-4 text-sm font-bold transition ${
                 isBooked || isHeld
                   ? 'cursor-not-allowed bg-zinc-800 text-zinc-500'
                   : isSelected
@@ -165,26 +165,26 @@ export function MobileControls() {
         </div>
 
         {/* Expanded Details (Half / Full) */}
-        <div className="mt-3 space-y-2 border-t border-slate-800/60 pt-3 text-xs">
+        <div className="mt-3 space-y-2 border-t border-slate-800/60 pt-3 text-sm">
           <div className="grid grid-cols-2 gap-2 text-center">
             <div className="rounded-lg bg-slate-900/80 p-2">
-              <div className="text-[10px] text-slate-400">Distance</div>
+              <div className="text-sm text-slate-400">Distance</div>
               <div className="font-semibold text-slate-200">≈ {seat.screen_distance_m_est} m</div>
             </div>
             <div className="rounded-lg bg-slate-900/80 p-2">
-              <div className="text-[10px] text-slate-400">Offset</div>
+              <div className="text-sm text-slate-400">Offset</div>
               <div className="font-semibold text-slate-200">
                 {formatHorizontalAngle(seat.horizontal_offset_deg)}
               </div>
             </div>
             <div className="rounded-lg bg-slate-900/80 p-2">
-              <div className="text-[10px] text-slate-400">Vertical</div>
+              <div className="text-sm text-slate-400">Vertical</div>
               <div className="font-semibold text-slate-200">
                 {formatVerticalAngle(seat.vertical_angle_deg)}
               </div>
             </div>
             <div className="rounded-lg bg-slate-900/80 p-2">
-              <div className="text-[10px] text-slate-400">Coverage</div>
+              <div className="text-sm text-slate-400">Coverage</div>
               <div className="font-bold text-[#e50914]">{coverage}%</div>
             </div>
           </div>
@@ -193,7 +193,7 @@ export function MobileControls() {
             <div className="mt-4 pt-3 border-t border-slate-800">
               <Link
                 href={`/checkout?seats=${selectedSeats.join(',')}&total=${totalPrice}`}
-                className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-[#e50914] py-3 text-xs font-bold text-white shadow-lg shadow-red-950"
+                className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#e50914] py-3 text-sm font-bold text-white shadow-lg shadow-red-950"
               >
                 <span>Continue to Checkout (₹{totalPrice})</span>
                 <ArrowRight className="h-4 w-4" />

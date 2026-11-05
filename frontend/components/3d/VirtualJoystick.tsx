@@ -104,7 +104,7 @@ export function VirtualJoystick() {
 
         <button
           onClick={() => setIsRunning(!isRunning)}
-          className={`flex h-12 w-12 items-center justify-center rounded-full border text-xs font-bold shadow-lg transition-colors ${
+          className={`flex h-12 w-12 items-center justify-center rounded-full border text-sm font-bold shadow-lg transition-colors ${
             isRunning
               ? 'border-[#e50914] bg-[#e50914] text-white'
               : 'border-white/20 bg-black/40 text-slate-300'

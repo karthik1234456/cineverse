@@ -145,6 +145,7 @@ export interface ObstructionEstimator {
 
 export interface CineverseStateExport {
   mode?: 'overview' | 'walk' | 'seated';
+  theatreLook?: 'a' | 'b' | 'c';
   cameraMode: CameraMode;
   cameraPreset?: CameraPreset;
   isHeatmapActive?: boolean;
@@ -189,6 +190,7 @@ declare global {
       simulateHold: (seatId: string) => void;
       updateSeatStatus: (seatId: string, status: SeatStatus) => void;
       setHouseLights: (mode: HouseLightsMode) => void;
+      setTheatreLook: (look: 'a' | 'b' | 'c') => void;
       setQualityTier: (tier: QualityTier) => void;
       setFOV: (fov: number) => void;
       setHoveredSeat: (seatId: string | null) => void;

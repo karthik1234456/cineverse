@@ -19,7 +19,7 @@ export function TrailerControls() {
     >
       <div className="flex items-center gap-2 px-2 text-sm font-bold text-slate-700">
         <Film className="h-4 w-4 text-[#C8102E]" />
-        <span className="hidden sm:inline max-w-[180px] truncate">
+        <span className="hidden sm:inline font-bold text-[#1B1320]">
           {trailer.movieTitle || 'Movie Trailer'}
         </span>
       </div>
@@ -69,7 +69,7 @@ export function TrailerControls() {
           </button>
         </>
       ) : (
-        <div className="flex min-h-[44px] items-center px-3 py-1.5 text-xs font-semibold text-amber-800 bg-amber-50 rounded-xl border border-amber-200">
+        <div className="flex min-h-[44px] items-center px-3 py-1.5 text-sm font-semibold text-amber-800 bg-amber-50 rounded-xl border border-amber-200">
           Trailer not available
         </div>
       )}

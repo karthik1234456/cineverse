@@ -58,7 +58,7 @@ export function LoadingOverlay({ error, onRetry }: LoadingOverlayProps) {
               />
             </div>
 
-            <div className="flex items-center justify-between text-xs text-slate-400">
+            <div className="flex items-center justify-between text-sm text-slate-400">
               <span>{stageText}</span>
               <span className="font-mono font-medium text-slate-200">{Math.round(progress)}%</span>
             </div>

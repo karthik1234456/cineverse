@@ -40,8 +40,8 @@ export function WayfindingLabels() {
     });
   }, [seats]);
 
-  // Hide in seated/POV modes per specification
-  if (cameraMode === 'pov' || mode === 'seated') return null;
+  // Hide in walk, seated, and POV modes per Part H item 3
+  if (cameraMode === 'pov' || mode === 'seated' || mode === 'walk' || cameraMode === 'walk') return null;
 
   return (
     <group name="WayfindingLabelsLayer">

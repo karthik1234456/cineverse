@@ -12,8 +12,8 @@ import layoutData from '@/public/models/seat_layout_v2.json';
 import walkNavData from '@/public/models/walk_nav_v2.json';
 
 export const MAX_SELECTED_SEATS = 8;
-export const DEFAULT_CAMERA_POS: [number, number, number] = [6.5, 8.5, -23.0];
-export const DEFAULT_CAMERA_TARGET: [number, number, number] = [0.0, 5.55, -1.255];
+export const DEFAULT_CAMERA_POS: [number, number, number] = [0.0, 11.2, -25.5];
+export const DEFAULT_CAMERA_TARGET: [number, number, number] = [0.0, 4.2, -4.5];
 
 export interface WalkPlayerState {
   position: [number, number, number];
@@ -133,6 +133,8 @@ export interface CinemaState {
   navigatePOV: (direction: 'next' | 'prev' | 'nextRow' | 'prevRow') => void;
 
   setHouseLights: (mode: HouseLightsMode) => void;
+  theatreLook: 'a' | 'b' | 'c';
+  setTheatreLook: (look: 'a' | 'b' | 'c') => void;
   setQualityTier: (tier: QualityTier) => void;
   setUseHqModel: (useHq: boolean) => void;
 
@@ -154,7 +156,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   seatPrices: {},
   tiers: [],
   selectedSeats: [],
-  activeSeatId: 'F05',
+  activeSeatId: null,
   hoveredSeatId: null,
 
   mode: 'overview',
@@ -195,6 +197,8 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   },
 
   houseLights: 'full',
+  theatreLook: (typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('look') as 'a' | 'b' | 'c') || 'a' : 'a'),
+  setTheatreLook: (look) => set({ theatreLook: look }),
   qualityTier: 'high',
   useHqModel: false,
 
@@ -317,7 +321,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
     switch (preset) {
       case 'overview':
-        position = [6.5, 8.5, -23.0];
+        position = DEFAULT_CAMERA_POS;
         break;
       case 'front':
         position = [0.0, 4.0, -11.0];
@@ -559,6 +563,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     const state = get();
     return {
       mode: state.mode,
+      theatreLook: state.theatreLook,
       cameraMode: state.cameraMode,
       cameraPreset: state.cameraPreset,
       isHeatmapActive: state.isHeatmapActive,
