@@ -37,35 +37,57 @@ def verify_razorpay_hmac(order_id: str, payment_id: str, signature: str) -> bool
 
 
 async def create_razorpay_order(db: AsyncSession, booking_id: int) -> dict:
-    booking = await db.get(Booking, booking_id)
+    stmt = (
+        select(Booking)
+        .where(Booking.id == booking_id)
+        .options(selectinload(Booking.seats))
+    )
+    result = await db.execute(stmt)
+    booking = result.scalars().first()
     if not booking:
         raise HTTPException(status_code=404, detail="Booking not found")
 
     if booking.status != BookingStatusEnum.PENDING:
         raise HTTPException(status_code=400, detail=f"Booking is not pending payment (status: {booking.status})")
 
-    # Order ID
-    order_id = f"order_{uuid.uuid4().hex[:14]}"
-    amount_in_paise = int(booking.final_total_amount * 100)
-
-    # Check if payment record already exists
-    stmt = select(Payment).where(Payment.booking_id == booking_id)
-    res = await db.execute(stmt)
+    # Check if payment record already exists (Idempotent order creation)
+    pay_stmt = select(Payment).where(Payment.booking_id == booking_id)
+    res = await db.execute(pay_stmt)
     payment = res.scalars().first()
 
-    if not payment:
-        payment = Payment(
-            booking_id=booking.id,
-            razorpay_order_id=order_id,
-            amount=booking.final_total_amount,
-            currency="INR",
-            status=PaymentStatusEnum.PENDING
-        )
-        db.add(payment)
+    if payment and payment.status == PaymentStatusEnum.PENDING and payment.razorpay_order_id:
+        order_id = payment.razorpay_order_id
     else:
-        payment.razorpay_order_id = order_id
-        payment.amount = booking.final_total_amount
-        payment.status = PaymentStatusEnum.PENDING
+        order_id = f"order_{uuid.uuid4().hex[:14]}"
+        if not payment:
+            payment = Payment(
+                booking_id=booking.id,
+                razorpay_order_id=order_id,
+                amount=booking.final_total_amount,
+                currency="INR",
+                status=PaymentStatusEnum.PENDING
+            )
+            db.add(payment)
+        else:
+            payment.razorpay_order_id = order_id
+            payment.amount = booking.final_total_amount
+            payment.status = PaymentStatusEnum.PENDING
+
+    # Transition seats from HELD to PAYMENT_PENDING and extend hold time by 5m so paying user is protected
+    now = datetime.utcnow()
+    seat_codes = [s.seat_id for s in booking.seats]
+    if seat_codes:
+        inv_stmt = select(SeatInventory).where(
+            SeatInventory.showtime_id == booking.showtime_id,
+            SeatInventory.seat_id.in_(seat_codes)
+        )
+        inv_res = await db.execute(inv_stmt)
+        for inv in inv_res.scalars().all():
+            if inv.status in (SeatStatusEnum.HELD, SeatStatusEnum.PAYMENT_PENDING):
+                inv.status = SeatStatusEnum.PAYMENT_PENDING
+                min_extended = now + timedelta(minutes=5)
+                if not inv.hold_expires_at or inv.hold_expires_at < min_extended:
+                    inv.hold_expires_at = min_extended
 
     await db.commit()
 

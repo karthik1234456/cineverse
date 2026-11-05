@@ -449,3 +449,63 @@ async def test_webhook_forged_signature_rejected(client: AsyncClient):
     )
     assert resp.status_code == 400
     assert "Invalid webhook signature" in resp.text
+
+
+@pytest.mark.asyncio
+async def test_idempotent_order_creation_returns_same_order(client: AsyncClient):
+    """
+    Tightening 2:
+    Creating an order twice for the same hold returns the same order (idempotent).
+    """
+    target_seat = "C08"
+    showtime_id = 1
+    async with AsyncSessionLocal() as db:
+        await db.execute(delete(BookingSeat).where(BookingSeat.showtime_id == showtime_id, BookingSeat.seat_id == target_seat))
+        await db.execute(
+            update(SeatInventory)
+            .where(SeatInventory.showtime_id == showtime_id, SeatInventory.seat_id == target_seat)
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
+        )
+        await db.commit()
+
+    hold_resp = await client.post(f"/api/v1/bookings/hold?showtime_id={showtime_id}", json={"seat_ids": [target_seat]})
+    assert hold_resp.status_code == 200
+    hold_id = hold_resp.json()["hold_id"]
+
+    bkg_resp = await client.post(
+        "/api/v1/bookings/create",
+        json={
+            "showtime_id": showtime_id,
+            "hold_id": hold_id,
+            "seat_ids": [target_seat],
+            "addons": [],
+            "contact_email": "idempotent_test@cineverse.in",
+            "contact_phone": "9819998888"
+        }
+    )
+    assert bkg_resp.status_code == 200
+    bkg_id = bkg_resp.json()["id"]
+
+    # Call create-order first time
+    order1 = await client.post("/api/v1/payments/create-order", json={"booking_id": bkg_id})
+    assert order1.status_code == 200
+    order1_data = order1.json()
+
+    # Call create-order second time
+    order2 = await client.post("/api/v1/payments/create-order", json={"booking_id": bkg_id})
+    assert order2.status_code == 200
+    order2_data = order2.json()
+
+    # Both must return identical order_id
+    assert order1_data["order_id"] == order2_data["order_id"]
+    assert order1_data["amount"] == order2_data["amount"]
+
+    # Check SeatInventory status is PAYMENT_PENDING
+    async with AsyncSessionLocal() as db:
+        res = await db.execute(
+            select(SeatInventory).where(SeatInventory.showtime_id == showtime_id, SeatInventory.seat_id == target_seat)
+        )
+        seat = res.scalars().first()
+        assert seat.status == SeatStatusEnum.PAYMENT_PENDING
+        assert seat.hold_expires_at > datetime.utcnow() + timedelta(minutes=4)
+

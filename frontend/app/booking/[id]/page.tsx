@@ -109,7 +109,7 @@ export default function BookingConfirmationPage() {
             {isCancelled ? <XCircle className="h-7 w-7" /> : <CheckCircle2 className="h-7 w-7" />}
           </div>
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider">
+            <div className="text-sm font-bold uppercase tracking-wider">
               {isCancelled ? 'Booking Cancelled & Refunded' : 'Booking Confirmed'}
             </div>
             <h1 className="text-xl sm:text-2xl font-black text-[#1B1320] mt-0.5">
@@ -139,7 +139,7 @@ export default function BookingConfirmationPage() {
       <div className="rounded-3xl border border-[#E6DCD2] bg-white p-8 shadow-sm space-y-6">
         <div className="flex flex-col md:flex-row gap-6 items-center justify-between pb-6 border-b border-[#E6DCD2]">
           <div>
-            <span className="rounded-lg bg-rose-50 px-3 py-1 text-xs font-bold text-[#9F1239] border border-rose-200">
+            <span className="rounded-lg bg-rose-50 px-3 py-1 text-sm font-bold text-[#9F1239] border border-rose-200">
               {booking.screen_type}
             </span>
             <h2 className="text-2xl font-black text-[#1B1320] mt-2">{booking.movie_title}</h2>
@@ -168,10 +168,10 @@ export default function BookingConfirmationPage() {
                 alt="Ticket QR Code"
                 className="h-36 w-36 rounded-xl border border-[#E6DCD2]"
               />
-              <span className="font-mono text-xs font-bold text-slate-700 mt-2">
+              <span className="font-mono text-sm font-bold text-slate-700 mt-2">
                 {booking.ticket.ticket_number}
               </span>
-              <span className="text-xs text-slate-500">Scan at entrance turnstile</span>
+              <span className="text-sm text-slate-500">Scan at entrance turnstile</span>
             </div>
           )}
         </div>
@@ -179,7 +179,7 @@ export default function BookingConfirmationPage() {
         {/* Seat breakdown & Pricing */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           <div className="space-y-1.5">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Seats Confirmed ({booking.seats.length})</span>
+            <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">Seats Confirmed ({booking.seats.length})</span>
             <div className="flex flex-wrap gap-2 pt-1">
               {booking.seats.map((s) => (
                 <span
@@ -193,9 +193,9 @@ export default function BookingConfirmationPage() {
           </div>
 
           <div className="space-y-1 sm:text-right">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Amount Paid</span>
+            <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">Amount Paid</span>
             <div className="text-3xl font-black text-[#C8102E]">₹{booking.final_total_amount}</div>
-            <div className="text-xs text-slate-500">Inclusive of taxes & convenience fee</div>
+            <div className="text-sm text-slate-500">Inclusive of taxes & convenience fee</div>
           </div>
         </div>
 

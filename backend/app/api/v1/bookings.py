@@ -81,9 +81,9 @@ async def api_create_booking(
             )
         )
         u = res.scalars().first()
-        if u:
+        if u and u.hashed_password is None:
             user_id = u.id
-        else:
+        elif not u:
             try:
                 guest_user = User(
                     email=req.contact_email,
@@ -99,9 +99,27 @@ async def api_create_booking(
             except Exception as e:
                 logger.warning("Guest user create failed: %s", e)
                 await db.rollback()
-                fallback = await db.execute(select(User).limit(1))
+                fallback = await db.execute(select(User).where(User.hashed_password.is_(None)).limit(1))
                 u_fallback = fallback.scalars().first()
-                user_id = u_fallback.id if u_fallback else 1
+                user_id = u_fallback.id if u_fallback else 5
+        else:
+            # If u exists and has a password, do NOT hijack their registered account without authentication
+            import uuid
+            try:
+                guest_user = User(
+                    email=f"guest_{uuid.uuid4().hex[:8]}@{req.contact_email.split('@')[-1]}",
+                    phone=None,
+                    full_name=req.contact_email.split('@')[0],
+                    role=RoleEnum.CUSTOMER,
+                    is_active=True,
+                    is_verified=True
+                )
+                db.add(guest_user)
+                await db.flush()
+                user_id = guest_user.id
+            except Exception:
+                await db.rollback()
+                user_id = 5
 
     if not user_id:
         user_id = 3  # fallback to demo customer

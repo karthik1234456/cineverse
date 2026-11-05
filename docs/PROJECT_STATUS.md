@@ -1,6 +1,6 @@
 # CineVerse Project Status
 
-**Last Audited:** 2026-11-05 (Updated with Phase 11 completion)  
+**Last Audited:** 2026-11-05 (Updated with Phase 5 completion & verification)  
 **Specification Reference:** `phases/00_RUNBOOK.md`, `phases/phase-N.md`, `SECURITY_SPEC.md`  
 **Phase Execution Note:** Phases 9 (Voice Agent) and 12 (Venue Operations) were implemented out of chronological sequence before Phases 10 & 11.
 
@@ -17,7 +17,7 @@
 | **Phase 2d: 3D Theatre Fixes, Declutter, Real Lighting & Realism** | `phases/COMMON_RULES.md` / Phase 2d Prompt | `PASSED` | `PASS` | All findings F1–F14 resolved. Pricing parity across 2D/3D (server quote truth), multi-movie trailer playback, 114 draw calls (<200 target met), 3 selectable looks (A/B/C) with runtime lighting rig (Lights Up vs Show), minimal 3-way toggle, single docked card, 0 typography violations <14px. Tag `phase-2d-done`. |
 | **Phase 3: Core Site & Discovery** | `phases/phase-3.md` | `PASSED` | `PASS` | Simplified home (1 hero + 3 rows), city selector modal persisted, URL-synced filters, server-quote lowest prices & availability text badges on showtime chips, full search autocomplete + sliding-window rate limit (60 req/min), reusable TrailerPlayer modal with keyboard shortcuts, persistent MiniPlayerDock across SPA navigation, open-licensed CC-BY trailers, 2D fallback layout, 0 typography violations <14px. Tag `phase-3-done`. |
 | **Phase 4: Booking Engine** | `phases/phase-4.md` | `PASSED` | `PASS` | 2D/3D shared selection state, 50-client concurrency race verification (1 winner, 49 rejected), database unique constraint, WebSocket live sync. |
-| **Phase 5: Payments & Tickets** | `phases/phase-5.md` | `PASSED` | `PASS (Remediated)` | **Gate previously failed (Finding FIX-01)**: `test_signature_valid` bypass was deleted from backend. Real Razorpay Checkout test mode integrated on frontend. HMAC-SHA256 signature verification, webhook signature validation, replay attack rejection, and expired hold auto-refund tested. |
+| **Phase 5: Payments & Tickets** | `phases/phase-5.md` | `PASSED` | `PASS (Verified)` | Complete Razorpay test mode integration with real order creation, server quote truth in integer paise, disabled Pay button UX, hold timer 5m extension, Web Crypto signature verification, webhook dedup, unauthenticated guest receipt viewing, Ed25519 signed QR tickets, .ics calendar export, 75% cancellation refund policy, zero text under 14px, and CI anti-bypass guard. Tag `phase-5-done`. Report: `docs/PHASE_5_REPORT.md`. |
 | **Phase 6: Accounts & Content** | `phases/phase-6.md` | `PASSED` | `PASS` | Customer authentication (JWT), user profiles, booking history, verified movie reviews with spoiler blur, promo coupon engine. |
 | **Phase 7: Admin Console** | `phases/phase-7.md` | `PASSED` | `PASS` | Cinema manager & admin dashboard, revenue/occupancy metrics, showtime scheduling with overlap collision rejection, RBAC enforcement. |
 | **Phase 8: Hardening & Performance** | `phases/phase-8.md` | `PASSED` | `PASS` | ASVS L2 security hardening, Content Security Policy, rate limiting, Dockerfiles, docker-compose orchestration with Nginx reverse proxy. |

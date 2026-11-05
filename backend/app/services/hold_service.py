@@ -125,7 +125,7 @@ async def hold_seats(
         update(SeatInventory)
         .where(
             SeatInventory.showtime_id == showtime_id,
-            SeatInventory.status == SeatStatusEnum.HELD,
+            SeatInventory.status.in_([SeatStatusEnum.HELD, SeatStatusEnum.PAYMENT_PENDING]),
             SeatInventory.hold_expires_at <= now
         )
         .values(

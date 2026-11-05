@@ -41,8 +41,8 @@ function CheckoutContent() {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; message: string } | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
-  const [email, setEmail] = useState('patron@example.com');
-  const [phone, setPhone] = useState('9876543212');
+  const [email, setEmail] = useState('guest.patron@cineverse.in');
+  const [phone, setPhone] = useState('9898989898');
   const [isProcessing, setIsProcessing] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
 
@@ -181,7 +181,7 @@ function CheckoutContent() {
           <div className="flex items-center justify-between max-w-xl mx-auto">
             {/* Step 1 */}
             <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white">
                 ✓
               </span>
               <span className="text-sm font-semibold text-slate-700">1. Show</span>
@@ -191,7 +191,7 @@ function CheckoutContent() {
 
             {/* Step 2 */}
             <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-600 text-xs font-bold text-white">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white">
                 ✓
               </span>
               <span className="text-sm font-semibold text-slate-700">2. Seats</span>
@@ -201,7 +201,7 @@ function CheckoutContent() {
 
             {/* Step 3 */}
             <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#C8102E] text-xs font-bold text-white shadow-sm">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[#C8102E] text-sm font-bold text-white shadow-sm">
                 3
               </span>
               <span className="text-sm font-bold text-[#C8102E]">3. Pay</span>
@@ -235,7 +235,7 @@ function CheckoutContent() {
             <div className="rounded-3xl border border-[#E6DCD2] bg-white p-6 space-y-4 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <span className="rounded-lg bg-rose-50 px-3 py-1 text-xs font-bold text-[#9F1239] border border-rose-200">
+                  <span className="rounded-lg bg-rose-50 px-3 py-1 text-sm font-bold text-[#9F1239] border border-rose-200">
                     {showtimeData?.screen_type || 'IMAX 3D Laser'}
                   </span>
                   <h1 className="text-2xl font-black text-[#1B1320] mt-2">
@@ -247,7 +247,7 @@ function CheckoutContent() {
                 </div>
 
                 <div className="text-right">
-                  <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">Showtime</span>
+                  <span className="text-sm text-slate-500 font-bold uppercase tracking-wider">Showtime</span>
                   <div className="text-base font-bold text-[#1B1320] mt-0.5">
                     {showtimeData?.start_time ? new Date(showtimeData.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '07:00 PM'}
                   </div>
@@ -312,7 +312,7 @@ function CheckoutContent() {
                 </div>
                 <span
                   data-testid="payment-stub-badge"
-                  className="rounded-lg bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-800 border border-emerald-200"
+                  className="rounded-lg bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-800 border border-emerald-200"
                 >
                   Razorpay Secure Checkout
                 </span>
@@ -322,8 +322,8 @@ function CheckoutContent() {
                 <strong>Razorpay Test Mode:</strong> Safe sandbox environment. Supports UPI, Cards, Netbanking and Wallets.
               </div>
 
-              <div className="flex items-center gap-2 text-xs text-slate-500 pt-1">
-                <Lock className="h-3.5 w-3.5" />
+              <div className="flex items-center gap-2 text-sm text-slate-600 pt-1">
+                <Lock className="h-4 w-4" />
                 <span>256-bit SSL encrypted • Instant confirmation and QR ticket delivery</span>
               </div>
             </div>
@@ -404,10 +404,10 @@ function CheckoutContent() {
               {/* Final Grand Total */}
               <div className="pt-4 border-t border-[#E6DCD2] flex items-baseline justify-between">
                 <div>
-                  <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">Amount Payable</span>
+                  <span className="text-sm text-slate-500 uppercase font-bold tracking-wider">Amount Payable</span>
                   <div className="text-3xl font-black text-[#C8102E]">₹{grandTotal.toFixed(2)}</div>
                 </div>
-                <span className="text-xs text-slate-500">Includes all taxes</span>
+                <span className="text-sm text-slate-500">Includes all taxes</span>
               </div>
 
               {generalError && (

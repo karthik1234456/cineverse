@@ -2,7 +2,7 @@ from typing import Optional, List
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
@@ -21,6 +21,25 @@ async def get_showtime_seats(
     current_user: Optional[User] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    # Release expired holds for this showtime so inventory is always fresh
+    now = datetime.utcnow()
+    await db.execute(
+        update(SeatInventory)
+        .where(
+            SeatInventory.showtime_id == showtime_id,
+            SeatInventory.status.in_([SeatStatusEnum.HELD, SeatStatusEnum.PAYMENT_PENDING]),
+            SeatInventory.hold_expires_at.is_not(None),
+            SeatInventory.hold_expires_at <= now
+        )
+        .values(
+            status=SeatStatusEnum.AVAILABLE,
+            hold_id=None,
+            hold_expires_at=None,
+            held_by_user_id=None
+        )
+    )
+    await db.commit()
+
     stmt = (
         select(Showtime)
         .where(Showtime.id == showtime_id)

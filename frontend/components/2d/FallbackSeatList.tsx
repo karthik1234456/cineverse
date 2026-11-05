@@ -111,7 +111,8 @@ export function FallbackSeatList({
                     {rowSeats.map((seat) => {
                       const isSelected = selectedSeatIds.includes(seat.seat_id);
                       const isBooked = seat.status === 'BOOKED';
-                      const isHeld = seat.status === 'HELD';
+                      const isHeld = seat.status === 'HELD' || seat.status === 'PAYMENT_PENDING';
+                      const isAvailable = seat.status === 'AVAILABLE';
 
                       const seatColor = isSelected
                         ? 'bg-amber-400 text-black border-amber-300 font-bold scale-105 shadow-md shadow-amber-500/30'
@@ -124,7 +125,7 @@ export function FallbackSeatList({
                       return (
                         <button
                           key={seat.seat_id}
-                          disabled={isBooked || isHeld}
+                          disabled={!isAvailable}
                           onClick={() => toggleSeat(seat)}
                           title={`${seat.seat_id} - ${seat.category} (₹${seat.price}) - ${seat.status}`}
                           className={`flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-lg border text-[10px] font-semibold transition ${seatColor}`}
