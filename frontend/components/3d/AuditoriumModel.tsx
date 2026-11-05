@@ -8,6 +8,7 @@ import { useCinemaStore } from '@/store/useCinemaStore';
 import { assertSceneCoordinates } from '@/lib/assertCoordinates';
 import layoutData from '@/public/models/seat_layout_v2.json';
 import type { SeatLayoutFile } from '@/lib/types';
+import { getActiveLook } from '@/lib/theatreLooks';
 
 const WEB_MODEL_PATH = '/models/cineverse_auditorium_v2.web.glb';
 const HQ_MODEL_PATH = '/models/cineverse_auditorium_v2.glb';
@@ -15,8 +16,11 @@ const PREMIUM_SEAT_PATH = '/models/seat_premium.glb';
 
 export function AuditoriumModel() {
   const useHqModel = useCinemaStore((s) => s.useHqModel);
-  const modelUrl = useHqModel ? HQ_MODEL_PATH : WEB_MODEL_PATH;
+  const theatreLook = useCinemaStore((s) => s.theatreLook);
+  const cameraMode = useCinemaStore((s) => s.cameraMode);
+  const activeSeatId = useCinemaStore((s) => s.activeSeatId);
 
+  const modelUrl = useHqModel ? HQ_MODEL_PATH : WEB_MODEL_PATH;
   const { scene } = useGLTF(modelUrl);
   const premiumGltf = useGLTF(PREMIUM_SEAT_PATH);
 
@@ -29,13 +33,6 @@ export function AuditoriumModel() {
     }
   }, []);
 
-  const cameraMode = useCinemaStore((s) => s.cameraMode);
-  const activeSeatId = useCinemaStore((s) => s.activeSeatId);
-  const selectedSeats = useCinemaStore((s) => s.selectedSeats);
-  const hoveredSeatId = useCinemaStore((s) => s.hoveredSeatId);
-  const seatStatuses = useCinemaStore((s) => s.seatStatuses);
-  const houseLights = useCinemaStore((s) => s.houseLights);
-
   const seats = (layoutData as unknown as SeatLayoutFile).seats;
   const seatNodeMap = useMemo(() => {
     const map = new Map<string, string>();
@@ -46,6 +43,7 @@ export function AuditoriumModel() {
   }, [seats]);
 
   const seatMaterials = useRef<Map<string, THREE.MeshStandardMaterial>>(new Map());
+  const seatStateCache = useRef<Map<string, string>>(new Map());
 
   // Extract geometry from premium seat model
   const premiumGeometry = useMemo(() => {
@@ -58,78 +56,140 @@ export function AuditoriumModel() {
     return geo;
   }, [premiumGltf.scene]);
 
-  // Assign rich physically-based materials across all node groups on load
+  // Shared instanced materials & geometry for ultra-efficient batching (Part D Compliance)
+  const shadowGeometry = useMemo(() => new THREE.PlaneGeometry(1.22, 0.92), []);
+  const shadowMaterial = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: '#030406',
+        transparent: true,
+        opacity: 0.45,
+        depthWrite: false,
+      }),
+    []
+  );
+
+  const premiumMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        roughness: 0.68,
+        metalness: 0.04,
+      }),
+    []
+  );
+
+  const shadowMeshRef = useRef<THREE.InstancedMesh>(null);
+  const premiumSeatsMeshRef = useRef<THREE.InstancedMesh>(null);
+
+  // Initialize instanced seat & shadow matrices
+  useEffect(() => {
+    if (!shadowMeshRef.current || !premiumSeatsMeshRef.current) return;
+    const shadowMesh = shadowMeshRef.current;
+    const seatMesh = premiumSeatsMeshRef.current;
+    const dummy = new THREE.Object3D();
+
+    seats.forEach((seat, idx) => {
+      const { min, max } = seat.bounds_gltf_y_up;
+      const posX = (min[0] + max[0]) / 2;
+      const posY = min[1];
+      const posZ = (min[2] + max[2]) / 2;
+
+      // Seat matrix
+      dummy.position.set(posX, posY, posZ);
+      dummy.rotation.set(0, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      seatMesh.setMatrixAt(idx, dummy.matrix);
+
+      // Shadow matrix
+      dummy.position.set(posX, posY + 0.005, posZ);
+      dummy.rotation.set(-Math.PI / 2, 0, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      shadowMesh.setMatrixAt(idx, dummy.matrix);
+    });
+
+    seatMesh.instanceMatrix.needsUpdate = true;
+    shadowMesh.instanceMatrix.needsUpdate = true;
+    seatStateCache.current.clear();
+  }, [seats]);
+
+  // Active aesthetic look (Look A, B, or C)
+  const look = useMemo(() => getActiveLook(theatreLook), [theatreLook]);
+
+  // Assign rich physically-based materials across all node groups on load or when look changes
   useEffect(() => {
     if (!scene) return;
     seatMaterials.current.clear();
+    seatStateCache.current.clear();
 
     // Reusable shared materials by group
     const floorMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#131418'),
-      roughness: 0.88,
+      color: new THREE.Color(look.floorColor),
+      roughness: 0.85,
       metalness: 0.02,
     });
     const tierMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#15161b'),
-      roughness: 0.88,
+      color: new THREE.Color(look.tierColor),
+      roughness: 0.85,
       metalness: 0.02,
     });
     const treadMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#1c1e24'),
+      color: new THREE.Color(look.treadColor),
       roughness: 0.70,
-      metalness: 0.10,
+      metalness: 0.08,
     });
     const wallMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#171920'),
-      roughness: 0.92,
+      color: new THREE.Color(look.wallColor),
+      roughness: 0.90,
       metalness: 0.02,
     });
     const acousticPanelMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#1c1e26'),
-      roughness: 0.85,
+      color: new THREE.Color(look.acousticPanelColor),
+      roughness: 0.82,
       metalness: 0.04,
     });
     const panelTrimMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#2d323e'),
+      color: new THREE.Color(look.panelTrimColor),
       roughness: 0.35,
       metalness: 0.80,
     });
     const ceilingMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#0c0d11'),
+      color: new THREE.Color(look.ceilingColor),
       roughness: 0.95,
       metalness: 0.00,
     });
     const screenFrameMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#08090b'),
-      roughness: 0.85,
-      metalness: 0.20,
-    });
-    const stageLipMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#14161c'),
-      roughness: 0.80,
+      color: new THREE.Color(look.screenFrameColor),
+      roughness: 0.88,
       metalness: 0.15,
     });
+    const stageLipMaterial = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(look.stageLipColor),
+      roughness: 0.80,
+      metalness: 0.10,
+    });
     const speakerMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#181a20'),
+      color: new THREE.Color('#1c202a'),
       roughness: 0.45,
       metalness: 0.70,
     });
     const railMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#475569'),
+      color: new THREE.Color(look.railColor),
       roughness: 0.30,
       metalness: 0.85,
     });
     const stepLightMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#38bdf8'),
-      emissive: new THREE.Color('#38bdf8'),
-      emissiveIntensity: 1.20,
+      color: new THREE.Color(look.stepLightColor),
+      emissive: new THREE.Color(look.stepLightColor),
+      emissiveIntensity: 1.40,
       roughness: 0.30,
       metalness: 0.00,
     });
     const architecturalLightMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#fef3c7'),
-      emissive: new THREE.Color('#fef3c7'),
-      emissiveIntensity: 1.50,
+      color: new THREE.Color(look.sconceGlowColor),
+      emissive: new THREE.Color(look.sconceGlowColor),
+      emissiveIntensity: 1.60,
       roughness: 0.20,
       metalness: 0.00,
     });
@@ -141,7 +201,7 @@ export function AuditoriumModel() {
       metalness: 0.00,
     });
     const exitDoorMaterial = new THREE.MeshStandardMaterial({
-      color: new THREE.Color('#16181f'),
+      color: new THREE.Color(look.tierColor),
       roughness: 0.80,
       metalness: 0.10,
     });
@@ -151,7 +211,7 @@ export function AuditoriumModel() {
       let mat = seatMaterials.current.get(seat.seat_id);
       if (!mat) {
         mat = new THREE.MeshStandardMaterial({
-          roughness: 0.72,
+          roughness: 0.68,
           metalness: 0.04,
         });
         seatMaterials.current.set(seat.seat_id, mat);
@@ -211,7 +271,7 @@ export function AuditoriumModel() {
         obj.material = exitDoorMaterial;
       }
     });
-  }, [scene, seatNodeMap]);
+  }, [scene, seatNodeMap, look, useOriginalSeats, seats]);
 
   // Assert coordinates on load in dev
   useEffect(() => {
@@ -220,9 +280,9 @@ export function AuditoriumModel() {
     }
   }, [scene]);
 
-  // Handle hiding the active seat in POV mode so it doesn't clip the lens
+  // Handle hiding the active seat in POV mode so it doesn't clip the lens (only if using original GLB seats)
   useEffect(() => {
-    if (!scene) return;
+    if (!scene || !useOriginalSeats) return;
 
     // Reset all seats visibility
     seatNodeMap.forEach((nodeName) => {
@@ -242,68 +302,129 @@ export function AuditoriumModel() {
         }
       }
     }
-  }, [scene, cameraMode, activeSeatId, seatNodeMap]);
+  }, [scene, cameraMode, activeSeatId, seatNodeMap, useOriginalSeats]);
 
-  // Dynamically update seat states (colors, emissive rim, pulse) on seat materials
+  // Dynamically update seat states without React re-rendering using InstancedMesh (Part D batching)
   useFrame(({ clock }) => {
+    const seatMesh = premiumSeatsMeshRef.current;
     const time = clock.getElapsedTime();
-    const pulse = 0.45 + Math.sin(time * 3.5) * 0.25;
-    const isShow = houseLights === 'show';
+    const pulse = 0.5 + Math.sin(time * 3.5) * 0.3;
+    const store = useCinemaStore.getState();
+    const isShow = store.houseLights === 'show';
+    const activeSelected = store.selectedSeats;
+    const activeStatuses = store.seatStatuses;
+    const currentHovered = store.hoveredSeatId;
+    const currentLook = getActiveLook(store.theatreLook);
+    const camMode = store.cameraMode;
+    const actSeatId = store.activeSeatId;
 
-    for (const seat of seats) {
-      const mat = seatMaterials.current.get(seat.seat_id);
-      if (!mat) continue;
+    // 1. If using original baked seats
+    if (useOriginalSeats) {
+      for (const seat of seats) {
+        const mat = seatMaterials.current.get(seat.seat_id);
+        if (!mat) continue;
+        const isSelected = activeSelected.includes(seat.seat_id);
+        const rawStatus = activeStatuses[seat.seat_id] || 'available';
+        const isHeld = rawStatus === 'held';
+        const isBooked = rawStatus === 'booked';
+        const isHovered = currentHovered === seat.seat_id;
 
-      const isSelected = selectedSeats.includes(seat.seat_id);
-      const rawStatus = seatStatuses[seat.seat_id] || 'available';
+        const stateKey = `${isSelected ? 1 : 0}-${isHeld ? pulse.toFixed(1) : 0}-${isBooked ? 1 : 0}-${isHovered ? 1 : 0}-${isShow ? 1 : 0}-${currentLook.id}`;
+        if (seatStateCache.current.get(seat.seat_id) === stateKey) continue;
+        seatStateCache.current.set(seat.seat_id, stateKey);
+
+        if (isSelected) {
+          mat.color.set(currentLook.seats.selected);
+        } else if (isHeld) {
+          mat.color.set(currentLook.seats.held);
+        } else if (isBooked) {
+          mat.color.set(currentLook.seats.booked);
+        } else if (isHovered) {
+          mat.color.set('#ffd700');
+        } else {
+          const cat = (seat.category || 'prime').toLowerCase();
+          const baseColor =
+            cat === 'premier'
+              ? currentLook.seats.premier
+              : cat === 'front'
+              ? currentLook.seats.front
+              : currentLook.seats.prime;
+          mat.color.set(baseColor);
+        }
+      }
+      return;
+    }
+
+    // 2. If using ultra-fast InstancedMesh for premium seats
+    if (!seatMesh) return;
+
+    let colorsNeedUpdate = false;
+    let matricesNeedUpdate = false;
+    const dummy = new THREE.Object3D();
+    const tempColor = new THREE.Color();
+
+    for (let idx = 0; idx < seats.length; idx++) {
+      const seat = seats[idx];
+      const isSelected = activeSelected.includes(seat.seat_id);
+      const rawStatus = activeStatuses[seat.seat_id] || 'available';
       const isHeld = rawStatus === 'held';
       const isBooked = rawStatus === 'booked';
-      const isHovered = hoveredSeatId === seat.seat_id;
+      const isHovered = currentHovered === seat.seat_id;
+      const isHiddenInPov = camMode === 'pov' && actSeatId === seat.seat_id;
 
+      // Determine target color
+      let hexColor: string;
       if (isSelected) {
-        // Selected: CineVerse crimson velvet + high emissive glow
-        mat.color.set('#C8102E');
-        mat.emissive.set('#FF2233');
-        mat.emissiveIntensity = 0.90;
-        mat.roughness = 0.65;
+        hexColor = currentLook.seats.selected;
       } else if (isHeld) {
-        // Held by someone else: amber accent with gentle pulse
-        mat.color.set('#B45309');
-        mat.emissive.set('#F59E0B');
-        mat.emissiveIntensity = pulse;
-        mat.roughness = 0.75;
+        hexColor = currentLook.seats.held;
       } else if (isBooked) {
-        // Booked: desaturated/darkened seat
-        mat.color.set('#202227');
-        mat.emissive.set('#000000');
-        mat.emissiveIntensity = 0;
-        mat.roughness = 0.95;
+        hexColor = currentLook.seats.booked;
       } else if (isHovered) {
-        // Hover: soft highlight rim
-        mat.color.set('#B91C1C');
-        mat.emissive.set('#FFFFFF');
-        mat.emissiveIntensity = 0.60;
-        mat.roughness = 0.70;
+        hexColor = '#ffd700'; // Vibrant gold/amber for instant hover feedback
       } else {
-        // Available: rich velvet seat with category colour (§ Task 3)
         const cat = (seat.category || 'prime').toLowerCase();
-        if (cat === 'premier') {
-          mat.color.set(isShow ? '#7A0F2E' : '#9F1239'); // ruby
-          mat.emissive.set('#9F1239');
-          mat.emissiveIntensity = isShow ? 0.04 : 0.08;
-        } else if (cat === 'front') {
-          mat.color.set(isShow ? '#6B441D' : '#8D5B28'); // warm amber-brown
-          mat.emissive.set('#8D5B28');
-          mat.emissiveIntensity = isShow ? 0.04 : 0.08;
-        } else {
-          // prime
-          mat.color.set(isShow ? '#172554' : '#1E40AF'); // royal blue
-          mat.emissive.set('#1E40AF');
-          mat.emissiveIntensity = isShow ? 0.04 : 0.08;
-        }
-        mat.roughness = 0.72;
-        mat.metalness = 0.04;
+        hexColor =
+          cat === 'premier'
+            ? currentLook.seats.premier
+            : cat === 'front'
+            ? currentLook.seats.front
+            : currentLook.seats.prime;
       }
+
+      tempColor.set(hexColor);
+      if (isShow && !isSelected && !isHovered && !isHeld) {
+        tempColor.multiplyScalar(0.75);
+      }
+      if (isHeld) {
+        tempColor.multiplyScalar(pulse);
+      }
+
+      // Check cache key before updating
+      const stateKey = `${isSelected ? 1 : 0}-${isHeld ? pulse.toFixed(1) : 0}-${isBooked ? 1 : 0}-${isHovered ? 1 : 0}-${isShow ? 1 : 0}-${currentLook.id}-${isHiddenInPov ? 1 : 0}`;
+      if (seatStateCache.current.get(seat.seat_id) !== stateKey) {
+        seatStateCache.current.set(seat.seat_id, stateKey);
+        seatMesh.setColorAt(idx, tempColor);
+        colorsNeedUpdate = true;
+
+        // Update visibility/scale in POV
+        const { min, max } = seat.bounds_gltf_y_up;
+        const posX = (min[0] + max[0]) / 2;
+        const posY = min[1];
+        const posZ = (min[2] + max[2]) / 2;
+        dummy.position.set(posX, posY, posZ);
+        dummy.scale.set(isHiddenInPov ? 0 : 1, isHiddenInPov ? 0 : 1, isHiddenInPov ? 0 : 1);
+        dummy.updateMatrix();
+        seatMesh.setMatrixAt(idx, dummy.matrix);
+        matricesNeedUpdate = true;
+      }
+    }
+
+    if (colorsNeedUpdate && seatMesh.instanceColor) {
+      seatMesh.instanceColor.needsUpdate = true;
+    }
+    if (matricesNeedUpdate) {
+      seatMesh.instanceMatrix.needsUpdate = true;
     }
   });
 
@@ -311,50 +432,19 @@ export function AuditoriumModel() {
     <group name="AuditoriumRootGroup">
       <primitive object={scene} name="AuditoriumBaseModel" />
 
-      {/* Instanced Premium Seats with Ambient Occlusion Contact Shadows (§ Task 3) */}
+      {/* Instanced Premium Seats with Ambient Occlusion Contact Shadows (§ Part D Optimization) */}
       {!useOriginalSeats && premiumGeometry && (
         <group name="PremiumSeatsContainer">
-          {seats.map((seat) => {
-            const { min, max } = seat.bounds_gltf_y_up;
-            const posX = (min[0] + max[0]) / 2;
-            const posY = min[1];
-            const posZ = (min[2] + max[2]) / 2;
-            const isHiddenInPov = cameraMode === 'pov' && activeSeatId === seat.seat_id;
-            const mat = seatMaterials.current.get(seat.seat_id);
-
-            return (
-              <group
-                key={seat.seat_id}
-                name={`premium_${seat.seat_id}`}
-                position={[posX, posY, posZ]}
-                visible={!isHiddenInPov}
-              >
-                {/* Ambient Occlusion Contact Shadow */}
-                <mesh
-                  position={[0, 0.005, 0]}
-                  rotation={[-Math.PI / 2, 0, 0]}
-                  name={`ao_shadow_${seat.seat_id}`}
-                >
-                  <planeGeometry args={[1.22, 0.92]} />
-                  <meshBasicMaterial
-                    color="#030406"
-                    transparent
-                    opacity={0.50}
-                    depthWrite={false}
-                  />
-                </mesh>
-
-                {/* Premium Cinema Seat Mesh */}
-                {mat && (
-                  <mesh
-                    geometry={premiumGeometry}
-                    material={mat}
-                    name={`mesh_${seat.seat_id}`}
-                  />
-                )}
-              </group>
-            );
-          })}
+          <instancedMesh
+            ref={shadowMeshRef}
+            args={[shadowGeometry, shadowMaterial, seats.length]}
+            name="InstancedContactShadows"
+          />
+          <instancedMesh
+            ref={premiumSeatsMeshRef}
+            args={[premiumGeometry, premiumMaterial, seats.length]}
+            name="InstancedPremiumSeats"
+          />
         </group>
       )}
     </group>

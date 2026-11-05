@@ -1,0 +1,15 @@
+{
+  "totalFramesSampled": 49,
+  "p50FrameTimeMs": 224.4,
+  "p95FrameTimeMs": 300.1,
+  "p99FrameTimeMs": 890.6,
+  "averageFps": 6.1,
+  "drawCalls": 114,
+  "triangles": 203774,
+  "geometries": 266,
+  "textures": 20,
+  "memory": {
+    "usedJSHeapSize": 47400000,
+    "totalJSHeapSize": 64000000
+  }
+}

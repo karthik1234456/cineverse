@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useMemo, useState, useEffect } from 'react';
+import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 import { ThreeEvent } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
@@ -18,6 +18,16 @@ interface SeatInteractionProps {
 export function SeatInteraction({ onSeatClick, onSeatDoubleClick }: SeatInteractionProps) {
   const seats = (layoutData as unknown as { seats: SeatRecord[] }).seats;
 
+  // Single subscriptions for the ONE active tooltip
+  const hoveredSeatId = useCinemaStore((s) => s.hoveredSeatId);
+  const activeSeatId = useCinemaStore((s) => s.activeSeatId);
+  const selectedSeats = useCinemaStore((s) => s.selectedSeats);
+  const seatPrices = useCinemaStore((s) => s.seatPrices);
+  const seatStatuses = useCinemaStore((s) => s.seatStatuses);
+  const setHoveredSeat = useCinemaStore((s) => s.setHoveredSeat);
+  const toggleSeat = useCinemaStore((s) => s.toggleSeat);
+  const enterPOV = useCinemaStore((s) => s.enterPOV);
+
   // Debug flag (?debug=proxies, dev builds only)
   const [debugProxies, setDebugProxies] = useState(false);
   useEffect(() => {
@@ -27,99 +37,187 @@ export function SeatInteraction({ onSeatClick, onSeatDoubleClick }: SeatInteract
     }
   }, []);
 
+  // Throttled hover dispatch to avoid flooding state during rapid cursor sweeps
+  const lastHoverRef = useRef<string | null>(null);
+  const handleHover = useCallback((seatId: string) => {
+    if (lastHoverRef.current === seatId) return;
+    lastHoverRef.current = seatId;
+    setHoveredSeat(seatId);
+  }, [setHoveredSeat]);
+
+  const handleUnhover = useCallback((seatId: string) => {
+    if (lastHoverRef.current === seatId) {
+      lastHoverRef.current = null;
+      setHoveredSeat(null);
+    }
+  }, [setHoveredSeat]);
+
+  const handleClick = useCallback((seatId: string) => {
+    if (onSeatClick) {
+      onSeatClick(seatId);
+    } else {
+      toggleSeat(seatId);
+    }
+  }, [onSeatClick, toggleSeat]);
+
+  const handleDoubleClick = useCallback((seatId: string) => {
+    if (onSeatDoubleClick) {
+      onSeatDoubleClick(seatId);
+    } else {
+      enterPOV(seatId);
+    }
+  }, [onSeatDoubleClick, enterPOV]);
+
+  // Compute hovered seat metadata for the single tooltip
+  const hoveredSeat = useMemo(() => {
+    if (!hoveredSeatId) return null;
+    return seats.find((s) => s.seat_id === hoveredSeatId) || null;
+  }, [hoveredSeatId, seats]);
+
+  const tooltipData = useMemo(() => {
+    if (!hoveredSeat) return null;
+    const { min, max } = hoveredSeat.bounds_gltf_y_up;
+    const center: [number, number, number] = [
+      (min[0] + max[0]) / 2,
+      (min[1] + max[1]) / 2 + (max[1] - min[1]) / 2 + 0.35,
+      (min[2] + max[2]) / 2,
+    ];
+
+    const rawStatus = seatStatuses[hoveredSeat.seat_id] || 'available';
+    const isSelected = selectedSeats.includes(hoveredSeat.seat_id);
+    const isBooked = rawStatus === 'booked';
+    const isHeld = rawStatus === 'held';
+
+    const priceInfo = seatPrices[hoveredSeat.seat_id];
+    const price = priceInfo ? Math.round(priceInfo.price) : (hoveredSeat.price || 380);
+    const categoryName = (priceInfo?.category || hoveredSeat.category || 'Prime').toUpperCase();
+    const scored = viewScore(hoveredSeat as any);
+    const score = scored.score;
+    const obstruction = (obstructionsData as any).seats?.[hoveredSeat.seat_id];
+
+    return {
+      seat: hoveredSeat,
+      center,
+      rawStatus,
+      isSelected,
+      isBooked,
+      isHeld,
+      price,
+      categoryName,
+      score,
+      obstruction,
+    };
+  }, [hoveredSeat, seatStatuses, selectedSeats, seatPrices]);
+
   return (
     <group name="SeatInteractionLayer">
+      {/* 100 Static collision volumes with ZERO re-render overhead */}
       {seats.map((seat) => (
-        <SeatProxyItem
+        <StaticSeatProxyItem
           key={seat.seat_id}
           seat={seat}
           debugProxies={debugProxies}
-          onSeatClick={onSeatClick}
-          onSeatDoubleClick={onSeatDoubleClick}
+          onSelect={handleClick}
+          onDoubleClick={handleDoubleClick}
+          onHover={handleHover}
+          onUnhover={handleUnhover}
         />
       ))}
+
+      {/* SINGLE Compact Hover Tooltip (Part E / Task 5 compliance) */}
+      {tooltipData && (
+        <group position={tooltipData.center} name={`tooltip_${tooltipData.seat.seat_id}`}>
+          <Html
+            center
+            distanceFactor={16}
+            position={[0, 0, 0]}
+            style={{ pointerEvents: 'auto', zIndex: 50 }}
+          >
+            <div
+              data-testid={`seat-tooltip-${tooltipData.seat.seat_id}`}
+              className="pointer-events-auto w-[220px] rounded-2xl border border-[#E6DCD2] bg-white/95 p-3.5 text-center text-[#1B1320] shadow-2xl backdrop-blur-md transition-all duration-150 animate-in fade-in zoom-in-95"
+            >
+              <div className="flex items-center justify-between gap-2 border-b border-[#E6DCD2] pb-1.5">
+                <span className="text-base font-black tracking-tight text-[#1B1320]">
+                  Seat {tooltipData.seat.seat_id}
+                </span>
+                <span className="rounded-md bg-rose-50 px-2 py-0.5 text-sm font-bold uppercase tracking-wider text-[#9F1239] border border-rose-200">
+                  {tooltipData.categoryName}
+                </span>
+              </div>
+
+              <div className="my-2 text-2xl font-black tracking-tight text-[#C8102E]">
+                ₹{tooltipData.price}
+              </div>
+
+              <div className="text-sm font-semibold text-slate-600">
+                {tooltipData.isBooked
+                  ? 'Booked (Sold Out)'
+                  : tooltipData.isHeld
+                    ? 'Held by patron'
+                    : tooltipData.isSelected
+                      ? 'Selected • Click to remove'
+                      : 'Available • Click to select'}
+              </div>
+            </div>
+          </Html>
+        </group>
+      )}
     </group>
   );
 }
 
-interface SeatProxyItemProps {
+interface StaticSeatProxyItemProps {
   seat: SeatRecord;
   debugProxies: boolean;
-  onSeatClick?: (seatId: string) => void;
-  onSeatDoubleClick?: (seatId: string) => void;
+  onSelect: (seatId: string) => void;
+  onDoubleClick: (seatId: string) => void;
+  onHover: (seatId: string) => void;
+  onUnhover: (seatId: string) => void;
 }
 
-function SeatProxyItem({ seat, debugProxies, onSeatClick, onSeatDoubleClick }: SeatProxyItemProps) {
+const StaticSeatProxyItem = React.memo(function StaticSeatProxyItem({
+  seat,
+  debugProxies,
+  onSelect,
+  onDoubleClick,
+  onHover,
+  onUnhover,
+}: StaticSeatProxyItemProps) {
   const meshRef = useRef<THREE.Mesh>(null);
-  const edgesRef = useRef<THREE.LineSegments>(null);
 
-  const seatStatuses = useCinemaStore((s) => s.seatStatuses);
-  const seatPrices = useCinemaStore((s) => s.seatPrices);
-  const selectedSeats = useCinemaStore((s) => s.selectedSeats);
-  const hoveredSeatId = useCinemaStore((s) => s.hoveredSeatId);
-  const setHoveredSeat = useCinemaStore((s) => s.setHoveredSeat);
-  const toggleSeat = useCinemaStore((s) => s.toggleSeat);
-  const enterPOV = useCinemaStore((s) => s.enterPOV);
-  const isHeatmapActive = useCinemaStore((s) => s.isHeatmapActive);
-
-  const scored = useMemo(() => viewScore(seat as any), [seat]);
-  const score = scored.score;
-  const obstruction = useMemo(() => {
-    return (obstructionsData as any).seats?.[seat.seat_id];
-  }, [seat.seat_id]);
-
-  // Compute box dimensions and center from bounds
+  // Compute box dimensions and center from static bounds
   const { min, max } = seat.bounds_gltf_y_up;
-  const size = useMemo(
+  const size: [number, number, number] = useMemo(
     () => [
       Math.max(0.1, max[0] - min[0] + 0.04),
       Math.max(0.1, max[1] - min[1] + 0.04),
       Math.max(0.1, max[2] - min[2] + 0.04),
-    ] as [number, number, number],
+    ],
     [min, max]
   );
 
-  const center = useMemo(
+  const center: [number, number, number] = useMemo(
     () => [
       (min[0] + max[0]) / 2,
       (min[1] + max[1]) / 2,
       (min[2] + max[2]) / 2,
-    ] as [number, number, number],
+    ],
     [min, max]
   );
 
-  // State derivation
-  const rawStatus = seatStatuses[seat.seat_id] || 'available';
-  const isSelected = selectedSeats.includes(seat.seat_id);
-  const isHovered = hoveredSeatId === seat.seat_id;
-  const isBooked = rawStatus === 'booked';
-  const isHeld = rawStatus === 'held';
-
-  const priceInfo = seatPrices[seat.seat_id];
-  const price = priceInfo ? Math.round(priceInfo.price) : (seat.price || 380);
-  const categoryName = (priceInfo?.category || seat.category || 'Prime').toUpperCase();
-
   const handleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
-    if (onSeatClick) {
-      onSeatClick(seat.seat_id);
-    } else {
-      toggleSeat(seat.seat_id);
-    }
+    onSelect(seat.seat_id);
   };
 
   const handleDoubleClick = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
-    if (onSeatDoubleClick) {
-      onSeatDoubleClick(seat.seat_id);
-    } else {
-      enterPOV(seat.seat_id);
-    }
+    onDoubleClick(seat.seat_id);
   };
 
   return (
     <group position={center} name={`proxy_${seat.seat_id}`}>
-      {/* Invisible Raycasting Hit Box (zero pixels rasterized in normal mode) */}
       <mesh
         ref={meshRef}
         visible={true}
@@ -127,11 +225,11 @@ function SeatProxyItem({ seat, debugProxies, onSeatClick, onSeatDoubleClick }: S
         onDoubleClick={handleDoubleClick}
         onPointerOver={(e) => {
           e.stopPropagation();
-          if (!isBooked) setHoveredSeat(seat.seat_id);
+          onHover(seat.seat_id);
         }}
         onPointerOut={(e) => {
           e.stopPropagation();
-          if (hoveredSeatId === seat.seat_id) setHoveredSeat(null);
+          onUnhover(seat.seat_id);
         }}
       >
         <boxGeometry args={size} />
@@ -140,129 +238,10 @@ function SeatProxyItem({ seat, debugProxies, onSeatClick, onSeatDoubleClick }: S
           opacity={debugProxies ? 0.35 : 0}
           depthWrite={false}
           colorWrite={debugProxies}
-          color={isSelected ? '#e50914' : isHeld ? '#f59e0b' : '#38bdf8'}
+          color="#38bdf8"
           side={THREE.DoubleSide}
         />
       </mesh>
-
-      {/* Wireframe Outline Highlight: ONLY in debugProxies mode */}
-      {debugProxies && (
-        <lineSegments ref={edgesRef}>
-          <edgesGeometry args={[new THREE.BoxGeometry(...size)]} />
-          <lineBasicMaterial
-            color={isSelected ? '#ff4d5a' : isHeld ? '#fbbf24' : '#38bdf8'}
-            linewidth={1}
-          />
-        </lineSegments>
-      )}
-
-      {/* Selected Indicator: small elegant badge above headrest with checkmark */}
-      {isSelected && (
-        <group position={[0, size[1] / 2 + 0.18, 0]}>
-          <Html center distanceFactor={18} position={[0, 0, 0]}>
-            <div className="pointer-events-none flex h-5 w-5 items-center justify-center rounded-full bg-[#C8102E] text-xs font-bold text-white shadow-[0_0_8px_#C8102E]">
-              ✓
-            </div>
-          </Html>
-        </group>
-      )}
-
-      {/* Held Indicator: pulsing amber pill */}
-      {isHeld && (
-        <group position={[0, size[1] / 2 + 0.18, 0]}>
-          <Html center distanceFactor={18} position={[0, 0, 0]}>
-            <div className="pointer-events-none flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-xs font-bold text-black shadow-[0_0_8px_#f59e0b] animate-pulse">
-              ●
-            </div>
-          </Html>
-        </group>
-      )}
-
-      {/* 3D Comfort Heatmap Badge (Phase 11) */}
-      {isHeatmapActive && !isBooked && (
-        <group position={[0, size[1] / 2 + 0.18, 0]}>
-          <Html center distanceFactor={22} position={[0, 0, 0]}>
-            <div
-              data-testid={`heatmap-badge-3d-${seat.seat_id}`}
-              className={`pointer-events-none flex h-5 w-6 items-center justify-center rounded-md text-[10px] font-black text-white shadow-sm border ${
-                score >= 80 ? 'bg-emerald-600 border-emerald-700' : score >= 65 ? 'bg-amber-500 border-amber-600' : 'bg-orange-500 border-orange-600'
-              }`}
-            >
-              {Math.round(score)}
-            </div>
-          </Html>
-        </group>
-      )}
-
-      {/* Booked Indicator: subtle small cross */}
-      {isBooked && (
-        <group position={[0, size[1] / 2 + 0.18, 0]}>
-          <Html center distanceFactor={18} position={[0, 0, 0]}>
-            <div className="pointer-events-none flex h-3 w-3 items-center justify-center rounded-full bg-zinc-800 text-[8px] font-semibold text-zinc-400 border border-zinc-700">
-              ✕
-            </div>
-          </Html>
-        </group>
-      )}
-
-      {/* Rich Seat Hover Tooltip (§ Task 5) */}
-      {isHovered && (
-        <group position={[0, size[1] / 2 + 0.35, 0]}>
-          <Html
-            center
-            distanceFactor={16}
-            position={[0, 0, 0]}
-            style={{ pointerEvents: 'auto', zIndex: 50 }}
-          >
-            <div
-              data-testid={`seat-tooltip-${seat.seat_id}`}
-              className="pointer-events-auto min-w-[170px] rounded-2xl border border-[#E6DCD2] bg-white/95 p-3.5 text-center text-[#1B1320] shadow-2xl backdrop-blur-md"
-            >
-              <div className="flex items-center justify-between gap-3 border-b border-[#E6DCD2] pb-1.5">
-                <span className="text-base font-black tracking-tight text-[#1B1320]">
-                  Seat {seat.seat_id}
-                </span>
-                <span className="rounded-md bg-rose-50 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-[#9F1239] border border-rose-200">
-                  {categoryName}
-                </span>
-              </div>
-              <div className="my-2 text-2xl font-black tracking-tight text-[#C8102E]">
-                ₹{price}
-              </div>
-              <div className="text-xs font-semibold text-slate-600">
-                {isBooked ? 'Booked (Sold Out)' : isHeld ? 'Held by patron' : isSelected ? 'Selected' : 'Available • Click to select'}
-              </div>
-              <div className="mt-2 pt-2 border-t border-[#E6DCD2] flex items-center justify-between text-[11px]">
-                <span className="text-slate-500 font-medium">Viewing Comfort:</span>
-                <span className={`font-bold px-1.5 py-0.5 rounded text-white ${
-                  score >= 80 ? 'bg-emerald-600' : score >= 65 ? 'bg-amber-500' : 'bg-orange-500'
-                }`}>
-                  {score} / 100
-                </span>
-              </div>
-              <div className="mt-1 text-[10px] text-slate-500 italic">
-                {obstruction ? `${obstruction.visible_percentage}% line of sight` : '100% line of sight'} • No audience modelled
-              </div>
-              {!isHeld && !isBooked && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleSeat(seat.seat_id);
-                  }}
-                  data-testid={`seat-select-btn-${seat.seat_id}`}
-                  className={`mt-2.5 w-full rounded-xl py-2 text-xs font-bold transition shadow-sm ${
-                    isSelected
-                      ? 'bg-slate-200 text-slate-800 hover:bg-slate-300'
-                      : 'bg-[#C8102E] text-white hover:bg-[#A60D26]'
-                  }`}
-                >
-                  {isSelected ? 'Deselect' : 'Select Seat'}
-                </button>
-              )}
-            </div>
-          </Html>
-        </group>
-      )}
     </group>
   );
-}
+});
