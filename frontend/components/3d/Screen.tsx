@@ -40,10 +40,24 @@ export function CinemaScreen() {
     video.crossOrigin = 'anonymous';
     video.playsInline = true;
     video.muted = trailer.isMuted;
+    video.defaultMuted = true;
     video.loop = true;
     video.preload = 'auto';
+    video.autoplay = true;
+    video.setAttribute('playsinline', '');
+    video.setAttribute('webkit-playsinline', '');
+    video.setAttribute('muted', '');
     video.id = 'cineverse-trailer-video';
-    video.style.display = 'none';
+
+    // Must be laid out in DOM (not display: none) so Chromium keeps decoding pipeline active
+    video.style.position = 'fixed';
+    video.style.top = '-9999px';
+    video.style.left = '-9999px';
+    video.style.width = '320px';
+    video.style.height = '180px';
+    video.style.opacity = '0.001';
+    video.style.pointerEvents = 'none';
+
     document.body.appendChild(video);
     (window as any).__cineverse_video = video;
 
@@ -65,25 +79,39 @@ export function CinemaScreen() {
     vTex.magFilter = THREE.LinearFilter;
     videoTextureRef.current = vTex;
 
+    const handleReady = () => {
+      setVideoLoaded(true);
+      setVideoError(false);
+      if (trailer.isPlaying && video.paused) {
+        video.play().catch(() => {});
+      }
+    };
     const onPlay = () => setVideoLoaded(true);
     const onError = () => {
       console.warn('[Screen] Video texture loading failed or CORS restricted. Falling back to procedural film canvas.');
       setVideoError(true);
     };
 
+    video.addEventListener('canplay', handleReady);
+    video.addEventListener('canplaythrough', handleReady);
+    video.addEventListener('loadeddata', handleReady);
     video.addEventListener('playing', onPlay);
     video.addEventListener('error', onError);
 
     // Attempt muted autoplay
     const playPromise = video.play();
     if (playPromise !== undefined) {
-      playPromise.catch(() => {
-        // Autoplay policy prevented immediate playback until interaction
-        setVideoLoaded(false);
-      });
+      playPromise
+        .then(() => setVideoLoaded(true))
+        .catch(() => {
+          // Autoplay policy prevented immediate playback until interaction
+        });
     }
 
     return () => {
+      video.removeEventListener('canplay', handleReady);
+      video.removeEventListener('canplaythrough', handleReady);
+      video.removeEventListener('loadeddata', handleReady);
       video.removeEventListener('playing', onPlay);
       video.removeEventListener('error', onError);
       video.pause();
@@ -179,7 +207,7 @@ export function CinemaScreen() {
   const lastSampleTime = useRef(0);
   useFrame(({ clock, invalidate }) => {
     // If video is active and playing, update texture and trigger next frame
-    if (videoRef.current && !videoRef.current.paused && videoLoaded) {
+    if (videoRef.current && (videoRef.current.currentTime > 0 || videoRef.current.readyState >= 2)) {
       if (videoTextureRef.current) {
         videoTextureRef.current.needsUpdate = true;
       }
@@ -283,8 +311,20 @@ export function CinemaScreen() {
   });
 
   const activeTexture = videoLoaded && !videoError ? videoTextureRef.current : fallbackTexture;
-  // Tone-mapped screen brightness clamped <= 1.0 to preserve contrast and prevent pure-white pixel clipping
-  const screenBrightness = houseLights === 'show' ? 1.0 : houseLights === 'dim' ? 0.88 : 0.75;
+
+  // Ensure material updates its shader pipeline when switching from fallback to video texture
+  useEffect(() => {
+    if (meshRef.current) {
+      const mat = meshRef.current.material as THREE.MeshBasicMaterial;
+      if (mat) {
+        mat.map = activeTexture;
+        mat.needsUpdate = true;
+      }
+    }
+  }, [activeTexture]);
+
+  // Screen brightness controlled by house lights mode
+  const screenBrightness = houseLights === 'show' ? 1.0 : houseLights === 'dim' ? 0.92 : 0.82;
 
   return (
     <group name="ScreenContainer">
@@ -302,7 +342,7 @@ export function CinemaScreen() {
       >
         <meshBasicMaterial
           map={activeTexture}
-          toneMapped={true}
+          toneMapped={false}
           side={THREE.DoubleSide}
           polygonOffset={true}
           polygonOffsetFactor={-2}
