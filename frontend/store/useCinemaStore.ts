@@ -488,8 +488,21 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   },
 
   navigatePOV: (direction) => {
-    const { activeSeatId } = get();
+    const { activeSeatId, selectedSeats } = get();
     if (!activeSeatId) return;
+
+    // If multiple seats are selected, cycle through user's selected seats first
+    if (selectedSeats.length > 1 && (direction === 'next' || direction === 'prev')) {
+      const selIdx = selectedSeats.indexOf(activeSeatId);
+      if (selIdx !== -1) {
+        const nextSelIdx =
+          direction === 'next'
+            ? (selIdx + 1) % selectedSeats.length
+            : (selIdx - 1 + selectedSeats.length) % selectedSeats.length;
+        get().sitAt(selectedSeats[nextSelIdx]);
+        return;
+      }
+    }
 
     const row = activeSeatId.charAt(0);
     const num = parseInt(activeSeatId.slice(1), 10);
@@ -595,3 +608,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     };
   },
 }));
+
+if (typeof window !== 'undefined') {
+  (window as any).useCinemaStore = useCinemaStore;
+}

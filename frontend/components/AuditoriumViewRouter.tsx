@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SeatMap2D } from '@/components/2d/SeatMap2D';
 import { AuditoriumExperience } from '@/components/3d/AuditoriumExperience';
+import { useCinemaStore } from '@/store/useCinemaStore';
 import { LayoutGrid, Maximize2, Minimize2, ArrowLeft } from 'lucide-react';
 
 interface AuditoriumViewRouterProps {
@@ -22,19 +23,31 @@ export function AuditoriumViewRouter({
   const router = useRouter();
   const searchParams = useSearchParams();
   const modeParam = searchParams.get('mode');
+  const seatParam = searchParams.get('seat');
 
-  // Default is 2D seat map per Phase 4 requirement
+  // Default is 2D seat map per Phase 4 requirement; mode=3d or mode=pov switches to 3D
   const [currentMode, setCurrentMode] = useState<'2d' | '3d'>(
-    (modeParam === '3d' || initialMode === '3d') ? '3d' : '2d'
+    (modeParam === '3d' || modeParam === 'pov' || initialMode === '3d') ? '3d' : '2d'
   );
 
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
-    if (modeParam === '3d' || modeParam === '2d') {
-      setCurrentMode(modeParam);
+    if (modeParam === '3d' || modeParam === 'pov') {
+      setCurrentMode('3d');
+      if (modeParam === 'pov') {
+        const isValid = seatParam && /^[A-J](0[1-9]|10)$/i.test(seatParam.trim());
+        if (isValid) {
+          const upperSeat = seatParam!.trim().toUpperCase();
+          useCinemaStore.getState().sitAt(upperSeat);
+        } else {
+          useCinemaStore.getState().setMode('overview');
+        }
+      }
+    } else if (modeParam === '2d') {
+      setCurrentMode('2d');
     }
-  }, [modeParam]);
+  }, [modeParam, seatParam]);
 
   // Fullscreen state listener
   useEffect(() => {
@@ -94,11 +107,12 @@ export function AuditoriumViewRouter({
           <button
             onClick={handleSwitchTo2D}
             data-testid="switch-to-2d-button"
+            id="back-to-seat-map-btn"
             className="flex min-h-[44px] items-center gap-2 rounded-xl border border-[#E6DCD2] bg-white px-4 py-2 text-sm font-bold text-[#1B1320] shadow-sm hover:bg-slate-50 transition active:scale-95"
-            aria-label="Switch back to 2D Seat Map"
+            aria-label="Back to seat map"
           >
             <ArrowLeft className="h-4 w-4 text-[#C8102E]" />
-            <span className="hidden sm:inline">2D Seat Map</span>
+            <span className="font-bold">Back to seat map</span>
           </button>
 
           {/* Center: Movie / Auditorium Title */}

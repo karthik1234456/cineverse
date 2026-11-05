@@ -73,6 +73,7 @@ export function SeatMap2D({
   const [isWebGLSupported, setIsWebGLSupported] = useState(true);
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      (window as any).useCinemaStore = useCinemaStore;
       try {
         const canvas = document.createElement('canvas');
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
@@ -82,6 +83,42 @@ export function SeatMap2D({
       }
     }
   }, []);
+
+  // Idle prefetching for fast 3D POV transition (< 2s on warm cache)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !isWebGLSupported) return;
+
+    // Honor user data preferences
+    const conn = (navigator as any).connection;
+    if (conn?.saveData || conn?.effectiveType === '2g' || conn?.effectiveType === 'slow-2g') {
+      return;
+    }
+
+    const prefetchAssets = () => {
+      fetch('/models/cineverse_auditorium_v2.web.glb', { priority: 'low' }).catch(() => {});
+      fetch('/models/seat_layout_v2.json', { priority: 'low' }).catch(() => {});
+    };
+
+    if ('requestIdleCallback' in window) {
+      const handle = (window as any).requestIdleCallback(prefetchAssets, { timeout: 3000 });
+      return () => (window as any).cancelIdleCallback(handle);
+    } else {
+      const timer = setTimeout(prefetchAssets, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [isWebGLSupported]);
+
+  // Navigate directly to 3D Seated POV for a specific seat
+  const handleViewPOV = useCallback(
+    (seatId: string) => {
+      if (!isWebGLSupported) return;
+      const params = new URLSearchParams(window.location.search);
+      params.set('mode', 'pov');
+      params.set('seat', seatId);
+      router.push(`?${params.toString()}`);
+    },
+    [isWebGLSupported, router]
+  );
 
   // Fetch showtime metadata
   useEffect(() => {
@@ -532,7 +569,8 @@ export function SeatMap2D({
                       <div className="flex items-center gap-2 sm:gap-3">
                         {seatsInRow.map((s) => {
                           const seatId = s.seat_id;
-                          const status = seatStatuses[seatId] || 'available';
+                          const rawStatus = (seatStatuses[seatId] || 'available').toString().toLowerCase();
+                          const status = rawStatus === 'payment_pending' ? 'held' : rawStatus;
                           const isSelected = selectedSeats.includes(seatId);
                           const isHeld = status === 'held';
                           const isBooked = status === 'booked';
@@ -565,14 +603,24 @@ export function SeatMap2D({
                               id={`seat-btn-${seatId}`}
                               role="gridcell"
                               aria-selected={isSelected}
+                              aria-disabled={isBooked || isHeld}
                               aria-label={`Seat ${seatId}, ${tier.name} ₹${s.price}, ${status}, Comfort Score: ${score}`}
-                              disabled={isBooked || isHeld}
                               onClick={() => {
-                                toggleSeat(seatId);
                                 setFocusedSeatId(seatId);
+                                if (!isBooked && !isHeld) {
+                                  toggleSeat(seatId);
+                                } else {
+                                  showToast(`Seat ${seatId} is ${status} and cannot be selected. You can still preview its 3D view.`);
+                                }
                               }}
                               onFocus={() => setFocusedSeatId(seatId)}
                               onMouseEnter={() => setFocusedSeatId(seatId)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'v' || e.key === 'V') {
+                                  e.preventDefault();
+                                  handleViewPOV(seatId);
+                                }
+                              }}
                               className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl border-2 text-sm font-bold flex items-center justify-center transition-all duration-150 ${bgClass} ${
                                 isFocused ? 'ring-2 ring-[#C8102E]' : ''
                               }`}
@@ -614,23 +662,44 @@ export function SeatMap2D({
                   ₹{Math.round(focusedPrice)}
                 </span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold border border-slate-200">
-                  {seatStatuses[focusedSeat.seat_id] || 'available'}
+                  {((seatStatuses[focusedSeat.seat_id] || 'available').toString().toLowerCase() === 'payment_pending' ? 'held' : (seatStatuses[focusedSeat.seat_id] || 'available')).toString().toLowerCase()}
                 </span>
               </div>
 
-              {focusedScore && (
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Viewing Comfort:</span>
-                  <span
-                    className={`text-sm font-black px-2.5 py-1 rounded-xl text-white ${
-                      focusedScore.score >= 80 ? 'bg-emerald-600' : focusedScore.score >= 65 ? 'bg-amber-500' : 'bg-orange-500'
-                    }`}
-                    data-testid="seat-comfort-score-badge"
+              <div className="flex flex-wrap items-center gap-3">
+                {isWebGLSupported ? (
+                  <button
+                    onClick={() => handleViewPOV(focusedSeat.seat_id)}
+                    data-testid="see-view-from-seat-btn"
+                    className="flex min-h-[40px] items-center gap-2 rounded-xl border-2 border-[#1B1320] bg-white px-3.5 py-1.5 text-xs font-bold text-[#1B1320] shadow-sm hover:bg-slate-50 transition active:scale-95"
+                    title={`See 3D Seated POV from seat ${focusedSeat.seat_id}`}
                   >
-                    {focusedScore.score} / 100
+                    <Compass className="h-4 w-4 text-[#C8102E]" />
+                    <span>See view from this seat</span>
+                  </button>
+                ) : (
+                  <span
+                    data-testid="3d-unavailable-badge"
+                    className="text-xs font-semibold text-slate-500 italic bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200"
+                  >
+                    3D view not available on this device
                   </span>
-                </div>
-              )}
+                )}
+
+                {focusedScore && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Viewing Comfort:</span>
+                    <span
+                      className={`text-sm font-black px-2.5 py-1 rounded-xl text-white ${
+                        focusedScore.score >= 80 ? 'bg-emerald-600' : focusedScore.score >= 65 ? 'bg-amber-500' : 'bg-orange-500'
+                      }`}
+                      data-testid="seat-comfort-score-badge"
+                    >
+                      {focusedScore.score} / 100
+                    </span>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-700">
@@ -707,12 +776,24 @@ export function SeatMap2D({
                   {selectedSeats.map((id) => (
                     <span
                       key={id}
-                      className="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1 text-xs font-bold text-[#9F1239] flex items-center gap-1.5"
+                      className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-bold text-[#9F1239] flex items-center gap-1.5"
                     >
                       <span>{id}</span>
+                      {isWebGLSupported && (
+                        <button
+                          onClick={() => handleViewPOV(id)}
+                          data-testid={`view-pov-${id}`}
+                          className="flex items-center gap-0.5 rounded px-1 text-[11px] font-semibold text-[#C8102E] hover:bg-rose-100 hover:underline transition"
+                          title={`View from seat ${id}`}
+                          aria-label={`View 3D perspective from seat ${id}`}
+                        >
+                          <Compass className="h-3 w-3" />
+                          <span>View</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => deselectSeat(id)}
-                        className="text-rose-500 hover:text-rose-800"
+                        className="text-rose-500 hover:text-rose-800 ml-0.5"
                         aria-label={`Remove seat ${id}`}
                       >
                         <X className="h-3.5 w-3.5" />
