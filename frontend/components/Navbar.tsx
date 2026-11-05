@@ -191,7 +191,7 @@ export function Navbar() {
                     {/* Movies Section */}
                     {searchResults.movies && searchResults.movies.length > 0 && (
                       <div>
-                        <div className="text-xs font-bold uppercase tracking-wider text-[#4A4056] px-2 py-1 flex items-center gap-1.5">
+                        <div className="text-sm font-bold uppercase tracking-wider text-[#4A4056] px-2 py-1 flex items-center gap-1.5">
                           <Film className="h-4 w-4 text-[#C8102E]" />
                           <span>Movies</span>
                         </div>
@@ -244,7 +244,7 @@ export function Navbar() {
                     {/* Cinemas Section */}
                     {searchResults.cinemas && searchResults.cinemas.length > 0 && (
                       <div className="pt-2 border-t border-[#E6DCD2]">
-                        <div className="text-xs font-bold uppercase tracking-wider text-[#4A4056] px-2 py-1 flex items-center gap-1.5">
+                        <div className="text-sm font-bold uppercase tracking-wider text-[#4A4056] px-2 py-1 flex items-center gap-1.5">
                           <Building2 className="h-4 w-4 text-[#F2A900]" />
                           <span>Cinemas</span>
                         </div>
@@ -282,9 +282,9 @@ export function Navbar() {
                   </div>
                 ) : recentSearches.length > 0 ? (
                   <div>
-                    <div className="flex items-center justify-between px-2 py-1 text-xs font-bold uppercase tracking-wider text-[#4A4056]">
+                    <div className="flex items-center justify-between px-2 py-1 text-sm font-bold uppercase tracking-wider text-[#4A4056]">
                       <span className="flex items-center gap-1.5">
-                        <History className="h-3.5 w-3.5" />
+                        <History className="h-4 w-4" />
                         Recent Searches
                       </span>
                       <button
@@ -293,7 +293,7 @@ export function Navbar() {
                           setRecentSearches([]);
                           localStorage.removeItem('cineverse_recent_searches');
                         }}
-                        className="text-[#C8102E] hover:underline text-xs font-medium"
+                        className="text-[#C8102E] hover:underline text-sm font-semibold"
                       >
                         clear
                       </button>

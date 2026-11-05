@@ -107,7 +107,9 @@ def create_app() -> FastAPI:
     @application.exception_handler(HTTPException)
     async def custom_http_exception_handler(request: Request, exc: HTTPException):
         req_id = getattr(request.state, "request_id", None)
-        headers = {"X-Request-ID": req_id} if req_id else None
+        headers = dict(exc.headers) if exc.headers else {}
+        if req_id:
+            headers["X-Request-ID"] = req_id
         return JSONResponse(
             status_code=exc.status_code,
             content={

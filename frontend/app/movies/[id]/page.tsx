@@ -7,7 +7,7 @@ import { useParams } from 'next/navigation';
 import {
   Star, Play, Compass, MapPin, CheckCircle2
 } from 'lucide-react';
-import { TrailerModal } from '@/components/TrailerModal';
+import { useTrailerStore } from '@/store/useTrailerStore';
 import {
   getMovie, getMovieShowtimes,
   type MovieDetail, type CinemaShowtimesGroup
@@ -21,7 +21,7 @@ export default function MovieDetailPage() {
   const [showtimesGroups, setShowtimesGroups] = useState<CinemaShowtimesGroup[]>([]);
   const [selectedDateIdx, setSelectedDateIdx] = useState<number>(0);
   const [loading, setLoading] = useState(true);
-  const [trailerOpen, setTrailerOpen] = useState(false);
+  const openTrailer = useTrailerStore((s) => s.openTrailer);
 
   // Generate 7-day dates strip
   const dates = [...Array(7)].map((_, i) => {
@@ -187,8 +187,14 @@ export default function MovieDetailPage() {
 
             <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 pt-3">
               <button
-                onClick={() => setTrailerOpen(true)}
+                onClick={() => openTrailer({
+                  movieId: movie.id,
+                  title: movie.title,
+                  posterUrl: movie.poster_url,
+                  trailerUrl: movie.trailer_url || undefined,
+                })}
                 className="flex min-h-[48px] items-center gap-2 rounded-xl bg-white px-6 py-3 text-base font-bold text-[#1B1320] shadow hover:bg-slate-100 transition"
+                data-testid="movie-play-trailer-btn"
               >
                 <Play className="h-4 w-4 fill-[#1B1320]" />
                 <span>Play Trailer</span>
@@ -236,7 +242,7 @@ export default function MovieDetailPage() {
                       : 'border-[#E6DCD2] bg-white text-slate-700 hover:border-slate-400 hover:text-[#1B1320]'
                   }`}
                 >
-                  <span className="text-xs font-bold uppercase tracking-wider">{d.dayName}</span>
+                  <span className="text-sm font-bold uppercase tracking-wider">{d.dayName}</span>
                   <span className="text-base font-black mt-0.5">{d.dateFormatted}</span>
                 </button>
               );
@@ -267,7 +273,7 @@ export default function MovieDetailPage() {
 
                     <div className="flex flex-wrap gap-1.5">
                       {group.facilities?.map((f) => (
-                        <span key={f} className="rounded-lg bg-[#FAF6F0] px-2.5 py-1 text-xs font-medium text-slate-700 border border-[#E6DCD2]">
+                        <span key={f} className="rounded-lg bg-[#FAF6F0] px-2.5 py-1 text-sm font-medium text-slate-700 border border-[#E6DCD2]">
                           {f}
                         </span>
                       ))}
@@ -284,12 +290,32 @@ export default function MovieDetailPage() {
                         hour12: true,
                       });
 
-                      const statusBorder =
-                        st.availability_status === 'ALMOST_FULL'
-                          ? 'border-rose-400 bg-rose-50 text-rose-900'
+                      const availLabel =
+                        st.availability_status === 'SOLD_OUT'
+                          ? 'Sold out'
+                          : st.availability_status === 'ALMOST_FULL'
+                          ? 'Almost full'
                           : st.availability_status === 'FAST_FILLING'
-                          ? 'border-amber-400 bg-amber-50 text-amber-900'
-                          : 'border-emerald-300 bg-emerald-50 text-emerald-900';
+                          ? 'Fast filling'
+                          : 'Available';
+
+                      const statusBorder =
+                        st.availability_status === 'SOLD_OUT'
+                          ? 'border-zinc-300 bg-zinc-100 text-zinc-600'
+                          : st.availability_status === 'ALMOST_FULL'
+                          ? 'border-rose-400 bg-rose-50 text-rose-950'
+                          : st.availability_status === 'FAST_FILLING'
+                          ? 'border-amber-400 bg-amber-50 text-amber-950'
+                          : 'border-emerald-300 bg-emerald-50 text-emerald-950';
+
+                      const badgeColor =
+                        st.availability_status === 'SOLD_OUT'
+                          ? 'bg-zinc-200 text-zinc-700'
+                          : st.availability_status === 'ALMOST_FULL'
+                          ? 'bg-rose-200 text-rose-900'
+                          : st.availability_status === 'FAST_FILLING'
+                          ? 'bg-amber-200 text-amber-900'
+                          : 'bg-emerald-200 text-emerald-900';
 
                       const targetUrl = st.has_3d_preview
                         ? `/cinemas/${group.cinema_id}/auditorium/${st.auditorium_id}?showtime=${st.id}&mode=3d`
@@ -301,24 +327,33 @@ export default function MovieDetailPage() {
                           href={targetUrl}
                           data-testid="showtime-chip"
                           data-has-3d={st.has_3d_preview}
-                          className={`group flex min-h-[64px] min-w-[120px] flex-col items-center justify-center rounded-2xl border-2 px-5 py-3 transition hover:scale-105 shadow-sm ${statusBorder}`}
+                          data-availability={st.availability_status}
+                          data-price={st.lowest_price}
+                          className={`group flex min-h-[72px] min-w-[140px] flex-col items-center justify-center rounded-2xl border-2 px-5 py-3 transition hover:scale-105 shadow-sm ${statusBorder}`}
                         >
                           <span className="text-base font-black">{timeString}</span>
-                          <span className="text-xs font-bold opacity-80 mt-0.5">
+                          <span className="text-sm font-semibold opacity-90 mt-0.5">
                             {st.format}
                           </span>
-                          <div className="flex items-center gap-1 mt-1.5 text-xs font-bold text-[#C8102E]">
+                          <div className="flex items-center gap-1.5 mt-1 text-sm font-bold text-[#C8102E]">
                             {st.has_3d_preview ? (
                               <>
-                                <Compass className="h-3 w-3" />
-                                <span>3D Seat POV</span>
+                                <Compass className="h-3.5 w-3.5" />
+                                <span>3D POV</span>
                               </>
                             ) : (
                               <span>2D Map</span>
                             )}
                             <span>•</span>
-                            <span>₹{st.lowest_price}</span>
+                            <span data-testid="chip-lowest-price">₹{st.lowest_price}</span>
                           </div>
+                          {/* Availability text label badge */}
+                          <span
+                            data-testid="chip-availability-label"
+                            className={`mt-1.5 rounded-full px-2.5 py-0.5 text-sm font-bold uppercase tracking-wider ${badgeColor}`}
+                          >
+                            {availLabel}
+                          </span>
                         </Link>
                       );
                     })}
@@ -400,13 +435,6 @@ export default function MovieDetailPage() {
           </div>
         </section>
       </div>
-
-      <TrailerModal
-        isOpen={trailerOpen}
-        onClose={() => setTrailerOpen(false)}
-        title={movie.title}
-        trailerUrl={movie.trailer_url}
-      />
     </div>
   );
 }

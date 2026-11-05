@@ -34,10 +34,23 @@ async def list_movies(
     stmt = select(Movie)
 
     if city_id:
-        stmt = stmt.join(Showtime, Showtime.movie_id == Movie.id)\
-                   .join(Cinema, Cinema.id == Showtime.cinema_id)\
-                   .where(Cinema.city_id == city_id)\
-                   .distinct()
+        if status == "now_showing":
+            stmt = stmt.join(Showtime, Showtime.movie_id == Movie.id)\
+                       .join(Cinema, Cinema.id == Showtime.cinema_id)\
+                       .where(Cinema.city_id == city_id)\
+                       .distinct()
+        elif status == "coming_soon":
+            pass
+        else:
+            stmt = stmt.outerjoin(Showtime, Showtime.movie_id == Movie.id)\
+                       .outerjoin(Cinema, Cinema.id == Showtime.cinema_id)\
+                       .where(
+                           or_(
+                               Cinema.city_id == city_id,
+                               Movie.is_coming_soon == True
+                           )
+                       )\
+                       .distinct()
 
     if status == "now_showing":
         stmt = stmt.where(Movie.is_now_showing == True)
@@ -225,7 +238,7 @@ async def get_movie_showtimes(
             avail_status = "SOLD_OUT"
         elif ratio < 0.2:
             avail_status = "ALMOST_FULL"
-        elif ratio < 0.5:
+        elif ratio < 0.6:
             avail_status = "FAST_FILLING"
         else:
             avail_status = "AVAILABLE"

@@ -23,23 +23,23 @@ export function CityModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-xl rounded-2xl border border-white/10 bg-[#16181f] p-6 shadow-2xl text-white">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div className="relative w-full max-w-xl rounded-3xl border border-[#E6DCD2] bg-[#FFF8F1] p-6 shadow-2xl text-[#1B1320]">
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-2 text-zinc-400 hover:bg-white/10 hover:text-white transition"
+          className="absolute right-4 top-4 rounded-full p-2 text-[#4A4056] hover:bg-[#FDEBD8] hover:text-[#1B1320] transition min-h-[44px] min-w-[44px] flex items-center justify-center"
           aria-label="Close"
         >
           <X className="h-5 w-5" />
         </button>
 
         <div className="flex items-center gap-3 mb-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-red-600/20 text-[#e50914]">
-            <MapPin className="h-5 w-5" />
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#FDEBD8] text-[#C8102E]">
+            <MapPin className="h-6 w-6" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-white">Select Your City</h2>
-            <p className="text-xs text-zinc-400">Movie showtimes and cinemas are tailored to your location</p>
+            <h2 className="text-2xl font-black text-[#1B1320]">Select Your City</h2>
+            <p className="text-sm text-[#4A4056]">Movie showtimes and cinemas are tailored to your location</p>
           </div>
         </div>
 
@@ -54,25 +54,25 @@ export function CityModal({
                   onSelectCity(city);
                   onClose();
                 }}
-                className={`group flex items-center justify-between rounded-xl border p-4 text-left transition ${
+                className={`group flex items-center justify-between rounded-2xl border p-4 text-left transition min-h-[48px] ${
                   isSelected
-                    ? 'border-[#e50914] bg-[#e50914]/10 text-white font-semibold'
-                    : 'border-white/5 bg-[#0f1014] text-zinc-300 hover:border-white/20 hover:bg-white/5'
+                    ? 'border-[#C8102E] bg-white text-[#C8102E] font-bold shadow-sm'
+                    : 'border-[#E6DCD2] bg-white text-[#1B1320] hover:border-[#C8102E] hover:bg-[#FDEBD8]'
                 }`}
               >
                 <div>
-                  <div className="text-base font-semibold">{city.name}</div>
-                  <div className="text-xs text-zinc-400">{city.state}</div>
+                  <div className="text-base font-bold">{city.name}</div>
+                  <div className="text-sm text-[#4A4056]">{city.state}</div>
                 </div>
-                {isSelected && <Check className="h-4 w-4 text-[#e50914]" />}
+                {isSelected && <Check className="h-5 w-5 text-[#C8102E]" />}
               </button>
             );
           })}
         </div>
 
-        <div className="mt-6 border-t border-white/10 pt-4 flex justify-between items-center text-xs text-zinc-500">
+        <div className="mt-6 border-t border-[#E6DCD2] pt-4 flex justify-between items-center text-sm text-[#4A4056]">
           <span>Popular: Bengaluru, Mumbai, Delhi NCR</span>
-          <span className="text-zinc-400">All India Delivery</span>
+          <span className="font-semibold text-[#1B1320]">All India Service</span>
         </div>
       </div>
     </div>

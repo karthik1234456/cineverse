@@ -1,5 +1,7 @@
+import time
+from collections import defaultdict
 from typing import List, Optional, Dict, Any
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, func
 from sqlalchemy.orm import selectinload
@@ -12,14 +14,41 @@ from app.schemas.cinema import CinemaResponse
 
 router = APIRouter()
 
+# In-memory sliding window rate limiter: max 60 requests per minute per IP
+SEARCH_RATE_LIMIT = 60
+SEARCH_WINDOW_SECONDS = 60
+_search_request_history: Dict[str, List[float]] = defaultdict(list)
+
+
+def check_search_rate_limit(request: Request):
+    client_ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    cutoff = now - SEARCH_WINDOW_SECONDS
+    
+    # Filter out timestamps older than window
+    timestamps = [t for t in _search_request_history[client_ip] if t > cutoff]
+    if len(timestamps) >= SEARCH_RATE_LIMIT:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Rate limit exceeded for search. Please wait before searching again.",
+            headers={"Retry-After": str(SEARCH_WINDOW_SECONDS)}
+        )
+    timestamps.append(now)
+    _search_request_history[client_ip] = timestamps
+
 
 @router.get("/")
 async def global_search(
-    q: str = Query(..., min_length=1, description="Search query string"),
+    request: Request,
+    q: str = Query(..., min_length=1, max_length=100, description="Search query string"),
     limit: int = Query(10, ge=1, le=50),
     db: AsyncSession = Depends(get_db)
 ):
-    search_term = f"%{q.lower().strip()}%"
+    check_search_rate_limit(request)
+
+    # Sanitize search term against dangerous wildcards/escapes
+    clean_q = q.strip().replace("%", "\\%").replace("_", "\\_")
+    search_term = f"%{clean_q.lower()}%"
 
     # 1. Search Movies (by title, synopsis, genres, or actor name)
     movie_stmt = (

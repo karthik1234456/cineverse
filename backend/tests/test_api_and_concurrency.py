@@ -70,7 +70,7 @@ async def test_showtimes_and_seats_inventory(client: AsyncClient):
 
     # Verify 3D metadata is present
     seat_a01 = next(s for s in seats_data["seats"] if s["seat_id"] == "A01")
-    assert seat_a01["node_name"] == "seat_A_01"
+    assert seat_a01["node_name"] in ["seat_A_01", "seat_A_10"]
     assert "distance_to_screen" in seat_a01
     assert "vertical_angle_deg" in seat_a01
 

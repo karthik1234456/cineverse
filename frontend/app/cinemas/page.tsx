@@ -34,17 +34,17 @@ export default function CinemasPage() {
           >
             <div>
               <div className="flex items-center justify-between mb-3">
-                <span className="rounded-full bg-rose-50 px-3 py-1 text-xs font-bold text-[#9F1239] border border-rose-200">
+                <span className="rounded-full bg-rose-50 px-3.5 py-1 text-sm font-bold text-[#9F1239] border border-rose-200">
                   CineVerse Premium
                 </span>
-                <span className="text-xs font-semibold text-slate-500">M-Ticket Available</span>
+                <span className="text-sm font-semibold text-slate-500">M-Ticket Available</span>
               </div>
 
               <h2 className="text-2xl font-bold text-[#1B1320] group-hover:text-[#C8102E] transition">
                 {c.name}
               </h2>
 
-              <p className="flex items-start gap-2 text-sm text-slate-600 mt-2.5">
+              <p className="flex items-start gap-2 text-base text-slate-600 mt-2.5">
                 <MapPin className="h-4 w-4 text-slate-400 shrink-0 mt-0.5" />
                 <span>{c.address}</span>
               </p>
@@ -53,14 +53,14 @@ export default function CinemasPage() {
                 {c.facilities?.map((f) => (
                   <span
                     key={f}
-                    className="rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] px-3 py-1 text-xs font-medium text-slate-700"
+                    className="rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] px-3 py-1 text-sm font-medium text-slate-700"
                   >
                     {f}
                   </span>
                 ))}
               </div>
 
-              <div className="mt-5 rounded-2xl border border-[#E6DCD2] bg-[#FAF6F0] p-4 text-xs text-slate-600">
+              <div className="mt-5 rounded-2xl border border-[#E6DCD2] bg-[#FAF6F0] p-4 text-sm text-slate-600">
                 <span className="font-bold text-[#1B1320]">Cancellation Policy:</span> {c.cancellation_policy}
               </div>
             </div>

@@ -5,17 +5,14 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Star, Play, Tag, ArrowRight } from 'lucide-react';
 import { MovieCard } from '@/components/MovieCard';
-import { TrailerModal } from '@/components/TrailerModal';
+import { useTrailerStore } from '@/store/useTrailerStore';
 import { getMovies, type Movie } from '@/services/api';
 
 export default function HomePage() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [selectedFormat, setSelectedFormat] = useState<string>('All');
   const [activeHeroIdx, setActiveHeroIdx] = useState<number>(0);
-  const [trailerModal, setTrailerModal] = useState<{ isOpen: boolean; title: string; trailerUrl?: string }>({
-    isOpen: false,
-    title: '',
-  });
+  const openTrailer = useTrailerStore((s) => s.openTrailer);
 
   function loadData(cityId?: number) {
     getMovies({ city_id: cityId })
@@ -51,70 +48,83 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen bg-[#FFF8F1] text-[#1B1320]">
       {/* Rich Colour Band Hero Section */}
-      {heroMovie && (
-        <section className="relative w-full overflow-hidden bg-band-burgundy py-16 md:py-20 shadow-md">
-          {/* Subtle movie backdrop blend */}
-          <div className="absolute inset-0 opacity-20 pointer-events-none">
-            <img
-              src={heroMovie.banner_url}
-              alt={heroMovie.title}
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = 'none';
-              }}
-            />
-          </div>
+      <section data-testid="hero-movie-of-day" className="relative w-full overflow-hidden bg-band-burgundy py-16 md:py-20 shadow-md min-h-[360px]">
+        {heroMovie ? (
+          <>
+            {/* Subtle movie backdrop blend */}
+            <div className="absolute inset-0 opacity-20 pointer-events-none">
+              <img
+                src={heroMovie.banner_url}
+                alt={heroMovie.title}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = 'none';
+                }}
+              />
+            </div>
 
-          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-            <div className="max-w-3xl space-y-6">
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="rounded-full bg-white/20 backdrop-blur-sm px-4 py-1.5 text-sm font-bold uppercase tracking-wider text-white">
-                  Movie of the Day
-                </span>
-                <span className="rounded-full bg-white/20 backdrop-blur-sm px-3.5 py-1.5 text-sm font-semibold text-white">
-                  {heroMovie.certificate}
-                </span>
-                <div className="flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm px-3.5 py-1.5 text-sm font-bold text-white">
-                  <Star className="h-4 w-4 fill-[#F2A900] text-[#F2A900]" />
-                  <span>{heroMovie.rating_avg.toFixed(1)} / 10</span>
+            <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+              <div className="max-w-3xl space-y-6">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="rounded-full bg-white/20 backdrop-blur-sm px-4 py-1.5 text-sm font-bold uppercase tracking-wider text-white">
+                    Movie of the Day
+                  </span>
+                  <span className="rounded-full bg-white/20 backdrop-blur-sm px-3.5 py-1.5 text-sm font-semibold text-white">
+                    {heroMovie.certificate}
+                  </span>
+                  <div className="flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm px-3.5 py-1.5 text-sm font-bold text-white">
+                    <Star className="h-4 w-4 fill-[#F2A900] text-[#F2A900]" />
+                    <span>{heroMovie.rating_avg.toFixed(1)} / 10</span>
+                  </div>
+                </div>
+
+                <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-tight">
+                  {heroMovie.title}
+                </h1>
+
+                <p className="text-lg sm:text-xl text-white/90 line-clamp-3 leading-relaxed font-normal">
+                  {heroMovie.synopsis}
+                </p>
+
+                {/* Exactly Two Hero CTAs: Book tickets (primary) + Watch trailer (secondary) */}
+                <div className="flex flex-wrap items-center gap-4 pt-2">
+                  <Link
+                    href={`/movies/${heroMovie.slug}`}
+                    className="btn-primary min-h-[52px] px-8 text-lg shadow-lg"
+                    data-testid="hero-book-tickets-btn"
+                  >
+                    Book Tickets
+                  </Link>
+
+                  <button
+                    onClick={() => openTrailer({
+                      movieId: heroMovie.id,
+                      title: heroMovie.title,
+                      posterUrl: heroMovie.poster_url,
+                      trailerUrl: heroMovie.trailer_url || undefined
+                    })}
+                    className="btn-secondary min-h-[52px] px-6 text-lg border-white/30 text-white bg-white/10 hover:bg-white/20 shadow-md backdrop-blur-sm"
+                    data-testid="hero-watch-trailer-btn"
+                  >
+                    <Play className="h-5 w-5 fill-current" />
+                    <span>Watch Trailer</span>
+                  </button>
                 </div>
               </div>
-
-              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-tight">
-                {heroMovie.title}
-              </h1>
-
-              <p className="text-lg sm:text-xl text-white/90 line-clamp-3 leading-relaxed font-normal">
-                {heroMovie.synopsis}
-              </p>
-
-              {/* Exactly Two Hero CTAs: Book tickets (primary) + Watch trailer (secondary) */}
-              <div className="flex flex-wrap items-center gap-4 pt-2">
-                <Link
-                  href={`/movies/${heroMovie.slug}`}
-                  className="btn-primary min-h-[52px] px-8 text-lg shadow-lg"
-                  data-testid="hero-book-button"
-                >
-                  Book Tickets
-                </Link>
-
-                <button
-                  onClick={() => setTrailerModal({
-                    isOpen: true,
-                    title: heroMovie.title,
-                    trailerUrl: heroMovie.trailer_url || '/trailers/quantum_odyssey.webm'
-                  })}
-                  className="btn-secondary min-h-[52px] px-6 text-lg border-white/30 text-white bg-white/10 hover:bg-white/20 shadow-md backdrop-blur-sm"
-                  data-testid="hero-trailer-button"
-                >
-                  <Play className="h-5 w-5 fill-current" />
-                  <span>Watch Trailer</span>
-                </button>
-              </div>
+            </div>
+          </>
+        ) : (
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
+            <div className="h-8 w-40 bg-white/20 rounded-full mb-4" />
+            <div className="h-12 w-96 bg-white/20 rounded-xl mb-4" />
+            <div className="h-20 max-w-2xl bg-white/10 rounded-xl mb-6" />
+            <div className="flex gap-4">
+              <div className="h-12 w-36 bg-white/30 rounded-xl" />
+              <div className="h-12 w-36 bg-white/20 rounded-xl" />
             </div>
           </div>
-        </section>
-      )}
+        )}
+      </section>
 
       {/* Main Content: Max 3 Distinct Sections (Simplicity Budget) */}
       <div className="mx-auto max-w-7xl w-full px-4 sm:px-6 lg:px-8 py-12 space-y-16">
@@ -206,14 +216,6 @@ export default function HomePage() {
           </div>
         </section>
       </div>
-
-      {/* Trailer Modal */}
-      <TrailerModal
-        isOpen={trailerModal.isOpen}
-        onClose={() => setTrailerModal({ isOpen: false, title: '' })}
-        title={trailerModal.title}
-        trailerUrl={trailerModal.trailerUrl}
-      />
     </div>
   );
 }

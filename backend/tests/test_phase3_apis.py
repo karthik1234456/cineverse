@@ -157,3 +157,73 @@ async def test_global_search_api(client: AsyncClient):
     actor_resp = await client.get("/api/v1/search/?q=Marcus")
     assert actor_resp.status_code == 200
     assert len(actor_resp.json()["movies"]) >= 1
+
+
+@pytest.mark.asyncio
+async def test_showtime_chip_lowest_price_matches_server(client: AsyncClient):
+    """Tightening 2: Each chip lowest price equals the minimum price rule calculated by the server."""
+    resp = await client.get("/api/v1/movies/1/showtimes")
+    assert resp.status_code == 200
+    groups = resp.json()
+    assert len(groups) > 0
+    showtimes = groups[0]["showtimes"]
+    assert len(showtimes) > 0
+    st_data = showtimes[0]
+    assert "lowest_price" in st_data
+    assert st_data["lowest_price"] == 280.0
+    assert st_data["availability_status"] in ["AVAILABLE", "FAST_FILLING", "ALMOST_FULL", "SOLD_OUT"]
+
+
+@pytest.mark.asyncio
+async def test_movie_trailer_mapping_and_fallbacks(client: AsyncClient):
+    """Tightening 3: Per-movie trailers with distinct files and None fallback."""
+    # Movie 1 -> quantum_odyssey
+    m1 = await client.get("/api/v1/movies/1")
+    assert m1.status_code == 200
+    assert m1.json()["trailer_url"] == "/trailers/quantum_odyssey.webm"
+
+    # Movie 2 -> astra
+    m2 = await client.get("/api/v1/movies/2")
+    assert m2.status_code == 200
+    assert m2.json()["trailer_url"] == "/trailers/astra.webm"
+
+    # Movie 3 -> shadow_protocol
+    m3 = await client.get("/api/v1/movies/3")
+    assert m3.status_code == 200
+    assert m3.json()["trailer_url"] == "/trailers/shadow_protocol.ogv"
+
+    # Movie 4 -> None fallback
+    m4 = await client.get("/api/v1/movies/4")
+    assert m4.status_code == 200
+    assert m4.json()["trailer_url"] is None
+
+
+@pytest.mark.asyncio
+async def test_search_injection_probes_and_rate_limit(client: AsyncClient):
+    """Security gate: Search handles SQL injection and XSS probes safely and enforces rate limits."""
+    # SQLi probe
+    sqli_resp = await client.get("/api/v1/search/?q=' OR '1'='1")
+    assert sqli_resp.status_code == 200
+    data = sqli_resp.json()
+    assert isinstance(data["movies"], list)
+
+    # XSS probe
+    xss_resp = await client.get("/api/v1/search/?q=<script>alert(1)</script>")
+    assert xss_resp.status_code == 200
+    assert isinstance(xss_resp.json()["cinemas"], list)
+
+    # Rate limiting probe (60 requests limit)
+    from app.api.v1.search import _search_request_history, SEARCH_RATE_LIMIT
+    _search_request_history.clear()
+    
+    # Fill up limit
+    for _ in range(SEARCH_RATE_LIMIT):
+        r = await client.get("/api/v1/search/?q=test")
+        assert r.status_code == 200
+
+    # 61st request triggers 429
+    blocked = await client.get("/api/v1/search/?q=test")
+    assert blocked.status_code == 429
+    assert "Retry-After" in blocked.headers
+    _search_request_history.clear()
+

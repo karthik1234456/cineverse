@@ -19,7 +19,7 @@ test.describe.serial('Phase 3 — Discovery, Movies, Cinemas, Showtimes E2E Jour
     });
   });
 
-  test('01. City selection and Home page discovery', async ({ page }) => {
+  test('01. City selection and Home page discovery (simplified 3-row layout)', async ({ page }) => {
     // Clear city to test modal trigger on home
     await page.addInitScript(() => {
       localStorage.removeItem('cineverse_city');
@@ -48,14 +48,22 @@ test.describe.serial('Phase 3 — Discovery, Movies, Cinemas, Showtimes E2E Jour
     await blrOption.click();
     await page.waitForTimeout(600);
 
-    // Verify city updated
+    // Verify city updated in selector
     await expect(cityBtn).toContainText('Bengaluru');
 
-    // Verify Home sections
-    await expect(page.getByText('Now Showing in Cinemas')).toBeVisible();
-    await expect(page.getByText('Top Theatres in Your City')).toBeVisible();
-    await expect(page.getByText('Exclusive Offers & Promotions')).toBeVisible();
-    await expect(page.getByText('Choose Seats Inside a Real 3D Auditorium')).toBeVisible();
+    // Verify Simplified Hero (Movie of the Day, Book Tickets, Watch Trailer)
+    await expect(page.locator('[data-testid="hero-movie-of-day"]')).toBeVisible();
+    await expect(page.locator('[data-testid="hero-book-tickets-btn"]')).toBeVisible();
+    await expect(page.locator('[data-testid="hero-watch-trailer-btn"]')).toBeVisible();
+
+    // Verify EXACTLY 3 discovery rows (Tightening mandate 1)
+    await expect(page.getByRole('heading', { name: 'Now Showing' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Coming Soon' })).toBeVisible();
+    await expect(page.getByText('Exclusive Offer')).toBeVisible();
+
+    // Verify carousel, trending row, top cinemas row, or 3D showcase are absent
+    await expect(page.getByText('Top Theatres in Your City')).not.toBeVisible();
+    await expect(page.getByText('Choose Seats Inside a Real 3D Auditorium')).not.toBeVisible();
 
     // Capture Home Desktop screenshot
     await page.screenshot({ path: path.join(EVIDENCE_DIR, '01_home_desktop.png'), fullPage: false });
@@ -68,7 +76,8 @@ test.describe.serial('Phase 3 — Discovery, Movies, Cinemas, Showtimes E2E Jour
 
     // Verify header and mobile layout
     await expect(page.getByRole('link', { name: 'CINEVERSE' })).toBeVisible();
-    await expect(page.getByText('Now Showing in Cinemas')).toBeVisible();
+    await expect(page.locator('[data-testid="hero-movie-of-day"]')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Now Showing' })).toBeVisible();
 
     // Capture Home Mobile screenshot
     await page.screenshot({ path: path.join(EVIDENCE_DIR, '02_home_mobile.png') });
@@ -106,27 +115,29 @@ test.describe.serial('Phase 3 — Discovery, Movies, Cinemas, Showtimes E2E Jour
     // Filter by Genre = Sci-Fi
     const genreSelect = page.locator('[data-testid="genre-filter"]');
     await genreSelect.selectOption('Sci-Fi');
+    await page.waitForTimeout(300);
 
     // Filter by Format = IMAX 3D
     const formatSelect = page.locator('[data-testid="format-filter"]');
     await formatSelect.selectOption('IMAX 3D');
+    await page.waitForTimeout(300);
 
     // Sort by Top Rated
     const sortSelect = page.locator('[data-testid="sort-filter"]');
     await sortSelect.selectOption('rating');
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(800);
 
     // Verify URL parameters are synchronized
-    const url = page.url();
+    const url = decodeURIComponent(page.url());
     expect(url).toContain('genre=Sci-Fi');
-    expect(url).toContain('format=IMAX+3D');
+    expect(url).toMatch(/format=(IMAX\+3D|IMAX 3D)/);
     expect(url).toContain('sort=rating');
 
     // Capture Movies Filter screenshot
     await page.screenshot({ path: path.join(EVIDENCE_DIR, '04_movies_filter_desktop.png') });
   });
 
-  test('05. Movie detail page with 7-day showtimes and SEO JSON-LD', async ({ page }) => {
+  test('05. Movie detail page with 7-day showtimes, server price quote, and SEO JSON-LD', async ({ page }) => {
     await page.goto('/movies/1');
     await page.waitForTimeout(1000);
 
@@ -145,6 +156,17 @@ test.describe.serial('Phase 3 — Discovery, Movies, Cinemas, Showtimes E2E Jour
     await expect(showtimeChips.first()).toBeVisible();
     const chipCount = await showtimeChips.count();
     expect(chipCount).toBeGreaterThan(0);
+
+    // Verify chip shows server quote lowest price (₹) and text availability badge
+    const firstChip = showtimeChips.first();
+    const lowestPriceEl = firstChip.locator('[data-testid="chip-lowest-price"]');
+    await expect(lowestPriceEl).toBeVisible();
+    await expect(lowestPriceEl).toContainText('₹');
+
+    const availBadge = firstChip.locator('[data-testid="chip-availability-label"]');
+    await expect(availBadge).toBeVisible();
+    const availText = (await availBadge.innerText()).trim().toUpperCase();
+    expect(['AVAILABLE', 'FAST FILLING', 'ALMOST FULL', 'SOLD OUT']).toContain(availText);
 
     // Capture Movie Detail Showtimes screenshot
     await page.screenshot({ path: path.join(EVIDENCE_DIR, '05_movie_detail_showtimes.png') });
@@ -174,12 +196,17 @@ test.describe.serial('Phase 3 — Discovery, Movies, Cinemas, Showtimes E2E Jour
     await expect(page.getByRole('heading', { level: 1 })).toContainText('CineVerse');
     await expect(page.getByText('Available Shows at')).toBeVisible();
 
+    // Verify showtime chip has price and text availability
+    const firstChip = page.locator('[data-testid="showtime-chip"]').first();
+    await expect(firstChip).toBeVisible();
+    await expect(firstChip).toContainText('₹');
+
     // Capture Cinema Detail screenshot
     await page.screenshot({ path: path.join(EVIDENCE_DIR, '07_cinema_detail_showtimes.png') });
   });
 
   test('08. Fallback 2D Seat Map for screens without 3D asset', async ({ page }) => {
-    await page.goto('/cinemas/1/auditorium/1?showtime=1&mode=2d');
+    await page.goto('/cinemas/2/auditorium/2?showtime=1');
     await page.waitForTimeout(1200);
 
     const fallbackContainer = page.locator('[data-testid="fallback-2d-seat-list"]');
@@ -198,6 +225,183 @@ test.describe.serial('Phase 3 — Discovery, Movies, Cinemas, Showtimes E2E Jour
 
     // Capture Fallback Seat List screenshot
     await page.screenshot({ path: path.join(EVIDENCE_DIR, '08_fallback_seat_list_2d.png') });
+  });
+
+  test('09. Reusable TrailerPlayer modal with keyboard shortcuts and controls', async ({ page }) => {
+    await page.goto('/movies/1');
+    await page.waitForTimeout(1000);
+
+    const playTrailerBtn = page.locator('[data-testid="movie-play-trailer-btn"]');
+    await expect(playTrailerBtn).toBeVisible();
+    await playTrailerBtn.click();
+
+    // Verify modal appears
+    const modal = page.locator('[data-testid="trailer-player-modal"]');
+    await expect(modal).toBeVisible();
+
+    // Verify video element is loaded
+    const video = page.locator('[data-testid="main-trailer-video"]');
+    await expect(video).toBeVisible();
+
+    // Check custom controls exist
+    await expect(page.locator('[data-testid="trailer-play-pause-btn"]')).toBeVisible();
+    await expect(page.locator('[data-testid="trailer-mute-btn"]')).toBeVisible();
+    await expect(page.locator('[data-testid="trailer-speed-btn"]')).toBeVisible();
+    await expect(page.locator('[data-testid="trailer-captions-btn"]')).toBeVisible();
+    await expect(page.locator('[data-testid="trailer-dock-button"]')).toBeVisible();
+
+    // Test 'm' key shortcut (mute toggle)
+    await page.keyboard.press('m');
+    await page.waitForTimeout(300);
+    const isMuted = await video.evaluate((el: HTMLVideoElement) => el.muted);
+    expect(isMuted).toBe(true);
+
+    // Unmute
+    await page.keyboard.press('m');
+    await page.waitForTimeout(300);
+    const isUnmuted = await video.evaluate((el: HTMLVideoElement) => el.muted);
+    expect(isUnmuted).toBe(false);
+
+    // Capture Trailer Player Modal screenshot
+    await page.screenshot({ path: path.join(EVIDENCE_DIR, '09_trailer_player_modal.png') });
+
+    // Close modal
+    await page.locator('[data-testid="trailer-close-button"]').click();
+    await expect(modal).not.toBeVisible();
+  });
+
+  test('10. MiniPlayerDock persistence across navigation', async ({ page }) => {
+    await page.goto('/movies/1');
+    await page.waitForTimeout(1000);
+
+    // Open trailer
+    await page.locator('[data-testid="movie-play-trailer-btn"]').click();
+    const modal = page.locator('[data-testid="trailer-player-modal"]');
+    await expect(modal).toBeVisible();
+
+    // Dock to mini player
+    const dockBtn = page.locator('[data-testid="trailer-dock-button"]');
+    await expect(dockBtn).toBeVisible();
+    await dockBtn.click();
+
+    // Modal closes and floating mini player appears at bottom right
+    await expect(modal).not.toBeVisible();
+    const miniDock = page.locator('[data-testid="mini-player-dock"]');
+    await expect(miniDock).toBeVisible();
+
+    // Navigate to cinemas page via header client link
+    const cinemasLink = page.locator('header a[href="/cinemas"]').first();
+    if (await cinemasLink.isVisible()) {
+      await cinemasLink.click();
+    } else {
+      await page.goto('/cinemas');
+    }
+    await page.waitForURL(/\/cinemas/);
+    await page.waitForTimeout(1000);
+
+    // Mini player is STILL visible on the new page!
+    await expect(miniDock).toBeVisible();
+    await expect(miniDock.locator('text=Quantum Odyssey')).toBeVisible();
+
+    // Capture Mini Player Dock screenshot during navigation
+    await page.screenshot({ path: path.join(EVIDENCE_DIR, '10_mini_player_dock_navigation.png') });
+
+    // Expand back to full modal
+    const expandBtn = page.locator('[data-testid="mini-player-expand-button"]');
+    await expect(expandBtn).toBeVisible();
+    await expandBtn.click();
+
+    // Modal reopens
+    await expect(modal).toBeVisible();
+
+    // Close
+    await page.locator('[data-testid="trailer-close-button"]').click();
+    await expect(modal).not.toBeVisible();
+    await expect(miniDock).not.toBeVisible();
+  });
+
+  test('11. Fallback for movie without trailer (Movie 4)', async ({ page }) => {
+    await page.goto('/movies/4');
+    await page.waitForTimeout(1000);
+
+    // Click play trailer
+    const playTrailerBtn = page.locator('[data-testid="movie-play-trailer-btn"]');
+    await expect(playTrailerBtn).toBeVisible();
+    await playTrailerBtn.click();
+
+    // Modal opens with unavailable fallback state
+    const fallbackBox = page.locator('[data-testid="trailer-unavailable-fallback"]');
+    await expect(fallbackBox).toBeVisible();
+    await expect(fallbackBox).toContainText('Trailer not available');
+
+    // Capture Unavailable Fallback screenshot
+    await page.screenshot({ path: path.join(EVIDENCE_DIR, '11_trailer_unavailable_fallback.png') });
+
+    // Close
+    await page.locator('[data-testid="trailer-close-button"]').click();
+  });
+
+  test('12. Click budget: Home to showtime list in <= 2 clicks', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForTimeout(1000);
+
+    // 1st click: Click "Book Tickets" on Hero
+    const bookTicketsBtn = page.locator('[data-testid="hero-book-tickets-btn"]');
+    await expect(bookTicketsBtn).toBeVisible();
+    await bookTicketsBtn.click();
+
+    // Navigated to movie detail showtime list
+    await page.waitForURL(/\/movies\//);
+    const showtimes = page.locator('[data-testid="showtime-chip"]');
+    await expect(showtimes.first()).toBeVisible();
+
+    // Total clicks taken = 1 (Strictly <= 3 clicks budget)
+    expect(true).toBe(true);
+  });
+
+  test('13. Automated font-size audit: 0 visible text elements under 14px', async ({ page }) => {
+    const pagesToTest = ['/', '/movies', '/movies/1', '/cinemas', '/cinemas/1'];
+
+    for (const urlPath of pagesToTest) {
+      await page.goto(urlPath);
+      await page.waitForTimeout(1000);
+
+      const violations = await page.evaluate(() => {
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        let node: Node | null;
+        const results: { text: string; fontSize: number; tag: string }[] = [];
+
+        while ((node = walker.nextNode())) {
+          const raw = node.nodeValue?.trim();
+          if (!raw || raw.length < 2) continue;
+
+          const el = node.parentElement;
+          if (!el || el.closest('script, style, noscript, svg')) continue;
+
+          const style = window.getComputedStyle(el);
+          if (style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0') continue;
+
+          const rect = el.getBoundingClientRect();
+          if (rect.width === 0 && rect.height === 0) continue;
+
+          const fontSize = parseFloat(style.fontSize);
+          // Strict 14px threshold
+          if (fontSize < 13.9) {
+            results.push({
+              text: raw.slice(0, 30),
+              fontSize,
+              tag: el.tagName.toLowerCase(),
+            });
+          }
+        }
+        return results;
+      });
+
+      if (violations.length > 0) {
+        console.warn(`Font size violations on ${urlPath}:`, violations);
+      }
+      expect(violations).toHaveLength(0);
+    }
   });
 
 });

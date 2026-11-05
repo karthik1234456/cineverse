@@ -122,7 +122,7 @@ async def get_cinema_showtimes(
             avail_status = "SOLD_OUT"
         elif ratio < 0.2:
             avail_status = "ALMOST_FULL"
-        elif ratio < 0.5:
+        elif ratio < 0.6:
             avail_status = "FAST_FILLING"
         else:
             avail_status = "AVAILABLE"

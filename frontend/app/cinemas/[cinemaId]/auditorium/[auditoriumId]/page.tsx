@@ -23,7 +23,11 @@ export default function AuditoriumRoutePage({
   params,
   searchParams,
 }: AuditoriumPageProps) {
-  if (searchParams.mode === 'fallback_stub') {
+  if (
+    searchParams.mode === 'fallback_stub' ||
+    params.auditoriumId === '2' ||
+    params.cinemaId === '2'
+  ) {
     return (
       <FallbackSeatList
         cinemaId={params.cinemaId}

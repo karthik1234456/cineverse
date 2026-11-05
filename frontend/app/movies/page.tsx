@@ -35,7 +35,9 @@ function MoviesListContent() {
   // Sync state back to URL
   const updateUrlParams = useCallback(
     (updates: Record<string, string>) => {
-      const current = new URLSearchParams(searchParams.toString());
+      const current = new URLSearchParams(
+        typeof window !== 'undefined' ? window.location.search : searchParams.toString()
+      );
       Object.entries(updates).forEach(([key, val]) => {
         if (!val || val === 'All' || (key === 'status' && val === 'all') || (key === 'sort' && val === 'popularity')) {
           current.delete(key);

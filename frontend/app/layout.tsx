@@ -3,6 +3,8 @@ import './globals.css';
 import { QueryProvider } from '@/components/providers/QueryProvider';
 import { Navbar } from '@/components/Navbar';
 import { VoiceAgentFloatingButton } from '@/components/agent/VoiceAgentFloatingButton';
+import { TrailerPlayer } from '@/components/TrailerPlayer';
+import { MiniPlayerDock } from '@/components/MiniPlayerDock';
 
 export const metadata: Metadata = {
   title: 'CineVerse — Experience The Theatre Before Booking Your Movie',
@@ -51,6 +53,8 @@ export default function RootLayout({
             </div>
           </footer>
           <VoiceAgentFloatingButton />
+          <TrailerPlayer />
+          <MiniPlayerDock />
         </QueryProvider>
         <script
           dangerouslySetInnerHTML={{
