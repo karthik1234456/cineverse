@@ -553,6 +553,21 @@ async def test_ticket_transfer_flow_and_security_limits(client: AsyncClient):
     assert re_xfer.status_code in [400, 403]
     assert any(phrase in str(re_xfer.json()["detail"]).lower() for phrase in ["already used", "not authorized"])
 
+    # 3. Kill-switch test: when ENABLE_TICKET_TRANSFERS is false, transfer is blocked with 403
+    from app.config import settings
+    original_val = settings.ENABLE_TICKET_TRANSFERS
+    try:
+        settings.ENABLE_TICKET_TRANSFERS = False
+        blocked_resp = await client.post(
+            f"/api/v1/tickets/{tkt_id}/transfer",
+            json={"recipient_email": "another@cineverse.in"},
+            headers=headers_sender
+        )
+        assert blocked_resp.status_code == 403
+        assert "disabled by venue policy" in blocked_resp.json()["detail"].lower()
+    finally:
+        settings.ENABLE_TICKET_TRANSFERS = original_val
+
 
 @pytest.mark.asyncio
 async def test_offline_ed25519_keys_and_batch_duplicate_conflict_reconciliation(client: AsyncClient):

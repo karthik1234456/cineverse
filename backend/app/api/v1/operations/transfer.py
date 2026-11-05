@@ -7,6 +7,7 @@ from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db
+from app.config import settings
 from app.models.auth import User
 from app.models.booking import Booking, Ticket
 from app.models.showtime import Showtime
@@ -15,8 +16,6 @@ from app.api.dependencies import require_user
 from app.services.ticket_service import generate_qr_data, generate_ticket_signature, generate_qr_code_base64
 
 router = APIRouter(prefix="/api/v1/tickets", tags=["Ticket Transfer"])
-
-FEATURE_TICKET_TRANSFER = True
 
 
 class TicketTransferRequest(BaseModel):
@@ -35,7 +34,7 @@ async def transfer_ticket(
     Invalidates the original QR code, generates a fresh signed token for the recipient,
     and logs the transaction for fraud prevention.
     """
-    if not FEATURE_TICKET_TRANSFER:
+    if not settings.ENABLE_TICKET_TRANSFERS:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Ticket transfer feature is currently disabled by venue policy."

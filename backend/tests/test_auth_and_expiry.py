@@ -48,16 +48,39 @@ async def test_auth_registration_and_login_lifecycle(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_otp_send_and_verify(client: AsyncClient):
     phone = "9988776655"
+    
+    # 1. Unsent OTP rejected
+    invalid_init = await client.post(
+        "/api/v1/auth/otp/verify",
+        json={"phone": "9111111111", "otp": "123456"}
+    )
+    assert invalid_init.status_code == 400
+
+    # 2. Send OTP
     send_resp = await client.post("/api/v1/auth/otp/send", json={"phone": phone})
     assert send_resp.status_code == 200
 
-    # Verify with valid dev OTP
+    # 3. Wrong OTP rejected
+    wrong_resp = await client.post(
+        "/api/v1/auth/otp/verify",
+        json={"phone": phone, "otp": "000000"}
+    )
+    assert wrong_resp.status_code == 400
+
+    # 4. Correct OTP accepted
     verify_resp = await client.post(
         "/api/v1/auth/otp/verify",
         json={"phone": phone, "otp": "123456"}
     )
     assert verify_resp.status_code == 200
     assert "access_token" in verify_resp.json()
+
+    # 5. Replay/reused OTP rejected
+    replay_resp = await client.post(
+        "/api/v1/auth/otp/verify",
+        json={"phone": phone, "otp": "123456"}
+    )
+    assert replay_resp.status_code == 400
 
 
 @pytest.mark.asyncio

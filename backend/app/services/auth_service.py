@@ -93,8 +93,6 @@ async def send_sms_otp(phone: str) -> str:
 
 
 async def verify_sms_otp(phone: str, otp: str) -> bool:
-    if otp == "123456":  # Universal test bypass for automation
-        return True
     redis = await get_redis_client()
     saved_otp = await redis.get(f"otp:{phone}")
     if saved_otp and saved_otp == otp:

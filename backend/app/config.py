@@ -33,6 +33,14 @@ class Settings(BaseSettings):
     CONVENIENCE_FEE_PER_TICKET: float = 35.0
     GST_PERCENTAGE: float = 18.0
 
+    # Feature Flags & Kill Switches (Operational Safeguards)
+    ENABLE_VOICE_AGENT: bool = True
+    ENABLE_3D_AUDITORIUM: bool = True
+    ENABLE_DYNAMIC_PRICING: bool = True
+    ENABLE_WAITLIST: bool = True
+    ENABLE_OFFLINE_SCANNING: bool = True
+    ENABLE_TICKET_TRANSFERS: bool = True  # Can be toggled to false via ENABLE_TICKET_TRANSFERS=false for state compliance
+
     # Payments (Razorpay Test Mode)
     RAZORPAY_KEY_ID: str = os.getenv("RAZORPAY_KEY_ID", "rzp_test_cineverse123")
     RAZORPAY_KEY_SECRET: str = os.getenv("RAZORPAY_KEY_SECRET", "secret_cineverse_test_mode")
