@@ -31,7 +31,7 @@ export function useSeatSocket({
     if (!enabled || !showtimeId) return;
 
     // Connect to real backend WebSocket
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://127.0.0.1:8000/ws';
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://127.0.0.1:8002/ws';
     const socket = new WebSocket(`${wsUrl}/showtimes/${showtimeId}`);
     wsRef.current = socket;
 

@@ -153,7 +153,18 @@ export interface ShowtimeSlot {
 export interface CinemaShowtimesGroup {
   cinema_id: number;
   cinema_name: string;
+  slug?: string;
   address: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  pincode?: string | null;
+  landmark?: string | null;
+  parking?: string | null;
+  transit_stop?: string | null;
+  phone?: string | null;
+  opening_hours?: string | null;
+  distance_km?: number | null;
+  directions_url?: string | null;
   cancellation_policy: string;
   facilities: string[];
   showtimes: ShowtimeSlot[];
@@ -164,13 +175,19 @@ export async function getMovieShowtimes(
   cityId?: number,
   targetDate?: string,
   format?: string,
-  language?: string
+  language?: string,
+  userLat?: number,
+  userLng?: number,
+  maxDistanceKm?: number
 ): Promise<CinemaShowtimesGroup[]> {
   const query = new URLSearchParams();
   if (cityId) query.set('city_id', cityId.toString());
   if (targetDate) query.set('target_date', targetDate);
   if (format) query.set('format', format);
   if (language) query.set('language', language);
+  if (userLat != null) query.set('user_lat', userLat.toString());
+  if (userLng != null) query.set('user_lng', userLng.toString());
+  if (maxDistanceKm != null) query.set('max_distance_km', maxDistanceKm.toString());
 
   return apiFetch<CinemaShowtimesGroup[]>(`/movies/${movieId}/showtimes?${query.toString()}`);
 }
@@ -182,14 +199,43 @@ export interface Cinema {
   name: string;
   slug: string;
   address: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  pincode?: string | null;
+  landmark?: string | null;
+  parking?: string | null;
+  transit_stop?: string | null;
+  phone?: string | null;
+  opening_hours?: string | null;
+  is_demo_data?: boolean;
+  distance_km?: number | null;
+  directions_url?: string | null;
   cancellation_policy: string;
   facilities: string[];
   images: string[];
 }
 
-export async function getCinemas(cityId?: number): Promise<Cinema[]> {
-  const query = cityId ? `?city_id=${cityId}` : '';
-  return apiFetch<Cinema[]>(`/cinemas/${query}`);
+export async function getCinemas(params: {
+  cityId?: number;
+  search?: string;
+  userLat?: number;
+  userLng?: number;
+  maxDistanceKm?: number;
+  sortBy?: 'distance' | 'name';
+} | number = {}): Promise<Cinema[]> {
+  const query = new URLSearchParams();
+  if (typeof params === 'number') {
+    query.set('city_id', params.toString());
+  } else {
+    if (params.cityId) query.set('city_id', params.cityId.toString());
+    if (params.search) query.set('search', params.search);
+    if (params.userLat != null) query.set('user_lat', params.userLat.toString());
+    if (params.userLng != null) query.set('user_lng', params.userLng.toString());
+    if (params.maxDistanceKm != null) query.set('max_distance_km', params.maxDistanceKm.toString());
+    if (params.sortBy) query.set('sort_by', params.sortBy);
+  }
+  const queryString = query.toString() ? `?${query.toString()}` : '';
+  return apiFetch<Cinema[]>(`/cinemas/${queryString}`);
 }
 
 export async function getCinema(idOrSlug: string | number): Promise<Cinema> {
@@ -374,6 +420,13 @@ export interface BookingResponse {
   movie_poster_url: string;
   cinema_name: string;
   cinema_address: string;
+  cinema_latitude?: number | null;
+  cinema_longitude?: number | null;
+  cinema_pincode?: string | null;
+  cinema_landmark?: string | null;
+  cinema_parking?: string | null;
+  cinema_transit_stop?: string | null;
+  directions_url?: string | null;
   auditorium_name: string;
   screen_type: string;
   start_time: string;
@@ -429,6 +482,13 @@ export interface HoldQuoteResponse {
   movie_poster_url: string;
   cinema_name: string;
   cinema_address: string;
+  cinema_latitude?: number | null;
+  cinema_longitude?: number | null;
+  cinema_pincode?: string | null;
+  cinema_landmark?: string | null;
+  cinema_parking?: string | null;
+  cinema_transit_stop?: string | null;
+  directions_url?: string | null;
   auditorium_name: string;
   screen_type: string;
   start_time: string;

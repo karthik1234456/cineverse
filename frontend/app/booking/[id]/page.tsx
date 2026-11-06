@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
   CheckCircle2, Printer, Calendar,
-  ArrowLeft, ShieldCheck, MapPin, XCircle
+  ArrowLeft, ShieldCheck, MapPin, XCircle, Navigation, Car, Train
 } from 'lucide-react';
 import { getBooking, cancelBooking, type BookingResponse } from '@/services/api';
 
@@ -54,20 +54,31 @@ export default function BookingConfirmationPage() {
     const formatIcs = (d: Date) =>
       `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
 
-    const icsContent = [
+    const dirUrl = booking.directions_url || (booking.cinema_latitude && booking.cinema_longitude ? `https://www.google.com/maps/dir/?api=1&destination=${booking.cinema_latitude},${booking.cinema_longitude}` : '');
+    const parkingNote = booking.cinema_parking && booking.cinema_parking !== 'none'
+      ? `${booking.cinema_parking.charAt(0).toUpperCase() + booking.cinema_parking.slice(1)} parking available`
+      : 'Parking info on site';
+
+    const icsLines = [
       'BEGIN:VCALENDAR',
       'VERSION:2.0',
+      'PRODID:-//CineVerse//EN',
       'BEGIN:VEVENT',
       `SUMMARY:${booking.movie_title} at ${booking.cinema_name}`,
-      `DESCRIPTION:Seats: ${booking.seats.map((s) => s.seat_id).join(', ')}. Booking Code: ${booking.booking_code}`,
-      `LOCATION:${booking.cinema_address}`,
+      `DESCRIPTION:Seats: ${booking.seats.map((s) => s.seat_id).join(', ')}. Booking Code: ${booking.booking_code}\\nParking: ${parkingNote}${dirUrl ? `\\nDirections: ${dirUrl}` : ''}`,
+      `LOCATION:${booking.cinema_name}\\, ${booking.cinema_address}`,
+    ];
+    if (booking.cinema_latitude && booking.cinema_longitude) {
+      icsLines.push(`GEO:${booking.cinema_latitude};${booking.cinema_longitude}`);
+    }
+    icsLines.push(
       `DTSTART:${formatIcs(startDate)}`,
       `DTEND:${formatIcs(endDate)}`,
       'END:VEVENT',
-      'END:VCALENDAR',
-    ].join('\r\n');
+      'END:VCALENDAR'
+    );
 
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+    const blob = new Blob([icsLines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -174,6 +185,45 @@ export default function BookingConfirmationPage() {
               <span className="text-sm text-slate-500">Scan at entrance turnstile</span>
             </div>
           )}
+        </div>
+
+        {/* Cinema Location & Transit Info */}
+        <div className="rounded-2xl border border-[#E6DCD2] bg-[#FAF6F0] p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-sm font-bold text-[#1B1320]">
+              <MapPin className="h-4 w-4 text-[#C8102E]" />
+              <span>{booking.cinema_name}</span>
+            </div>
+            <p className="text-sm text-slate-600">
+              {booking.cinema_address}
+              {booking.cinema_pincode ? ` — ${booking.cinema_pincode}` : ''}
+              {booking.cinema_landmark ? ` (Near ${booking.cinema_landmark})` : ''}
+            </p>
+            <div className="flex flex-wrap items-center gap-3 pt-1 text-xs text-slate-500 font-medium">
+              {booking.cinema_parking && (
+                <span className="inline-flex items-center gap-1 rounded bg-white px-2 py-0.5 border border-[#E6DCD2]">
+                  <Car className="h-3 w-3 text-slate-400" />
+                  <span className="capitalize">{booking.cinema_parking} parking</span>
+                </span>
+              )}
+              {booking.cinema_transit_stop && (
+                <span className="inline-flex items-center gap-1 rounded bg-white px-2 py-0.5 border border-[#E6DCD2]">
+                  <Train className="h-3 w-3 text-slate-400" />
+                  <span>{booking.cinema_transit_stop}</span>
+                </span>
+              )}
+            </div>
+          </div>
+
+          <a
+            href={booking.directions_url || (booking.cinema_latitude && booking.cinema_longitude ? `https://www.google.com/maps/dir/?api=1&destination=${booking.cinema_latitude},${booking.cinema_longitude}` : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.cinema_name)}`)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-white border border-[#E6DCD2] px-4 py-2 text-sm font-bold text-[#C8102E] hover:bg-rose-50 hover:border-rose-300 transition shadow-sm shrink-0"
+          >
+            <Navigation className="h-4 w-4 text-[#C8102E]" />
+            <span>Get Directions</span>
+          </a>
         </div>
 
         {/* Seat breakdown & Pricing */}

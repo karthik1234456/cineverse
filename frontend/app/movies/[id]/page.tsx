@@ -5,13 +5,15 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
-  Star, Play, Compass, MapPin, CheckCircle2
+  Star, Play, Compass, MapPin, CheckCircle2, Navigation, ExternalLink, ShieldCheck
 } from 'lucide-react';
 import { useTrailerStore } from '@/store/useTrailerStore';
 import {
   getMovie, getMovieShowtimes,
   type MovieDetail, type CinemaShowtimesGroup
 } from '@/services/api';
+import { CinemaLocationModal } from '@/components/map/CinemaLocationModal';
+import { useGeolocation } from '@/hooks/useGeolocation';
 
 export default function MovieDetailPage() {
   const params = useParams();
@@ -22,7 +24,11 @@ export default function MovieDetailPage() {
   const [selectedDateIdx, setSelectedDateIdx] = useState<number>(0);
   const [currentCityId, setCurrentCityId] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+  const [radiusFilter, setRadiusFilter] = useState<number | null>(null);
+  const [activeModalCinema, setActiveModalCinema] = useState<CinemaShowtimesGroup | null>(null);
   const openTrailer = useTrailerStore((s) => s.openTrailer);
+
+  const { coords: userCoords, isRequesting: isGeoRequesting, requestLocation, clearLocation } = useGeolocation();
 
   // Listen to city changes
   useEffect(() => {
@@ -57,13 +63,31 @@ export default function MovieDetailPage() {
     getMovie(movieIdOrSlug)
       .then(async (m) => {
         setMovie(m);
-        const groups = await getMovieShowtimes(m.id, currentCityId, selectedDate.iso);
+        const groups = await getMovieShowtimes(
+          m.id,
+          currentCityId,
+          selectedDate.iso,
+          undefined,
+          undefined,
+          userCoords?.lat,
+          userCoords?.lng,
+          radiusFilter || undefined
+        );
         if (groups && groups.length > 0) {
           setShowtimesGroups(groups);
-        } else if (selectedDateIdx === 0) {
+        } else if (selectedDateIdx === 0 && !radiusFilter) {
           // Check subsequent days to show the first available showtime
           for (let i = 1; i < dates.length; i++) {
-            const nextGroups = await getMovieShowtimes(m.id, currentCityId, dates[i].iso);
+            const nextGroups = await getMovieShowtimes(
+              m.id,
+              currentCityId,
+              dates[i].iso,
+              undefined,
+              undefined,
+              userCoords?.lat,
+              userCoords?.lng,
+              radiusFilter || undefined
+            );
             if (nextGroups && nextGroups.length > 0) {
               setSelectedDateIdx(i);
               setShowtimesGroups(nextGroups);
@@ -72,12 +96,12 @@ export default function MovieDetailPage() {
           }
           setShowtimesGroups([]);
         } else {
-          setShowtimesGroups([]);
+          setShowtimesGroups(groups || []);
         }
       })
       .catch((err) => console.warn(err))
       .finally(() => setLoading(false));
-  }, [movieIdOrSlug, selectedDateIdx, currentCityId]);
+  }, [movieIdOrSlug, selectedDateIdx, currentCityId, userCoords, radiusFilter]);
 
   if (loading && !movie) {
     return (
@@ -260,6 +284,53 @@ export default function MovieDetailPage() {
             })}
           </div>
 
+          {/* Distance Filter Strip & Near Me (Phase 6) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl bg-[#FFF8F1] border border-[#E6DCD2]">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-sm font-bold text-[#1B1320] mr-1">Distance:</span>
+              {[
+                { label: 'All', value: null },
+                { label: 'Within 5 km', value: 5 },
+                { label: 'Within 10 km', value: 10 },
+                { label: 'Within 20 km', value: 20 },
+              ].map((rf) => (
+                <button
+                  key={rf.label}
+                  type="button"
+                  onClick={() => setRadiusFilter(rf.value)}
+                  className={`h-9 px-3.5 rounded-xl text-xs font-bold transition border ${
+                    radiusFilter === rf.value
+                      ? 'bg-[#C8102E] text-white border-[#C8102E]'
+                      : 'bg-white text-[#4A4056] border-[#E6DCD2] hover:border-[#C8102E]'
+                  }`}
+                  data-testid={`radius-filter-${rf.value || 'all'}`}
+                >
+                  {rf.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={userCoords ? clearLocation : requestLocation}
+                disabled={isGeoRequesting}
+                className={`flex items-center gap-1.5 h-9 px-3.5 rounded-xl font-bold text-xs transition ${
+                  userCoords
+                    ? 'bg-[#2563EB] text-white'
+                    : 'bg-white border border-[#E6DCD2] text-[#1B1320] hover:border-[#C8102E]'
+                }`}
+                data-testid="movie-near-me-btn"
+              >
+                <Navigation className={`h-3.5 w-3.5 ${isGeoRequesting ? 'animate-spin' : ''}`} />
+                <span>{userCoords ? 'Near Me Active' : 'Sort by Distance'}</span>
+              </button>
+              <span className="text-[12px] text-[#4A4056] hidden md:inline">
+                Your location is used only to show nearby cinemas and is never stored.
+              </span>
+            </div>
+          </div>
+
           {/* Showtimes Grouped by Cinema */}
           <div className="space-y-6">
             {showtimesGroups.length > 0 ? (
@@ -272,9 +343,27 @@ export default function MovieDetailPage() {
                     <div>
                       <div className="flex items-center gap-3">
                         <h3 className="text-xl font-bold text-[#1B1320]">{group.cinema_name}</h3>
+                        {group.distance_km != null && (
+                          <span
+                            className="rounded-lg bg-[#EAF1FF] px-2.5 py-0.5 text-xs font-bold text-[#2563EB]"
+                            data-testid={`cinema-distance-${group.cinema_id}`}
+                          >
+                            {group.distance_km} km away
+                          </span>
+                        )}
                         <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-sm font-bold text-emerald-800 border border-emerald-200">
                           M-Ticket Available
                         </span>
+                        <button
+                          type="button"
+                          onClick={() => setActiveModalCinema(group)}
+                          className="flex items-center gap-1 text-xs font-bold text-[#0E8F8A] bg-[#E6F6F0] px-2.5 py-1 rounded-lg hover:bg-[#d0efe4] transition"
+                          title="View on Map"
+                          data-testid={`cinema-map-modal-btn-${group.cinema_id}`}
+                        >
+                          <MapPin className="h-3.5 w-3.5" />
+                          <span>Map & Directions</span>
+                        </button>
                       </div>
                       <p className="text-sm text-slate-600 flex items-center gap-1.5 mt-1.5">
                         <MapPin className="h-4 w-4 text-slate-400" />
@@ -446,6 +535,29 @@ export default function MovieDetailPage() {
           </div>
         </section>
       </div>
+
+      {/* Cinema Location & Map Modal (Phase 6) */}
+      <CinemaLocationModal
+        isOpen={!!activeModalCinema}
+        onClose={() => setActiveModalCinema(null)}
+        cinema={
+          activeModalCinema
+            ? {
+                name: activeModalCinema.cinema_name,
+                address: activeModalCinema.address,
+                latitude: activeModalCinema.latitude,
+                longitude: activeModalCinema.longitude,
+                pincode: activeModalCinema.pincode,
+                landmark: activeModalCinema.landmark,
+                parking: activeModalCinema.parking,
+                transit_stop: activeModalCinema.transit_stop,
+                phone: activeModalCinema.phone,
+                opening_hours: activeModalCinema.opening_hours,
+                distance_km: activeModalCinema.distance_km,
+              }
+            : null
+        }
+      />
     </div>
   );
 }

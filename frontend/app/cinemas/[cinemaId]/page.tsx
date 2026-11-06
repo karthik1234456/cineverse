@@ -4,8 +4,11 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { MapPin, Compass, CheckCircle2 } from 'lucide-react';
+import { MapPin, Compass, CheckCircle2, Train, Car, Phone, Clock, ExternalLink } from 'lucide-react';
 import { getCinema, getCinemaShowtimes, type Cinema, type CinemaMovieShowtimes } from '@/services/api';
+import { MiniMap } from '@/components/map/MiniMap';
+import { AdminMapPicker } from '@/components/map/AdminMapPicker';
+import { getDirectionsUrl } from '@/components/map/MapAdapter';
 
 export default function CinemaDetailPage() {
   const params = useParams();
@@ -14,6 +17,7 @@ export default function CinemaDetailPage() {
   const [movieShowtimes, setMovieShowtimes] = useState<CinemaMovieShowtimes[]>([]);
   const [selectedDateIdx, setSelectedDateIdx] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [showAdminPicker, setShowAdminPicker] = useState(false);
 
   // Generate 7-day dates strip
   const dates = [...Array(7)].map((_, i) => {
@@ -98,6 +102,136 @@ export default function CinemaDetailPage() {
           ))}
         </div>
       </div>
+
+      {/* Location, Transit & Directions Section (Phase 6) */}
+      <div className="rounded-3xl border border-[#E6DCD2] bg-white p-7 shadow-sm grid grid-cols-1 lg:grid-cols-12 gap-8 items-start" data-testid="cinema-location-card">
+        {/* Left: Map Preview */}
+        <div className="lg:col-span-5 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-bold text-[#1B1320] flex items-center gap-2">
+              <MapPin className="h-5 w-5 text-[#C8102E]" />
+              <span>Location & Map</span>
+            </h3>
+            {cinema.latitude != null && cinema.longitude != null && (
+              <a
+                href={getDirectionsUrl(cinema.latitude, cinema.longitude)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold text-[#0E8F8A] bg-[#E6F6F0] rounded-xl hover:bg-[#d0efe4] transition-colors"
+                data-testid="cinema-detail-directions-btn"
+              >
+                <ExternalLink className="h-4 w-4" />
+                <span>Directions ↗</span>
+              </a>
+            )}
+          </div>
+          {cinema.latitude != null && cinema.longitude != null ? (
+            <MiniMap
+              latitude={cinema.latitude}
+              longitude={cinema.longitude}
+              cinemaName={cinema.name}
+              className="w-full h-56 rounded-2xl"
+            />
+          ) : (
+            <div className="w-full h-56 rounded-2xl bg-[#FFF8F1] border border-[#E6DCD2] flex items-center justify-center text-slate-500">
+              Map location coordinates pending
+            </div>
+          )}
+        </div>
+
+        {/* Right: Address, Parking, Public Transit, Hours */}
+        <div className="lg:col-span-7 space-y-4">
+          <div>
+            <h4 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Address</h4>
+            <p className="text-lg font-semibold text-[#1B1320] mt-1">{cinema.address}</p>
+            {cinema.landmark && (
+              <p className="text-sm text-slate-600 mt-0.5">
+                <span className="font-semibold text-[#1B1320]">Landmark:</span> {cinema.landmark}
+              </p>
+            )}
+            {cinema.pincode && (
+              <p className="text-sm text-slate-600 mt-0.5">
+                <span className="font-semibold text-[#1B1320]">PIN Code:</span> {cinema.pincode}
+              </p>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-[#E6DCD2]">
+            {cinema.transit_stop && (
+              <div className="flex items-start gap-2.5">
+                <div className="p-2 rounded-xl bg-[#E6F6F0] text-[#0E8F8A] shrink-0 mt-0.5">
+                  <Train className="h-5 w-5" />
+                </div>
+                <div>
+                  <h5 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Public Transit</h5>
+                  <p className="text-base font-semibold text-[#1B1320] mt-0.5">{cinema.transit_stop}</p>
+                </div>
+              </div>
+            )}
+
+            {cinema.parking && (
+              <div className="flex items-start gap-2.5">
+                <div className="p-2 rounded-xl bg-amber-50 text-amber-700 shrink-0 mt-0.5">
+                  <Car className="h-5 w-5" />
+                </div>
+                <div>
+                  <h5 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Parking</h5>
+                  <p className="text-base font-semibold text-[#1B1320] mt-0.5">{cinema.parking} Parking Available</p>
+                </div>
+              </div>
+            )}
+
+            {cinema.phone && (
+              <div className="flex items-start gap-2.5">
+                <div className="p-2 rounded-xl bg-slate-100 text-slate-700 shrink-0 mt-0.5">
+                  <Phone className="h-5 w-5" />
+                </div>
+                <div>
+                  <h5 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Phone</h5>
+                  <p className="text-base font-semibold text-[#1B1320] mt-0.5">{cinema.phone}</p>
+                </div>
+              </div>
+            )}
+
+            {cinema.opening_hours && (
+              <div className="flex items-start gap-2.5">
+                <div className="p-2 rounded-xl bg-slate-100 text-slate-700 shrink-0 mt-0.5">
+                  <Clock className="h-5 w-5" />
+                </div>
+                <div>
+                  <h5 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Opening Hours</h5>
+                  <p className="text-base font-semibold text-[#1B1320] mt-0.5">{cinema.opening_hours}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Admin Coordinates Editor Toggle */}
+          <div className="pt-3">
+            <button
+              type="button"
+              onClick={() => setShowAdminPicker(!showAdminPicker)}
+              className="text-xs font-bold text-slate-500 hover:text-[#C8102E] underline"
+              data-testid="toggle-admin-picker"
+            >
+              {showAdminPicker ? 'Hide Coordinate Editor' : 'Admin: Edit Coordinates'}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Admin Coordinate Picker Panel */}
+      {showAdminPicker && cinema.latitude != null && cinema.longitude != null && (
+        <AdminMapPicker
+          cinemaId={cinema.id}
+          initialLat={cinema.latitude}
+          initialLng={cinema.longitude}
+          cinemaName={cinema.name}
+          onSaved={(newLat, newLng) => {
+            setCinema((prev) => (prev ? { ...prev, latitude: newLat, longitude: newLng } : null));
+          }}
+        />
+      )}
 
       {/* Date Picker Strip */}
       <section className="space-y-4">

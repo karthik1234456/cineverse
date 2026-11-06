@@ -38,9 +38,9 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com",
-              "connect-src 'self' http://localhost:8000 http://127.0.0.1:8000 ws://localhost:8000 ws://127.0.0.1:8000 https://api.razorpay.com blob: data:",
-              "img-src 'self' data: blob: https://*",
-              "style-src 'self' 'unsafe-inline'",
+              "connect-src 'self' http://localhost:8000 http://127.0.0.1:8000 ws://localhost:8000 ws://127.0.0.1:8000 http://localhost:8002 http://127.0.0.1:8002 ws://localhost:8002 ws://127.0.0.1:8002 https://api.razorpay.com https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com blob: data:",
+              "img-src 'self' data: blob: https://* https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com",
+              "style-src 'self' 'unsafe-inline' https://unpkg.com",
               "font-src 'self' data:",
               "frame-src 'self' https://api.razorpay.com https://www.youtube.com https://www.youtube-nocookie.com",
               "media-src 'self' blob: data: https://commondatastorage.googleapis.com https://*.storage.googleapis.com",
@@ -52,7 +52,7 @@ const nextConfig = {
     ];
   },
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8002';
     return [
       {
         source: '/api/v1/:path*',

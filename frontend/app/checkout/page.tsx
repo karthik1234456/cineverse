@@ -344,6 +344,12 @@ function CheckoutContent() {
                   <p className="text-sm text-slate-600 mt-1">
                     {quote.cinema_name} • {quote.auditorium_name}
                   </p>
+                  {quote.cinema_address && (
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {quote.cinema_address}{quote.cinema_pincode ? ` (${quote.cinema_pincode})` : ''}
+                      {quote.cinema_parking && quote.cinema_parking !== 'none' ? ` • ${quote.cinema_parking} parking` : ''}
+                    </p>
+                  )}
                 </div>
 
                 <div className="text-right">

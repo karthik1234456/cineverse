@@ -176,6 +176,41 @@ export interface CineverseStateExport {
   };
 }
 
+export interface CinemaItem {
+  id: number;
+  city_id: number;
+  name: string;
+  slug: string;
+  address: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  cancellation_policy: string;
+  facilities: string[];
+  images: string[];
+  pincode?: string | null;
+  landmark?: string | null;
+  parking?: string | null;
+  transit_stop?: string | null;
+  phone?: string | null;
+  opening_hours?: string | null;
+  is_demo_data?: boolean;
+  distance_km?: number | null;
+  directions_url?: string | null;
+}
+
+export interface Coordinates {
+  lat: number;
+  lng: number;
+}
+
+export type MapProviderType = 'leaflet-osm' | 'google-maps' | 'mapbox';
+
+export interface MapProviderConfig {
+  provider: MapProviderType;
+  tileUrl?: string;
+  attribution?: string;
+}
+
 declare global {
   interface Window {
     __cineverse?: {
