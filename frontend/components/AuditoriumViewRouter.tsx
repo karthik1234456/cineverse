@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { SeatMap2D } from '@/components/2d/SeatMap2D';
 import { AuditoriumExperience } from '@/components/3d/AuditoriumExperience';
 import { useCinemaStore } from '@/store/useCinemaStore';
+import { getShowtimeSeats, type ShowtimeSeatsResponse } from '@/services/api';
 import { LayoutGrid, Maximize2, Minimize2, ArrowLeft } from 'lucide-react';
 
 interface AuditoriumViewRouterProps {
@@ -31,6 +32,15 @@ export function AuditoriumViewRouter({
   );
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showtimeDetails, setShowtimeDetails] = useState<ShowtimeSeatsResponse | null>(null);
+
+  useEffect(() => {
+    getShowtimeSeats(showtimeId)
+      .then((data) => setShowtimeDetails(data))
+      .catch((err) => console.warn('Router showtime details fetch notice:', err));
+  }, [showtimeId]);
+
+  const has3D = showtimeDetails ? showtimeDetails.has_3d_preview : (auditoriumId === '1');
 
   useEffect(() => {
     if (modeParam === '3d' || modeParam === 'pov') {
@@ -91,6 +101,16 @@ export function AuditoriumViewRouter({
     router.replace(`?${params.toString()}`);
   }
 
+  function handleSwitchToPOV(seatId: string) {
+    useCinemaStore.getState().sitAt(seatId);
+    setCurrentMode('3d');
+    const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+    const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
+    params.set('mode', 'pov');
+    params.set('seat', seatId);
+    router.push(`${pathname}?${params.toString()}`);
+  }
+
   function handleSwitchTo2D() {
     setCurrentMode('2d');
     const params = new URLSearchParams(window.location.search);
@@ -99,6 +119,29 @@ export function AuditoriumViewRouter({
   }
 
   if (currentMode === '3d') {
+    if (showtimeDetails && !showtimeDetails.has_3d_preview) {
+      return (
+        <div
+          className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#FFF8F1] p-6 text-center text-[#1B1320]"
+          data-testid="3d-not-supported-notice"
+        >
+          <div className="max-w-md rounded-3xl border border-[#E6DCD2] bg-white p-8 shadow-sm">
+            <h2 className="text-xl font-black text-[#1B1320] mb-2">3D preview not available for this hall</h2>
+            <p className="text-sm text-slate-600 mb-6">
+              This auditorium uses a standard high-capacity 2D layout. You can select your seats using our interactive 2D map.
+            </p>
+            <button
+              onClick={handleSwitchTo2D}
+              data-testid="switch-to-2d-button"
+              className="rounded-xl bg-[#C8102E] px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#A00D24] transition"
+            >
+              Switch to 2D Map
+            </button>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="relative h-[100dvh] w-full overflow-hidden" data-testid="auditorium-3d-wrapper">
         {/* Slim Immersive Top Bar (§ Part E / Finding F8 fixed) */}
@@ -162,7 +205,8 @@ export function AuditoriumViewRouter({
       auditoriumId={auditoriumId}
       showtimeId={showtimeId}
       onSwitchTo3D={handleSwitchTo3D}
-      has3DAsset={true}
+      onSwitchToPOV={handleSwitchToPOV}
+      has3DAsset={has3D}
     />
   );
 }

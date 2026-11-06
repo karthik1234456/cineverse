@@ -94,6 +94,20 @@ export function ViewModeToggle() {
           <span>Sit {activeSeatId ? `(${activeSeatId})` : ''}</span>
         </button>
 
+        {/* 4. Heatmap Toggle */}
+        <button
+          onClick={toggleHeatmap}
+          data-testid="toggle-3d-heatmap-btn"
+          className={`flex min-h-[44px] items-center gap-2 rounded-full px-4 py-2 text-sm font-bold transition-all ${isHeatmapActive
+            ? 'bg-emerald-600 text-white shadow'
+            : 'text-slate-700 hover:bg-slate-100 hover:text-[#1B1320]'
+            }`}
+          title="Toggle 3D Viewing Comfort Heatmap"
+        >
+          <Flame className="h-4 w-4" />
+          <span className="hidden sm:inline">Heatmap</span>
+        </button>
+
         {/* Settings Toggle Gear Button */}
         <button
           onClick={() => setIsSettingsOpen(!isSettingsOpen)}
@@ -110,6 +124,34 @@ export function ViewModeToggle() {
           <span className="hidden sm:inline">Settings</span>
         </button>
       </div>
+
+      {/* 3D Heatmap & Sightline Inspection HUD (Phase 11) */}
+      {isHeatmapActive && (
+        <div className="pointer-events-auto flex flex-col sm:flex-row items-center gap-3 rounded-2xl border border-[#E6DCD2] bg-white/95 p-3 shadow-xl backdrop-blur-md text-[#1B1320] animate-in fade-in slide-in-from-top-2 max-w-md">
+          <div
+            data-testid="3d-seat-comfort-card"
+            className="flex items-center gap-2.5 rounded-xl bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs text-emerald-900"
+          >
+            <Flame className="h-4 w-4 text-emerald-600 shrink-0" />
+            <div>
+              <span className="font-bold block">Viewing Comfort Score</span>
+              <span className="text-[11px] text-emerald-700">80–100 Optimal • 65–79 Good • &lt;65 Standard</span>
+            </div>
+          </div>
+
+          <div
+            data-testid="3d-seat-obstruction-card"
+            className="flex items-center gap-2.5 rounded-xl bg-slate-50 border border-slate-200 px-3 py-1.5 text-xs text-slate-800"
+          >
+            <div>
+              <span className="font-bold block">Screen Line-of-Sight</span>
+              <span className="text-[10px] text-slate-500">
+                Geometric raycast estimate against static theatre geometry only. No audience members or physical heads modelled.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Seated POV Navigation Bar (Only visible when Seated) */}
       {currentMode === 'seated' && (

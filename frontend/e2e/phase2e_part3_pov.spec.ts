@@ -50,7 +50,8 @@ test.describe('Phase 2e — Part 3: Seat POV from 2D Map (Finding E7)', () => {
 
     // 3. Naturally held seat from database (A06)
     const seatA06 = page.locator('[data-testid="seat-2d-A06"]');
-    await seatA06.click({ force: true });
+    await seatA06.scrollIntoViewIfNeeded();
+    await seatA06.dispatchEvent('click');
     await expect(povBtn).toBeVisible();
     await expect(page.locator('[data-testid="seat-inspection-card"]')).toContainText('held');
 

@@ -54,12 +54,12 @@ test.describe('Checkout Server Quote Hardening & Clean URL Verification', () => 
             razorpay_signature: signature,
           });
         }
-        on() {}
+        on() { }
       }
 
       Object.defineProperty(window, 'Razorpay', {
         get: () => MockRazorpay,
-        set: () => {},
+        set: () => { },
         configurable: true,
       });
     });

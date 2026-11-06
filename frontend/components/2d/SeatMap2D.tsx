@@ -1,20 +1,20 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Compass, ArrowLeft, X,
-  Ticket, AlertCircle, Loader2, ChevronDown, ChevronUp,
-  Flame, Sparkles, Bell, Info, ShieldCheck, UserCheck
+  Ticket, AlertCircle, Loader2,
+  Flame, Sparkles, Bell, ShieldCheck, UserCheck, ZoomIn, ZoomOut, RotateCcw
 } from 'lucide-react';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import { useSeatData } from '@/hooks/useSeatData';
 import { useSeatSocket } from '@/hooks/useSeatSocket';
-import { holdSeats, updateHoldAddons, getShowtimeSeats, type ShowtimeSeatsResponse } from '@/services/api';
+import { holdSeats, updateHoldAddons, getShowtimeSeats, type ShowtimeSeatsResponse, type SeatInventoryItem } from '@/services/api';
 import { FnbAddonModal } from '@/components/FnbAddonModal';
-import layoutData from '@/public/models/seat_layout_v2.json';
+import layoutDataFallback from '@/public/models/seat_layout_v2.json';
 import obstructionsData from '@/public/models/seat_obstructions.json';
-import { viewScore, bestAvailable, type PreferenceType } from '@/lib/seatScoring';
+import { viewScore, bestAvailable, type PreferenceType, type ScoredSeatInput } from '@/lib/seatScoring';
 import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
 
 interface SeatMap2DProps {
@@ -22,13 +22,27 @@ interface SeatMap2DProps {
   auditoriumId?: string;
   showtimeId: string;
   onSwitchTo3D?: () => void;
+  onSwitchToPOV?: (seatId: string) => void;
   has3DAsset?: boolean;
 }
 
+interface HoveredSeatInfo {
+  seat_id: string;
+  row: string;
+  number: number;
+  category: string;
+  price: number;
+  status: string;
+  is_accessible?: boolean;
+}
+
 export function SeatMap2D({
+  cinemaId,
+  auditoriumId = '1',
   showtimeId,
   onSwitchTo3D,
-  has3DAsset = true,
+  onSwitchToPOV,
+  has3DAsset,
 }: SeatMap2DProps) {
   const router = useRouter();
   const showtimeNum = parseInt(showtimeId, 10) || 1;
@@ -60,7 +74,12 @@ export function SeatMap2D({
   const [isFnbModalOpen, setIsFnbModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [focusedSeatId, setFocusedSeatId] = useState<string | null>(null);
+  const focusedSeatIdRef = useRef<string | null>(null);
   const [showTechDetails, setShowTechDetails] = useState(false);
+
+  // Hover Tooltip State (Compact non-interactive)
+  const [hoveredSeat, setHoveredSeat] = useState<HoveredSeatInfo | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   // Phase 11 Smart Engine State
   const [partySize, setPartySize] = useState<number>(2);
@@ -84,11 +103,20 @@ export function SeatMap2D({
     }
   }, []);
 
+  // Fetch showtime metadata and layout
+  useEffect(() => {
+    getShowtimeSeats(showtimeNum)
+      .then((data) => setShowtimeDetails(data))
+      .catch((err) => console.warn('Showtime load notice:', err));
+  }, [showtimeNum]);
+
+  // Authoritative 3D capability for this auditorium
+  const has3D = has3DAsset !== undefined ? has3DAsset : (showtimeDetails ? showtimeDetails.has_3d_preview : (auditoriumId === '1'));
+
   // Idle prefetching for fast 3D POV transition (< 2s on warm cache)
   useEffect(() => {
-    if (typeof window === 'undefined' || !isWebGLSupported) return;
+    if (typeof window === 'undefined' || !isWebGLSupported || !has3D) return;
 
-    // Honor user data preferences
     const conn = (navigator as any).connection;
     if (conn?.saveData || conn?.effectiveType === '2g' || conn?.effectiveType === 'slow-2g') {
       return;
@@ -106,60 +134,194 @@ export function SeatMap2D({
       const timer = setTimeout(prefetchAssets, 1500);
       return () => clearTimeout(timer);
     }
-  }, [isWebGLSupported]);
+  }, [isWebGLSupported, has3D]);
 
   // Navigate directly to 3D Seated POV for a specific seat
   const handleViewPOV = useCallback(
     (seatId: string) => {
-      if (!isWebGLSupported) return;
-      const params = new URLSearchParams(window.location.search);
-      params.set('mode', 'pov');
-      params.set('seat', seatId);
-      router.push(`?${params.toString()}`);
+      if (!has3D) {
+        showToast('3D preview not available for this hall');
+        return;
+      }
+      if (!isWebGLSupported) {
+        showToast('WebGL not supported on this browser');
+        return;
+      }
+      useCinemaStore.getState().sitAt(seatId);
+      if (onSwitchToPOV) {
+        onSwitchToPOV(seatId);
+      } else {
+        const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+        const search = typeof window !== 'undefined' ? window.location.search : '';
+        const params = new URLSearchParams(search);
+        params.set('mode', 'pov');
+        params.set('seat', seatId);
+        router.push(`${pathname}?${params.toString()}`);
+      }
     },
-    [isWebGLSupported, router]
+    [has3D, isWebGLSupported, onSwitchToPOV, router, showToast]
   );
 
-  // Fetch showtime metadata
+  // Global keyboard shortcut for 'V' when a seat is focused or selected
   useEffect(() => {
-    getShowtimeSeats(showtimeNum)
-      .then((data) => setShowtimeDetails(data))
-      .catch((err) => console.warn('Showtime load notice:', err));
-  }, [showtimeNum]);
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === 'v' || e.key === 'V' || e.key === 'KeyV' || e.code === 'KeyV') {
+        const activeDomSeat = (document.activeElement as HTMLElement)?.getAttribute('data-seat-id');
+        const targetSeat = focusedSeatIdRef.current || activeDomSeat || focusedSeatId || selectedSeats[0];
+        if (targetSeat) {
+          e.preventDefault();
+          handleViewPOV(targetSeat);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [focusedSeatId, selectedSeats, handleViewPOV]);
 
-  // Layout parsing via authoritative geometric seatMapLayout
-  const seatsList = useMemo(() => (layoutData as unknown as SeatLayoutFile).seats || [], []);
-  const seatMap = useMemo(() => {
-    const map = new Map<string, SeatRecord>();
-    for (const s of seatsList) {
-      map.set(s.seat_id, s);
+  // Total seats count and big hall detection (> 200 seats)
+  const totalSeatsCount = useMemo(() => {
+    if (showtimeDetails?.seats && showtimeDetails.seats.length > 0) {
+      return showtimeDetails.seats.length;
     }
-    return map;
-  }, [seatsList]);
+    return 100;
+  }, [showtimeDetails]);
 
-  // Group seats by rows: J (back) to A (front)
-  const rows = useMemo(() => ['J', 'I', 'H', 'G', 'F', 'E', 'D', 'C', 'B', 'A'], []);
-  const rowSeats = useMemo(() => {
-    const map: Record<string, SeatRecord[]> = {};
-    for (const r of rows) map[r] = [];
-    for (const seat of seatsList) {
-      if (map[seat.row]) {
-        map[seat.row].push(seat);
+  const isBigHall = totalSeatsCount > 200;
+
+  // Zoom & Pan state for large/flagship halls
+  const [zoom, setZoom] = useState<number>(isBigHall ? 0.8 : 1);
+  useEffect(() => {
+    if (isBigHall) {
+      setZoom(0.8);
+    } else {
+      setZoom(1);
+    }
+  }, [isBigHall]);
+
+  const handleZoomIn = () => setZoom((z) => Math.min(1.6, Math.round((z + 0.15) * 100) / 100));
+  const handleZoomOut = () => setZoom((z) => Math.max(0.55, Math.round((z - 0.15) * 100) / 100));
+  const handleZoomReset = () => setZoom(isBigHall ? 0.8 : 1);
+
+  // Layout parsing: Dynamically build seatsList from showtimeDetails.seats or fallback
+  const seatsList: ScoredSeatInput[] = useMemo(() => {
+    if (showtimeDetails?.seats && showtimeDetails.seats.length > 0) {
+      return showtimeDetails.seats.map((s) => {
+        const dist = s.distance_to_screen || 10.0;
+        const hOffset = s.horizontal_angle_deg || 0.0;
+        const vAngle = s.vertical_angle_deg || 4.0;
+        const hFov = Math.round(Math.min(75, Math.max(25, 450 / dist)));
+        return {
+          seat_id: s.seat_id,
+          row: s.row,
+          number: s.number,
+          category: s.category,
+          horizontal_offset_deg: hOffset,
+          vertical_angle_deg: vAngle,
+          screen_h_fov_deg: hFov,
+          position_gltf_y_up: [hOffset * 0.1, 1.2, dist],
+        };
+      });
+    }
+
+    // Fallback to static 100-seat model layout
+    const fallback = (layoutDataFallback as unknown as SeatLayoutFile).seats || [];
+    return fallback.map((s) => ({
+      seat_id: s.seat_id,
+      row: s.row,
+      number: s.number,
+      category: s.category,
+      horizontal_offset_deg: s.horizontal_offset_deg,
+      vertical_angle_deg: s.vertical_angle_deg,
+      screen_h_fov_deg: s.screen_h_fov_deg,
+      position_gltf_y_up: s.position_gltf_y_up,
+    }));
+  }, [showtimeDetails?.seats]);
+
+  // Map of seat_id -> server inventory item
+  const seatInventoryMap = useMemo(() => {
+    const map = new Map<string, SeatInventoryItem>();
+    if (showtimeDetails?.seats) {
+      for (const s of showtimeDetails.seats) {
+        map.set(s.seat_id, s);
       }
     }
-    for (const r of rows) {
-      map[r].sort((a, b) => a.number - b.number);
-    }
     return map;
-  }, [rows, seatsList]);
+  }, [showtimeDetails?.seats]);
 
-  // Obstruction estimates per seat
+  // Seat obstructions lookup
   const seatObstructions = useMemo(() => {
     return (obstructionsData as any).seats || {};
   }, []);
 
-  // Tier categorisation with rich theme colors, driven dynamically by server tiers
+  // Aisles and Accessible Seats definitions from layout_data
+  const aisles = useMemo(() => {
+    if (showtimeDetails?.layout_data?.aisles) {
+      return showtimeDetails.layout_data.aisles;
+    }
+    return [3, 7]; // Default 2 aisles for 100-seat hall
+  }, [showtimeDetails?.layout_data]);
+
+  const accessibleSeatsList = useMemo(() => {
+    if (showtimeDetails?.layout_data?.accessible_seats) {
+      return showtimeDetails.layout_data.accessible_seats;
+    }
+    return ['A01', 'A02'];
+  }, [showtimeDetails?.layout_data]);
+
+  // Build Dynamic Category Tiers from layout_data.category_bands or showtimeDetails.tiers
   const categoryTiers = useMemo(() => {
+    // 1. If layout_data category_bands is present
+    if (showtimeDetails?.layout_data?.category_bands && showtimeDetails.layout_data.category_bands.length > 0) {
+      const bands = showtimeDetails.layout_data.category_bands;
+      // We display tiers from furthest from screen (Premier) down to nearest (Front)
+      // Reverse copy so Premier is at the top
+      return [...bands].reverse().map((b) => {
+        const catLower = b.category.toLowerCase();
+        let name = b.category;
+        if (catLower === 'premier') name = 'Premier Recliner';
+        else if (catLower === 'prime') name = 'Prime Standard';
+        else if (catLower === 'front') name = 'Front Row';
+
+        // Find price from first seat in this category
+        let price = 380;
+        const matchingSeat = showtimeDetails.seats.find((s) => s.category.toLowerCase() === catLower);
+        if (matchingSeat) {
+          price = matchingSeat.price;
+        } else {
+          const tierMatch = showtimeDetails.tiers?.find((t) => t.category.toLowerCase() === catLower);
+          if (tierMatch) price = tierMatch.price;
+        }
+
+        const colorClass =
+          catLower === 'premier'
+            ? 'text-[#9F1239] border-[#9F1239]/30 bg-rose-50'
+            : catLower === 'front'
+            ? 'text-[#8D5B28] border-[#8D5B28]/30 bg-amber-50'
+            : 'text-[#1E40AF] border-[#1E40AF]/30 bg-blue-50';
+
+        const badgeColor =
+          catLower === 'premier'
+            ? 'bg-[#9F1239] text-white'
+            : catLower === 'front'
+            ? 'bg-[#8D5B28] text-white'
+            : 'bg-[#1E40AF] text-white';
+
+        // Order rows descending inside the tier (e.g. J, I, H)
+        const sortedRows = [...b.rows].sort().reverse();
+
+        return {
+          name,
+          category: catLower,
+          price,
+          colorClass,
+          badgeColor,
+          rows: sortedRows,
+        };
+      });
+    }
+
+    // 2. If showtimeDetails.tiers is present
     if (showtimeDetails?.tiers && showtimeDetails.tiers.length > 0) {
       return showtimeDetails.tiers.map((t) => {
         const cat = t.category.toLowerCase();
@@ -193,7 +355,7 @@ export function SeatMap2D({
       });
     }
 
-    // Canonical database bands fallback
+    // 3. Canonical database bands fallback
     return [
       {
         name: 'Premier Recliner',
@@ -220,27 +382,41 @@ export function SeatMap2D({
         rows: ['C', 'B', 'A'],
       },
     ];
-  }, [showtimeDetails?.tiers]);
+  }, [showtimeDetails?.layout_data?.category_bands, showtimeDetails?.tiers, showtimeDetails?.seats]);
 
-  // Total calculated price
+  // Group seats by row
+  const rowSeats = useMemo(() => {
+    const map: Record<string, ScoredSeatInput[]> = {};
+    for (const seat of seatsList) {
+      if (!map[seat.row]) {
+        map[seat.row] = [];
+      }
+      map[seat.row].push(seat);
+    }
+    for (const r of Object.keys(map)) {
+      map[r].sort((a, b) => a.number - b.number);
+    }
+    return map;
+  }, [seatsList]);
+
+  // Total price calculated server-authoritatively
   const totalPrice = useMemo(() => {
     return selectedSeats.reduce((acc, sId) => {
-      const rec = seatMap.get(sId);
-      const serverSeat = showtimeDetails?.seats.find((s) => s.seat_id === sId);
-      const price = serverSeat?.price || rec?.price || 380;
+      const inv = seatInventoryMap.get(sId);
+      const price = inv?.price ?? 380;
       return acc + price;
     }, 0);
-  }, [selectedSeats, seatMap, showtimeDetails]);
+  }, [selectedSeats, seatInventoryMap]);
 
-  // Phase 11 Smart Best Available Engine
+  // Smart Best Available Engine (Phase 11) supporting 1 to 8 guests
   const handleSelectBestAvailable = useCallback(
     (count: number, pref: PreferenceType = preference) => {
       try {
         const result = bestAvailable(
-          seatsList as any,
+          seatsList,
           seatStatuses,
           count,
-          { preference: pref }
+          { preference: pref, aisleAfterNumbers: aisles }
         );
 
         if (!result || result.seatIds.length < count) {
@@ -256,7 +432,7 @@ export function SeatMap2D({
         showToast('Unable to find best seats at this time.');
       }
     },
-    [seatsList, seatStatuses, preference, clearSelection, selectSeat, showToast]
+    [seatsList, seatStatuses, preference, aisles, clearSelection, selectSeat, showToast]
   );
 
   // Handle Waitlist Join
@@ -311,20 +487,21 @@ export function SeatMap2D({
     router.push(`/checkout?hold_id=${activeHoldId}`);
   }
 
-  const focusedSeat = focusedSeatId ? seatMap.get(focusedSeatId) : null;
-  const serverFocusedSeat = focusedSeatId ? showtimeDetails?.seats.find((s) => s.seat_id === focusedSeatId) : null;
-  const focusedPrice = serverFocusedSeat?.price ?? focusedSeat?.price ?? 380;
+  // Focused seat for inspection card
+  const focusedSeat = focusedSeatId ? seatsList.find((s) => s.seat_id === focusedSeatId) : null;
+  const serverFocusedSeat = focusedSeatId ? seatInventoryMap.get(focusedSeatId) : null;
+  const focusedPrice = serverFocusedSeat?.price ?? 380;
   const focusedCategory = (serverFocusedSeat?.category ?? focusedSeat?.category ?? 'Prime').toUpperCase();
-  const focusedScore = focusedSeat ? viewScore(focusedSeat as any) : null;
+  const focusedScore = focusedSeat ? viewScore(focusedSeat) : null;
   const focusedObstruction = focusedSeatId ? seatObstructions[focusedSeatId] : null;
 
   return (
     <div
-      className="min-h-screen bg-[#FFF8F1] text-[#1B1320] p-4 sm:p-8 select-none focus:outline-none"
+      className="min-h-screen bg-[#FFF8F1] text-[#1B1320] p-4 sm:p-8 pb-48 select-none focus:outline-none"
       data-testid="seatmap-2d-container"
       tabIndex={0}
     >
-      <div className="mx-auto max-w-5xl space-y-8">
+      <div className="mx-auto max-w-6xl space-y-8">
         {/* Numbered 3-Step Flow at top */}
         <div className="rounded-2xl border border-[#E6DCD2] bg-white p-4 shadow-sm">
           <div className="flex items-center justify-between max-w-xl mx-auto">
@@ -378,7 +555,7 @@ export function SeatMap2D({
                 </span>
               </h1>
               <p className="text-sm text-slate-600 mt-1">
-                {showtimeDetails?.cinema_name || 'CineVerse IMAX Koramangala'} • {showtimeDetails?.auditorium_name || 'Auditorium 1'}
+                {showtimeDetails?.cinema_name || 'CineVerse Astral Koramangala'} • {showtimeDetails?.auditorium_name || 'Auditorium 1'} ({totalSeatsCount} seats)
               </p>
             </div>
           </div>
@@ -400,8 +577,8 @@ export function SeatMap2D({
               <span>{isHeatmapActive ? 'Comfort Heatmap: ON' : 'Comfort Heatmap'}</span>
             </button>
 
-            {/* Explore in 3D Button */}
-            {has3DAsset && isWebGLSupported && onSwitchTo3D && (
+            {/* Explore in 3D Button or Neutral Notice */}
+            {has3D && isWebGLSupported && onSwitchTo3D ? (
               <button
                 onClick={onSwitchTo3D}
                 className="flex min-h-[44px] items-center gap-2 rounded-xl bg-amber-500/10 border-2 border-amber-500 px-5 py-2 text-sm font-bold text-amber-900 shadow hover:bg-amber-500/20 transition"
@@ -411,11 +588,18 @@ export function SeatMap2D({
                 <Compass className="h-4 w-4 text-amber-600 animate-spin-slow" />
                 <span>Explore in 3D</span>
               </button>
+            ) : (
+              <span
+                data-testid="3d-unavailable-badge"
+                className="text-xs font-semibold text-slate-500 italic bg-slate-100 px-3 py-2 rounded-xl border border-slate-200"
+              >
+                3D preview not available for this hall
+              </span>
             )}
           </div>
         </div>
 
-        {/* Phase 11: Best Available Smart Engine & Preference Bar */}
+        {/* Phase 11: Best Available Smart Engine & Preference Bar (1–8 seats) */}
         <div className="rounded-3xl border border-[#E6DCD2] bg-white p-5 shadow-sm space-y-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-[#E6DCD2] pb-4">
             <div className="flex items-center gap-2.5">
@@ -423,16 +607,16 @@ export function SeatMap2D({
                 <Sparkles className="h-5 w-5" />
               </div>
               <div>
-                <h3 className="text-base font-black text-[#1B1320]">Smart Best-Seat Finder</h3>
+                <h3 className="text-base font-black text-[#1B1320]">Pick best seats for me</h3>
                 <p className="text-xs text-slate-500">Picks optimal contiguous same-row seats based on viewing angle & distance</p>
               </div>
             </div>
 
-            {/* Party Size & Preference Controls */}
+            {/* Party Size (1 to 8) & Preference Controls */}
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex items-center gap-1 bg-[#FAF6F0] p-1 rounded-xl border border-[#E6DCD2]">
-                <span className="text-xs font-bold text-slate-500 px-2">Seats:</span>
-                {[1, 2, 3, 4, 5].map((cnt) => (
+                <span className="text-xs font-bold text-slate-500 px-2">Guests:</span>
+                {[1, 2, 3, 4, 5, 6, 7, 8].map((cnt) => (
                   <button
                     key={cnt}
                     onClick={() => {
@@ -445,6 +629,7 @@ export function SeatMap2D({
                         : 'text-slate-700 hover:bg-rose-50'
                     }`}
                     data-testid={`btn-best-${cnt}`}
+                    aria-label={`Select ${cnt} best seats`}
                   >
                     {cnt}
                   </button>
@@ -460,46 +645,48 @@ export function SeatMap2D({
                     setPreference(pref);
                     handleSelectBestAvailable(partySize, pref);
                   }}
-                  className="rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3 py-1.5 text-xs font-bold text-slate-800 shadow-sm focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
+                  className="rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
                   data-testid="seat-preference-select"
+                  aria-label="Seat Selection Viewing Preference"
                 >
-                  <option value="centre">🎯 Direct Screen Centre</option>
-                  <option value="sit_back">🛋️ Sit Back (Rear View)</option>
-                  <option value="no_neck_strain">📐 No Neck Strain</option>
-                  <option value="aisle">🚪 Aisle Seat Access</option>
-                  <option value="accessible">♿ Accessible Front Row</option>
-                  <option value="balanced">⚖️ Balanced Comfort</option>
+                  <option value="centre">Direct Centre View</option>
+                  <option value="balanced">Balanced Viewing Angle</option>
+                  <option value="sit_back">Sit Back (Distance)</option>
+                  <option value="no_neck_strain">Low Elevation / No Neck Strain</option>
+                  <option value="aisle">Aisle Seats Preferred</option>
+                  <option value="accessible">Accessible / Front Lane</option>
                 </select>
               </div>
 
-              {/* Waitlist Button */}
+              {/* FIFO Waitlist Trigger */}
               <button
                 onClick={() => setIsWaitlistModalOpen(true)}
-                className="flex items-center gap-1.5 rounded-xl border border-[#E6DCD2] bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-rose-50 hover:text-[#C8102E] transition shadow-sm"
+                className="flex items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-sm"
                 data-testid="open-waitlist-btn"
+                title="Join FIFO waitlist for sold-out showtimes"
               >
-                <Bell className="h-3.5 w-3.5" />
+                <Bell className="h-3.5 w-3.5 text-[#C8102E]" />
                 <span>Notify / Waitlist</span>
               </button>
             </div>
           </div>
         </div>
 
-        {/* Curved Screen Banner */}
-        <div className="pt-2 pb-4 flex flex-col items-center">
-          <div className="h-2.5 w-4/5 max-w-xl rounded-full bg-gradient-to-r from-transparent via-[#C8102E] to-transparent shadow-md" />
+        {/* Curved Screen Banner with ambient glow */}
+        <div className="pt-2 pb-6 flex flex-col items-center">
+          <div className="h-2.5 w-4/5 max-w-xl rounded-full bg-gradient-to-r from-transparent via-[#C8102E] to-transparent shadow-lg shadow-rose-200/60" />
           <span className="text-xs uppercase tracking-widest text-slate-500 font-black mt-3">
-            ALL EYES THIS WAY — CINEMA SCREEN
+            ▔▔▔▔▔ SCREEN THIS WAY ▔▔▔▔▔
           </span>
         </div>
 
-        {/* Normal Legend or Heatmap Legend */}
+        {/* Legend */}
         {isHeatmapActive ? (
           <div
             className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 text-xs text-slate-700 border-2 border-emerald-500/40 bg-emerald-50/60 rounded-3xl shadow-sm"
             data-testid="heatmap-legend"
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <span className="font-bold text-emerald-950 uppercase tracking-wider flex items-center gap-1.5">
                 <Flame className="h-4 w-4 text-emerald-600 fill-emerald-600" />
                 Viewing Comfort Heatmap:
@@ -522,134 +709,244 @@ export function SeatMap2D({
             </div>
           </div>
         ) : (
-          <div className="flex flex-wrap items-center justify-center gap-8 py-3 text-sm text-slate-700 border-y border-[#E6DCD2] bg-white rounded-2xl shadow-sm">
-            <div className="flex items-center gap-2.5">
-              <div className="h-5 w-5 rounded-lg border-2 border-[#E6DCD2] bg-[#FAF6F0]" />
-              <span className="font-medium">Available</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <div className="h-5 w-5 rounded-lg bg-[#C8102E] text-white flex items-center justify-center text-xs font-bold shadow-sm">
-                ✓
+          <div className="flex flex-wrap items-center justify-between gap-4 py-3 px-6 text-sm text-slate-700 border border-[#E6DCD2] bg-white rounded-2xl shadow-sm">
+            <div className="flex flex-wrap items-center gap-6">
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 rounded-lg border-2 border-[#E6DCD2] bg-[#FAF6F0]" />
+                <span className="font-medium text-xs sm:text-sm">Available</span>
               </div>
-              <span className="font-bold text-[#C8102E]">Selected</span>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 rounded-lg bg-[#C8102E] text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                  ✓
+                </div>
+                <span className="font-bold text-xs sm:text-sm text-[#C8102E]">Selected</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 rounded-lg border-2 border-amber-400 bg-amber-100" />
+                <span className="font-semibold text-xs sm:text-sm text-amber-800">Held</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-5 w-5 rounded-lg bg-slate-300 opacity-60 cursor-not-allowed" />
+                <span className="text-xs sm:text-sm text-slate-400">Sold</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-blue-100 text-blue-700 border border-blue-300 text-xs font-bold">
+                  ♿
+                </span>
+                <span className="text-xs sm:text-sm text-blue-900 font-semibold">Accessible</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2.5">
-              <div className="h-5 w-5 rounded-lg border-2 border-amber-400 bg-amber-100" />
-              <span className="font-semibold text-amber-800">Held (Live)</span>
-            </div>
-            <div className="flex items-center gap-2.5">
-              <div className="h-5 w-5 rounded-lg bg-slate-300 opacity-60 cursor-not-allowed" />
-              <span className="text-slate-400">Sold</span>
+
+            {/* Zoom Controls for large auditoriums */}
+            <div className="flex items-center gap-1.5 bg-[#FAF6F0] p-1 rounded-xl border border-[#E6DCD2]" data-testid="zoom-controls">
+              <span className="text-xs font-bold text-slate-500 px-1.5">Zoom: {Math.round(zoom * 100)}%</span>
+              <button
+                onClick={handleZoomOut}
+                aria-label="Zoom Out"
+                title="Zoom Out"
+                className="h-7 w-7 rounded-lg bg-white border border-[#E6DCD2] hover:bg-slate-100 flex items-center justify-center font-black text-slate-700 shadow-xs"
+              >
+                <ZoomOut className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={handleZoomReset}
+                aria-label="Reset Zoom"
+                title="Reset Zoom"
+                className="px-2 h-7 rounded-lg bg-white border border-[#E6DCD2] hover:bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-700 shadow-xs"
+              >
+                <RotateCcw className="h-3 w-3 mr-1" />
+                <span>Reset</span>
+              </button>
+              <button
+                onClick={handleZoomIn}
+                aria-label="Zoom In"
+                title="Zoom In"
+                className="h-7 w-7 rounded-lg bg-white border border-[#E6DCD2] hover:bg-slate-100 flex items-center justify-center font-black text-slate-700 shadow-xs"
+              >
+                <ZoomIn className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
         )}
 
-        {/* 2D Seat Matrix (Rows J to A) */}
-        <div
-          role="grid"
-          aria-label="2D Auditorium Seat Selection Map"
-          className="space-y-8 py-4"
-        >
-          {categoryTiers.map((tier) => (
-            <div key={tier.name} className="space-y-3 rounded-3xl border border-[#E6DCD2] bg-white p-5 shadow-sm">
-              {/* Category Header with Authentic Pricing */}
-              <div className="flex items-center justify-between border-b border-[#E6DCD2] pb-2 px-2">
-                <span className="font-black text-base text-[#1B1320]">{tier.name}</span>
-                <span className="font-black text-lg text-[#C8102E]">₹{Math.round(tier.price)}</span>
-              </div>
+        {/* 2D Seat Matrix (Zoomable & Pannable for large halls) */}
+        <div className="relative w-full overflow-x-auto pb-6 pt-2">
+          <div
+            role="grid"
+            aria-label="2D Auditorium Seat Selection Map"
+            className="space-y-8 py-2 min-w-max mx-auto flex flex-col items-center transition-transform duration-150 origin-top"
+            style={{ transform: zoom !== 1 ? `scale(${zoom})` : undefined }}
+          >
+            {categoryTiers.map((tier) => (
+              <div
+                key={tier.name}
+                className="w-full space-y-3 rounded-3xl border border-[#E6DCD2] bg-white p-6 shadow-sm"
+              >
+                {/* Category Header with Authentic Pricing */}
+                <div className="flex items-center justify-between border-b border-[#E6DCD2] pb-3 px-2">
+                  <div className="flex items-center gap-2">
+                    <span className="font-black text-base text-[#1B1320]">{tier.name}</span>
+                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">
+                      (Rows {tier.rows[tier.rows.length - 1]}–{tier.rows[0]})
+                    </span>
+                  </div>
+                  <span className="font-black text-lg text-[#C8102E]">₹{Math.round(tier.price)}</span>
+                </div>
 
-              {/* Rows */}
-              <div className="space-y-3 pt-2">
-                {tier.rows.map((row) => {
-                  const seatsInRow = rowSeats[row] || [];
-                  return (
-                    <div key={row} role="row" className="flex items-center justify-center gap-3 sm:gap-4">
-                      {/* Row Label */}
-                      <span className="w-6 text-center text-sm font-black text-slate-500">
-                        {row}
-                      </span>
+                {/* Rows */}
+                <div className="space-y-3 pt-2">
+                  {tier.rows.map((row) => {
+                    const seatsInRow = rowSeats[row] || [];
+                    return (
+                      <div key={row} role="row" className="flex items-center justify-center gap-2 sm:gap-3">
+                        {/* Left Row Label */}
+                        <span className="w-8 shrink-0 text-center text-sm font-black text-slate-500">
+                          {row}
+                        </span>
 
-                      {/* Seats in Row (1 to 10) */}
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        {seatsInRow.map((s) => {
-                          const seatId = s.seat_id;
-                          const rawStatus = (seatStatuses[seatId] || 'available').toString().toLowerCase();
-                          const status = rawStatus === 'payment_pending' ? 'held' : rawStatus;
-                          const isSelected = selectedSeats.includes(seatId);
-                          const isHeld = status === 'held';
-                          const isBooked = status === 'booked';
-                          const isFocused = focusedSeatId === seatId;
+                        {/* Seats in Row */}
+                        <div className="flex items-center">
+                          {seatsInRow.map((s) => {
+                            const seatId = s.seat_id;
+                            const inv = seatInventoryMap.get(seatId);
+                            const rawStatus = (seatStatuses[seatId] || inv?.status || 'AVAILABLE').toString().toLowerCase();
+                            const status = rawStatus === 'payment_pending' ? 'held' : rawStatus;
+                            const isSelected = selectedSeats.includes(seatId);
+                            const isHeld = status === 'held';
+                            const isBooked = status === 'booked';
+                            const isFocused = focusedSeatId === seatId;
+                            const isAccessible = s.seat_id in accessibleSeatsList || accessibleSeatsList.includes(s.seat_id) || inv?.is_accessible;
 
-                          // Compute comfort score for this seat
-                          const scored = viewScore(s as any);
-                          const score = scored.score;
+                            // Compute comfort score for this seat
+                            const scored = viewScore(s);
+                            const score = scored.score;
+                            const seatPrice = inv?.price ?? tier.price;
 
-                          let bgClass = 'border-[#E6DCD2] bg-[#FAF6F0] text-[#1B1320] hover:border-[#C8102E] hover:bg-rose-50';
-                          if (isSelected) {
-                            bgClass = 'border-[#C8102E] bg-[#C8102E] text-white shadow-md scale-105 font-black ring-2 ring-rose-300';
-                          } else if (isHeatmapActive) {
-                            if (score >= 80) {
-                              bgClass = 'border-emerald-700 bg-emerald-600 text-white font-black shadow-sm';
-                            } else if (score >= 65) {
-                              bgClass = 'border-amber-600 bg-amber-500 text-white font-black shadow-sm';
-                            } else {
-                              bgClass = 'border-orange-600 bg-orange-500 text-white font-black shadow-sm';
+                            let bgClass = 'border-[#E6DCD2] bg-[#FAF6F0] text-[#1B1320] hover:border-[#C8102E] hover:bg-rose-50';
+                            if (isSelected) {
+                              bgClass = 'border-[#C8102E] bg-[#C8102E] text-white shadow-md scale-105 font-black ring-2 ring-rose-300';
+                            } else if (isHeatmapActive) {
+                              if (score >= 80) {
+                                bgClass = 'border-emerald-700 bg-emerald-600 text-white font-black shadow-sm';
+                              } else if (score >= 65) {
+                                bgClass = 'border-amber-600 bg-amber-500 text-white font-black shadow-sm';
+                              } else {
+                                bgClass = 'border-orange-600 bg-orange-500 text-white font-black shadow-sm';
+                              }
+                            } else if (isHeld) {
+                              bgClass = 'border-amber-400 bg-amber-100 text-amber-900 cursor-not-allowed opacity-80';
+                            } else if (isBooked) {
+                              bgClass = 'border-slate-200 bg-slate-200 text-slate-400 cursor-not-allowed opacity-60';
                             }
-                          } else if (isHeld) {
-                            bgClass = 'border-amber-400 bg-amber-100 text-amber-900 cursor-not-allowed opacity-80';
-                          } else if (isBooked) {
-                            bgClass = 'border-slate-200 bg-slate-200 text-slate-400 cursor-not-allowed opacity-60';
-                          }
 
-                          return (
-                            <button
-                              key={seatId}
-                              id={`seat-btn-${seatId}`}
-                              role="gridcell"
-                              aria-selected={isSelected}
-                              aria-disabled={isBooked || isHeld}
-                              aria-label={`Seat ${seatId}, ${tier.name} ₹${Math.round(s.price)}, ${status}, Comfort Score: ${score}`}
-                              onClick={() => {
-                                setFocusedSeatId(seatId);
-                                if (!isBooked && !isHeld) {
-                                  toggleSeat(seatId);
-                                } else {
-                                  showToast(`Seat ${seatId} is ${status} and cannot be selected. You can still preview its 3D view.`);
-                                }
-                              }}
-                              onFocus={() => setFocusedSeatId(seatId)}
-                              onMouseEnter={() => setFocusedSeatId(seatId)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'v' || e.key === 'V') {
-                                  e.preventDefault();
-                                  handleViewPOV(seatId);
-                                }
-                              }}
-                              className={`h-9 w-9 sm:h-10 sm:w-10 rounded-xl border-2 text-sm font-bold flex items-center justify-center transition-all duration-150 ${bgClass} ${
-                                isFocused ? 'ring-2 ring-[#C8102E]' : ''
-                              }`}
-                              data-testid={`seat-2d-${seatId}`}
-                              data-seat-id={seatId}
-                              data-status={isSelected ? 'selected' : status}
-                              data-score={score}
-                            >
-                              {isHeatmapActive && !isSelected ? Math.round(score) : (isSelected ? '✓' : s.number)}
-                            </button>
-                          );
-                        })}
+                            // Aisle gap margin
+                            const hasAisleAfter = aisles.includes(s.number);
+
+                            return (
+                              <div
+                                key={seatId}
+                                className={`relative flex items-center justify-center p-1 ${
+                                  hasAisleAfter ? 'mr-5 sm:mr-8 md:mr-10' : ''
+                                }`}
+                              >
+                                <button
+                                  type="button"
+                                  role="gridcell"
+                                  aria-selected={isSelected}
+                                  aria-disabled={isBooked || isHeld}
+                                  aria-label={`Seat ${seatId}, ${tier.name} ₹${Math.round(seatPrice)}, ${status}, Comfort Score: ${score}`}
+                                  onClick={() => {
+                                    focusedSeatIdRef.current = seatId;
+                                    setFocusedSeatId(seatId);
+                                    if (!isBooked && !isHeld) {
+                                      toggleSeat(seatId);
+                                    } else {
+                                      showToast(`Seat ${seatId} is ${status} and cannot be selected. You can still preview its sightline.`);
+                                    }
+                                  }}
+                                  onFocus={() => {
+                                    focusedSeatIdRef.current = seatId;
+                                    setFocusedSeatId(seatId);
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    focusedSeatIdRef.current = seatId;
+                                    setFocusedSeatId(seatId);
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top });
+                                    setHoveredSeat({
+                                      seat_id: seatId,
+                                      row: s.row,
+                                      number: s.number,
+                                      category: s.category || tier.name,
+                                      price: seatPrice,
+                                      status: status,
+                                      is_accessible: isAccessible,
+                                    });
+                                  }}
+                                  onMouseLeave={() => setHoveredSeat(null)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'v' || e.key === 'V' || e.key === 'KeyV' || e.code === 'KeyV') {
+                                      e.preventDefault();
+                                      handleViewPOV(seatId);
+                                    }
+                                  }}
+                                  className={`h-9 w-9 sm:h-10 sm:w-10 min-w-[36px] min-h-[36px] rounded-xl border-2 text-sm font-bold flex items-center justify-center transition-all duration-150 relative touch-manipulation before:absolute before:-inset-1 before:min-w-[44px] before:min-h-[44px] before:content-[''] ${bgClass} ${
+                                    isFocused ? 'ring-2 ring-[#C8102E]' : ''
+                                  }`}
+                                  data-testid={`seat-2d-${seatId}`}
+                                  data-seat-id={seatId}
+                                  data-status={isSelected ? 'selected' : status}
+                                  data-score={score}
+                                >
+                                  {isHeatmapActive && !isSelected ? Math.round(score) : (isSelected ? '✓' : s.number)}
+                                  {isAccessible && !isSelected && (
+                                    <span
+                                      title="Wheelchair Accessible Seat"
+                                      className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white font-bold ring-1 ring-white"
+                                    >
+                                      ♿
+                                    </span>
+                                  )}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Right Row Label */}
+                        <span className="w-8 shrink-0 text-center text-sm font-black text-slate-500">
+                          {row}
+                        </span>
                       </div>
-
-                      {/* Right Row Label */}
-                      <span className="w-6 text-center text-sm font-black text-slate-500">
-                        {row}
-                      </span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
+
+        {/* Compact Non-Interactive Hover Tooltip */}
+        {hoveredSeat && (
+          <div
+            role="tooltip"
+            data-testid="seat-tooltip"
+            className="pointer-events-none fixed z-50 rounded-xl bg-[#1B1320] text-white px-3.5 py-2 shadow-2xl text-xs border border-white/10 -translate-x-1/2 -translate-y-full mb-2 animate-in fade-in zoom-in-95 duration-100"
+            style={{ top: tooltipPos.y - 8, left: tooltipPos.x }}
+          >
+            <div className="font-bold text-sm text-white flex items-center gap-1.5">
+              <span>Seat {hoveredSeat.seat_id}</span>
+              <span className="text-slate-400">•</span>
+              <span className="text-rose-300 font-semibold">{hoveredSeat.category}</span>
+              {hoveredSeat.is_accessible && <span className="text-blue-400">♿</span>}
+            </div>
+            <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-300">
+              <span className="font-bold text-white">₹{Math.round(hoveredSeat.price)}</span>
+              <span>•</span>
+              <span className="capitalize font-semibold">{hoveredSeat.status}</span>
+            </div>
+          </div>
+        )}
 
         {/* Phase 11: Seat Inspection & Obstruction Details Card */}
         {focusedSeat && (
@@ -666,16 +963,16 @@ export function SeatMap2D({
                   ₹{Math.round(focusedPrice)}
                 </span>
                 <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-bold border border-slate-200">
-                  {((seatStatuses[focusedSeat.seat_id] || 'available').toString().toLowerCase() === 'payment_pending' ? 'held' : (seatStatuses[focusedSeat.seat_id] || 'available')).toString().toLowerCase()}
+                  {((seatStatuses[focusedSeat.seat_id] || serverFocusedSeat?.status || 'available').toString().toLowerCase() === 'payment_pending' ? 'held' : (seatStatuses[focusedSeat.seat_id] || serverFocusedSeat?.status || 'available')).toString().toLowerCase()}
                 </span>
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                {isWebGLSupported ? (
+                {has3D && isWebGLSupported ? (
                   <button
                     onClick={() => handleViewPOV(focusedSeat.seat_id)}
                     data-testid="see-view-from-seat-btn"
-                    className="flex min-h-[40px] items-center gap-2 rounded-xl border-2 border-[#1B1320] bg-white px-3.5 py-1.5 text-xs font-bold text-[#1B1320] shadow-sm hover:bg-slate-50 transition active:scale-95"
+                    className="flex min-h-[44px] items-center gap-2 rounded-xl border-2 border-[#1B1320] bg-white px-4 py-2 text-sm font-bold text-[#1B1320] shadow-sm hover:bg-slate-50 transition active:scale-95"
                     title={`See 3D Seated POV from seat ${focusedSeat.seat_id}`}
                   >
                     <Compass className="h-4 w-4 text-[#C8102E]" />
@@ -684,76 +981,52 @@ export function SeatMap2D({
                 ) : (
                   <span
                     data-testid="3d-unavailable-badge"
-                    className="text-xs font-semibold text-slate-500 italic bg-slate-100 px-2.5 py-1 rounded-lg border border-slate-200"
+                    className="text-xs font-semibold text-slate-500 italic bg-slate-100 px-3 py-2 rounded-xl border border-slate-200"
                   >
-                    3D view not available on this device
+                    3D preview not available for this hall
                   </span>
                 )}
+              </div>
+            </div>
 
-                {focusedScore && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Viewing Comfort:</span>
+            {/* Geometry & Viewing Comfort Inspection */}
+            {focusedScore && (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
+                <div className="rounded-2xl bg-[#FAF6F0] p-3 border border-[#E6DCD2]">
+                  <span className="text-slate-500 block font-semibold">Sightline Comfort Score</span>
+                  <div className="flex items-center gap-2 mt-1">
                     <span
-                      className={`text-sm font-black px-2.5 py-1 rounded-xl text-white ${
-                        focusedScore.score >= 80 ? 'bg-emerald-600' : focusedScore.score >= 65 ? 'bg-amber-500' : 'bg-orange-500'
-                      }`}
                       data-testid="seat-comfort-score-badge"
+                      className="text-lg font-black text-[#1B1320]"
                     >
-                      {focusedScore.score} / 100
+                      {Math.round(focusedScore.score)}/100
+                    </span>
+                    <span className="text-xs text-slate-500">
+                      ({focusedScore.score >= 80 ? 'Optimal' : focusedScore.score >= 65 ? 'Good' : 'Standard'})
                     </span>
                   </div>
-                )}
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-700">
-              <div className="space-y-1.5 bg-[#FAF6F0] p-3 rounded-2xl border border-[#E6DCD2]">
-                <div className="font-bold text-[#1B1320] flex items-center gap-1.5">
-                  <Info className="h-3.5 w-3.5 text-blue-600" />
-                  <span>Sightline Geometry</span>
                 </div>
-                <p>• Distance to Screen: ≈ {focusedSeat.screen_distance_m_est} m</p>
-                <p>• Horizontal Offset: {Math.abs(focusedSeat.horizontal_offset_deg)}°</p>
-                <p>• Reasons: {focusedScore?.reasons.join(', ')}</p>
-              </div>
 
-              <div className="space-y-1.5 bg-[#FAF6F0] p-3 rounded-2xl border border-[#E6DCD2]">
-                <div className="font-bold text-[#1B1320] flex items-center gap-1.5">
-                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
-                  <span>Screen Obstruction Estimate</span>
+                <div className="rounded-2xl bg-[#FAF6F0] p-3 border border-[#E6DCD2]">
+                  <span className="text-slate-500 block font-semibold">Distance & Angles</span>
+                  <p className="font-bold text-[#1B1320] mt-1">
+                    Screen dist: {Math.round(focusedSeat.position_gltf_y_up?.[2] || 10)}m • Offset: {Math.round(Math.abs(focusedSeat.horizontal_offset_deg))}°
+                  </p>
                 </div>
-                <p>
-                  • Geometric Visibility:{' '}
-                  <span className="font-bold text-emerald-700" data-testid="seat-visibility-pct">
-                    {focusedObstruction ? `${focusedObstruction.visible_percentage}% visible` : '100% visible'}
-                  </span>
-                </p>
-                <p>• Elements: {focusedObstruction?.obstructing_elements.length > 0 ? focusedObstruction.obstructing_elements.join(', ') : 'None (Full Line of Sight)'}</p>
-                <p className="italic text-slate-500 font-medium">
-                  {focusedObstruction?.disclaimer || "Geometric raycast estimate against static theatre geometry only. No audience members or physical heads modelled."}
-                </p>
+
+                <div className="rounded-2xl bg-[#FAF6F0] p-3 border border-[#E6DCD2]">
+                  <span className="text-slate-500 block font-semibold">Screen Visibility</span>
+                  <p className="font-bold text-[#1B1320] mt-1" data-testid="seat-visibility-pct">
+                    {focusedObstruction ? `${focusedObstruction.clear_view_pct}% unobstructed` : '100% Unobstructed view'}
+                  </p>
+                  <p className="text-[10px] text-slate-500 mt-1 leading-tight">
+                    Geometric raycast estimate against static theatre geometry only. No audience members or physical heads modelled.
+                  </p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
-
-        {/* Technical Details Toggle */}
-        <div className="rounded-2xl border border-[#E6DCD2] bg-white p-4 shadow-sm text-center">
-          <button
-            onClick={() => setShowTechDetails(!showTechDetails)}
-            className="flex items-center justify-center gap-2 mx-auto text-sm font-bold text-slate-600 hover:text-[#1B1320]"
-          >
-            <span>Seat view details & technical sightlines</span>
-            {showTechDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </button>
-          {showTechDetails && (
-            <div className="mt-4 pt-4 border-t border-[#E6DCD2] text-left text-xs text-slate-600 space-y-1 max-w-xl mx-auto">
-              <p>• Horizontal viewing angle recommended range: $\le 35^\circ$ for center seats.</p>
-              <p>• Vertical elevation angle conforms to SMPTE EG 18-1994 cinema standards.</p>
-              <p>• 3D auditorium model verifies real geometry and screen line-of-sight.</p>
-            </div>
-          )}
-        </div>
 
         {/* Error notification banner */}
         {errorMessage && (
@@ -766,7 +1039,7 @@ export function SeatMap2D({
         {/* Sticky Summary & Checkout Footer */}
         {selectedSeats.length > 0 && (
           <div
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4 z-40"
+            className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-3xl px-4 z-40"
             data-testid="seatmap-2d-summary-footer"
           >
             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 rounded-3xl border border-[#E6DCD2] bg-white p-5 shadow-2xl backdrop-blur-md">
@@ -783,7 +1056,7 @@ export function SeatMap2D({
                       className="rounded-lg border border-rose-200 bg-rose-50 px-2 py-1 text-xs font-bold text-[#9F1239] flex items-center gap-1.5"
                     >
                       <span>{id}</span>
-                      {isWebGLSupported && (
+                      {has3D && isWebGLSupported && (
                         <button
                           onClick={() => handleViewPOV(id)}
                           data-testid={`view-pov-${id}`}
@@ -809,7 +1082,7 @@ export function SeatMap2D({
 
               <div className="flex items-center gap-5 w-full sm:w-auto justify-between sm:justify-end">
                 <div className="text-right">
-                  <span className="text-sm text-slate-500 uppercase font-bold tracking-wider">Total</span>
+                  <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">Total</span>
                   <div className="text-2xl font-black text-[#C8102E]">₹{Math.round(totalPrice)}</div>
                 </div>
 
@@ -845,6 +1118,7 @@ export function SeatMap2D({
                 <button
                   onClick={() => setIsWaitlistModalOpen(false)}
                   className="text-slate-400 hover:text-slate-600"
+                  aria-label="Close Waitlist"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -875,7 +1149,7 @@ export function SeatMap2D({
                       onChange={(e) => setPartySize(parseInt(e.target.value, 10))}
                       className="w-full rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] p-2 text-sm font-bold text-slate-800"
                     >
-                      {[1, 2, 3, 4, 5, 6].map((n) => (
+                      {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
                         <option key={n} value={n}>
                           {n} {n === 1 ? 'Seat' : 'Seats'}
                         </option>
