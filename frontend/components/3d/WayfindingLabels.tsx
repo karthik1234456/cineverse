@@ -10,11 +10,12 @@ import type { SeatLayoutFile } from '@/lib/types';
 export function WayfindingLabels() {
   const cameraMode = useCinemaStore((s) => s.cameraMode);
   const mode = useCinemaStore((s) => s.mode);
-  const seats = (layoutData as unknown as SeatLayoutFile).seats;
+  const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
+  const seats = auditoriumLayout?.seats || (layoutData as unknown as SeatLayoutFile).seats;
 
   // Compute row aisle anchor positions
   const rowPositions = useMemo(() => {
-    const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+    const rows = Array.from(new Set(seats.map((s) => s.row))).sort();
     return rows.map((rowName) => {
       const rowSeats = seats.filter((s) => s.row === rowName);
       const minXSeat = rowSeats.reduce((prev, curr) =>

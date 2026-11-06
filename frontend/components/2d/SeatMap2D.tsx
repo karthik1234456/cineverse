@@ -111,7 +111,8 @@ export function SeatMap2D({
   }, [showtimeNum]);
 
   // Authoritative 3D capability for this auditorium
-  const has3D = has3DAsset !== undefined ? has3DAsset : (showtimeDetails ? showtimeDetails.has_3d_preview : (auditoriumId === '1'));
+  // Every auditorium has procedural 3D capability
+  const has3D = true;
 
   // Idle prefetching for fast 3D POV transition (< 2s on warm cache)
   useEffect(() => {
@@ -577,8 +578,8 @@ export function SeatMap2D({
               <span>{isHeatmapActive ? 'Comfort Heatmap: ON' : 'Comfort Heatmap'}</span>
             </button>
 
-            {/* Explore in 3D Button or Neutral Notice */}
-            {has3D && isWebGLSupported && onSwitchTo3D ? (
+            {/* Explore in 3D Button */}
+            {onSwitchTo3D && (
               <button
                 onClick={onSwitchTo3D}
                 className="flex min-h-[44px] items-center gap-2 rounded-xl bg-amber-500/10 border-2 border-amber-500 px-5 py-2 text-sm font-bold text-amber-900 shadow hover:bg-amber-500/20 transition"
@@ -588,13 +589,6 @@ export function SeatMap2D({
                 <Compass className="h-4 w-4 text-amber-600 animate-spin-slow" />
                 <span>Explore in 3D</span>
               </button>
-            ) : (
-              <span
-                data-testid="3d-unavailable-badge"
-                className="text-xs font-semibold text-slate-500 italic bg-slate-100 px-3 py-2 rounded-xl border border-slate-200"
-              >
-                3D preview not available for this hall
-              </span>
             )}
           </div>
         </div>
@@ -968,24 +962,15 @@ export function SeatMap2D({
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
-                {has3D && isWebGLSupported ? (
-                  <button
-                    onClick={() => handleViewPOV(focusedSeat.seat_id)}
-                    data-testid="see-view-from-seat-btn"
-                    className="flex min-h-[44px] items-center gap-2 rounded-xl border-2 border-[#1B1320] bg-white px-4 py-2 text-sm font-bold text-[#1B1320] shadow-sm hover:bg-slate-50 transition active:scale-95"
-                    title={`See 3D Seated POV from seat ${focusedSeat.seat_id}`}
-                  >
-                    <Compass className="h-4 w-4 text-[#C8102E]" />
-                    <span>See view from this seat</span>
-                  </button>
-                ) : (
-                  <span
-                    data-testid="3d-unavailable-badge"
-                    className="text-xs font-semibold text-slate-500 italic bg-slate-100 px-3 py-2 rounded-xl border border-slate-200"
-                  >
-                    3D preview not available for this hall
-                  </span>
-                )}
+                <button
+                  onClick={() => handleViewPOV(focusedSeat.seat_id)}
+                  data-testid="see-view-from-seat-btn"
+                  className="flex min-h-[44px] items-center gap-2 rounded-xl border-2 border-[#1B1320] bg-white px-4 py-2 text-sm font-bold text-[#1B1320] shadow-sm hover:bg-slate-50 transition active:scale-95"
+                  title={`See 3D Seated POV from seat ${focusedSeat.seat_id}`}
+                >
+                  <Compass className="h-4 w-4 text-[#C8102E]" />
+                  <span>See view from this seat</span>
+                </button>
               </div>
             </div>
 

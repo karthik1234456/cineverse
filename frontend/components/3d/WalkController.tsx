@@ -14,10 +14,6 @@ import walkNavData from '@/public/models/walk_nav_v2.json';
 import layoutData from '@/public/models/seat_layout_v2.json';
 import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
 
-const walkables = walkNavData.walkable as unknown as WalkableSurface[];
-const colliders = walkNavData.colliders as unknown as Collider[];
-const playerCfg = walkNavData.player;
-
 export function WalkController() {
   const { camera, gl } = useThree();
 
@@ -33,7 +29,14 @@ export function WalkController() {
   const autoWalkTarget = useCinemaStore((s) => s.autoWalkTarget);
   const setHoveredSeat = useCinemaStore((s) => s.setHoveredSeat);
 
-  const seats = (layoutData as unknown as SeatLayoutFile).seats;
+  const auditoriumWalkNav = useCinemaStore((s) => s.auditoriumWalkNav);
+  const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
+
+  const walkables = (auditoriumWalkNav?.walkable || walkNavData.walkable) as unknown as WalkableSurface[];
+  const colliders = (auditoriumWalkNav?.colliders || walkNavData.colliders) as unknown as Collider[];
+  const playerCfg = auditoriumWalkNav?.player || walkNavData.player;
+
+  const seats = auditoriumLayout?.seats || (layoutData as unknown as SeatLayoutFile).seats;
   const seatMap = useMemo(() => {
     const map = new Map<string, SeatRecord>();
     for (const s of seats) map.set(s.seat_id, s);

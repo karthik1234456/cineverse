@@ -30,9 +30,10 @@ export const TARGET_BOUNDS = {
 };
 
 function clampToAuditorium(pos: THREE.Vector3) {
-  pos.x = THREE.MathUtils.clamp(pos.x, AUDITORIUM_BOUNDS.minX, AUDITORIUM_BOUNDS.maxX);
-  pos.y = THREE.MathUtils.clamp(pos.y, AUDITORIUM_BOUNDS.minY, AUDITORIUM_BOUNDS.maxY);
-  pos.z = THREE.MathUtils.clamp(pos.z, AUDITORIUM_BOUNDS.minZ, AUDITORIUM_BOUNDS.maxZ);
+  const bounds = useCinemaStore.getState().cameraBounds || AUDITORIUM_BOUNDS;
+  pos.x = THREE.MathUtils.clamp(pos.x, bounds.minX, bounds.maxX);
+  pos.y = THREE.MathUtils.clamp(pos.y, bounds.minY, bounds.maxY);
+  pos.z = THREE.MathUtils.clamp(pos.z, bounds.minZ, bounds.maxZ);
 }
 
 function easeInOutCubic(x: number): number {
@@ -59,11 +60,14 @@ export function CameraController() {
   const toggleSeat = useCinemaStore((s) => s.toggleSeat);
   const toggleCompare = useCinemaStore((s) => s.toggleCompare);
 
-  const seats = (layoutData as unknown as SeatLayoutFile).seats;
+  const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
+  const seats = auditoriumLayout.seats;
   const screenCenter = useMemo(
-    () => new THREE.Vector3(...(layoutData as unknown as SeatLayoutFile).screen.center_gltf_y_up),
-    []
+    () => new THREE.Vector3(...auditoriumLayout.screen.center_gltf_y_up),
+    [auditoriumLayout.screen.center_gltf_y_up]
   );
+  const cameraBounds = useCinemaStore((s) => s.cameraBounds);
+  const targetBounds = useCinemaStore((s) => s.targetBounds);
 
   const seatMap = useMemo(() => {
     const map = new Map<string, SeatRecord>();
@@ -380,39 +384,42 @@ export function CameraController() {
       persCam.quaternion.premultiply(yawQuat);
       persCam.quaternion.multiply(pitchQuat);
     } else if (isOverview) {
+      const curBounds = cameraBounds || AUDITORIUM_BOUNDS;
+      const curTarget = targetBounds || TARGET_BOUNDS;
+
       if (controlsRef.current) {
         // Clamp orbit target to interior
         const tgt = controlsRef.current.target;
-        tgt.x = THREE.MathUtils.clamp(tgt.x, TARGET_BOUNDS.minX, TARGET_BOUNDS.maxX);
-        tgt.y = THREE.MathUtils.clamp(tgt.y, TARGET_BOUNDS.minY, TARGET_BOUNDS.maxY);
-        tgt.z = THREE.MathUtils.clamp(tgt.z, TARGET_BOUNDS.minZ, TARGET_BOUNDS.maxZ);
+        tgt.x = THREE.MathUtils.clamp(tgt.x, curTarget.minX, curTarget.maxX);
+        tgt.y = THREE.MathUtils.clamp(tgt.y, curTarget.minY, curTarget.maxY);
+        tgt.z = THREE.MathUtils.clamp(tgt.z, curTarget.minZ, curTarget.maxZ);
       }
 
       const pos = persCam.position;
       let hitEdge = false;
 
       // Soft spring & wall gliding when pushing past bounds
-      if (pos.x < AUDITORIUM_BOUNDS.minX) {
-        pos.x = THREE.MathUtils.lerp(pos.x, AUDITORIUM_BOUNDS.minX, 0.35);
+      if (pos.x < curBounds.minX) {
+        pos.x = THREE.MathUtils.lerp(pos.x, curBounds.minX, 0.35);
         hitEdge = true;
-      } else if (pos.x > AUDITORIUM_BOUNDS.maxX) {
-        pos.x = THREE.MathUtils.lerp(pos.x, AUDITORIUM_BOUNDS.maxX, 0.35);
-        hitEdge = true;
-      }
-
-      if (pos.y < AUDITORIUM_BOUNDS.minY) {
-        pos.y = THREE.MathUtils.lerp(pos.y, AUDITORIUM_BOUNDS.minY, 0.35);
-        hitEdge = true;
-      } else if (pos.y > AUDITORIUM_BOUNDS.maxY) {
-        pos.y = THREE.MathUtils.lerp(pos.y, AUDITORIUM_BOUNDS.maxY, 0.35);
+      } else if (pos.x > curBounds.maxX) {
+        pos.x = THREE.MathUtils.lerp(pos.x, curBounds.maxX, 0.35);
         hitEdge = true;
       }
 
-      if (pos.z < AUDITORIUM_BOUNDS.minZ) {
-        pos.z = THREE.MathUtils.lerp(pos.z, AUDITORIUM_BOUNDS.minZ, 0.35);
+      if (pos.y < curBounds.minY) {
+        pos.y = THREE.MathUtils.lerp(pos.y, curBounds.minY, 0.35);
         hitEdge = true;
-      } else if (pos.z > AUDITORIUM_BOUNDS.maxZ) {
-        pos.z = THREE.MathUtils.lerp(pos.z, AUDITORIUM_BOUNDS.maxZ, 0.35);
+      } else if (pos.y > curBounds.maxY) {
+        pos.y = THREE.MathUtils.lerp(pos.y, curBounds.maxY, 0.35);
+        hitEdge = true;
+      }
+
+      if (pos.z < curBounds.minZ) {
+        pos.z = THREE.MathUtils.lerp(pos.z, curBounds.minZ, 0.35);
+        hitEdge = true;
+      } else if (pos.z > curBounds.maxZ) {
+        pos.z = THREE.MathUtils.lerp(pos.z, curBounds.maxZ, 0.35);
         hitEdge = true;
       }
 

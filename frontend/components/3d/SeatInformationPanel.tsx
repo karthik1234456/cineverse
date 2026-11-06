@@ -29,7 +29,8 @@ export function SeatInformationPanel() {
   const [showDetails, setShowDetails] = useState(false);
   const [showCalculationInfo, setShowCalculationInfo] = useState(false);
 
-  const seats = (layoutData as unknown as SeatLayoutFile).seats;
+  const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
+  const seats = auditoriumLayout?.seats || (layoutData as unknown as SeatLayoutFile).seats;
   const seat = useMemo(() => {
     if (!activeSeatId) return null;
     return seats.find((s) => s.seat_id === activeSeatId) || null;
@@ -277,8 +278,8 @@ export function SeatInformationPanel() {
               <p>
                 Our sightline rating uses geometric raycasts from eye level directly to screen corners based on SMPTE ST 2092 theatre standards.
               </p>
-              <p className="text-sm text-slate-500 italic bg-[#FAF6F0] p-3 rounded-xl border border-[#E6DCD2]">
-                Note: These scores are geometric estimates against static auditorium surfaces. Patrons in front rows or personal head movement are not simulated.
+              <p className="text-sm text-slate-700 bg-[#FAF6F0] p-3 rounded-xl border border-[#E6DCD2]">
+                <strong>Honesty Disclosure:</strong> Viewing angles and sightlines are geometric estimates. Procedural halls are idealized acoustic and architectural models generated from auditorium layout specifications and not physical laser scans. Patrons in front rows or personal head movement are not simulated.
               </p>
             </div>
             <button

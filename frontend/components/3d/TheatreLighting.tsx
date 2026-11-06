@@ -10,6 +10,13 @@ export function TheatreLighting() {
   const houseLights = useCinemaStore((s) => s.houseLights);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
   const theatreLook = useCinemaStore((s) => s.theatreLook);
+  const dimensions = useCinemaStore((s) => s.proceduralResult?.geometry.dimensions);
+
+  const halfWidth = dimensions ? dimensions.halfWidth : 11.11;
+  const zBack = dimensions ? dimensions.zBack : -26.0;
+  const topY = dimensions ? dimensions.height : 11.2;
+  const midZ = (zBack - 8.0) / 2;
+  const ceilingZ = (zBack - 8.0) / 2;
 
   const look = useMemo(() => getActiveLook(theatreLook), [theatreLook]);
 
@@ -127,10 +134,10 @@ export function TheatreLighting() {
       {/* Warm downlights over audience rows (2800K warm house lighting) */}
       <pointLight
         ref={ceilingL1Ref}
-        position={[-4.5, 9.8, -12.0]}
+        position={[-halfWidth * 0.42, topY - 1.4, ceilingZ]}
         color="#ffecd1"
         intensity={1.10}
-        distance={24}
+        distance={Math.max(24, halfWidth * 1.5)}
         decay={1.8}
         castShadow={qualityMode === 'beautiful'}
         shadow-mapSize-width={512}
@@ -138,40 +145,40 @@ export function TheatreLighting() {
       />
       <pointLight
         ref={ceilingR1Ref}
-        position={[4.5, 9.8, -12.0]}
+        position={[halfWidth * 0.42, topY - 1.4, ceilingZ]}
         color="#ffecd1"
         intensity={1.10}
-        distance={24}
+        distance={Math.max(24, halfWidth * 1.5)}
         decay={1.8}
         castShadow={qualityMode === 'beautiful'}
         shadow-mapSize-width={512}
         shadow-mapSize-height={512}
       />
 
-      {/* Rear audience fill to ensure back rows (H, I, J) are clearly lit */}
+      {/* Rear audience fill to ensure back rows are clearly lit */}
       <pointLight
-        position={[0, 8.5, -23.0]}
+        position={[0, topY - 2.7, zBack + 3.0]}
         color="#fef3c7"
         intensity={houseLights === 'show' ? 0.12 : 0.60}
-        distance={20}
+        distance={Math.max(20, halfWidth * 1.4)}
         decay={1.8}
       />
 
       {/* Architectural Wall Washers creating rich side gradients */}
       <pointLight
         ref={wallWasherLeftRef}
-        position={[-9.8, 5.0, -13.0]}
+        position={[-halfWidth + 1.2, 5.0, midZ]}
         color={look.sconceGlowColor}
         intensity={0.85}
-        distance={14}
+        distance={Math.max(14, halfWidth * 0.8)}
         decay={1.8}
       />
       <pointLight
         ref={wallWasherRightRef}
-        position={[9.8, 5.0, -13.0]}
+        position={[halfWidth - 1.2, 5.0, midZ]}
         color={look.sconceGlowColor}
         intensity={0.85}
-        distance={14}
+        distance={Math.max(14, halfWidth * 0.8)}
         decay={1.8}
       />
 

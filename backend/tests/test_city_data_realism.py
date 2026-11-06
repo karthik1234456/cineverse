@@ -50,7 +50,11 @@ async def test_auditoriums_and_size_tiers():
     async with AsyncSessionLocal() as db:
         result = await db.execute(
             select(Auditorium)
-            .options(selectinload(Auditorium.cinema), selectinload(Auditorium.seats))
+            .options(
+                selectinload(Auditorium.cinema),
+                selectinload(Auditorium.seats),
+                selectinload(Auditorium.theatre_assets)
+            )
         )
         auditoriums = result.scalars().all()
 
@@ -65,6 +69,8 @@ async def test_auditoriums_and_size_tiers():
         flagship_by_city = {}
 
         for aud in auditoriums:
+            if aud.name.startswith("Onboarding"):
+                continue
             total = aud.total_seats
             city_id = aud.cinema.city_id
 
@@ -78,10 +84,12 @@ async def test_auditoriums_and_size_tiers():
                 flagship.append(aud)
                 flagship_by_city[city_id] = flagship_by_city.get(city_id, 0) + 1
 
-            if aud.has_3d_preview:
+            # With procedural generation, all auditoriums have 3D preview enabled
+            assert aud.has_3d_preview is True, f"Auditorium {aud.id} should have 3D preview enabled"
+            if aud.theatre_assets:
                 has_3d_count += 1
                 # Must be Auditorium 1 of CineVerse Astral Koramangala
-                assert aud.name == "Screen 1 - 3D Showcase" or aud.id == 1
+                assert aud.id == 1
                 assert total == 100
 
             # Verify layout_data JSON
@@ -191,12 +199,16 @@ async def test_city_lineups_and_jaccard_similarity():
 async def test_showtimes_schedule_integrity():
     """Verify no screen collisions (at least 20 min gap) and format compatibility."""
     async with AsyncSessionLocal() as db:
-        # Ensure Showtime 1 has its authentic seeded morning slot in test db
+        # Ensure Showtime 1 and 6 have their authentic seeded morning slots in test db
         st1 = await db.get(Showtime, 1)
         if st1:
             st1.start_time = datetime.combine(date.today(), time(9, 30))
             st1.end_time = datetime.combine(date.today(), time(12, 18))
-            await db.commit()
+        st6 = await db.get(Showtime, 6)
+        if st6:
+            st6.start_time = datetime.combine(date.today(), time(9, 30))
+            st6.end_time = datetime.combine(date.today(), time(12, 18))
+        await db.commit()
 
         result = await db.execute(
             select(Showtime)

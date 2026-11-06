@@ -1577,7 +1577,7 @@ async def seed_database():
                     name=s_cfg["name"],
                     screen_type=s_cfg["type"],
                     total_seats=len(seat_records),
-                    has_3d_preview=s_cfg["is_3d"],
+                    has_3d_preview=True,
                     layout_data=layout_data
                 )
                 db.add(aud)

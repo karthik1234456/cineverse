@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { getShowtimeSeats, type ShowtimeSeatsResponse } from '@/services/api';
 import type { SeatStatus } from '@/lib/types';
 import { useCinemaStore } from '@/store/useCinemaStore';
+import { generateProceduralAuditorium } from '@/lib/proceduralAuditorium';
 import { useSeatSocket } from './useSeatSocket';
 
 export function useSeatData(showtimeId: string = '1') {
@@ -13,6 +14,7 @@ export function useSeatData(showtimeId: string = '1') {
   const setTiers = useCinemaStore((s) => s.setTiers);
   const updateSeatStatus = useCinemaStore((s) => s.updateSeatStatus);
   const setTrailerState = useCinemaStore((s) => s.setTrailerState);
+  const setAuditoriumData = useCinemaStore((s) => s.setAuditoriumData);
 
   // TanStack Query for showtime seats and movie trailer info
   const { data, isLoading, error, refetch } = useQuery<ShowtimeSeatsResponse>({
@@ -73,6 +75,32 @@ export function useSeatData(showtimeId: string = '1') {
         if (data.tiers && data.tiers.length > 0) {
           setTiers(data.tiers);
         }
+      }
+
+      // Generate procedural 3D auditorium for all halls (except Auditorium 1 which uses the bespoke GLB by default)
+      const audId = String(data.auditorium_id || '1');
+      let isProceduralRequested = false;
+      if (typeof window !== 'undefined') {
+        const p = new URLSearchParams(window.location.search);
+        isProceduralRequested = p.get('procedural') === '1';
+      }
+
+      if (audId !== '1' || isProceduralRequested) {
+        if (data.layout_data && data.layout_data.rows) {
+          const proceduralData = generateProceduralAuditorium({
+            rows: data.layout_data.rows,
+            seats_per_row: data.layout_data.seats_per_row,
+            aisles: data.layout_data.aisles || [],
+            accessible_seats: data.layout_data.accessible_seats,
+            category_bands: data.layout_data.category_bands as any,
+            screen_type: data.screen_type,
+            total_seats: data.seats && data.seats.length > 0 ? data.seats.length : (data.layout_data.rows.length * data.layout_data.seats_per_row),
+            base_price: data.seats && data.seats[0] ? data.seats[0].price : 280,
+          });
+          setAuditoriumData(audId, proceduralData);
+        }
+      } else {
+        setAuditoriumData('1', null);
       }
 
       // Configure screen trailer from showtime movie data

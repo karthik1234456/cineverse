@@ -19,6 +19,11 @@ export function CinemaScreen() {
   const trailer = useCinemaStore((s) => s.trailer);
   const toggleTrailerPlay = useCinemaStore((s) => s.toggleTrailerPlay);
   const toggleTrailerMute = useCinemaStore((s) => s.toggleTrailerMute);
+  const screenConfig = useCinemaStore((s) => s.auditoriumLayout.screen);
+
+  const screenWidth = screenConfig?.width ?? 15.6;
+  const screenHeight = screenConfig?.height ?? 7.25;
+  const screenCenter = screenConfig?.center_gltf_y_up ?? [0, 5.55, -1.255];
 
   const [videoLoaded, setVideoLoaded] = useState(false);
   const [videoError, setVideoError] = useState(false);
@@ -194,7 +199,7 @@ export function CinemaScreen() {
 
   // Perfectly oriented screen geometry facing audience (-Z) with correct left-to-right UV mapping
   const screenGeometry = useMemo(() => {
-    const geom = new THREE.PlaneGeometry(15.6, 7.25);
+    const geom = new THREE.PlaneGeometry(screenWidth, screenHeight);
     geom.rotateY(Math.PI);
     const uvs = geom.attributes.uv;
     for (let i = 0; i < uvs.count; i++) {
@@ -202,7 +207,7 @@ export function CinemaScreen() {
     }
     geom.computeVertexNormals();
     return geom;
-  }, []);
+  }, [screenWidth, screenHeight]);
 
   // Frame update: update video texture, fallback canvas and sample video for light spill
   const lastSampleTime = useRef(0);
@@ -339,7 +344,7 @@ export function CinemaScreen() {
         ref={meshRef}
         name="DynamicScreenOverlay"
         geometry={screenGeometry}
-        position={[0, 5.55, -1.255]}
+        position={screenCenter}
       >
         <meshBasicMaterial
           map={activeTexture}
@@ -357,7 +362,7 @@ export function CinemaScreen() {
         <spotLight
           ref={lightRef}
           name="ScreenLightSpill"
-          position={[0, 6.0, -1.3]}
+          position={[0, screenCenter[1] + 0.45, screenCenter[2] - 0.05]}
           target-position={[0, 2.0, -14.0]}
           color={spillColor}
           intensity={houseLights === 'show' ? 24.0 : houseLights === 'dim' ? 14.0 : 6.0}

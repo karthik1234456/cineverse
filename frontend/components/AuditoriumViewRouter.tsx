@@ -40,7 +40,7 @@ export function AuditoriumViewRouter({
       .catch((err) => console.warn('Router showtime details fetch notice:', err));
   }, [showtimeId]);
 
-  const has3D = showtimeDetails ? showtimeDetails.has_3d_preview : (auditoriumId === '1');
+  const has3D = true;
 
   useEffect(() => {
     if (modeParam === '3d' || modeParam === 'pov') {
@@ -119,29 +119,6 @@ export function AuditoriumViewRouter({
   }
 
   if (currentMode === '3d') {
-    if (showtimeDetails && !showtimeDetails.has_3d_preview) {
-      return (
-        <div
-          className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#FFF8F1] p-6 text-center text-[#1B1320]"
-          data-testid="3d-not-supported-notice"
-        >
-          <div className="max-w-md rounded-3xl border border-[#E6DCD2] bg-white p-8 shadow-sm">
-            <h2 className="text-xl font-black text-[#1B1320] mb-2">3D preview not available for this hall</h2>
-            <p className="text-sm text-slate-600 mb-6">
-              This auditorium uses a standard high-capacity 2D layout. You can select your seats using our interactive 2D map.
-            </p>
-            <button
-              onClick={handleSwitchTo2D}
-              data-testid="switch-to-2d-button"
-              className="rounded-xl bg-[#C8102E] px-6 py-3 text-sm font-bold text-white shadow-sm hover:bg-[#A00D24] transition"
-            >
-              Switch to 2D Map
-            </button>
-          </div>
-        </div>
-      );
-    }
-
     return (
       <div className="relative h-[100dvh] w-full overflow-hidden" data-testid="auditorium-3d-wrapper">
         {/* Slim Immersive Top Bar (§ Part E / Finding F8 fixed) */}

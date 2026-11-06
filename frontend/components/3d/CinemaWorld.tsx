@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import { AuditoriumModel } from './AuditoriumModel';
 import { SeatInteraction } from './SeatInteraction';
+import { ProceduralAuditorium } from './ProceduralAuditorium';
 import { CameraController } from './CameraController';
 import { TheatreLighting } from './TheatreLighting';
 import { CinemaScreen } from './Screen';
@@ -20,6 +21,7 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
   const [hasWebGL, setHasWebGL] = useState(true);
   const [canvasError, setCanvasError] = useState<string | null>(null);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
+  const proceduralResult = useCinemaStore((s) => s.proceduralResult);
 
   // Check WebGL availability
   useEffect(() => {
@@ -67,8 +69,18 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
         <fog attach="fog" args={['#07080a', 18, 65]} />
         <Suspense fallback={null}>
           <AdaptiveFrameloopController />
-          <AuditoriumModel />
-          <SeatInteraction onSeatClick={onSeatSelect} />
+          {proceduralResult ? (
+            <ProceduralAuditorium
+              geometry={proceduralResult.geometry}
+              seats={proceduralResult.seatLayout.seats}
+              onSeatClick={onSeatSelect}
+            />
+          ) : (
+            <>
+              <AuditoriumModel />
+              <SeatInteraction onSeatClick={onSeatSelect} />
+            </>
+          )}
           <CinemaScreen />
           <TheatreLighting />
           <WayfindingLabels />

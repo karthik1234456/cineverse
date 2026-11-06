@@ -12,6 +12,7 @@ export function SeatHoverTooltip() {
   const selectedSeats = useCinemaStore((s) => s.selectedSeats);
   const mode = useCinemaStore((s) => s.mode);
   const cameraMode = useCinemaStore((s) => s.cameraMode);
+  const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
 
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(() => {
     if (typeof window !== 'undefined') {
@@ -20,7 +21,7 @@ export function SeatHoverTooltip() {
     return null;
   });
 
-  const seats = (layoutData as unknown as SeatLayoutFile).seats;
+  const seats = auditoriumLayout?.seats || (layoutData as unknown as SeatLayoutFile).seats;
   const seat = useMemo(() => {
     if (!hoveredSeatId) return null;
     return seats.find((s) => s.seat_id === hoveredSeatId) || null;

@@ -11,10 +11,30 @@ import type {
 import type { TierSummaryItem } from '@/services/api';
 import layoutData from '@/public/models/seat_layout_v2.json';
 import walkNavData from '@/public/models/walk_nav_v2.json';
+import type { SeatLayoutFile, WalkNavFile } from '@/lib/types';
+import type { ProceduralAuditoriumResult } from '@/lib/proceduralAuditorium';
 
 export const MAX_SELECTED_SEATS = 8;
 export const DEFAULT_CAMERA_POS: [number, number, number] = [0.0, 8.5, -22.5];
 export const DEFAULT_CAMERA_TARGET: [number, number, number] = [0.0, 4.0, -8.0];
+
+export const DEFAULT_AUDITORIUM_BOUNDS = {
+  minX: -9.2,
+  maxX: 9.2,
+  minY: 1.1,
+  maxY: 9.6,
+  minZ: -24.2,
+  maxZ: -2.2,
+};
+
+export const DEFAULT_TARGET_BOUNDS = {
+  minX: -6.0,
+  maxX: 6.0,
+  minY: 1.5,
+  maxY: 6.5,
+  minZ: -19.0,
+  maxZ: -3.0,
+};
 
 export interface WalkPlayerState {
   position: [number, number, number];
@@ -100,6 +120,15 @@ export interface CinemaState {
     geometries: number;
     textures: number;
   };
+
+  // Dynamic Auditorium Layout & Procedural 3D
+  auditoriumId: string;
+  auditoriumLayout: SeatLayoutFile;
+  auditoriumWalkNav: WalkNavFile;
+  cameraBounds: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number };
+  targetBounds: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number };
+  proceduralResult: ProceduralAuditoriumResult | null;
+  setAuditoriumData: (auditoriumId: string, result: ProceduralAuditoriumResult | null) => void;
 
   // Actions
   setSeatStatuses: (statuses: Record<string, SeatStatus>) => void;
@@ -249,6 +278,43 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     textures: 0,
   },
 
+  // Dynamic Auditorium Layout
+  auditoriumId: '1',
+  auditoriumLayout: layoutData as unknown as SeatLayoutFile,
+  auditoriumWalkNav: walkNavData as unknown as WalkNavFile,
+  cameraBounds: DEFAULT_AUDITORIUM_BOUNDS,
+  targetBounds: DEFAULT_TARGET_BOUNDS,
+  proceduralResult: null,
+
+  setAuditoriumData: (auditoriumId, result) => {
+    if (!result) {
+      set({
+        auditoriumId,
+        proceduralResult: null,
+        auditoriumLayout: layoutData as unknown as SeatLayoutFile,
+        auditoriumWalkNav: walkNavData as unknown as WalkNavFile,
+        cameraBounds: DEFAULT_AUDITORIUM_BOUNDS,
+        targetBounds: DEFAULT_TARGET_BOUNDS,
+      });
+      return;
+    }
+
+    set({
+      auditoriumId,
+      proceduralResult: result,
+      auditoriumLayout: result.seatLayout,
+      auditoriumWalkNav: result.walkNav,
+      cameraBounds: result.geometry.cameraBounds,
+      targetBounds: result.geometry.targetBounds,
+      cameraPosition: result.geometry.defaultCameraPos,
+      cameraTarget: result.geometry.defaultCameraTarget,
+      walkPlayer: {
+        ...get().walkPlayer,
+        position: result.walkNav.player.spawn_position,
+      },
+    });
+  },
+
   setSeatStatuses: (statuses) => set({ seatStatuses: statuses }),
   setSeatPrices: (prices) => set({ seatPrices: prices }),
   setTiers: (tiers) => set({ tiers }),
@@ -383,7 +449,8 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
   // Seated Mode: transitions directly to exact seat eye position
   sitAt: (seatId) => {
-    const seat = (layoutData as any).seats.find((s: any) => s.seat_id === seatId);
+    const layout = get().auditoriumLayout;
+    const seat = layout.seats.find((s) => s.seat_id === seatId);
     if (!seat) return;
 
     set({
@@ -392,17 +459,20 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
       activeSeatId: seatId,
       autoWalkTarget: null,
       cameraPosition: seat.eye_position_gltf_y_up,
-      cameraTarget: (layoutData as any).screen.center_gltf_y_up,
+      cameraTarget: layout.screen.center_gltf_y_up,
     });
   },
 
   // Stand Up: returns to Walk Mode in aisle next to current seat row
   standUp: () => {
-    const active = get().activeSeatId || 'E05';
+    const layout = get().auditoriumLayout;
+    const active = get().activeSeatId || (layout.seats[0] ? layout.seats[0].seat_id : 'E05');
     const row = active.charAt(0);
-    const rowIndex = 'ABCDEFGHIJ'.indexOf(row);
-    const rowZ = -8.85 - (rowIndex >= 0 ? rowIndex : 4) * 1.5;
-    const groundY = 0.22 * (rowIndex >= 0 ? rowIndex : 4);
+    const allRows = Array.from(new Set(layout.seats.map((s) => s.row))).sort();
+    const rowIndex = allRows.indexOf(row);
+    const effectiveRowIdx = rowIndex >= 0 ? rowIndex : Math.floor(allRows.length / 2);
+    const rowZ = -8.032 - effectiveRowIdx * 1.5;
+    const groundY = 0.22 * effectiveRowIdx;
 
     set({
       mode: 'walk',
@@ -425,11 +495,13 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   },
 
   teleportToRow: (row) => {
+    const layout = get().auditoriumLayout;
     const r = row.toUpperCase();
-    const rowIndex = 'ABCDEFGHIJ'.indexOf(r);
+    const allRows = Array.from(new Set(layout.seats.map((s) => s.row))).sort();
+    const rowIndex = allRows.indexOf(r);
     if (rowIndex === -1) return;
 
-    const rowZ = -8.85 - rowIndex * 1.5;
+    const rowZ = -8.032 - rowIndex * 1.5;
     const groundY = 0.22 * rowIndex;
 
     set({
@@ -509,7 +581,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   },
 
   navigatePOV: (direction) => {
-    const { activeSeatId, selectedSeats } = get();
+    const { activeSeatId, selectedSeats, auditoriumLayout } = get();
     if (!activeSeatId) return;
 
     // If multiple seats are selected, cycle through user's selected seats first
@@ -527,20 +599,22 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
     const row = activeSeatId.charAt(0);
     const num = parseInt(activeSeatId.slice(1), 10);
-    const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-    const rowIndex = rows.indexOf(row);
+    const allRows = Array.from(new Set(auditoriumLayout.seats.map((s) => s.row))).sort();
+    const rowIndex = allRows.indexOf(row);
+    const rowSeats = auditoriumLayout.seats.filter((s) => s.row === row);
+    const maxNumInRow = Math.max(...rowSeats.map((s) => s.number));
 
     let nextRow = row;
     let nextNum = num;
 
     if (direction === 'next') {
-      if (num < 10) nextNum = num + 1;
+      if (num < maxNumInRow) nextNum = num + 1;
     } else if (direction === 'prev') {
       if (num > 1) nextNum = num - 1;
     } else if (direction === 'nextRow') {
-      if (rowIndex < rows.length - 1) nextRow = rows[rowIndex + 1];
+      if (rowIndex < allRows.length - 1) nextRow = allRows[rowIndex + 1];
     } else if (direction === 'prevRow') {
-      if (rowIndex > 0) nextRow = rows[rowIndex - 1];
+      if (rowIndex > 0) nextRow = allRows[rowIndex - 1];
     }
 
     const newSeatId = `${nextRow}${nextNum.toString().padStart(2, '0')}`;

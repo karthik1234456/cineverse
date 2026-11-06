@@ -25,6 +25,7 @@ export function AuditoriumInfoPanel() {
   const cameraMode = useCinemaStore((s) => s.cameraMode);
   const mode = useCinemaStore((s) => s.mode);
   const storeTiers = useCinemaStore((s) => s.tiers);
+  const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
 
   const displayTiers = React.useMemo(() => {
     if (storeTiers && storeTiers.length > 0) {
@@ -56,9 +57,9 @@ export function AuditoriumInfoPanel() {
     }
   }, []);
 
-  const layout = layoutData as unknown as SeatLayoutFile;
+  const layout = auditoriumLayout || (layoutData as unknown as SeatLayoutFile);
 
-  // Compute status counts strictly partitioning into exactly 100 seats
+  // Compute status counts strictly partitioning into exactly all seats in this auditorium
   const counts = React.useMemo(() => {
     let available = 0;
     let booked = 0;
@@ -292,11 +293,9 @@ export function AuditoriumInfoPanel() {
 
             <div className="mt-4 space-y-3 text-sm leading-relaxed text-slate-300">
               <div className="rounded-lg bg-slate-900/80 p-3">
-                <div className="font-semibold text-white">Estimated Measurements</div>
+                <div className="font-semibold text-white">Idealized Procedural Models & Geometric Estimates</div>
                 <p className="mt-1">
-                  Units in this model are procedural scale units. Distances in metres are converted
-                  using an estimate factor of <strong>≈ 0.43 m per unit</strong> (derived from standard
-                  0.55m recliner seat width). All metric values are approximate (marked with ≈).
+                  Viewing angles and sightlines are geometric estimates based on SMPTE cinema standards. Procedural halls are idealized acoustic and architectural models generated from auditorium layout specifications and not physical laser scans. Distances in metres are converted using an estimate factor of <strong>≈ 0.43 m per unit</strong>. Heads of patrons in front rows are not modelled.
                 </p>
               </div>
 
