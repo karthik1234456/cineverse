@@ -191,13 +191,16 @@ export function MobileControls() {
 
           {selectedSeats.length > 0 && (
             <div className="mt-4 pt-3 border-t border-slate-800">
-              <Link
-                href={`/checkout?seats=${selectedSeats.join(',')}&total=${totalPrice}`}
-                className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#e50914] py-3 text-sm font-bold text-white shadow-lg shadow-red-950"
+              <button
+                onClick={() => {
+                  const el = document.querySelector('[data-testid="proceed-to-checkout-btn"]') as HTMLElement;
+                  if (el) el.click();
+                }}
+                className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-[#C8102E] py-3 text-sm font-bold text-white shadow-lg"
               >
-                <span>Continue to Checkout (₹{totalPrice})</span>
+                <span>Continue to Checkout (₹{Math.round(totalPrice)})</span>
                 <ArrowRight className="h-4 w-4" />
-              </Link>
+              </button>
             </div>
           )}
         </div>

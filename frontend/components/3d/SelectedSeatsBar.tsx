@@ -7,7 +7,7 @@ import layoutData from '@/public/models/seat_layout_v2.json';
 import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
 import { X, ArrowRight, Ticket, Loader2 } from 'lucide-react';
 import { FnbAddonModal } from '@/components/FnbAddonModal';
-import { holdSeats } from '@/services/api';
+import { holdSeats, updateHoldAddons } from '@/services/api';
 
 export function SelectedSeatsBar() {
   const router = useRouter();
@@ -61,13 +61,17 @@ export function SelectedSeatsBar() {
     }
   }
 
-  function handleProceedToCheckout(selectedAddons: { fnb_item_id: number; quantity: number }[]) {
+  async function handleProceedToCheckout(selectedAddons: { fnb_item_id: number; quantity: number }[]) {
     setIsFnbModalOpen(false);
-    const holdQuery = activeHoldId ? `&hold_id=${activeHoldId}` : '';
-    const addonsQuery = selectedAddons.length > 0 ? `&addons=${encodeURIComponent(JSON.stringify(selectedAddons))}` : '';
-    router.push(
-      `/checkout?showtime=${showtimeId}&seats=${selectedSeats.join(',')}&total=${totalPrice}${holdQuery}${addonsQuery}`
-    );
+    if (!activeHoldId) return;
+    try {
+      if (selectedAddons.length > 0) {
+        await updateHoldAddons(activeHoldId, selectedAddons);
+      }
+    } catch (err) {
+      console.warn('Failed to update hold addons:', err);
+    }
+    router.push(`/checkout?hold_id=${activeHoldId}`);
   }
 
   return (
@@ -128,7 +132,7 @@ export function SelectedSeatsBar() {
           <div className="flex items-center gap-5 w-full sm:w-auto justify-between sm:justify-end border-t sm:border-t-0 border-[#E6DCD2] pt-3 sm:pt-0">
             <div className="text-right">
               <div className="text-sm uppercase tracking-wider text-slate-500 font-bold">Total</div>
-              <div className="text-2xl font-black text-[#C8102E]">₹{totalPrice}</div>
+              <div className="text-2xl font-black text-[#C8102E]">₹{Math.round(totalPrice)}</div>
             </div>
 
             <button

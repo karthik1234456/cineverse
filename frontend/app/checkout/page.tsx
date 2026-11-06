@@ -6,13 +6,14 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft, Ticket, ShieldCheck, Tag, CreditCard,
-  CheckCircle2, AlertCircle, Loader2, Lock
+  CheckCircle2, AlertCircle, Loader2, Lock, LogIn
 } from 'lucide-react';
 import { HoldTimer } from '@/components/HoldTimer';
+import { AuthModal } from '@/components/AuthModal';
 import {
-  getShowtimeSeats, validateCoupon, createBooking,
-  createRazorpayOrder, verifyPayment, getFnbAddons,
-  type ShowtimeSeatsResponse, type FnbItem
+  getHoldQuote, applyHoldCoupon, createBooking,
+  createRazorpayOrder, verifyPayment, getStoredUser,
+  type HoldQuoteResponse
 } from '@/services/api';
 
 declare global {
@@ -25,68 +26,83 @@ function CheckoutContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const showtimeIdStr = searchParams.get('showtime') || '1';
-  const showtimeId = parseInt(showtimeIdStr, 10) || 1;
-  const seatsParam = searchParams.get('seats') || '';
-  const holdId = searchParams.get('hold_id') || `hold_test_${Date.now()}`;
-  const addonsParam = searchParams.get('addons');
+  // 1. Opaque hold ID from URL
+  const holdId = searchParams.get('hold_id');
 
-  const selectedSeats = seatsParam ? seatsParam.split(',').filter(Boolean) : [];
-  const selectedAddons: { fnb_item_id: number; quantity: number }[] = addonsParam
-    ? JSON.parse(decodeURIComponent(addonsParam))
-    : [];
+  const [quote, setQuote] = useState<HoldQuoteResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [authRequired, setAuthRequired] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [errorCode, setErrorCode] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const [showtimeData, setShowtimeData] = useState<ShowtimeSeatsResponse | null>(null);
-  const [fnbItems, setFnbItems] = useState<FnbItem[]>([]);
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; message: string } | null>(null);
   const [couponError, setCouponError] = useState<string | null>(null);
   const [email, setEmail] = useState('guest.patron@cineverse.in');
   const [phone, setPhone] = useState('9898989898');
   const [isProcessing, setIsProcessing] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
 
+  // Initialize and fetch server quote
   useEffect(() => {
-    // Load showtime and addons info
-    getShowtimeSeats(showtimeId)
-      .then((data) => setShowtimeData(data))
-      .catch((err) => console.warn(err));
+    if (!holdId) {
+      setLoading(false);
+      setErrorCode(404);
+      setErrorMessage('No active seat hold reservation found. Please select your seats from the showtimes page.');
+      return;
+    }
 
-    getFnbAddons()
-      .then((items) => setFnbItems(items))
-      .catch((err) => console.warn(err));
-  }, [showtimeId]);
+    const user = getStoredUser();
+    if (user) {
+      // if user has email stored in profile or token
+    }
 
-  // Compute pricing
-  const ticketPrices = selectedSeats.map((sId) => {
-    const s = showtimeData?.seats.find((item) => item.seat_id === sId);
-    return s ? s.price : 380.0;
-  });
+    loadQuote(holdId);
+  }, [holdId]);
 
-  const ticketSubtotal = ticketPrices.reduce((a, b) => a + b, 0);
-  const convenienceFee = selectedSeats.length * 35.0;
-  const gstAmount = Math.round((convenienceFee * 0.18) * 100) / 100;
+  async function loadQuote(id: string) {
+    setLoading(true);
+    setErrorMessage(null);
+    setErrorCode(null);
 
-  const fnbSubtotal = selectedAddons.reduce((acc, addon) => {
-    const item = fnbItems.find((i) => i.id === addon.fnb_item_id);
-    return acc + (item ? item.price * addon.quantity : 0);
-  }, 0);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('cineverse_token') : null;
+    if (!token) {
+      setLoading(false);
+      setAuthRequired(true);
+      return;
+    }
 
-  const discountAmount = appliedCoupon ? appliedCoupon.discount : 0.0;
-  const grandTotal = Math.max(0, ticketSubtotal + convenienceFee + gstAmount + fnbSubtotal - discountAmount);
+    try {
+      const data = await getHoldQuote(id);
+      setQuote(data);
+      setAuthRequired(false);
+    } catch (err: any) {
+      const msg = err.message || '';
+      if (msg.includes('401') || err.status === 401) {
+        setAuthRequired(true);
+      } else if (msg.includes('403') || err.status === 403) {
+        setErrorCode(403);
+        setErrorMessage('Not authorized: This seat hold reservation belongs to another account.');
+      } else if (msg.includes('404') || err.status === 404) {
+        setErrorCode(404);
+        setErrorMessage('Your seat hold has expired or is invalid. Please select your seats again.');
+      } else {
+        setErrorMessage(msg || 'Failed to load reservation details.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function handleApplyCoupon() {
-    if (!couponCode.trim()) return;
+    if (!couponCode.trim() || !holdId) return;
     setCouponError(null);
     try {
-      const res = await validateCoupon(couponCode.trim().toUpperCase(), ticketSubtotal);
-      if (res.valid) {
-        setAppliedCoupon({ code: res.code, discount: res.discount_amount, message: res.message });
-      } else {
-        setCouponError(res.message || 'Invalid or expired coupon');
-      }
+      const updatedQuote = await applyHoldCoupon(holdId, couponCode.trim());
+      setQuote(updatedQuote);
+      setCouponCode('');
     } catch (err: any) {
-      setCouponError(err.message || 'Error checking coupon');
+      setCouponError(err.message || 'Invalid or expired coupon code.');
     }
   }
 
@@ -96,17 +112,18 @@ function CheckoutContent() {
       return;
     }
 
+    if (!holdId || !quote) {
+      setGeneralError('No active reservation hold found.');
+      return;
+    }
+
     setGeneralError(null);
     setIsProcessing(true);
 
     try {
-      // 1. Create booking in pending status
+      // 1. Create booking strictly using server-locked hold (client sends no pricing or totals)
       const booking = await createBooking({
-        showtime_id: showtimeId,
         hold_id: holdId,
-        seat_ids: selectedSeats,
-        addons: selectedAddons,
-        coupon_code: appliedCoupon ? appliedCoupon.code : undefined,
         contact_email: email,
         contact_phone: phone,
       });
@@ -121,7 +138,7 @@ function CheckoutContent() {
           amount: Math.round(order.amount * 100),
           currency: order.currency,
           name: 'CineVerse',
-          description: `${showtimeData?.movie_title || 'Movie'} Tickets (${selectedSeats.join(', ')})`,
+          description: `${quote.movie_title} Tickets (${quote.held_seats.map((s) => s.seat_id).join(', ')})`,
           order_id: order.order_id,
           prefill: {
             email,
@@ -159,13 +176,85 @@ function CheckoutContent() {
         });
         rzp.open();
       } else {
-        // Fallback for headless testing environments without Razorpay script
+        // Fallback for headless testing environments without external Razorpay script
         router.push(`/booking/${booking.id}`);
       }
     } catch (err: any) {
       setGeneralError(err.message || 'Failed to initialize payment order. Seats may have expired.');
       setIsProcessing(false);
     }
+  }
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="mx-auto max-w-5xl px-4 py-20 text-center" data-testid="checkout-page">
+        <Loader2 className="h-10 w-10 animate-spin text-[#C8102E] mx-auto mb-4" />
+        <p className="text-lg font-bold text-slate-700">Loading your server-verified reservation...</p>
+      </div>
+    );
+  }
+
+  // Authentication required state
+  if (authRequired) {
+    return (
+      <div className="mx-auto max-w-xl py-16 px-4 text-center" data-testid="checkout-page">
+        <div className="rounded-3xl border border-[#E6DCD2] bg-white p-8 shadow-sm space-y-5">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-rose-50 text-[#C8102E] border border-rose-200">
+            <Lock className="h-7 w-7" />
+          </div>
+          <h1 className="text-2xl font-black text-[#1B1320]">Sign In Required</h1>
+          <p className="text-base text-slate-600 leading-relaxed">
+            Please sign in to your CineVerse account to view your server-locked seat quote and complete payment.
+          </p>
+          <div className="pt-2">
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-2xl bg-[#C8102E] px-8 py-3 text-base font-bold text-white hover:bg-[#A60D26] transition shadow-md"
+            >
+              <LogIn className="h-5 w-5" />
+              <span>Sign In to Continue</span>
+            </button>
+          </div>
+        </div>
+
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onSuccess={() => {
+            setIsAuthModalOpen(false);
+            if (holdId) loadQuote(holdId);
+          }}
+        />
+      </div>
+    );
+  }
+
+  // Error state (403, 404, or expired)
+  if (errorMessage || !quote) {
+    return (
+      <div className="mx-auto max-w-xl py-16 px-4 text-center" data-testid="checkout-page">
+        <div className="rounded-3xl border border-[#E6DCD2] bg-white p-8 shadow-sm space-y-5">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-700 border border-amber-200">
+            <AlertCircle className="h-7 w-7" />
+          </div>
+          <h1 className="text-2xl font-black text-[#1B1320]">
+            {errorCode === 403 ? 'Access Restricted' : 'Reservation Not Available'}
+          </h1>
+          <p className="text-base text-slate-600 leading-relaxed">
+            {errorMessage || 'Your seat hold could not be retrieved. Please select seats from the showtimes page.'}
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/movies"
+              className="inline-flex min-h-[48px] items-center justify-center rounded-2xl bg-[#C8102E] px-8 py-3 text-base font-bold text-white hover:bg-[#A60D26] transition shadow-md"
+            >
+              Find Showtimes
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -176,7 +265,7 @@ function CheckoutContent() {
       />
 
       <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8 py-10 w-full text-[#1B1320]" data-testid="checkout-page">
-        {/* Numbered 3-Step Flow at top (§ Task 7) */}
+        {/* Numbered 3-Step Flow at top */}
         <div className="rounded-2xl border border-[#E6DCD2] bg-white p-4 shadow-sm mb-8">
           <div className="flex items-center justify-between max-w-xl mx-auto">
             {/* Step 1 */}
@@ -210,22 +299,31 @@ function CheckoutContent() {
         </div>
 
         {/* Hold Countdown Header Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <button
             onClick={() => router.back()}
-            className="flex min-h-[44px] items-center gap-2 rounded-xl border border-[#E6DCD2] bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:text-[#1B1320] transition shadow-sm w-fit"
+            className="flex min-h-[48px] items-center gap-2 rounded-xl border border-[#E6DCD2] bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:text-[#1B1320] transition shadow-sm w-fit"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>Change Seats</span>
           </button>
 
           <HoldTimer
-            holdId={holdId}
-            initialExpiresAt={new Date(Date.now() + 600 * 1000).toISOString()}
+            holdId={holdId || ''}
+            initialExpiresAt={quote.expires_at}
             onExpire={() => {
-              setGeneralError('Your 10-minute seat hold has expired. Please select seats again.');
+              setGeneralError('Your seat hold has expired. Please select seats again.');
             }}
           />
+        </div>
+
+        {/* One-Line Server Price Lock Guarantee Banner */}
+        <div
+          className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900 flex items-center gap-2.5 shadow-sm mb-6"
+          data-testid="price-lock-guarantee-banner"
+        >
+          <ShieldCheck className="h-5 w-5 text-emerald-700 shrink-0" />
+          <span>{quote.price_lock_guarantee || 'The price shown at checkout is final'}</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -236,20 +334,26 @@ function CheckoutContent() {
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <span className="rounded-lg bg-rose-50 px-3 py-1 text-sm font-bold text-[#9F1239] border border-rose-200">
-                    {showtimeData?.screen_type || 'IMAX 3D Laser'}
+                    {quote.screen_type || 'IMAX 3D Laser'}
                   </span>
                   <h1 className="text-2xl font-black text-[#1B1320] mt-2">
-                    {showtimeData?.movie_title || 'Quantum Odyssey: Beyond the Singularity'}
+                    {quote.movie_title}
                   </h1>
                   <p className="text-sm text-slate-600 mt-1">
-                    {showtimeData?.cinema_name || 'CineVerse IMAX Koramangala'} • {showtimeData?.auditorium_name || 'Auditorium 1'}
+                    {quote.cinema_name} • {quote.auditorium_name}
                   </p>
                 </div>
 
                 <div className="text-right">
                   <span className="text-sm text-slate-500 font-bold uppercase tracking-wider">Showtime</span>
                   <div className="text-base font-bold text-[#1B1320] mt-0.5">
-                    {showtimeData?.start_time ? new Date(showtimeData.start_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }) : '07:00 PM'}
+                    {quote.start_time
+                      ? new Date(quote.start_time).toLocaleTimeString('en-US', {
+                          hour: 'numeric',
+                          minute: '2-digit',
+                          hour12: true,
+                        })
+                      : '07:00 PM'}
                   </div>
                 </div>
               </div>
@@ -258,15 +362,17 @@ function CheckoutContent() {
               <div className="pt-4 border-t border-[#E6DCD2] flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Ticket className="h-4 w-4 text-[#C8102E]" />
-                  <span className="text-sm font-bold text-slate-800">Selected Seats ({selectedSeats.length}):</span>
+                  <span className="text-sm font-bold text-slate-800">
+                    Selected Seats ({quote.held_seats.length}):
+                  </span>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  {selectedSeats.map((s) => (
+                  {quote.held_seats.map((s) => (
                     <span
-                      key={s}
+                      key={s.seat_id}
                       className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1 text-sm font-bold text-[#9F1239]"
                     >
-                      {s}
+                      {s.seat_id} ({s.category})
                     </span>
                   ))}
                 </div>
@@ -303,7 +409,7 @@ function CheckoutContent() {
               </div>
             </div>
 
-            {/* Payment Method Selector */}
+            {/* Payment Method Card */}
             <div className="rounded-3xl border border-[#E6DCD2] bg-white p-6 space-y-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -349,16 +455,16 @@ function CheckoutContent() {
                   <button
                     onClick={handleApplyCoupon}
                     data-testid="apply-coupon-button"
-                    className="rounded-xl bg-[#C8102E] px-5 text-sm font-bold text-white hover:bg-[#A60D26] transition shadow-sm"
+                    className="min-h-[48px] rounded-xl bg-[#C8102E] px-5 text-sm font-bold text-white hover:bg-[#A60D26] transition shadow-sm"
                   >
                     Apply
                   </button>
                 </div>
 
-                {appliedCoupon && (
+                {quote.applied_coupon && (
                   <div className="flex items-center gap-2 text-sm text-emerald-800 bg-emerald-50 border border-emerald-200 p-3 rounded-xl font-medium">
                     <CheckCircle2 className="h-4 w-4" />
-                    <span>{appliedCoupon.message}</span>
+                    <span>Coupon {quote.applied_coupon.code} applied: save {quote.applied_coupon.discount_amount_display}</span>
                   </div>
                 )}
 
@@ -369,43 +475,55 @@ function CheckoutContent() {
                 )}
               </div>
 
-              {/* Detailed Line Items */}
+              {/* Detailed Line Items (Strictly from Server Quote, integer display amounts) */}
               <div className="space-y-3 pt-4 border-t border-[#E6DCD2] text-sm">
                 <div className="flex justify-between text-slate-600">
-                  <span>Tickets ({selectedSeats.length})</span>
-                  <span className="font-bold text-[#1B1320]">₹{ticketSubtotal.toFixed(2)}</span>
+                  <span>Tickets ({quote.held_seats.length})</span>
+                  <span className="font-bold text-[#1B1320]">
+                    ₹{Math.round(quote.ticket_subtotal)}
+                  </span>
                 </div>
 
-                {fnbSubtotal > 0 && (
-                  <div className="flex justify-between text-slate-600">
-                    <span>F&B Combos</span>
-                    <span className="font-bold text-[#1B1320]">₹{fnbSubtotal.toFixed(2)}</span>
+                {quote.addons && quote.addons.length > 0 && (
+                  <div className="space-y-1.5">
+                    {quote.addons.map((a) => (
+                      <div key={a.fnb_item_id} className="flex justify-between text-slate-600 pl-2">
+                        <span>{a.name} × {a.quantity}</span>
+                        <span className="font-bold text-[#1B1320]">₹{Math.round(a.line_total)}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
 
                 <div className="flex justify-between text-slate-600">
                   <span>Convenience Fee</span>
-                  <span className="text-[#1B1320]">₹{convenienceFee.toFixed(2)}</span>
+                  <span className="text-[#1B1320]">
+                    ₹{Math.round(quote.convenience_fee)}
+                  </span>
                 </div>
 
                 <div className="flex justify-between text-slate-600">
                   <span>Integrated GST (18%)</span>
-                  <span className="text-[#1B1320]">₹{gstAmount.toFixed(2)}</span>
+                  <span className="text-[#1B1320]">
+                    ₹{Math.round(quote.gst_amount)}
+                  </span>
                 </div>
 
-                {discountAmount > 0 && (
+                {quote.discount_amount > 0 && (
                   <div className="flex justify-between text-emerald-700 font-bold">
-                    <span>Coupon Discount ({appliedCoupon?.code})</span>
-                    <span>-₹{discountAmount.toFixed(2)}</span>
+                    <span>Coupon Discount</span>
+                    <span>-₹{Math.round(quote.discount_amount)}</span>
                   </div>
                 )}
               </div>
 
-              {/* Final Grand Total */}
+              {/* Final Grand Total (Formatted as integer ₹ without decimals) */}
               <div className="pt-4 border-t border-[#E6DCD2] flex items-baseline justify-between">
                 <div>
                   <span className="text-sm text-slate-500 uppercase font-bold tracking-wider">Amount Payable</span>
-                  <div className="text-3xl font-black text-[#C8102E]">₹{grandTotal.toFixed(2)}</div>
+                  <div className="text-3xl font-black text-[#C8102E]" data-testid="checkout-grand-total">
+                    ₹{Math.round(quote.final_total)}
+                  </div>
                 </div>
                 <span className="text-sm text-slate-500">Includes all taxes</span>
               </div>
@@ -430,7 +548,7 @@ function CheckoutContent() {
                     <span>Connecting to Razorpay...</span>
                   </>
                 ) : (
-                  <span>Pay ₹{grandTotal.toFixed(2)} with Razorpay</span>
+                  <span>Pay ₹{Math.round(quote.final_total)} with Razorpay</span>
                 )}
               </button>
             </div>

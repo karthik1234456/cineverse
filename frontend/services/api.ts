@@ -380,14 +380,89 @@ export interface BookingResponse {
   };
 }
 
-export async function createBooking(data: {
-  showtime_id: number;
+export interface HoldSeatQuote {
+  seat_id: string;
+  category: string;
+  price: number;
+  price_display: string;
+}
+
+export interface HoldAddonQuote {
+  fnb_item_id: number;
+  name: string;
+  quantity: number;
+  unit_price: number;
+  unit_price_display: string;
+  line_total: number;
+  line_total_display: string;
+}
+
+export interface HoldCouponQuote {
+  code: string;
+  discount_amount: number;
+  discount_amount_display: string;
+  message?: string;
+}
+
+export interface HoldQuoteResponse {
   hold_id: string;
-  seat_ids: string[];
-  addons?: { fnb_item_id: number; quantity: number }[];
-  coupon_code?: string;
+  showtime_id: number;
+  movie_title: string;
+  movie_poster_url: string;
+  cinema_name: string;
+  cinema_address: string;
+  auditorium_name: string;
+  screen_type: string;
+  start_time: string;
+  expires_at: string;
+  hold_duration_seconds: number;
+  held_seats: HoldSeatQuote[];
+  ticket_subtotal: number;
+  ticket_subtotal_display: string;
+  convenience_fee: number;
+  convenience_fee_display: string;
+  gst_amount: number;
+  gst_amount_display: string;
+  addons: HoldAddonQuote[];
+  addons_subtotal: number;
+  addons_subtotal_display: string;
+  applied_coupon: HoldCouponQuote | null;
+  discount_amount: number;
+  discount_amount_display: string;
+  final_total: number;
+  final_total_display: string;
+  price_lock_guarantee: string;
+}
+
+export async function getHoldQuote(holdId: string): Promise<HoldQuoteResponse> {
+  return apiFetch<HoldQuoteResponse>(`/bookings/hold/${holdId}`);
+}
+
+export async function updateHoldAddons(
+  holdId: string,
+  addons: { fnb_item_id: number; quantity: number }[]
+): Promise<HoldQuoteResponse> {
+  return apiFetch<HoldQuoteResponse>(`/bookings/hold/${holdId}/addons`, {
+    method: 'POST',
+    body: JSON.stringify({ addons }),
+  });
+}
+
+export async function applyHoldCoupon(holdId: string, code: string): Promise<HoldQuoteResponse> {
+  return apiFetch<HoldQuoteResponse>(`/bookings/hold/${holdId}/coupon`, {
+    method: 'POST',
+    body: JSON.stringify({ code }),
+  });
+}
+
+export async function createBooking(data: {
+  hold_id: string;
   contact_email: string;
   contact_phone: string;
+  showtime_id?: number;
+  seat_ids?: string[];
+  addons?: { fnb_item_id: number; quantity: number }[];
+  coupon_code?: string;
 }): Promise<BookingResponse> {
   return apiFetch<BookingResponse>('/bookings/create', {
     method: 'POST',

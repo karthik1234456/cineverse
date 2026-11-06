@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Compass, Sparkles, ArrowLeft } from 'lucide-react';
-import { getShowtimeSeats, type SeatInventoryItem } from '@/services/api';
+import { getShowtimeSeats, holdSeats, type SeatInventoryItem } from '@/services/api';
 
 interface FallbackSeatListProps {
   cinemaId: string;
@@ -49,9 +49,15 @@ export function FallbackSeatList({
   const selectedSeats = seats.filter((s) => selectedSeatIds.includes(s.seat_id));
   const totalPrice = selectedSeats.reduce((acc, s) => acc + s.price, 0);
 
-  function handleContinue() {
+  async function handleContinue() {
     if (selectedSeatIds.length === 0) return;
-    router.push(`/checkout?showtime=${showtimeId}&seats=${selectedSeatIds.join(',')}`);
+    try {
+      const showtimeNum = parseInt(showtimeId, 10) || 1;
+      const res = await holdSeats(showtimeNum, selectedSeatIds);
+      router.push(`/checkout?hold_id=${res.hold_id}`);
+    } catch (err: any) {
+      console.warn('Hold seats error:', err);
+    }
   }
 
   return (
@@ -168,17 +174,17 @@ export function FallbackSeatList({
         {selectedSeatIds.length > 0 && (
           <div className="sticky bottom-4 rounded-2xl border border-white/15 bg-[#14161f]/95 p-4 backdrop-blur-md shadow-2xl flex items-center justify-between">
             <div>
-              <div className="text-xs text-zinc-400">
+              <div className="text-sm text-zinc-400">
                 Selected ({selectedSeatIds.length}): <strong className="text-white">{selectedSeatIds.join(', ')}</strong>
               </div>
               <div className="text-lg font-black text-amber-400 mt-0.5">
-                Total: ₹{totalPrice}
+                Total: ₹{Math.round(totalPrice)}
               </div>
             </div>
 
             <button
               onClick={handleContinue}
-              className="rounded-xl bg-[#e50914] px-6 py-2.5 text-xs font-bold text-white hover:bg-red-700 transition shadow-lg shadow-red-950/50"
+              className="rounded-xl bg-[#e50914] px-6 py-2.5 text-sm font-bold text-white hover:bg-red-700 transition shadow-lg shadow-red-950/50"
               data-testid="proceed-to-checkout"
             >
               Proceed to Checkout

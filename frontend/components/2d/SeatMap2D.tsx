@@ -10,7 +10,7 @@ import {
 import { useCinemaStore } from '@/store/useCinemaStore';
 import { useSeatData } from '@/hooks/useSeatData';
 import { useSeatSocket } from '@/hooks/useSeatSocket';
-import { holdSeats, getShowtimeSeats, type ShowtimeSeatsResponse } from '@/services/api';
+import { holdSeats, updateHoldAddons, getShowtimeSeats, type ShowtimeSeatsResponse } from '@/services/api';
 import { FnbAddonModal } from '@/components/FnbAddonModal';
 import layoutData from '@/public/models/seat_layout_v2.json';
 import obstructionsData from '@/public/models/seat_obstructions.json';
@@ -298,13 +298,17 @@ export function SeatMap2D({
     }
   }
 
-  function handleCompleteCheckout(selectedAddons: { fnb_item_id: number; quantity: number }[]) {
+  async function handleCompleteCheckout(selectedAddons: { fnb_item_id: number; quantity: number }[]) {
     setIsFnbModalOpen(false);
-    const holdQuery = activeHoldId ? `&hold_id=${activeHoldId}` : '';
-    const addonsQuery = selectedAddons.length > 0 ? `&addons=${encodeURIComponent(JSON.stringify(selectedAddons))}` : '';
-    router.push(
-      `/checkout?showtime=${showtimeNum}&seats=${selectedSeats.join(',')}&total=${totalPrice}${holdQuery}${addonsQuery}`
-    );
+    if (!activeHoldId) return;
+    try {
+      if (selectedAddons.length > 0) {
+        await updateHoldAddons(activeHoldId, selectedAddons);
+      }
+    } catch (err) {
+      console.warn('Failed to update hold addons:', err);
+    }
+    router.push(`/checkout?hold_id=${activeHoldId}`);
   }
 
   const focusedSeat = focusedSeatId ? seatMap.get(focusedSeatId) : null;
@@ -805,8 +809,8 @@ export function SeatMap2D({
 
               <div className="flex items-center gap-5 w-full sm:w-auto justify-between sm:justify-end">
                 <div className="text-right">
-                  <span className="text-xs text-slate-500 uppercase font-bold tracking-wider">Total</span>
-                  <div className="text-2xl font-black text-[#C8102E]">₹{totalPrice.toFixed(2)}</div>
+                  <span className="text-sm text-slate-500 uppercase font-bold tracking-wider">Total</span>
+                  <div className="text-2xl font-black text-[#C8102E]">₹{Math.round(totalPrice)}</div>
                 </div>
 
                 <button
