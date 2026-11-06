@@ -89,3 +89,4 @@ An automated AST and computed CSS style inspection script confirms:
 - **Zero visible elements** on Home, Movies, Movie Details, or 3D Seat Map render with `font-size < 14px`.
 - **Zero card titles** render with ellipses (`…`) or single-line truncation.
 - **Zero hero components** overlap or tuck under the sticky navigation header across 390px, 768px, 1280px, and 1920px viewports.
+

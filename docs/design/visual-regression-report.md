@@ -42,3 +42,4 @@ This document records the visual regression testing results and evidence generat
 ### Finding E8: Typography & Accessibility
 - **Before**: Various sub-labels and badges rendered at 10–12px (`text-xs`), failing modern cinema accessibility standards.
 - **After**: All interactive buttons, chips, and labels upgraded to $\ge 14\text{ px}$ (`text-sm`) with minimum $40\text{ px}$ tap targets; body copy maintained at $18\text{ px}$ (`text-lg`); contrast ratios meeting or exceeding WCAG 2.2 AA and AAA.
+

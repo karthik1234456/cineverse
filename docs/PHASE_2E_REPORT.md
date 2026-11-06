@@ -316,6 +316,6 @@ Automated tests in `frontend/e2e/phase2e_part4_trailer.spec.ts` captured screens
    `feat(phase-2e): Part 4 - reliable 3D screen trailer playback and frame-diff verification (E4)`
 5. **Part 5 (Finding E5):** Commit `9693d94`
    `feat(phase-2e): Part 5 - 3D theatre performance optimizations, Smooth/Beautiful quality switch, and render-on-demand (E5)`
-6. **Part 6 (Findings E1, E2, E8):** (Ready to commit)
+6. **Part 6 (Findings E1, E2, E8):** Commit `e3f8124`
    `feat(phase-2e): Part 6 - high-contrast hero banner, real movie artwork, 2-line title wrapping, and WCAG accessibility (E1, E2, E8)`
 
