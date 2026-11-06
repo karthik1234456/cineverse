@@ -3,13 +3,34 @@ import { test, expect, Page } from '@playwright/test';
 test.describe('Phase 5 — Payments, Razorpay Test Mode, Tickets, Receipts & Recovery', () => {
   const SHOWTIME_URL = '/cinemas/cineverse-imax/auditorium/auditorium-1?showtime=1';
 
-  test.beforeEach(async ({ context }) => {
+  test.beforeEach(async ({ context, request }) => {
+    // Register fresh patron user per test to avoid active hold limits
+    const rand = Math.floor(100000000 + Math.random() * 900000000);
+    const email = `patron_${rand}@cineverse.in`;
+    const phone = `9${rand}`;
+    const loginResp = await request.post('http://127.0.0.1:8000/api/v1/auth/register', {
+      data: {
+        email,
+        phone,
+        password: 'Password@123',
+        full_name: `Test Patron ${rand}`,
+      },
+    });
+    const authData = loginResp.ok() ? await loginResp.json() : null;
+    const token = authData?.access_token || '';
+
     // Abort external checkout.razorpay.com script so test simulation is preserved
     await context.route('https://checkout.razorpay.com/**', (route) => route.abort());
 
     // Configure client-side mock for Razorpay test checkout with real Web Crypto HMAC-SHA256
-    await context.addInitScript(() => {
+    await context.addInitScript(({ token, authData }) => {
       window.localStorage.setItem('cineverse_city', 'bengaluru');
+      if (token) {
+        window.localStorage.setItem('cineverse_token', token);
+      }
+      if (authData) {
+        window.localStorage.setItem('cineverse_user', JSON.stringify(authData));
+      }
 
       class MockRazorpay {
         options: any;
@@ -71,7 +92,7 @@ test.describe('Phase 5 — Payments, Razorpay Test Mode, Tickets, Receipts & Rec
         set: () => {},
         configurable: true,
       });
-    });
+    }, { token, authData });
   });
 
   async function selectSeatAndProceedToCheckout(page: Page) {
@@ -278,9 +299,8 @@ test.describe('Phase 5 — Payments, Razorpay Test Mode, Tickets, Receipts & Rec
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.screenshot({ path: '../docs/evidence/phase-5/booking-768.png' });
 
-    // Navigate to checkout directly for tablet checkout screenshot
-    await page.goto('/checkout?showtime=1&seats=E01');
-    await page.waitForLoadState('networkidle');
+    // Select seat and proceed to checkout for tablet checkout screenshot
+    await selectSeatAndProceedToCheckout(page);
     await page.screenshot({ path: '../docs/evidence/phase-5/checkout-768.png' });
   });
 

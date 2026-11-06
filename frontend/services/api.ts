@@ -34,7 +34,9 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
     } catch {
       // ignore
     }
-    throw new Error(errorDetail || `API request failed with status ${response.status}`);
+    const err = new Error(errorDetail || `API request failed with status ${response.status}`);
+    (err as any).status = response.status;
+    throw err;
   }
 
   return response.json();

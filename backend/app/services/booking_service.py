@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional, List
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
@@ -206,6 +206,14 @@ async def create_booking(
     )
     db.add(booking)
     await db.flush()
+
+    # Clean up any stale booking seat rows from previous abandoned/pending attempts
+    await db.execute(
+        delete(BookingSeat).where(
+            BookingSeat.showtime_id == booking.showtime_id,
+            BookingSeat.seat_id.in_([s.seat_id for s in held_seats])
+        )
+    )
 
     # Add booking seats
     for s in held_seats:

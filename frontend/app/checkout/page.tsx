@@ -5,7 +5,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ArrowLeft, Ticket, ShieldCheck, Tag, CreditCard,
+  ArrowLeft, Ticket, ShieldCheck, CreditCard,
   CheckCircle2, AlertCircle, Loader2, Lock, LogIn
 } from 'lucide-react';
 import { HoldTimer } from '@/components/HoldTimer';
@@ -77,17 +77,18 @@ function CheckoutContent() {
       setQuote(data);
       setAuthRequired(false);
     } catch (err: any) {
-      const msg = err.message || '';
-      if (msg.includes('401') || err.status === 401) {
+      const msg = (err.message || '').toLowerCase();
+      const status = err.status || 0;
+      if (status === 401 || msg.includes('401') || msg.includes('unauthenticated')) {
         setAuthRequired(true);
-      } else if (msg.includes('403') || err.status === 403) {
+      } else if (status === 403 || msg.includes('403') || msg.includes('not authorized') || msg.includes('forbidden')) {
         setErrorCode(403);
         setErrorMessage('Not authorized: This seat hold reservation belongs to another account.');
-      } else if (msg.includes('404') || err.status === 404) {
+      } else if (status === 404 || msg.includes('404') || msg.includes('not found') || msg.includes('expired')) {
         setErrorCode(404);
         setErrorMessage('Your seat hold has expired or is invalid. Please select your seats again.');
       } else {
-        setErrorMessage(msg || 'Failed to load reservation details.');
+        setErrorMessage(err.message || 'Failed to load reservation details.');
       }
     } finally {
       setLoading(false);
@@ -321,9 +322,10 @@ function CheckoutContent() {
         <div
           className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-900 flex items-center gap-2.5 shadow-sm mb-6"
           data-testid="price-lock-guarantee-banner"
+          data-test-guarantee="final-price-guarantee"
         >
           <ShieldCheck className="h-5 w-5 text-emerald-700 shrink-0" />
-          <span>{quote.price_lock_guarantee || 'The price shown at checkout is final'}</span>
+          <span data-testid="final-price-guarantee">{quote.price_lock_guarantee || 'The price shown at checkout is final'}</span>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -511,7 +513,7 @@ function CheckoutContent() {
 
                 {quote.discount_amount > 0 && (
                   <div className="flex justify-between text-emerald-700 font-bold">
-                    <span>Coupon Discount</span>
+                    <span>Coupon Discount ({quote.applied_coupon?.code || 'Promo'})</span>
                     <span>-₹{Math.round(quote.discount_amount)}</span>
                   </div>
                 )}

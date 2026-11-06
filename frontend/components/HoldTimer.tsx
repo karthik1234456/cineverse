@@ -11,14 +11,23 @@ interface HoldTimerProps {
   onExpire?: () => void;
 }
 
+function parseUtcDate(dateStr: string | Date): Date {
+  if (dateStr instanceof Date) return dateStr;
+  if (!dateStr) return new Date();
+  if (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+')) {
+    return new Date(`${dateStr}Z`);
+  }
+  return new Date(dateStr);
+}
+
 export function HoldTimer({ holdId, initialExpiresAt, onExpire }: HoldTimerProps) {
-  const [expiresAt, setExpiresAt] = useState<Date>(new Date(initialExpiresAt));
+  const [expiresAt, setExpiresAt] = useState<Date>(() => parseUtcDate(initialExpiresAt));
   const [secondsRemaining, setSecondsRemaining] = useState<number>(300);
   const [isExtending, setIsExtending] = useState(false);
   const [hasExtended, setHasExtended] = useState(false);
 
   useEffect(() => {
-    setExpiresAt(new Date(initialExpiresAt));
+    setExpiresAt(parseUtcDate(initialExpiresAt));
   }, [initialExpiresAt]);
 
   useEffect(() => {
@@ -39,7 +48,7 @@ export function HoldTimer({ holdId, initialExpiresAt, onExpire }: HoldTimerProps
     setIsExtending(true);
     try {
       const res = await extendHold(holdId);
-      setExpiresAt(new Date(res.new_expires_at));
+      setExpiresAt(parseUtcDate(res.new_expires_at));
       setHasExtended(true);
     } catch (err) {
       console.warn('Failed to extend hold:', err);
