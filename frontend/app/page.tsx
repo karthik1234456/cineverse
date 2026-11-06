@@ -47,68 +47,110 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#FFF8F1] text-[#1B1320]">
-      {/* Rich Colour Band Hero Section */}
-      <section data-testid="hero-movie-of-day" className="relative w-full overflow-hidden bg-band-burgundy py-16 md:py-20 shadow-md min-h-[360px]">
+      {/* Rich High-Contrast Cinema Hero Section (Finding E1) */}
+      <section data-testid="hero-movie-of-day" className="relative w-full overflow-hidden bg-[#0B0914] pt-8 sm:pt-12 md:pt-14 pb-14 md:pb-16 shadow-2xl min-h-[420px]">
         {heroMovie ? (
           <>
-            {/* Subtle movie backdrop blend */}
-            <div className="absolute inset-0 opacity-20 pointer-events-none">
+            {/* Cinematic movie backdrop with directional contrast scrim */}
+            <div className="absolute inset-0 pointer-events-none">
               <img
                 src={heroMovie.banner_url}
                 alt={heroMovie.title}
-                className="h-full w-full object-cover"
+                className="h-full w-full object-cover object-center"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = 'none';
                 }}
               />
+              {/* High-Contrast Directional Scrim Overlay (> 7:1 WCAG AAA Contrast) */}
+              <div className="absolute inset-0 bg-gradient-to-t from-[#0B0914] via-[#0B0914]/85 to-[#0B0914]/60 lg:bg-gradient-to-r lg:from-[#0B0914] lg:via-[#0B0914]/90 lg:to-transparent" />
             </div>
 
             <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-              <div className="max-w-3xl space-y-6">
-                <div className="flex flex-wrap items-center gap-3">
-                  <span className="rounded-full bg-white/20 backdrop-blur-sm px-4 py-1.5 text-sm font-bold uppercase tracking-wider text-white">
-                    Movie of the Day
-                  </span>
-                  <span className="rounded-full bg-white/20 backdrop-blur-sm px-3.5 py-1.5 text-sm font-semibold text-white">
-                    {heroMovie.certificate}
-                  </span>
-                  <div className="flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm px-3.5 py-1.5 text-sm font-bold text-white">
-                    <Star className="h-4 w-4 fill-[#F2A900] text-[#F2A900]" />
-                    <span>{heroMovie.rating_avg.toFixed(1)} / 10</span>
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8 xl:gap-12">
+                {/* Left Content Column */}
+                <div className="max-w-2xl xl:max-w-3xl space-y-6">
+                  {/* High-contrast metadata chips (all >= 14px text) */}
+                  <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
+                    <span className="rounded-full bg-[#C8102E] px-4 py-1.5 text-sm font-bold uppercase tracking-wider text-white shadow-sm">
+                      Movie of the Day
+                    </span>
+                    {heroMovie.formats && heroMovie.formats.length > 0 && (
+                      <span className="rounded-full bg-white/20 backdrop-blur-md px-3.5 py-1.5 text-sm font-bold text-white border border-white/20">
+                        {heroMovie.formats[0]}
+                      </span>
+                    )}
+                    <span className="rounded-full bg-white/20 backdrop-blur-md px-3.5 py-1.5 text-sm font-bold text-white border border-white/20">
+                      {heroMovie.certificate}
+                    </span>
+                    {heroMovie.languages && heroMovie.languages.length > 0 && (
+                      <span className="rounded-full bg-white/20 backdrop-blur-md px-3.5 py-1.5 text-sm font-bold text-white border border-white/20">
+                        {heroMovie.languages[0]}
+                      </span>
+                    )}
+                    <span className="rounded-full bg-white/20 backdrop-blur-md px-3.5 py-1.5 text-sm font-bold text-white border border-white/20">
+                      {heroMovie.duration_minutes} mins
+                    </span>
+                    <div className="flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-md px-3.5 py-1.5 text-sm font-bold text-white border border-white/20">
+                      <Star className="h-4 w-4 fill-[#F2A900] text-[#F2A900]" />
+                      <span>{heroMovie.rating_avg.toFixed(1)} / 10</span>
+                    </div>
+                  </div>
+
+                  {/* High-contrast 40-48px+ title, wraps to 2 lines, never truncated */}
+                  <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-white tracking-tight leading-[1.15] break-words">
+                    {heroMovie.title}
+                  </h1>
+
+                  {/* 18px body text (text-lg) on desktop, relaxed line height */}
+                  <p className="text-base sm:text-lg text-white/90 line-clamp-3 leading-relaxed font-normal max-w-2xl">
+                    {heroMovie.synopsis}
+                  </p>
+
+                  {/* Exactly Two Hero CTAs: Book tickets (primary) + Watch trailer (secondary) */}
+                  <div className="flex flex-wrap items-center gap-4 pt-2">
+                    <Link
+                      href={`/movies/${heroMovie.slug}`}
+                      className="btn-primary min-h-[52px] px-8 text-lg font-bold shadow-lg flex items-center justify-center gap-2"
+                      data-testid="hero-book-tickets-btn"
+                    >
+                      Book Tickets
+                    </Link>
+
+                    <button
+                      onClick={() => openTrailer({
+                        movieId: heroMovie.id,
+                        title: heroMovie.title,
+                        posterUrl: heroMovie.poster_url,
+                        trailerUrl: heroMovie.trailer_url || undefined
+                      })}
+                      className="btn-secondary min-h-[52px] px-7 text-lg font-bold border-2 border-white/40 text-white bg-white/15 hover:bg-white/25 shadow-lg backdrop-blur-md flex items-center justify-center gap-2.5 transition"
+                      data-testid="hero-watch-trailer-btn"
+                    >
+                      <Play className="h-5 w-5 fill-current" />
+                      <span>Watch Trailer</span>
+                    </button>
                   </div>
                 </div>
 
-                <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight leading-tight">
-                  {heroMovie.title}
-                </h1>
-
-                <p className="text-lg sm:text-xl text-white/90 line-clamp-3 leading-relaxed font-normal">
-                  {heroMovie.synopsis}
-                </p>
-
-                {/* Exactly Two Hero CTAs: Book tickets (primary) + Watch trailer (secondary) */}
-                <div className="flex flex-wrap items-center gap-4 pt-2">
+                {/* Right Rail: Floating 2:3 Movie Poster on desktop with rim light */}
+                <div className="hidden lg:block shrink-0">
                   <Link
                     href={`/movies/${heroMovie.slug}`}
-                    className="btn-primary min-h-[52px] px-8 text-lg shadow-lg"
-                    data-testid="hero-book-tickets-btn"
+                    className="group block relative w-64 xl:w-72 aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl border-2 border-white/25 hover:border-white/50 transition duration-300 transform hover:-translate-y-1"
+                    data-testid="hero-poster-card"
                   >
-                    Book Tickets
+                    <img
+                      src={heroMovie.poster_url}
+                      alt={heroMovie.title}
+                      className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-300 flex items-end p-4">
+                      <span className="text-white text-sm font-bold flex items-center gap-1.5">
+                        <span>View Details</span>
+                        <ArrowRight className="h-4 w-4" />
+                      </span>
+                    </div>
                   </Link>
-
-                  <button
-                    onClick={() => openTrailer({
-                      movieId: heroMovie.id,
-                      title: heroMovie.title,
-                      posterUrl: heroMovie.poster_url,
-                      trailerUrl: heroMovie.trailer_url || undefined
-                    })}
-                    className="btn-secondary min-h-[52px] px-6 text-lg border-white/30 text-white bg-white/10 hover:bg-white/20 shadow-md backdrop-blur-sm"
-                    data-testid="hero-watch-trailer-btn"
-                  >
-                    <Play className="h-5 w-5 fill-current" />
-                    <span>Watch Trailer</span>
-                  </button>
                 </div>
               </div>
             </div>

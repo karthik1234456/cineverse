@@ -261,7 +261,7 @@ export default function MovieDetailPage() {
                     <div>
                       <div className="flex items-center gap-3">
                         <h3 className="text-xl font-bold text-[#1B1320]">{group.cinema_name}</h3>
-                        <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-xs font-bold text-emerald-800 border border-emerald-200">
+                        <span className="rounded-lg bg-emerald-50 px-2.5 py-1 text-sm font-bold text-emerald-800 border border-emerald-200">
                           M-Ticket Available
                         </span>
                       </div>
@@ -382,7 +382,7 @@ export default function MovieDetailPage() {
                     {person.person_name.charAt(0)}
                   </div>
                   <div className="text-sm font-bold text-[#1B1320] line-clamp-1">{person.person_name}</div>
-                  <div className="text-xs text-slate-500 mt-1">{person.role_name}</div>
+                  <div className="text-sm text-slate-600 mt-1">{person.role_name}</div>
                 </div>
               ))}
             </div>
@@ -413,7 +413,7 @@ export default function MovieDetailPage() {
                       </div>
                       <span className="text-base font-bold text-[#1B1320]">{rev.headline}</span>
                     </div>
-                    <span className="flex items-center gap-1 text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    <span className="flex items-center gap-1 text-sm font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
                       <CheckCircle2 className="h-3.5 w-3.5" />
                       <span>Verified</span>
                     </span>
@@ -421,7 +421,7 @@ export default function MovieDetailPage() {
 
                   <p className="text-base text-slate-700 leading-relaxed">{rev.content}</p>
 
-                  <div className="text-xs font-medium text-slate-500 pt-3 border-t border-[#E6DCD2] flex justify-between">
+                  <div className="text-sm font-medium text-slate-600 pt-3 border-t border-[#E6DCD2] flex justify-between">
                     <span>{rev.user_name}</span>
                     <span>{new Date(rev.created_at).toLocaleDateString()}</span>
                   </div>

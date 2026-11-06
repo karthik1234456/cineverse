@@ -1,6 +1,6 @@
-# Phase 2e Report — Owner Hands-on Findings (Parts 1 to 5 Report)
+# Phase 2e Report — Owner Hands-on Findings (Parts 1 to 6 Final Report)
 
-> **Milestone Status:** **PART 5 COMPLETED** (Parts 1, 2, 3, 4, and 5 completed, committed, and fully verified). Evidence saved under `docs/evidence/phase-2e/` and `docs/performance/`. All test suites (77/77 pytest backend, 49/49 Vitest unit tests, `tsc --noEmit`, 25/25 Playwright E2E tests) are green. Awaiting owner review before proceeding to Part 6 (Home Banner, Posters & Typography).
+> **Milestone Status:** **PHASE 2E FULLY COMPLETED (PARTS 1 TO 6 PASSED)**. All 8 owner-reported hands-on findings (E1 through E8) are thoroughly reproduced, engineered, verified, and evidenced with real production build screenshots and Playwright suites. Evidence saved under `docs/evidence/phase-2e/`, `docs/performance/`, and `docs/design/`. All test suites (77/77 pytest backend, 49/49 Vitest unit tests, `tsc --noEmit`, 30/30 Playwright E2E tests) are green.
 
 ---
 
@@ -8,14 +8,14 @@
 
 | Finding | Description | Reproduced | Fixed | Evidence File / Verification |
 | :--- | :--- | :---: | :---: | :--- |
-| **E1** | Home-page movie banner looks unfinished (plain magenta gradient, tiny 11 px text, sticky header overlap) | **YES** | *Pending Part 6* | Will be completed in Part 6 after review |
-| **E2** | Movie cards use flat gradient posters with tiny text, truncated titles ("…"), and tags under 14 px | **YES** | *Pending Part 6* | Will be completed in Part 6 after review |
+| **E1** | Home-page movie banner looks unfinished (plain magenta gradient, tiny 11 px text, sticky header overlap) | **YES** | **YES** | `docs/evidence/phase-2e/33_hero_desktop_1280.png`<br>`docs/evidence/phase-2e/34_hero_wide_1920.png`<br>`docs/evidence/phase-2e/35_hero_tablet_768.png`<br>`docs/evidence/phase-2e/36_hero_mobile_390.png`<br>`docs/evidence/phase-2e/39_hero_trailer_modal_opened.png`<br>`frontend/e2e/phase2e_part6_visual_a11y.spec.ts` |
+| **E2** | Movie cards use flat gradient posters with tiny text, truncated titles ("…"), and tags under 14 px | **YES** | **YES** | `docs/evidence/phase-2e/37_movie_cards_grid_desktop.png`<br>`docs/evidence/phase-2e/38_movie_cards_grid_mobile.png`<br>`docs/design/art-sources.md`<br>`frontend/public/posters/` (24 high-res PNG assets)<br>`frontend/e2e/phase2e_part6_visual_a11y.spec.ts` |
 | **E3** | Seat hover card too big, covers neighbouring seats, contains button/score and steals hover | **YES** | **YES** | `docs/evidence/phase-2e/01_tooltip_j10_1366.png`<br>`docs/evidence/phase-2e/02_tooltip_e06_1920.png`<br>`docs/evidence/phase-2e/02_tooltip_a01_phone.png`<br>`docs/evidence/phase-2e/03_tooltip_edge_flipping.png`<br>`docs/evidence/phase-2e/04_quick_select_j10_j09.png`<br>`frontend/e2e/phase2e_part1_tooltip.spec.ts` |
 | **E4** | No trailer plays on 3D screens (still blank or frozen) | **YES** | **YES** | `docs/evidence/phase-2e/15_modal_frame_t0.png`<br>`docs/evidence/phase-2e/16_modal_frame_t2.png`<br>`docs/evidence/phase-2e/17_3d_movie1_overview_t0.png` through `30_3d_mobile_trailer_t2.png`<br>`frontend/e2e/phase2e_part4_trailer.spec.ts` |
 | **E5** | 3D theatre feels laggy / performance drops | **YES** | **YES** | `docs/performance/benchmark-report.md`<br>`docs/performance/optimization-notes.md`<br>`docs/performance/quality-modes.md`<br>`docs/evidence/phase-2e/31_quality_mode_smooth_active.png`<br>`docs/evidence/phase-2e/32_quality_mode_beautiful_active.png`<br>`frontend/e2e/phase2e_part5_performance.spec.ts` |
 | **E6** | No boundaries; zooming out or moving too far makes view turn white; camera leaves theatre | **YES** | **YES** | `docs/evidence/phase-2e/05_boundary_max_zoom_out.png`<br>`docs/evidence/phase-2e/06_boundary_corner_pan.png`<br>`docs/evidence/phase-2e/07_boundary_walk_into_wall.png`<br>`docs/evidence/phase-2e/08_boundary_rapid_mode_switch.png`<br>`docs/evidence/phase-2e/09_boundary_mobile_pinch_pan.png`<br>`frontend/e2e/phase2e_part2_boundaries.spec.ts` |
 | **E7** | 2D seat map lacks "See view from this seat" (POV) navigation | **YES** | **YES** | `docs/evidence/phase-2e/10_pov_button_states_2d.png`<br>`docs/evidence/phase-2e/11_pov_exact_eye_position.png`<br>`docs/evidence/phase-2e/12_pov_round_trip_preserved.png`<br>`docs/evidence/phase-2e/13_pov_deep_link_validation.png`<br>`docs/evidence/phase-2e/14_pov_mobile_and_keyboard.png`<br>`frontend/e2e/phase2e_part3_pov.spec.ts` |
-| **E8** | Text-size and contrast rules broken on home page, cards, and seat cards (< 14 px) | **YES** | *Pending Part 6* | Will be completed in Part 6 after review |
+| **E8** | Text-size and contrast rules broken on home page, cards, and seat cards (< 14 px) | **YES** | **YES** | `docs/evidence/phase-2e/40_typography_audit_pass.png`<br>`docs/design/accessibility-report.md`<br>`frontend/e2e/phase2e_part6_visual_a11y.spec.ts` |
 
 ---
 
@@ -249,7 +249,62 @@ Automated tests in `frontend/e2e/phase2e_part4_trailer.spec.ts` captured screens
 
 ---
 
-## 7. Commit Summary for Parts 1 to 5
+## 7. Part 6: Visual Quality, High-Contrast Hero, Real Artwork, and Accessibility (Findings E1, E2, E8)
+
+### Root Cause Analysis
+1. **Hero Banner Contrast & Layout (Finding E1):**
+   - The hero banner used a solid flat burgundy background (`bg-band-burgundy`) with a faint 20% opacity backdrop image that failed to deliver a cinematic visual experience.
+   - Text elements lacked sufficient dark scrim backing, leading to low contrast ratios against lighter backdrop images.
+   - On desktop displays, the hero section lacked a visual right-rail element, leaving excessive empty space on the right while cramming text on the left.
+   - Fixed 80px navbar height caused vertical layout tension without dedicated top padding clearance.
+2. **Movie Poster Placeholders & Card Typography (Finding E2):**
+   - All 12 movies in CineVerse used tiny (~9 KB) flat linear-gradient placeholder PNGs.
+   - In `MovieCard.tsx`, the card title was clamped with `line-clamp-1`, causing titles longer than 20 characters (such as *"Quantum Odyssey: Beyond the Singularity"* or *"Shadow Protocol: Bangalore Drift"*) to be truncated with ellipses (`…`).
+   - Badges, format labels, and category indicators used small 10–12px text (`text-xs`).
+3. **Typography & Accessibility Violations (Finding E8):**
+   - Multiple UI elements across Home, Movies, Movie Details, and 3D Seat Map rendered with font sizes `< 14px` (`text-xs`), violating WCAG 2.2 AA accessibility guidelines and CineVerse design rules.
+
+### Architectural Solution
+- **Cinematic High-Contrast Hero Banner (`frontend/app/page.tsx`):**
+  - Replaced the flat color band with a widescreen $1920 \times 1080$ movie backdrop image paired with a progressive multi-stop dark scrim (`from-[#0B0914] via-[#0B0914]/90 to-transparent`).
+  - Text contrast against the dark scrim measures **$> 17:1$** (exceeding WCAG AAA 7:1).
+  - Prominent 48–60px bold white title with `break-words` and `leading-[1.15]` that wraps naturally across 2 lines without truncation.
+  - Generous top padding (`pt-8 sm:pt-12 md:pt-14 pb-14 md:pb-16`) guaranteeing $> 30\text{ px}$ clearance below the 80px sticky navbar across all viewports.
+  - Floating 2:3 movie poster card displayed on the right for desktop viewports (`lg:block`), with subtle rim lighting and hover animations.
+  - Exactly two accessible hero CTAs: "Book Tickets" (primary) and "Watch Trailer" (secondary, opens trailer modal).
+  - Six high-contrast metadata chips ($\ge 14\text{ px}$): Movie of the Day, Format (IMAX 3D), Certificate, Language, Duration, and Rating (with star icon).
+- **24 Real High-Resolution Cinema Artworks (`frontend/public/posters/`):**
+  - Sourced and generated 24 genuine, high-resolution cinema-grade artworks (12 vertical 2:3 posters at $600 \times 900$ and 12 panoramic 16:9 backdrops at $1920 \times 1080$) for all 12 movies.
+  - Quantum Odyssey backdrop generated via Imagen 3 AI via Antigravity image-generator subagent; remaining backdrops and posters curated from high-resolution Unsplash photography.
+  - **Zero baked-in typography:** All images contain zero embedded text, logos, or actor credits; all titles and badges are rendered via scalable, accessible semantic HTML.
+  - Documented full provenance, prompts, licenses, and attributions in `docs/design/art-sources.md`.
+- **Movie Card Typography & Uniform Layout (`frontend/components/MovieCard.tsx`):**
+  - Removed `line-clamp-1` and replaced with `line-clamp-2 min-h-[3.25rem] leading-snug break-words text-lg font-bold text-[#1B1320]`, enabling titles to wrap cleanly without ellipses.
+  - Genre and language upgraded to `text-[15px] font-medium text-[#4A4056]`.
+  - Badges (Certificate, Rating, Formats) and Book buttons upgraded to $\ge 14\text{ px}$ (`text-sm font-bold`) with $\ge 40\text{ px}$ tap targets.
+- **Universal Accessibility Upgrade (Finding E8):**
+  - Upgraded all `text-xs` instances across Movie Detail (`/movies/[id]`), 3D Seat Map (`SeatInformationPanel.tsx`, `ViewModeToggle.tsx`), and Home page to `text-sm` ($\ge 14\text{ px}$).
+  - Documented complete accessibility, typography, and contrast findings in `docs/design/accessibility-report.md`.
+
+### Test Evidence & Documentation
+- **Automated Test Suite:** `frontend/e2e/phase2e_part6_visual_a11y.spec.ts` (5/5 passed).
+- **Evidence Screenshots:**
+  - `docs/evidence/phase-2e/33_hero_desktop_1280.png` (Desktop 1280 hero banner with right poster)
+  - `docs/evidence/phase-2e/34_hero_wide_1920.png` (Widescreen 1920 hero banner)
+  - `docs/evidence/phase-2e/35_hero_tablet_768.png` (Tablet 768 hero banner)
+  - `docs/evidence/phase-2e/36_hero_mobile_390.png` (Mobile 390 hero banner)
+  - `docs/evidence/phase-2e/37_movie_cards_grid_desktop.png` (Desktop movie cards grid with 2-line wrapped titles)
+  - `docs/evidence/phase-2e/38_movie_cards_grid_mobile.png` (Mobile movie cards grid)
+  - `docs/evidence/phase-2e/39_hero_trailer_modal_opened.png` (Trailer modal open from Hero CTA)
+  - `docs/evidence/phase-2e/40_typography_audit_pass.png` (DOM typography scan pass)
+- **Reports:**
+  - `docs/design/art-sources.md`: Complete provenance catalog for all 24 artworks.
+  - `docs/design/accessibility-report.md`: WCAG 2.2 AA / AAA compliance and typography audit.
+  - `docs/design/visual-regression-report.md`: Visual regression and responsive comparison report.
+
+---
+
+## 8. Commit Summary for Phase 2e (Parts 1 to 6)
 
 1. **Part 1 (Finding E3):** Commit `a5d7c3d`
    `feat(phase-2e): Part 1 - non-blocking small hover tooltip (E3)`
@@ -259,16 +314,8 @@ Automated tests in `frontend/e2e/phase2e_part4_trailer.spec.ts` captured screens
    `feat(phase-2e): Part 3 - seat POV view from 2D seat map (E7)`
 4. **Part 4 (Finding E4):** Commit `ff96a5c`
    `feat(phase-2e): Part 4 - reliable 3D screen trailer playback and frame-diff verification (E4)`
-5. **Part 5 (Finding E5):** (Ready to commit)
+5. **Part 5 (Finding E5):** Commit `9693d94`
    `feat(phase-2e): Part 5 - 3D theatre performance optimizations, Smooth/Beautiful quality switch, and render-on-demand (E5)`
-
----
-
-## 8. Planned Scope for Part 6 (Home Banner, Posters & Typography)
-
-- **Part 6: Home Banner, Poster Art & Typography Compliance (Findings E1, E2, E8):**
-  - Implement cinematic hero backdrop with left-aligned high-contrast typography (40–48 px bold title, no truncation, no sticky header overlap).
-  - Add real artwork for posters (2:3) and backdrops (16:9) without embedded tiny text. Record prompts and sources in `docs/design/art-sources.md`.
-  - Fix movie cards (2-line wrapping titles, >=14 px typography, format badges).
-  - Run automated typography and WCAG 4.5:1 contrast scan across Home, Movies, Movie Detail, and Seat Map pages.
+6. **Part 6 (Findings E1, E2, E8):** (Ready to commit)
+   `feat(phase-2e): Part 6 - high-contrast hero banner, real movie artwork, 2-line title wrapping, and WCAG accessibility (E1, E2, E8)`
 

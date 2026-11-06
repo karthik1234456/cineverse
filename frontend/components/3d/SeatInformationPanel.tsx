@@ -106,7 +106,7 @@ export function SeatInformationPanel() {
                   Seat {seat.seat_id}
                 </span>
                 <span
-                  className={`inline-block rounded-lg px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider ${displayCategory.toLowerCase() === 'front'
+                  className={`inline-block rounded-lg px-2.5 py-0.5 text-sm font-bold uppercase tracking-wider ${displayCategory.toLowerCase() === 'front'
                     ? 'bg-amber-50 text-[#8D5B28] border border-amber-300'
                     : displayCategory.toLowerCase() === 'prime'
                       ? 'bg-blue-50 text-[#1E40AF] border border-blue-300'
@@ -197,14 +197,14 @@ export function SeatInformationPanel() {
           <div className="mt-3 border-t border-[#E6DCD2] pt-2">
             <button
               onClick={() => setShowDetails(!showDetails)}
-              className="flex w-full items-center justify-between py-1.5 text-xs font-bold text-slate-600 hover:text-black"
+              className="flex w-full items-center justify-between py-2 text-sm font-bold text-slate-700 hover:text-black"
             >
               <span>{showDetails ? 'Hide Detailed Angles' : 'View Geometric Angles'}</span>
               {showDetails ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </button>
 
             {showDetails && (
-              <div className="mt-2 space-y-2 text-xs text-slate-700 animate-in fade-in duration-200">
+              <div className="mt-2 space-y-2 text-sm text-slate-700 animate-in fade-in duration-200">
                 <div className="rounded-xl bg-[#FAF6F0] p-2.5 border border-[#E6DCD2] flex items-center justify-between">
                   <span className="text-slate-500 font-medium">Numeric View Score</span>
                   <span className="font-bold text-[#1B1320]">{comfortScore.score} / 100</span>
@@ -241,14 +241,14 @@ export function SeatInformationPanel() {
                       addToCompare(seat.seat_id);
                       toggleCompare();
                     }}
-                    className="flex min-h-[38px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#E6DCD2] bg-white py-1.5 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                    className="flex min-h-[40px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[#E6DCD2] bg-white py-2 text-sm font-bold text-slate-800 hover:bg-slate-50"
                   >
                     <ArrowLeftRight className="h-3.5 w-3.5 text-[#C8102E]" />
                     <span>Compare Seat</span>
                   </button>
                   <button
                     onClick={() => setShowCalculationInfo(true)}
-                    className="flex min-h-[38px] items-center justify-center gap-1 rounded-xl border border-[#E6DCD2] bg-white px-3 py-1.5 text-xs font-bold text-slate-800 hover:bg-slate-50"
+                    className="flex min-h-[40px] items-center justify-center gap-1 rounded-xl border border-[#E6DCD2] bg-white px-3.5 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50"
                   >
                     <HelpCircle className="h-3.5 w-3.5 text-slate-400" />
                     <span>Help</span>
@@ -277,7 +277,7 @@ export function SeatInformationPanel() {
               <p>
                 Our sightline rating uses geometric raycasts from eye level directly to screen corners based on SMPTE ST 2092 theatre standards.
               </p>
-              <p className="text-xs text-slate-500 italic bg-[#FAF6F0] p-3 rounded-xl border border-[#E6DCD2]">
+              <p className="text-sm text-slate-500 italic bg-[#FAF6F0] p-3 rounded-xl border border-[#E6DCD2]">
                 Note: These scores are geometric estimates against static auditorium surfaces. Patrons in front rows or personal head movement are not simulated.
               </p>
             </div>

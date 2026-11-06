@@ -147,7 +147,7 @@ MOVIES_DATA = [
         "synopsis": "An undercover cyber operative in Bengaluru's tech corridor uncovers an international surveillance cartel manipulating sovereign infrastructure from the shadows.",
         "poster_url": "/posters/shadow_protocol.png",
         "banner_url": "/posters/shadow_protocol_banner.png",
-        "trailer_url": "/trailers/shadow_protocol.ogv",
+        "trailer_url": "/trailers/shadow_protocol.webm",
         "duration_minutes": 142,
         "certificate": "A",
         "release_date": date.today() - timedelta(days=12),

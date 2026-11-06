@@ -114,11 +114,11 @@ export function ViewModeToggle() {
       {/* Seated POV Navigation Bar (Only visible when Seated) */}
       {currentMode === 'seated' && (
         <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-[#E6DCD2] bg-white/95 px-4 py-1.5 shadow-xl backdrop-blur-md text-[#1B1320] animate-in fade-in slide-in-from-top-2">
-          <span className="text-xs font-bold text-slate-500 uppercase">Seat POV:</span>
+          <span className="text-sm font-bold text-slate-500 uppercase">Seat POV:</span>
           <div className="flex items-center gap-1">
             <button
               onClick={() => navigatePOV('prev')}
-              className="flex min-h-[36px] items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-100"
+              className="flex min-h-[40px] items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-bold text-slate-700 hover:bg-slate-100"
               title="Previous Seat"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
@@ -126,7 +126,7 @@ export function ViewModeToggle() {
             </button>
             <button
               onClick={() => navigatePOV('next')}
-              className="flex min-h-[36px] items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-100"
+              className="flex min-h-[40px] items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-bold text-slate-700 hover:bg-slate-100"
               title="Next Seat"
             >
               <span>Next</span>
@@ -134,7 +134,7 @@ export function ViewModeToggle() {
             </button>
             <button
               onClick={() => navigatePOV('prevRow')}
-              className="flex min-h-[36px] items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-100"
+              className="flex min-h-[40px] items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-bold text-slate-700 hover:bg-slate-100"
               title="Row Ahead"
             >
               <ArrowUp className="h-3.5 w-3.5" />
@@ -142,7 +142,7 @@ export function ViewModeToggle() {
             </button>
             <button
               onClick={() => navigatePOV('nextRow')}
-              className="flex min-h-[36px] items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-100"
+              className="flex min-h-[40px] items-center gap-1 rounded-lg px-2.5 py-1 text-sm font-bold text-slate-700 hover:bg-slate-100"
               title="Row Behind"
             >
               <ArrowDown className="h-3.5 w-3.5" />
@@ -154,7 +154,7 @@ export function ViewModeToggle() {
 
           <button
             onClick={standUp}
-            className="flex min-h-[36px] items-center gap-1 rounded-lg bg-slate-100 px-3 py-1 text-xs font-bold text-[#C8102E] hover:bg-slate-200"
+            className="flex min-h-[40px] items-center gap-1 rounded-lg bg-slate-100 px-3 py-1 text-sm font-bold text-[#C8102E] hover:bg-slate-200"
             title="Stand up to Walk Mode"
           >
             <LogOut className="h-3.5 w-3.5" />
@@ -185,9 +185,9 @@ export function ViewModeToggle() {
 
           {/* 1. Rendering Quality: Smooth vs Beautiful (Task 2) */}
           <div className="space-y-1.5" data-testid="quality-mode-selector">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+            <div className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
               <span>Rendering Quality</span>
-              <span className="text-[10px] font-mono uppercase bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-bold">
+              <span className="text-xs font-mono uppercase bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-bold">
                 {qualityMode === 'smooth' ? 'Smooth (60 FPS)' : 'Beautiful (HQ)'}
               </span>
             </div>
@@ -195,7 +195,7 @@ export function ViewModeToggle() {
               <button
                 onClick={() => setQualityMode('smooth')}
                 data-testid="quality-switch-smooth"
-                className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition ${qualityMode === 'smooth'
+                className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-bold transition ${qualityMode === 'smooth'
                   ? 'bg-[#C8102E] text-white shadow-sm'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
@@ -206,7 +206,7 @@ export function ViewModeToggle() {
               <button
                 onClick={() => setQualityMode('beautiful')}
                 data-testid="quality-switch-beautiful"
-                className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition ${qualityMode === 'beautiful'
+                className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-bold transition ${qualityMode === 'beautiful'
                   ? 'bg-[#C8102E] text-white shadow-sm'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
@@ -215,7 +215,7 @@ export function ViewModeToggle() {
                 <span>Beautiful</span>
               </button>
             </div>
-            <p className="text-[11px] text-slate-500 leading-tight">
+            <p className="text-xs text-slate-500 leading-tight">
               {qualityMode === 'smooth'
                 ? 'High frame rates, 1x resolution, shadows disabled.'
                 : 'Enhanced point light shadows, rich spill & high resolution.'}
@@ -224,7 +224,7 @@ export function ViewModeToggle() {
 
           {/* 2. Camera Presets (Overview mode) */}
           <div className="space-y-1.5">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <div className="text-sm font-bold text-slate-500 uppercase tracking-wider">
               Camera Viewpoint
             </div>
             <div className="grid grid-cols-4 gap-1.5">
@@ -232,7 +232,7 @@ export function ViewModeToggle() {
                 <button
                   key={preset}
                   onClick={() => setCameraPreset(preset)}
-                  className={`rounded-xl py-1.5 text-xs font-bold capitalize transition ${cameraPreset === preset
+                  className={`rounded-xl py-1.5 text-sm font-bold capitalize transition ${cameraPreset === preset
                     ? 'bg-[#C8102E] text-white shadow-sm'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
@@ -245,7 +245,7 @@ export function ViewModeToggle() {
 
           {/* 2. Field of View (FOV) */}
           <div className="space-y-1.5">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <div className="text-sm font-bold text-slate-500 uppercase tracking-wider">
               Field of View
             </div>
             <div className="grid grid-cols-4 gap-1.5">
@@ -253,7 +253,7 @@ export function ViewModeToggle() {
                 <button
                   key={val}
                   onClick={() => setFOV(val)}
-                  className={`rounded-xl py-1.5 text-xs font-mono font-bold transition ${storeFov === val
+                  className={`rounded-xl py-1.5 text-sm font-mono font-bold transition ${storeFov === val
                     ? 'bg-[#C8102E] text-white shadow-sm'
                     : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                     }`}
@@ -266,7 +266,7 @@ export function ViewModeToggle() {
 
           {/* 3. Three Selectable Aesthetic Looks (Part F Requirement) */}
           <div className="space-y-1.5">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+            <div className="text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
               <span>Theatre Interior Look</span>
               <Sparkles className="h-3 w-3 text-amber-500" />
             </div>
@@ -279,13 +279,13 @@ export function ViewModeToggle() {
                     key={lookId}
                     onClick={() => setTheatreLook(lookId)}
                     data-testid={`theatre-look-btn-${lookId}`}
-                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs transition ${isActive
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition ${isActive
                       ? 'border border-[#C8102E] bg-rose-50 text-[#9F1239] font-bold shadow-sm'
                       : 'border border-transparent bg-slate-50 text-slate-700 hover:bg-slate-100 font-medium'
                       }`}
                   >
                     <span>{look.name}</span>
-                    <span className="text-[10px] text-slate-500">{lookId.toUpperCase()}</span>
+                    <span className="text-xs text-slate-500">{lookId.toUpperCase()}</span>
                   </button>
                 );
               })}
@@ -294,13 +294,13 @@ export function ViewModeToggle() {
 
           {/* 4. House Lights (Lights Up vs Show) */}
           <div className="space-y-1.5">
-            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+            <div className="text-sm font-bold text-slate-500 uppercase tracking-wider">
               Lighting Environment
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => setHouseLights('full')}
-                className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition ${houseLights === 'full'
+                className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-bold transition ${houseLights === 'full'
                   ? 'bg-amber-100 text-amber-900 border border-amber-300 shadow-sm'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
@@ -310,7 +310,7 @@ export function ViewModeToggle() {
               </button>
               <button
                 onClick={() => setHouseLights('show')}
-                className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition ${houseLights === 'show'
+                className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-sm font-bold transition ${houseLights === 'show'
                   ? 'bg-indigo-900 text-white shadow-sm'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
                   }`}
@@ -326,7 +326,7 @@ export function ViewModeToggle() {
             <button
               onClick={toggleHeatmap}
               data-testid="toggle-3d-heatmap-btn"
-              className={`flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl text-xs font-bold transition ${isHeatmapActive
+              className={`flex w-full min-h-[44px] items-center justify-center gap-2 rounded-xl text-sm font-bold transition ${isHeatmapActive
                 ? 'bg-emerald-600 text-white shadow'
                 : 'bg-slate-100 text-slate-800 hover:bg-slate-200'
                 }`}

@@ -62,21 +62,23 @@ export function MovieCard({ movie }: MovieCardProps) {
         )}
       </div>
 
-      {/* Card Details (all text >= 14px, title >= 18px) */}
-      <div className="flex flex-1 flex-col p-4">
-        <h3 className="text-xl font-bold text-[#1B1320] group-hover:text-[#C8102E] transition line-clamp-1">
-          {movie.title}
-        </h3>
+      {/* Card Details (all text >= 14px, title >= 18px with 2-line wrap, no unwanted truncation) */}
+      <div className="flex flex-1 flex-col p-4 justify-between">
+        <div>
+          <h3 className="text-lg font-bold text-[#1B1320] group-hover:text-[#C8102E] transition line-clamp-2 min-h-[3.25rem] leading-snug break-words">
+            {movie.title}
+          </h3>
 
-        <p className="mt-1 text-sm font-medium text-[#4A4056] line-clamp-1">
-          {movie.genres?.join(', ')} · {movie.languages?.[0]}
-        </p>
+          <p className="mt-1.5 text-[15px] font-medium text-[#4A4056] line-clamp-1">
+            {movie.genres?.join(', ')} · {movie.languages?.[0]}
+          </p>
+        </div>
 
         <div className="mt-4 pt-3 border-t border-[#E6DCD2] flex items-center justify-between">
           <span className="text-sm font-medium text-[#4A4056]">{movie.duration_minutes} mins</span>
           <span
             data-testid="movie-card-book-btn"
-            className="inline-flex items-center justify-center rounded-xl bg-[#C8102E] px-4 py-2 text-sm font-bold text-white group-hover:bg-[#A60D26] transition shadow-sm min-h-[40px]"
+            className="inline-flex items-center justify-center rounded-xl bg-[#C8102E] px-4 py-2 text-sm font-bold text-white group-hover:bg-[#A60D26] transition shadow-sm min-h-[40px] cursor-pointer"
           >
             Book
           </span>
