@@ -555,7 +555,7 @@ export function SeatMap2D({
               {/* Category Header with Authentic Pricing */}
               <div className="flex items-center justify-between border-b border-[#E6DCD2] pb-2 px-2">
                 <span className="font-black text-base text-[#1B1320]">{tier.name}</span>
-                <span className="font-black text-lg text-[#C8102E]">₹{tier.price}</span>
+                <span className="font-black text-lg text-[#C8102E]">₹{Math.round(tier.price)}</span>
               </div>
 
               {/* Rows */}
@@ -608,7 +608,7 @@ export function SeatMap2D({
                               role="gridcell"
                               aria-selected={isSelected}
                               aria-disabled={isBooked || isHeld}
-                              aria-label={`Seat ${seatId}, ${tier.name} ₹${s.price}, ${status}, Comfort Score: ${score}`}
+                              aria-label={`Seat ${seatId}, ${tier.name} ₹${Math.round(s.price)}, ${status}, Comfort Score: ${score}`}
                               onClick={() => {
                                 setFocusedSeatId(seatId);
                                 if (!isBooked && !isHeld) {

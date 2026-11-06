@@ -194,7 +194,7 @@ export default function BookingConfirmationPage() {
 
           <div className="space-y-1 sm:text-right">
             <span className="text-sm font-bold text-slate-500 uppercase tracking-wider">Amount Paid</span>
-            <div className="text-3xl font-black text-[#C8102E]">₹{booking.final_total_amount}</div>
+            <div className="text-3xl font-black text-[#C8102E]">₹{Math.round(booking.final_total_amount)}</div>
             <div className="text-sm text-slate-500">Inclusive of taxes & convenience fee</div>
           </div>
         </div>
@@ -207,7 +207,7 @@ export default function BookingConfirmationPage() {
               {booking.addons.map((a) => (
                 <div key={a.fnb_item_id} className="flex justify-between text-sm text-slate-600">
                   <span>{a.quantity}x {a.name}</span>
-                  <span className="font-bold text-[#1B1320]">₹{a.total_price}</span>
+                  <span className="font-bold text-[#1B1320]">₹{Math.round(a.total_price)}</span>
                 </div>
               ))}
             </div>

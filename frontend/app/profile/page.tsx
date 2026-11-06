@@ -304,7 +304,7 @@ export default function ProfilePage() {
 
                   <div className="flex flex-wrap gap-2 pt-1">
                     {b.seats.map((s) => (
-                      <span key={s.seat_id} className="rounded-lg bg-[#FAF6F0] border border-[#E6DCD2] px-2.5 py-1 text-xs font-bold text-slate-800">
+                      <span key={s.seat_id} className="rounded-lg bg-[#FAF6F0] border border-[#E6DCD2] px-2.5 py-1 text-sm font-bold text-slate-800">
                         {s.seat_id} ({s.category})
                       </span>
                     ))}
@@ -313,8 +313,8 @@ export default function ProfilePage() {
 
                 <div className="flex items-center gap-5 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 border-[#E6DCD2] pt-4 md:pt-0">
                   <div className="text-right">
-                    <div className="text-xs text-slate-500 font-bold uppercase">PAID</div>
-                    <div className="text-xl font-black text-[#C8102E]">₹{b.final_total_amount}</div>
+                    <div className="text-sm text-slate-500 font-bold uppercase">PAID</div>
+                    <div className="text-xl font-black text-[#C8102E]">₹{Math.round(b.final_total_amount)}</div>
                   </div>
 
                   <div className="flex items-center gap-3">

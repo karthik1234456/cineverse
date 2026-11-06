@@ -97,7 +97,7 @@ export function MobileControls() {
 
         {selectedSeats.length > 0 && (
           <div className="pointer-events-auto rounded-full bg-[#e50914] px-4 py-2 text-sm font-bold text-white shadow-lg shadow-red-950">
-            {selectedSeats.length} Selected (₹{totalPrice})
+            {selectedSeats.length} Selected (₹{Math.round(totalPrice)})
           </div>
         )}
       </div>

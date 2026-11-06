@@ -66,7 +66,7 @@ export function WalkHUD() {
                 {category}
               </span>
               <span className="text-base font-bold text-emerald-400">
-                ₹{price}
+                ₹{Math.round(price)}
               </span>
             </div>
 

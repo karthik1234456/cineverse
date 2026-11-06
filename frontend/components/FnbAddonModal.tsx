@@ -92,7 +92,7 @@ export function FnbAddonModal({
                     </span>
                   </div>
                   <p className="text-sm text-slate-600 mt-1 line-clamp-1">{item.description}</p>
-                  <div className="text-base font-black text-[#C8102E] mt-1">₹{item.price}</div>
+                  <div className="text-base font-black text-[#C8102E] mt-1">₹{Math.round(item.price)}</div>
                 </div>
 
                 {/* Counter stepper */}
@@ -123,7 +123,7 @@ export function FnbAddonModal({
         <div className="mt-4 pt-4 border-t border-[#E6DCD2] flex items-center justify-between gap-4">
           <div>
             <div className="text-sm text-slate-500 font-bold uppercase tracking-wider">Add-ons Total</div>
-            <div className="text-2xl font-black text-[#C8102E]">₹{totalAddonAmount}</div>
+            <div className="text-2xl font-black text-[#C8102E]">₹{Math.round(totalAddonAmount)}</div>
           </div>
 
           <div className="flex items-center gap-3">
