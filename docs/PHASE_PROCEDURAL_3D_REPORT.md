@@ -100,3 +100,4 @@ All evidence is preserved in `docs/evidence/phase-procedural-3d/`:
 The procedural 3D auditorium generator successfully delivers immersive, mathematically faithful 3D experiences for every hall in CineVerse while staying well within the performance budget ($\le 150$ draw calls, 60 FPS). All unit tests and Playwright E2E suites pass with zero regressions.
 
 **Overall Gate Status:** **PASS**
+

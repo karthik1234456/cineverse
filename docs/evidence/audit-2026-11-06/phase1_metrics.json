@@ -1,0 +1,141 @@
+{
+  "cities_count": 7,
+  "cinemas_count": 35,
+  "auditoriums_count": 112,
+  "sizes": {
+    "small_luxury_60_90": 35,
+    "standard_120_200": 35,
+    "large_240_320": 34,
+    "flagship_380_450": 7
+  },
+  "city_flagships": {
+    "Bengaluru": 1,
+    "Mumbai": 1,
+    "Delhi NCR": 1,
+    "Hyderabad": 1,
+    "Chennai": 1,
+    "Pune": 1,
+    "Kolkata": 1
+  },
+  "city_language_shares": {
+    "bengaluru": {
+      "English": 8,
+      "Hindi": 10,
+      "Kannada": 9,
+      "Tamil": 6,
+      "Telugu": 6,
+      "Malayalam": 2
+    },
+    "mumbai": {
+      "English": 7,
+      "Hindi": 14,
+      "Kannada": 4,
+      "Tamil": 4,
+      "Telugu": 5,
+      "Malayalam": 1,
+      "Marathi": 4
+    },
+    "delhi-ncr": {
+      "English": 8,
+      "Hindi": 13,
+      "Kannada": 4,
+      "Tamil": 4,
+      "Telugu": 5,
+      "Malayalam": 1,
+      "Punjabi": 4
+    },
+    "hyderabad": {
+      "English": 7,
+      "Hindi": 11,
+      "Kannada": 4,
+      "Tamil": 5,
+      "Telugu": 10,
+      "Malayalam": 2
+    },
+    "chennai": {
+      "English": 7,
+      "Hindi": 8,
+      "Kannada": 4,
+      "Tamil": 9,
+      "Telugu": 7,
+      "Malayalam": 3
+    },
+    "pune": {
+      "English": 9,
+      "Hindi": 12,
+      "Kannada": 4,
+      "Tamil": 4,
+      "Telugu": 5,
+      "Malayalam": 1,
+      "Marathi": 3
+    },
+    "kolkata": {
+      "English": 8,
+      "Hindi": 11,
+      "Kannada": 4,
+      "Tamil": 4,
+      "Telugu": 5,
+      "Malayalam": 1,
+      "Bengali": 5
+    }
+  },
+  "pairwise_jaccard_overlaps": {
+    "bengaluru vs mumbai": 36.36,
+    "bengaluru vs delhi-ncr": 36.36,
+    "bengaluru vs hyderabad": 42.86,
+    "bengaluru vs chennai": 36.36,
+    "bengaluru vs pune": 42.86,
+    "bengaluru vs kolkata": 36.36,
+    "mumbai vs delhi-ncr": 42.86,
+    "mumbai vs hyderabad": 42.86,
+    "mumbai vs chennai": 36.36,
+    "mumbai vs pune": 50.0,
+    "mumbai vs kolkata": 42.86,
+    "delhi-ncr vs hyderabad": 42.86,
+    "delhi-ncr vs chennai": 36.36,
+    "delhi-ncr vs pune": 42.86,
+    "delhi-ncr vs kolkata": 42.86,
+    "hyderabad vs chennai": 42.86,
+    "hyderabad vs pune": 36.36,
+    "hyderabad vs kolkata": 36.36,
+    "chennai vs pune": 36.36,
+    "chennai vs kolkata": 36.36,
+    "pune vs kolkata": 36.36
+  },
+  "total_showtimes": 3920,
+  "schedule_collisions_count": 0,
+  "schedule_collisions_sample": [],
+  "inventory_capacity_mismatches": 0,
+  "inventory_status_distribution": {
+    "SeatStatusEnum.AVAILABLE": 515156,
+    "SeatStatusEnum.BOOKED": 172589,
+    "SeatStatusEnum.HELD": 5
+  },
+  "api_latencies": {
+    "/api/v1/cities/": {
+      "p50_ms": 8.38,
+      "p95_ms": 11.1,
+      "p99_ms": 31.16
+    },
+    "/api/v1/movies/": {
+      "p50_ms": 11.29,
+      "p95_ms": 18.97,
+      "p99_ms": 21.27
+    },
+    "/api/v1/cinemas/": {
+      "p50_ms": 11.73,
+      "p95_ms": 17.18,
+      "p99_ms": 21.3
+    },
+    "/api/v1/movies/1/showtimes": {
+      "p50_ms": 309.43,
+      "p95_ms": 358.69,
+      "p99_ms": 542.97
+    },
+    "/api/v1/showtimes/1/seats": {
+      "p50_ms": 27.13,
+      "p95_ms": 38.2,
+      "p99_ms": 51.55
+    }
+  }
+}

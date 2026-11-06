@@ -1,0 +1,89 @@
+{
+  "posters_total": 150,
+  "posters_unique_hashes": 150,
+  "posters_duplicate_groups": {},
+  "backdrops_total": 200,
+  "backdrops_unique_hashes": 200,
+  "backdrops_duplicate_groups": {},
+  "trailers_total": 50,
+  "trailers_unique_hashes": 50,
+  "trailers_duplicate_groups": {},
+  "trailer_sample_probes": {
+    "astra-celestial-throne.mp4": {
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "r_frame_rate": "24/1",
+      "duration": "20.000000"
+    },
+    "babus-big-idea.mp4": {
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "r_frame_rate": "24/1",
+      "duration": "20.000000"
+    },
+    "banaras-ghat-serenade.mp4": {
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "r_frame_rate": "24/1",
+      "duration": "20.000000"
+    },
+    "bangalore-startups-samosas.mp4": {
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "r_frame_rate": "24/1",
+      "duration": "20.000000"
+    },
+    "bengal-tiger-detective.mp4": {
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "r_frame_rate": "24/1",
+      "duration": "20.000000"
+    },
+    "bullet-yaari-clash.mp4": {
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "r_frame_rate": "24/1",
+      "duration": "20.000000"
+    },
+    "cauvery-breeze.mp4": {
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "r_frame_rate": "24/1",
+      "duration": "20.000000"
+    },
+    "chandigarh-nights.mp4": {
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "r_frame_rate": "24/1",
+      "duration": "20.000000"
+    },
+    "charminar-chords.mp4": {
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "r_frame_rate": "24/1",
+      "duration": "20.000000"
+    },
+    "chennai-monsoons.mp4": {
+      "codec_name": "h264",
+      "width": 1280,
+      "height": 720,
+      "r_frame_rate": "24/1",
+      "duration": "20.000000"
+    }
+  },
+  "byte_range_test": {
+    "file": "astra-celestial-throne.mp4",
+    "status_code": 206,
+    "content_range_header": "bytes 0-1023/519760",
+    "supported_206": true
+  }
+}

@@ -1,0 +1,80 @@
+[
+  {
+    "hall": "Small_72",
+    "seatsCount": 72,
+    "expectedSeats": 72,
+    "themeChecks": {
+      "bodyBg": "rgb(255, 248, 241)",
+      "bodyColor": "rgb(27, 19, 32)",
+      "minFontSize": 10,
+      "violationsCount": 2,
+      "violationsSample": [
+        {
+          "tag": "SPAN",
+          "text": "♿",
+          "size": 10
+        },
+        {
+          "tag": "SPAN",
+          "text": "♿",
+          "size": 10
+        }
+      ]
+    },
+    "zoomTested": false,
+    "initialTransform": "",
+    "zoomedTransform": ""
+  },
+  {
+    "hall": "Large_260",
+    "seatsCount": 260,
+    "expectedSeats": 260,
+    "themeChecks": {
+      "bodyBg": "rgb(255, 248, 241)",
+      "bodyColor": "rgb(27, 19, 32)",
+      "minFontSize": 10,
+      "violationsCount": 2,
+      "violationsSample": [
+        {
+          "tag": "SPAN",
+          "text": "♿",
+          "size": 10
+        },
+        {
+          "tag": "SPAN",
+          "text": "♿",
+          "size": 10
+        }
+      ]
+    },
+    "zoomTested": false,
+    "initialTransform": "",
+    "zoomedTransform": ""
+  },
+  {
+    "hall": "Flagship_420",
+    "seatsCount": 420,
+    "expectedSeats": 420,
+    "themeChecks": {
+      "bodyBg": "rgb(255, 248, 241)",
+      "bodyColor": "rgb(27, 19, 32)",
+      "minFontSize": 10,
+      "violationsCount": 2,
+      "violationsSample": [
+        {
+          "tag": "SPAN",
+          "text": "♿",
+          "size": 10
+        },
+        {
+          "tag": "SPAN",
+          "text": "♿",
+          "size": 10
+        }
+      ]
+    },
+    "zoomTested": false,
+    "initialTransform": "",
+    "zoomedTransform": ""
+  }
+]

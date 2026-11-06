@@ -39,6 +39,13 @@ CineVerse is a full-featured, production-grade movie-ticket booking website comp
 
 ## 3. Quick Start & Local Execution
 
+### Environment Variables
+Copy `.env.example` to configure your environment variables:
+```bash
+cp .env.example .env
+```
+All available configuration flags (database connection, Redis URL, JWT secret, booking hold duration, Razorpay sandbox credentials) are documented with safe default values in [`.env.example`](./.env.example).
+
 ### Option A: Docker Compose (Single Command)
 
 ```bash
@@ -61,9 +68,8 @@ python -m venv .venv
 # Install dependencies
 pip install -r requirements.txt
 
-# Run database seeder (seeds 7 cities, 8 cinemas, 12 movies, 100 3D seats, showtimes, coupons, F&B)
-$env:PYTHONPATH="backend"
-python backend/app/seed/seeder.py
+# Run database seeder (seeds 7 cities, 35 cinemas, 112 auditoriums, 50 movies, showtimes)
+python app/seed/seeder.py
 
 # Start the FastAPI server
 uvicorn app.main:app --host 127.0.0.1 --port 8000
@@ -85,7 +91,46 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ---
 
-## 4. Default Seed Credentials
+### Media Regeneration
+Poster artwork and video trailers can be verified and regenerated deterministically:
+```bash
+# Generate / verify artwork and trailers
+cd backend
+python -m app.seed.seeder
+```
+Movie posters and backdrops reside in `frontend/public/posters/` and `frontend/public/backdrops/`. Fast-start MP4 trailers reside in `frontend/public/trailers/` and are tracked via Git LFS.
+
+---
+
+## 4. Project Layout
+
+```
+CineVerse/
+├── .github/workflows/       # GitHub Actions CI workflow (lint, typecheck, tests)
+├── backend/                 # FastAPI REST API & Async SQLAlchemy engine
+│   ├── alembic/             # Database migrations
+│   ├── app/
+│   │   ├── agent/           # Multilingual voice agent (EN, HI, KN)
+│   │   ├── api/v1/          # REST route handlers (cities, movies, showtimes, holds, pay)
+│   │   ├── models/          # SQLAlchemy ORM models (auditoriums, seats, bookings)
+│   │   ├── seed/            # Deterministic multi-city seeder & movie catalogue
+│   │   └── services/        # Business logic (holds, payments, pricing, waitlist)
+│   ├── tests/               # Pytest suite
+│   └── requirements.txt     # Python dependencies
+├── frontend/                # Next.js 14 App Router with Tailwind CSS & Three.js
+│   ├── app/                 # Routes (/movies, /cinemas, /checkout, /profile, /admin)
+│   ├── components/          # 2D & 3D components (SeatMap2D, ProceduralAuditorium, Screen)
+│   ├── lib/                 # Procedural auditorium generator, sightline math, walk colliders
+│   ├── public/              # Static assets (3D GLB models, posters, trailers)
+│   ├── store/               # Zustand cinema & booking state store
+│   └── e2e/                 # Playwright end-to-end browser test suites
+├── phases/                  # Phase design specifications and rules
+└── docs/                    # Architecture records, audit reports, and verification evidence
+```
+
+---
+
+## 5. Default Seed Credentials
 
 | Role | Email | Password | OTP (Dev) |
 | :--- | :--- | :--- | :--- |

@@ -1,0 +1,71 @@
+{
+  "consoleErrors": {
+    "/": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "/movies": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "/movies/1": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "/cinemas": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "/cinemas/1": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "/cinemas/1/auditorium/4?showtime=16&mode=2d": [
+      "WebSocket connection to 'ws://127.0.0.1:8000/ws/showtimes/16' failed: Error during WebSocket handshake: Unexpected response code: 500",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "WebSocket connection to 'ws://127.0.0.1:8000/ws/showtimes/16' failed: Error during WebSocket handshake: Unexpected response code: 500",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "/cinemas/1/auditorium/4?showtime=16&mode=3d": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "WebSocket connection to 'ws://127.0.0.1:8000/ws/showtimes/16' failed: Error during WebSocket handshake: Unexpected response code: 500",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "/profile": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "/support": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "/legal/terms": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "/legal/privacy": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ],
+    "/legal/refunds": [
+      "Failed to load resource: the server responded with a status of 404 (Not Found)"
+    ]
+  },
+  "deadLinks": [],
+  "deadButtons": [],
+  "textUnder14px": {
+    "/cinemas/1/auditorium/4?showtime=16&mode=2d": [
+      {
+        "tag": "SPAN",
+        "text": "♿",
+        "size": 10
+      },
+      {
+        "tag": "SPAN",
+        "text": "♿",
+        "size": 10
+      }
+    ]
+  }
+}
