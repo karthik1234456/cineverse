@@ -17,6 +17,7 @@ import {
   Film,
 } from 'lucide-react';
 import { useTrailerStore } from '@/store/useTrailerStore';
+import { useMovieBackdrop } from '@/context/MovieBackdropContext';
 
 export function TrailerPlayer() {
   const activeTrailer = useTrailerStore((s) => s.activeTrailer);
@@ -37,6 +38,13 @@ export function TrailerPlayer() {
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const isSaveData = typeof navigator !== 'undefined' && Boolean((navigator as any).connection?.saveData);
+
+  // Sync with MovieBackdrop: pause background video when full trailer modal is open
+  const { setTrailerModalOpen } = useMovieBackdrop();
+  useEffect(() => {
+    setTrailerModalOpen(Boolean(activeTrailer?.isOpen));
+    return () => setTrailerModalOpen(false);
+  }, [activeTrailer?.isOpen, setTrailerModalOpen]);
 
   // Sync video play/pause with store
   useEffect(() => {

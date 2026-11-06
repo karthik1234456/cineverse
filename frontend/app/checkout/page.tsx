@@ -15,6 +15,7 @@ import {
   createRazorpayOrder, verifyPayment, getStoredUser,
   type HoldQuoteResponse
 } from '@/services/api';
+import { useMovieBackdrop } from '@/context/MovieBackdropContext';
 
 declare global {
   interface Window {
@@ -42,6 +43,7 @@ function CheckoutContent() {
   const [phone, setPhone] = useState('9898989898');
   const [isProcessing, setIsProcessing] = useState(false);
   const [generalError, setGeneralError] = useState<string | null>(null);
+  const { setActiveMovie } = useMovieBackdrop();
 
   // Initialize and fetch server quote
   useEffect(() => {
@@ -75,6 +77,19 @@ function CheckoutContent() {
     try {
       const data = await getHoldQuote(id);
       setQuote(data);
+      if (data) {
+        setActiveMovie({
+          id: data.movie_id || 0,
+          slug: `movie-${data.movie_id || 0}`,
+          title: data.movie_title,
+          banner_url: data.movie_banner_url || data.movie_poster_url || '',
+          poster_url: data.movie_poster_url || '',
+          dominant_color: data.movie_dominant_color ?? null,
+          glimpse_url: data.movie_glimpse_url ?? null,
+          glimpse_webm_url: data.movie_glimpse_webm_url ?? null,
+          glimpse_720p_url: data.movie_glimpse_720p_url ?? null,
+        });
+      }
       setAuthRequired(false);
     } catch (err: any) {
       const msg = (err.message || '').toLowerCase();

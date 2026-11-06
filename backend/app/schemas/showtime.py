@@ -78,6 +78,11 @@ class ShowtimeSeatsResponse(BaseModel):
     layout_path: str = "/models/seat_layout_v2.json"
     trailer_url: Optional[str] = None
     poster_url: Optional[str] = None
+    banner_url: Optional[str] = None
+    dominant_color: Optional[str] = None
+    glimpse_url: Optional[str] = None
+    glimpse_webm_url: Optional[str] = None
+    glimpse_720p_url: Optional[str] = None
     tiers: List[TierSummaryItem] = []
     seats: List[SeatInventoryItem]
 

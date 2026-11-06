@@ -165,6 +165,11 @@ async def get_showtime_seats(
         layout_path="/models/seat_layout_v2.json",
         trailer_url=showtime.movie.trailer_url if showtime.movie else None,
         poster_url=showtime.movie.poster_url if showtime.movie else None,
+        banner_url=showtime.movie.banner_url if showtime.movie else None,
+        dominant_color=showtime.movie.dominant_color if showtime.movie else None,
+        glimpse_url=showtime.movie.glimpse_url if showtime.movie else None,
+        glimpse_webm_url=showtime.movie.glimpse_webm_url if showtime.movie else None,
+        glimpse_720p_url=showtime.movie.glimpse_720p_url if showtime.movie else None,
         tiers=tiers,
         seats=seat_items
     )

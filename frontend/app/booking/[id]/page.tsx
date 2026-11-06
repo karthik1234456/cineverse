@@ -9,6 +9,7 @@ import {
   ArrowLeft, ShieldCheck, MapPin, XCircle, Navigation, Car, Train
 } from 'lucide-react';
 import { getBooking, cancelBooking, type BookingResponse } from '@/services/api';
+import { useMovieBackdrop } from '@/context/MovieBackdropContext';
 
 export default function BookingConfirmationPage() {
   const params = useParams();
@@ -18,13 +19,29 @@ export default function BookingConfirmationPage() {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [cancelNotice, setCancelNotice] = useState<string | null>(null);
+  const { setActiveMovie } = useMovieBackdrop();
 
   useEffect(() => {
     getBooking(bookingId)
-      .then((b) => setBooking(b))
+      .then((b) => {
+        setBooking(b);
+        if (b) {
+          setActiveMovie({
+            id: b.movie_id || 0,
+            slug: `movie-${b.movie_id || 0}`,
+            title: b.movie_title,
+            banner_url: b.movie_banner_url || b.movie_poster_url || '',
+            poster_url: b.movie_poster_url || '',
+            dominant_color: b.movie_dominant_color ?? null,
+            glimpse_url: b.movie_glimpse_url ?? null,
+            glimpse_webm_url: b.movie_glimpse_webm_url ?? null,
+            glimpse_720p_url: b.movie_glimpse_720p_url ?? null,
+          });
+        }
+      })
       .catch((err) => console.warn(err))
       .finally(() => setLoading(false));
-  }, [bookingId]);
+  }, [bookingId, setActiveMovie]);
 
   async function handleCancel() {
     if (!confirm('Are you sure you want to cancel this booking? A 75% refund will be credited per cinema policy.')) {

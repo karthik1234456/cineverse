@@ -56,9 +56,18 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-        # Migrate Phase 6 map columns on cinemas table if missing (SQLite / PostgreSQL safe)
-        from sqlalchemy import text
-        new_cols = [
+
+    # Migrate columns if missing (inspect first so failed statements do not abort SQLite transactions)
+    from sqlalchemy import text
+    async with engine.connect() as conn:
+        # Check cinema columns
+        try:
+            res = await conn.execute(text("PRAGMA table_info(cinemas)"))
+            cinema_cols = [r[1] for r in res.fetchall()]
+        except Exception:
+            cinema_cols = []
+
+        new_cinema_cols = [
             ("pincode", "VARCHAR(10)"),
             ("landmark", "VARCHAR(200)"),
             ("parking", "VARCHAR(50) DEFAULT 'Covered'"),
@@ -67,12 +76,34 @@ async def init_db():
             ("opening_hours", "VARCHAR(100) DEFAULT '09:00 AM - 11:30 PM'"),
             ("is_demo_data", "BOOLEAN DEFAULT 1"),
         ]
-        for col_name, col_def in new_cols:
-            try:
-                await conn.execute(text(f"ALTER TABLE cinemas ADD COLUMN {col_name} {col_def}"))
-            except Exception:
-                # Column already exists
-                pass
+        for col_name, col_def in new_cinema_cols:
+            if not cinema_cols or col_name not in cinema_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE cinemas ADD COLUMN {col_name} {col_def}"))
+                    await conn.commit()
+                except Exception:
+                    pass
+
+        # Check movie columns
+        try:
+            res = await conn.execute(text("PRAGMA table_info(movies)"))
+            existing_movie_cols = [r[1] for r in res.fetchall()]
+        except Exception:
+            existing_movie_cols = []
+
+        movie_cols = [
+            ("dominant_color", "VARCHAR(32)"),
+            ("glimpse_url", "VARCHAR(500)"),
+            ("glimpse_webm_url", "VARCHAR(500)"),
+            ("glimpse_720p_url", "VARCHAR(500)"),
+        ]
+        for col_name, col_def in movie_cols:
+            if not existing_movie_cols or col_name not in existing_movie_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE movies ADD COLUMN {col_name} {col_def}"))
+                    await conn.commit()
+                except Exception:
+                    pass
 
 
 async def reset_db():

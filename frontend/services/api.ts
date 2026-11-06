@@ -64,6 +64,10 @@ export interface Movie {
   poster_url: string;
   banner_url: string;
   trailer_url?: string;
+  dominant_color?: string | null;
+  glimpse_url?: string | null;
+  glimpse_webm_url?: string | null;
+  glimpse_720p_url?: string | null;
   duration_minutes: number;
   certificate: string;
   release_date: string;
@@ -335,6 +339,11 @@ export interface ShowtimeSeatsResponse {
   layout_path: string;
   trailer_url?: string;
   poster_url?: string;
+  banner_url?: string;
+  dominant_color?: string | null;
+  glimpse_url?: string | null;
+  glimpse_webm_url?: string | null;
+  glimpse_720p_url?: string | null;
   tiers?: TierSummaryItem[];
   seats: SeatInventoryItem[];
 }
@@ -416,8 +425,14 @@ export interface BookingResponse {
   id: number;
   booking_code: string;
   showtime_id: number;
+  movie_id?: number | null;
   movie_title: string;
   movie_poster_url: string;
+  movie_banner_url?: string | null;
+  movie_dominant_color?: string | null;
+  movie_glimpse_url?: string | null;
+  movie_glimpse_webm_url?: string | null;
+  movie_glimpse_720p_url?: string | null;
   cinema_name: string;
   cinema_address: string;
   cinema_latitude?: number | null;
@@ -478,8 +493,14 @@ export interface HoldCouponQuote {
 export interface HoldQuoteResponse {
   hold_id: string;
   showtime_id: number;
+  movie_id?: number | null;
   movie_title: string;
   movie_poster_url: string;
+  movie_banner_url?: string | null;
+  movie_dominant_color?: string | null;
+  movie_glimpse_url?: string | null;
+  movie_glimpse_webm_url?: string | null;
+  movie_glimpse_720p_url?: string | null;
   cinema_name: string;
   cinema_address: string;
   cinema_latitude?: number | null;

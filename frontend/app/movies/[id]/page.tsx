@@ -14,6 +14,7 @@ import {
 } from '@/services/api';
 import { CinemaLocationModal } from '@/components/map/CinemaLocationModal';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { useMovieBackdrop } from '@/context/MovieBackdropContext';
 
 export default function MovieDetailPage() {
   const params = useParams();
@@ -28,7 +29,13 @@ export default function MovieDetailPage() {
   const [activeModalCinema, setActiveModalCinema] = useState<CinemaShowtimesGroup | null>(null);
   const openTrailer = useTrailerStore((s) => s.openTrailer);
 
+  const { setActiveMovie, setTrailerModalOpen } = useMovieBackdrop();
   const { coords: userCoords, isRequesting: isGeoRequesting, requestLocation, clearLocation } = useGeolocation();
+
+  // Clear backdrop on unmount
+  useEffect(() => {
+    return () => { setActiveMovie(null); };
+  }, [setActiveMovie]);
 
   // Listen to city changes
   useEffect(() => {
@@ -63,6 +70,18 @@ export default function MovieDetailPage() {
     getMovie(movieIdOrSlug)
       .then(async (m) => {
         setMovie(m);
+        // Activate movie backdrop
+        setActiveMovie({
+          id: m.id,
+          slug: m.slug,
+          title: m.title,
+          banner_url: m.banner_url,
+          poster_url: m.poster_url,
+          dominant_color: (m as any).dominant_color ?? null,
+          glimpse_url: (m as any).glimpse_url ?? null,
+          glimpse_webm_url: (m as any).glimpse_webm_url ?? null,
+          glimpse_720p_url: (m as any).glimpse_720p_url ?? null,
+        });
         const groups = await getMovieShowtimes(
           m.id,
           currentCityId,

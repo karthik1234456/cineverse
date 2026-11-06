@@ -60,8 +60,14 @@ class HoldCouponQuote(BaseModel):
 class HoldQuoteResponse(BaseModel):
     hold_id: str
     showtime_id: int
+    movie_id: Optional[int] = None
     movie_title: str
     movie_poster_url: str
+    movie_banner_url: Optional[str] = None
+    movie_dominant_color: Optional[str] = None
+    movie_glimpse_url: Optional[str] = None
+    movie_glimpse_webm_url: Optional[str] = None
+    movie_glimpse_720p_url: Optional[str] = None
     cinema_name: str
     cinema_address: str
     cinema_latitude: Optional[float] = None
@@ -160,8 +166,14 @@ class BookingResponse(BaseModel):
     id: int
     booking_code: str
     showtime_id: int
+    movie_id: Optional[int] = None
     movie_title: str
     movie_poster_url: str
+    movie_banner_url: Optional[str] = None
+    movie_dominant_color: Optional[str] = None
+    movie_glimpse_url: Optional[str] = None
+    movie_glimpse_webm_url: Optional[str] = None
+    movie_glimpse_720p_url: Optional[str] = None
     cinema_name: str
     cinema_address: str
     cinema_latitude: Optional[float] = None

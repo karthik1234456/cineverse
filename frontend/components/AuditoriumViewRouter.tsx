@@ -7,6 +7,7 @@ import { AuditoriumExperience } from '@/components/3d/AuditoriumExperience';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import { getShowtimeSeats, type ShowtimeSeatsResponse } from '@/services/api';
 import { LayoutGrid, Maximize2, Minimize2, ArrowLeft } from 'lucide-react';
+import { useMovieBackdrop } from '@/context/MovieBackdropContext';
 
 interface AuditoriumViewRouterProps {
   cinemaId: string;
@@ -33,12 +34,28 @@ export function AuditoriumViewRouter({
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showtimeDetails, setShowtimeDetails] = useState<ShowtimeSeatsResponse | null>(null);
+  const { setActiveMovie } = useMovieBackdrop();
 
   useEffect(() => {
     getShowtimeSeats(showtimeId)
-      .then((data) => setShowtimeDetails(data))
+      .then((data) => {
+        setShowtimeDetails(data);
+        if (data) {
+          setActiveMovie({
+            id: data.movie_id,
+            slug: (data as any).slug || `movie-${data.movie_id}`,
+            title: data.movie_title,
+            banner_url: data.banner_url || data.poster_url || '',
+            poster_url: data.poster_url || '',
+            dominant_color: data.dominant_color ?? null,
+            glimpse_url: data.glimpse_url ?? null,
+            glimpse_webm_url: data.glimpse_webm_url ?? null,
+            glimpse_720p_url: data.glimpse_720p_url ?? null,
+          });
+        }
+      })
       .catch((err) => console.warn('Router showtime details fetch notice:', err));
-  }, [showtimeId]);
+  }, [showtimeId, setActiveMovie]);
 
   const has3D = true;
 

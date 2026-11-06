@@ -7,12 +7,18 @@ import { Star, Play, Tag, ArrowRight } from 'lucide-react';
 import { MovieCard } from '@/components/MovieCard';
 import { useTrailerStore } from '@/store/useTrailerStore';
 import { getMovies, type Movie } from '@/services/api';
+import { useMovieBackdrop } from '@/context/MovieBackdropContext';
 
 export default function HomePage() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [selectedFormat, setSelectedFormat] = useState<string>('All');
   const [activeHeroIdx, setActiveHeroIdx] = useState<number>(0);
   const openTrailer = useTrailerStore((s) => s.openTrailer);
+  const { setActiveMovie } = useMovieBackdrop();
+
+  useEffect(() => {
+    setActiveMovie(null);
+  }, [setActiveMovie]);
 
   function loadData(cityId?: number) {
     getMovies({ city_id: cityId })

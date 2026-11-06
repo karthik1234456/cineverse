@@ -48,6 +48,10 @@ class MovieResponse(BaseModel):
     trailer_duration_seconds: Optional[int] = 25
     trailer_poster_frame_url: Optional[str] = None
     trailer_captions_url: Optional[str] = None
+    dominant_color: Optional[str] = None
+    glimpse_url: Optional[str] = None
+    glimpse_webm_url: Optional[str] = None
+    glimpse_720p_url: Optional[str] = None
     duration_minutes: int
     certificate: str
     release_date: date

@@ -10,6 +10,7 @@ import { SelectedSeatsBar } from './SelectedSeatsBar';
 import { ViewModeToggle } from './ViewModeToggle';
 import { CompareView } from './CompareView';
 import { MobileControls } from './MobileControls';
+import { useMovieBackdrop } from '@/context/MovieBackdropContext';
 import { WalkHUD } from './WalkHUD';
 import { TrailerControls } from './TrailerControls';
 import { BoundaryNotice } from './BoundaryNotice';
@@ -47,6 +48,13 @@ export function AuditoriumExperience({
 }: AuditoriumExperienceProps) {
   // TanStack Query seat status sync
   useSeatData(showtimeId);
+
+  // Pause MovieBackdrop video while 3D auditorium is mounted (never two videos at once)
+  const { setPausedBy3D } = useMovieBackdrop();
+  useEffect(() => {
+    setPausedBy3D(true);
+    return () => setPausedBy3D(false);
+  }, [setPausedBy3D]);
 
   // Check URL query flag ?hq=1
   const setUseHqModel = useCinemaStore((s) => s.setUseHqModel);

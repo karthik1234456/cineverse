@@ -22,15 +22,15 @@ export function VoiceAgentFloatingButton() {
 
   return (
     <>
-      <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40">
+      <div className="fixed bottom-20 right-4 sm:bottom-6 sm:right-6 z-40 overflow-visible">
         <button
           onClick={() => setIsOpen(true)}
           data-testid="voice-agent-floating-trigger"
           aria-label="Open CineVerse Voice Assistant (Shortcut: Alt+V)"
-          className="group relative flex items-center gap-2.5 rounded-full bg-gradient-to-r from-[#e50914] to-red-700 px-4 py-3 text-white shadow-2xl shadow-red-950/60 transition-all duration-300 hover:scale-105 hover:shadow-red-600/40 active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[#0b0c10]"
+          className="group relative overflow-hidden flex items-center gap-2.5 rounded-full bg-gradient-to-r from-[#e50914] to-red-700 px-4 py-3 text-white shadow-2xl shadow-red-950/60 transition-all duration-300 hover:scale-105 hover:shadow-red-600/40 active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[#0b0c10]"
         >
-          {/* Animated pulse ring */}
-          <span className="absolute -inset-1 rounded-full bg-red-600/30 blur-sm group-hover:bg-red-600/50 transition animate-pulse" />
+          {/* Animated pulse ring — contained within button overflow */}
+          <span className="absolute inset-0 rounded-full bg-red-600/30 blur-sm group-hover:bg-red-600/50 transition animate-pulse" />
 
           <div className="relative flex items-center gap-2">
             <Mic className="h-5 w-5 text-white" />

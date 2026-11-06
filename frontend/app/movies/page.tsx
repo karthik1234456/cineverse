@@ -6,6 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { SlidersHorizontal, ArrowUpDown, X } from 'lucide-react';
 import { MovieCard } from '@/components/MovieCard';
 import { getMovies, type Movie } from '@/services/api';
+import { useMovieBackdrop } from '@/context/MovieBackdropContext';
 
 function MoviesListContent() {
   const router = useRouter();
@@ -38,6 +39,11 @@ function MoviesListContent() {
     return 1;
   });
   const [loading, setLoading] = useState(true);
+  const { setActiveMovie } = useMovieBackdrop();
+
+  useEffect(() => {
+    setActiveMovie(null);
+  }, [setActiveMovie]);
 
   // Listen to city changes
   useEffect(() => {

@@ -1477,6 +1477,59 @@ COUPONS_DATA = [
     }
 ]
 
+MOVIE_DOMINANT_COLORS = {
+    "quantum-odyssey": "#0b1b3b",
+    "astra-celestial-throne": "#b23216",
+    "shadow-protocol": "#60190e",
+    "vajra-thunderborn": "#ab3015",
+    "redline-vendetta": "#5e180e",
+    "little-hanuman": "#2777b2",
+    "chronos-paradox": "#123569",
+    "zero-gravity-protocol": "#113469",
+    "garuda-sky-guardian": "#671f0f",
+    "cauvery-breeze": "#7b605e",
+    "bangalore-startups-samosas": "#2d5f96",
+    "the-forest-phantom": "#400e11",
+    "kolar-gold-shadows": "#692026",
+    "maharudra-rising": "#5d180e",
+    "pune-heritage-tales": "#3e2f38",
+    "the-last-testimony": "#34303d",
+    "ghat-crematorium": "#41180e",
+    "mumbai-local-chronicles": "#2875b2",
+    "simhadri-roar": "#a32f14",
+    "deccan-underworld": "#5a1910",
+    "charminar-chords": "#a83758",
+    "babus-big-idea": "#2d5f96",
+    "godavari-monsoon-diary": "#664746",
+    "madras-syndicate": "#5c180e",
+    "chennai-monsoons": "#6b5454",
+    "dosa-filter-coffee": "#2d5f96",
+    "chola-secrets": "#19323f",
+    "echoes-of-malabar": "#825d57",
+    "bengal-tiger-detective": "#5e1a12",
+    "howrah-bridge-sunset": "#7d5d59",
+    "fish-curry-football": "#2d5f96",
+    "the-magic-quill": "#1c3249",
+    "whispering-fog-darjeeling": "#725b59",
+    "punjab-express-action": "#6b2313",
+    "fields-of-gold-malwa": "#7e5e5b",
+    "jatt-in-london-laugh": "#2f6096",
+    "bullet-yaari-clash": "#5e180e",
+    "chandigarh-nights": "#983a62",
+    "wayanad-rain-shadow": "#876a64",
+    "midnight-train-kozhikode": "#ab3015",
+    "kochi-harbor-noir": "#54242c",
+    "gully-hustle-dharavi": "#561e6e",
+    "haveli-of-haunting": "#501013",
+    "mirage-in-thar": "#b13216",
+    "delhi-6-weddings": "#5b1e43",
+    "banaras-ghat-serenade": "#3d2e37",
+    "silicon-horizon": "#113366",
+    "solaris-reborn": "#3077bf",
+    "speedway-racers-3d": "#2977b3",
+    "cyber-knight-2099": "#2877b3",
+}
+
 import math
 
 async def seed_database():
@@ -1516,6 +1569,23 @@ async def seed_database():
             if synced_count > 0:
                 await db.commit()
                 print(f"Phase 6 map metadata updated for {synced_count} existing cinemas.")
+
+            # Phase Movie Backdrop & Glimpse metadata sync for existing movies
+            mov_stmt = select(Movie)
+            mov_res = await db.execute(mov_stmt)
+            movies_to_sync = mov_res.scalars().all()
+            mov_synced_count = 0
+            for mov in movies_to_sync:
+                if not mov.dominant_color or not mov.glimpse_url:
+                    mov.dominant_color = MOVIE_DOMINANT_COLORS.get(mov.slug, "#0b1b3b")
+                    mov.glimpse_url = f"/trailers/glimpses/{mov.slug}-480p.mp4"
+                    mov.glimpse_webm_url = f"/trailers/glimpses/{mov.slug}-480p.webm"
+                    mov.glimpse_720p_url = f"/trailers/glimpses/{mov.slug}-720p.mp4"
+                    mov_synced_count += 1
+            if mov_synced_count > 0:
+                await db.commit()
+                print(f"Movie backdrop and glimpse metadata updated for {mov_synced_count} existing movies.")
+
             print(f"Database already contains {existing_movies} movies, {existing_auds} auditoriums, and {existing_shows} showtimes. Seed verified.")
             return
 
@@ -1660,6 +1730,10 @@ async def seed_database():
                 trailer_duration_seconds=20,
                 trailer_poster_frame_url=m_data.get("trailer_poster_frame_url", f"/trailers/{m_data['slug']}_poster.jpg"),
                 trailer_captions_url=m_data.get("trailer_captions_url", f"/trailers/{m_data['slug']}.vtt"),
+                dominant_color=MOVIE_DOMINANT_COLORS.get(m_data["slug"], "#0b1b3b"),
+                glimpse_url=f"/trailers/glimpses/{m_data['slug']}-480p.mp4",
+                glimpse_webm_url=f"/trailers/glimpses/{m_data['slug']}-480p.webm",
+                glimpse_720p_url=f"/trailers/glimpses/{m_data['slug']}-720p.mp4",
                 duration_minutes=m_data["duration_minutes"],
                 certificate=m_data["certificate"],
                 release_date=m_data["release_date"],
