@@ -56,6 +56,23 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Migrate Phase 6 map columns on cinemas table if missing (SQLite / PostgreSQL safe)
+        from sqlalchemy import text
+        new_cols = [
+            ("pincode", "VARCHAR(10)"),
+            ("landmark", "VARCHAR(200)"),
+            ("parking", "VARCHAR(50) DEFAULT 'Covered'"),
+            ("transit_stop", "VARCHAR(200)"),
+            ("phone", "VARCHAR(50) DEFAULT '+91 80 4000 1234'"),
+            ("opening_hours", "VARCHAR(100) DEFAULT '09:00 AM - 11:30 PM'"),
+            ("is_demo_data", "BOOLEAN DEFAULT 1"),
+        ]
+        for col_name, col_def in new_cols:
+            try:
+                await conn.execute(text(f"ALTER TABLE cinemas ADD COLUMN {col_name} {col_def}"))
+            except Exception:
+                # Column already exists
+                pass
 
 
 async def reset_db():

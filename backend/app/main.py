@@ -124,6 +124,14 @@ def create_app() -> FastAPI:
         )
 
     # 4. Health & Readiness Probes
+    @application.get("/", tags=["Health & Observability"])
+    async def root_probe():
+        return {
+            "status": "ok",
+            "service": "CineVerse API",
+            "version": settings.VERSION
+        }
+
     @application.get("/health", tags=["Health & Observability"])
     async def health_check():
         return {

@@ -20,6 +20,7 @@ from app.services.hold_service import (
 )
 from app.services.booking_service import create_booking
 from app.services.payment_service import cancel_booking
+from app.services.geo_service import generate_directions_url
 
 router = APIRouter()
 
@@ -309,6 +310,13 @@ async def format_booking_response(booking: Booking, db: AsyncSession) -> Booking
         movie_poster_url=st.movie.poster_url if (st and st.movie) else "",
         cinema_name=st.cinema.name if (st and st.cinema) else "Cinema",
         cinema_address=st.cinema.address if (st and st.cinema) else "",
+        cinema_latitude=st.cinema.latitude if (st and st.cinema) else None,
+        cinema_longitude=st.cinema.longitude if (st and st.cinema) else None,
+        cinema_pincode=st.cinema.pincode if (st and st.cinema) else None,
+        cinema_landmark=st.cinema.landmark if (st and st.cinema) else None,
+        cinema_parking=st.cinema.parking if (st and st.cinema) else None,
+        cinema_transit_stop=st.cinema.transit_stop if (st and st.cinema) else None,
+        directions_url=generate_directions_url(st.cinema.latitude, st.cinema.longitude) if (st and st.cinema and st.cinema.latitude and st.cinema.longitude) else None,
         auditorium_name=st.auditorium.name if (st and st.auditorium) else "Screen 1",
         screen_type=st.auditorium.screen_type if (st and st.auditorium) else "IMAX 3D",
         start_time=st.start_time if st else b.created_at,

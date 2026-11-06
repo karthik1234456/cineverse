@@ -15,6 +15,7 @@ from app.models.showtime import Showtime, PriceRule, SeatInventory, SeatStatusEn
 from app.models.booking import FnbItem
 from app.models.promotion import Coupon, DiscountTypeEnum
 from app.services.auth_service import hash_password
+from app.seed.cinemas_meta import CINEMAS_METADATA
 
 # MANDATORY: Fixed deterministic seed for reproducible seeding
 random.seed(42)
@@ -1495,6 +1496,26 @@ async def seed_database():
         force_seed = os.environ.get("FORCE_SEED", "0") == "1"
 
         if not force_seed and existing_movies >= 48 and existing_auds >= 70 and existing_shows >= 2000:
+            # Sync Phase 6 Map and Transit metadata for existing cinemas if missing
+            cin_stmt = select(Cinema)
+            cin_res = await db.execute(cin_stmt)
+            cinemas_to_sync = cin_res.scalars().all()
+            synced_count = 0
+            for cin in cinemas_to_sync:
+                meta = CINEMAS_METADATA.get(cin.slug)
+                if meta:
+                    if not cin.pincode or not cin.transit_stop or cin.is_demo_data is None:
+                        cin.pincode = meta["pincode"]
+                        cin.landmark = meta["landmark"]
+                        cin.parking = meta["parking"]
+                        cin.transit_stop = meta["transit_stop"]
+                        cin.phone = meta["phone"]
+                        cin.opening_hours = meta["opening_hours"]
+                        cin.is_demo_data = meta["is_demo_data"]
+                        synced_count += 1
+            if synced_count > 0:
+                await db.commit()
+                print(f"Phase 6 map metadata updated for {synced_count} existing cinemas.")
             print(f"Database already contains {existing_movies} movies, {existing_auds} auditoriums, and {existing_shows} showtimes. Seed verified.")
             return
 
@@ -1530,6 +1551,7 @@ async def seed_database():
 
         for c_info in CINEMAS_DATA:
             city = city_entities[c_info["city_slug"]]
+            meta = CINEMAS_METADATA.get(c_info["slug"], {})
             cinema = Cinema(
                 city_id=city.id,
                 name=c_info["name"],
@@ -1538,7 +1560,14 @@ async def seed_database():
                 latitude=c_info["latitude"],
                 longitude=c_info["longitude"],
                 facilities=c_info["facilities"],
-                cancellation_policy="Cancellation available up to 2 hours before showtime. 75% refund."
+                cancellation_policy="Cancellation available up to 2 hours before showtime. 75% refund.",
+                pincode=meta.get("pincode"),
+                landmark=meta.get("landmark"),
+                parking=meta.get("parking", "Covered"),
+                transit_stop=meta.get("transit_stop"),
+                phone=meta.get("phone", "+91 80 4000 1234"),
+                opening_hours=meta.get("opening_hours", "09:00 AM - 11:30 PM"),
+                is_demo_data=meta.get("is_demo_data", True),
             )
             db.add(cinema)
             await db.flush()

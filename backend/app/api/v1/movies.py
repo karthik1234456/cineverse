@@ -12,6 +12,7 @@ from app.models.cinema import Cinema, Auditorium, City
 from app.models.auth import User
 from app.schemas.movie import MovieResponse, MovieDetailResponse, ReviewCreate, ReviewResponse
 from app.services.auth_service import get_current_user, require_user
+from app.services.geo_service import haversine_distance_km, generate_directions_url
 
 router = APIRouter()
 
@@ -170,6 +171,9 @@ async def get_movie_showtimes(
     target_date: Optional[str] = None,  # YYYY-MM-DD
     format: Optional[str] = None,
     language: Optional[str] = None,
+    user_lat: Optional[float] = Query(None, description="User latitude (rounded to 2 decimal places)"),
+    user_lng: Optional[float] = Query(None, description="User longitude (rounded to 2 decimal places)"),
+    max_distance_km: Optional[float] = Query(None, description="Filter within distance in km (e.g. 5, 10, 20)"),
     db: AsyncSession = Depends(get_db)
 ):
     # Parse target date
@@ -203,6 +207,10 @@ async def get_movie_showtimes(
     result = await db.execute(stmt)
     all_showtimes = result.scalars().all()
 
+    # User coordinates rounded for privacy
+    u_lat = round(user_lat, 2) if user_lat is not None else None
+    u_lng = round(user_lng, 2) if user_lng is not None else None
+
     # Filter by city, format, language
     grouped_by_cinema: Dict[int, Dict[str, Any]] = {}
 
@@ -215,13 +223,31 @@ async def get_movie_showtimes(
             continue
 
         cinema = st.cinema
+        dist_km = None
+        if u_lat is not None and u_lng is not None and cinema.latitude is not None and cinema.longitude is not None:
+            dist_km = haversine_distance_km(u_lat, u_lng, cinema.latitude, cinema.longitude)
+
+        if max_distance_km is not None and dist_km is not None and dist_km > max_distance_km:
+            continue
+
         if cinema.id not in grouped_by_cinema:
             grouped_by_cinema[cinema.id] = {
                 "cinema_id": cinema.id,
                 "cinema_name": cinema.name,
+                "slug": cinema.slug,
                 "address": cinema.address,
+                "latitude": cinema.latitude,
+                "longitude": cinema.longitude,
+                "pincode": cinema.pincode,
+                "landmark": cinema.landmark,
+                "parking": cinema.parking or "Covered",
+                "transit_stop": cinema.transit_stop,
+                "phone": cinema.phone or "+91 80 4000 1234",
+                "opening_hours": cinema.opening_hours or "09:00 AM - 11:30 PM",
                 "cancellation_policy": cinema.cancellation_policy,
                 "facilities": cinema.facilities or [],
+                "distance_km": dist_km,
+                "directions_url": generate_directions_url(cinema.latitude, cinema.longitude),
                 "showtimes": []
             }
 
@@ -260,7 +286,11 @@ async def get_movie_showtimes(
             "total_seat_count": total_seats
         })
 
-    return list(grouped_by_cinema.values())
+    cinema_list = list(grouped_by_cinema.values())
+    if u_lat is not None and u_lng is not None:
+        cinema_list.sort(key=lambda x: (x["distance_km"] if x["distance_km"] is not None else float("inf"), x["cinema_name"]))
+
+    return cinema_list
 
 
 @router.post("/{movie_id}/reviews", response_model=ReviewResponse)

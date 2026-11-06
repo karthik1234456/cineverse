@@ -29,6 +29,13 @@ class Cinema(Base):
     cancellation_policy = Column(String(1000), default="Cancellation available up to 2 hours before showtime. 75% refund.")
     facilities = Column(JSON, default=list)  # ["Parking", "Dolby Atmos", "Recliners", "Food Court"]
     images = Column(JSON, default=list)
+    pincode = Column(String(10), nullable=True)
+    landmark = Column(String(200), nullable=True)
+    parking = Column(String(50), default="Covered")  # "Valet", "Covered", "Open", "None"
+    transit_stop = Column(String(200), nullable=True)  # Nearest metro/bus stop
+    phone = Column(String(50), default="+91 80 4000 1234")
+    opening_hours = Column(String(100), default="09:00 AM - 11:30 PM")
+    is_demo_data = Column(Boolean, default=True)
 
     city = relationship("City", back_populates="cinemas")
     auditoriums = relationship("Auditorium", back_populates="cinema")

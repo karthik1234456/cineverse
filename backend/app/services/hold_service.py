@@ -12,6 +12,7 @@ from app.models.showtime import SeatInventory, SeatStatusEnum, Showtime
 from app.models.booking import FnbItem
 from app.models.auth import RoleEnum, User
 from app.redis_client import get_redis_client
+from app.services.geo_service import generate_directions_url
 from sqlalchemy.orm import selectinload
 
 logger = logging.getLogger("cineverse.hold")
@@ -468,6 +469,13 @@ async def get_hold_quote(db: AsyncSession, hold_id: str, current_user: User) -> 
         "movie_poster_url": showtime.movie.poster_url if showtime.movie else "",
         "cinema_name": showtime.cinema.name if showtime.cinema else "Cinema",
         "cinema_address": showtime.cinema.address if showtime.cinema else "",
+        "cinema_latitude": showtime.cinema.latitude if showtime.cinema else None,
+        "cinema_longitude": showtime.cinema.longitude if showtime.cinema else None,
+        "cinema_pincode": showtime.cinema.pincode if showtime.cinema else None,
+        "cinema_landmark": showtime.cinema.landmark if showtime.cinema else None,
+        "cinema_parking": showtime.cinema.parking if showtime.cinema else None,
+        "cinema_transit_stop": showtime.cinema.transit_stop if showtime.cinema else None,
+        "directions_url": generate_directions_url(showtime.cinema.latitude, showtime.cinema.longitude) if (showtime.cinema and showtime.cinema.latitude and showtime.cinema.longitude) else None,
         "auditorium_name": showtime.auditorium.name if showtime.auditorium else "Auditorium",
         "screen_type": showtime.auditorium.screen_type if showtime.auditorium else "Standard",
         "start_time": showtime.start_time,

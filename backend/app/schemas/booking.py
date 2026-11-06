@@ -64,6 +64,13 @@ class HoldQuoteResponse(BaseModel):
     movie_poster_url: str
     cinema_name: str
     cinema_address: str
+    cinema_latitude: Optional[float] = None
+    cinema_longitude: Optional[float] = None
+    cinema_pincode: Optional[str] = None
+    cinema_landmark: Optional[str] = None
+    cinema_parking: Optional[str] = None
+    cinema_transit_stop: Optional[str] = None
+    directions_url: Optional[str] = None
     auditorium_name: str
     screen_type: str
     start_time: datetime
@@ -157,6 +164,13 @@ class BookingResponse(BaseModel):
     movie_poster_url: str
     cinema_name: str
     cinema_address: str
+    cinema_latitude: Optional[float] = None
+    cinema_longitude: Optional[float] = None
+    cinema_pincode: Optional[str] = None
+    cinema_landmark: Optional[str] = None
+    cinema_parking: Optional[str] = None
+    cinema_transit_stop: Optional[str] = None
+    directions_url: Optional[str] = None
     auditorium_name: str
     screen_type: str
     start_time: datetime

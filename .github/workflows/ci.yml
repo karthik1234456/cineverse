@@ -93,4 +93,5 @@ jobs:
           RAZORPAY_KEY_ID: rzp_test_ci123
           RAZORPAY_KEY_SECRET: secret_test_ci
         run: |
-          pytest tests/test_checkout_server_quote.py tests/test_city_data_realism.py tests/test_phase9_voice_agent.py tests/test_phase11_dynamic_pricing.py tests/test_phase11_seat_scoring.py tests/test_phase11_waitlist.py tests/test_phase12_operations.py tests/test_phase4_booking_engine.py tests/test_phase5_payments.py -v
+          pytest tests/test_checkout_server_quote.py tests/test_city_data_realism.py tests/test_phase6_maps.py tests/test_phase9_voice_agent.py tests/test_phase11_dynamic_pricing.py tests/test_phase11_seat_scoring.py tests/test_phase11_waitlist.py tests/test_phase12_operations.py tests/test_phase4_booking_engine.py tests/test_phase5_payments.py -v
+

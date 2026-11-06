@@ -47,9 +47,30 @@ class CinemaResponse(BaseModel):
     cancellation_policy: str
     facilities: List[str]
     images: List[str]
+    pincode: Optional[str] = None
+    landmark: Optional[str] = None
+    parking: Optional[str] = "Covered"
+    transit_stop: Optional[str] = None
+    phone: Optional[str] = "+91 80 4000 1234"
+    opening_hours: Optional[str] = "09:00 AM - 11:30 PM"
+    is_demo_data: bool = True
+    distance_km: Optional[float] = None
+    directions_url: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+
+class CinemaCoordinatesUpdateRequest(BaseModel):
+    latitude: float
+    longitude: float
+    address: Optional[str] = None
+    pincode: Optional[str] = None
+    landmark: Optional[str] = None
+    parking: Optional[str] = None
+    transit_stop: Optional[str] = None
+    phone: Optional[str] = None
+    opening_hours: Optional[str] = None
 
 
 class CinemaDetailResponse(CinemaResponse):

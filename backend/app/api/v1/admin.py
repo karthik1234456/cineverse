@@ -9,12 +9,70 @@ from app.database import get_db
 from app.models.auth import User, RoleEnum
 from app.models.booking import Booking, BookingSeat, BookingStatusEnum
 from app.models.showtime import Showtime, PriceRule, SeatInventory, SeatStatusEnum
-from app.models.cinema import Auditorium, Seat
+from app.models.cinema import Auditorium, Seat, Cinema
 from app.models.movie import Movie
 from app.schemas.admin import AdminAnalyticsResponse, ShowtimeCreateRequest
+from app.schemas.cinema import CinemaCoordinatesUpdateRequest, CinemaResponse
 from app.services.auth_service import require_role
+from app.services.geo_service import generate_directions_url
 
 router = APIRouter()
+
+
+@router.patch("/cinemas/{cinema_id}/coordinates", response_model=CinemaResponse)
+async def update_cinema_coordinates(
+    cinema_id: int,
+    payload: CinemaCoordinatesUpdateRequest,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.CINEMA_MANAGER])),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(Cinema).where(Cinema.id == cinema_id)
+    res = await db.execute(stmt)
+    cinema = res.scalar_one_or_none()
+    if not cinema:
+        raise HTTPException(status_code=404, detail="Cinema not found")
+
+    cinema.latitude = payload.latitude
+    cinema.longitude = payload.longitude
+    if payload.address is not None:
+        cinema.address = payload.address
+    if payload.pincode is not None:
+        cinema.pincode = payload.pincode
+    if payload.landmark is not None:
+        cinema.landmark = payload.landmark
+    if payload.parking is not None:
+        cinema.parking = payload.parking
+    if payload.transit_stop is not None:
+        cinema.transit_stop = payload.transit_stop
+    if payload.phone is not None:
+        cinema.phone = payload.phone
+    if payload.opening_hours is not None:
+        cinema.opening_hours = payload.opening_hours
+
+    await db.commit()
+    await db.refresh(cinema)
+
+    return CinemaResponse(
+        id=cinema.id,
+        city_id=cinema.city_id,
+        name=cinema.name,
+        slug=cinema.slug,
+        address=cinema.address,
+        latitude=cinema.latitude,
+        longitude=cinema.longitude,
+        cancellation_policy=cinema.cancellation_policy or "Cancellation available up to 2 hours before showtime. 75% refund.",
+        facilities=cinema.facilities or [],
+        images=cinema.images or [],
+        pincode=cinema.pincode,
+        landmark=cinema.landmark,
+        parking=cinema.parking or "Covered",
+        transit_stop=cinema.transit_stop,
+        phone=cinema.phone or "+91 80 4000 1234",
+        opening_hours=cinema.opening_hours or "09:00 AM - 11:30 PM",
+        is_demo_data=cinema.is_demo_data if cinema.is_demo_data is not None else True,
+        distance_km=None,
+        directions_url=generate_directions_url(cinema.latitude, cinema.longitude)
+    )
 
 
 @router.get("/analytics", response_model=AdminAnalyticsResponse)

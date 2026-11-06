@@ -10,6 +10,7 @@ from app.models.cinema import Cinema, Auditorium
 from app.models.movie import Movie
 from app.models.showtime import Showtime, SeatInventory, SeatStatusEnum
 from app.schemas.cinema import CinemaResponse, CinemaDetailResponse
+from app.services.geo_service import haversine_distance_km, generate_directions_url
 
 router = APIRouter()
 
@@ -18,6 +19,10 @@ router = APIRouter()
 async def list_cinemas(
     city_id: Optional[int] = None,
     search: Optional[str] = None,
+    user_lat: Optional[float] = Query(None, description="User latitude (rounded to 2 decimal places)"),
+    user_lng: Optional[float] = Query(None, description="User longitude (rounded to 2 decimal places)"),
+    max_distance_km: Optional[float] = Query(None, description="Filter within distance in km (e.g. 5, 10, 20)"),
+    sort_by: Optional[str] = Query(None, description="'distance' or 'name'"),
     limit: Optional[int] = Query(None, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db)
@@ -34,11 +39,53 @@ async def list_cinemas(
             )
         )
     stmt = stmt.order_by(Cinema.name)
-    if limit is not None:
-        stmt = stmt.limit(limit).offset(offset)
 
     result = await db.execute(stmt)
-    return result.scalars().all()
+    cinemas = list(result.scalars().all())
+
+    # Ensure user coordinates are rounded to 2 decimal places (~1km) for DPDP privacy
+    u_lat = round(user_lat, 2) if user_lat is not None else None
+    u_lng = round(user_lng, 2) if user_lng is not None else None
+
+    cinema_responses = []
+    for c in cinemas:
+        dist_km = None
+        if u_lat is not None and u_lng is not None and c.latitude is not None and c.longitude is not None:
+            dist_km = haversine_distance_km(u_lat, u_lng, c.latitude, c.longitude)
+
+        if max_distance_km is not None and dist_km is not None and dist_km > max_distance_km:
+            continue
+
+        item = CinemaResponse(
+            id=c.id,
+            city_id=c.city_id,
+            name=c.name,
+            slug=c.slug,
+            address=c.address,
+            latitude=c.latitude,
+            longitude=c.longitude,
+            cancellation_policy=c.cancellation_policy or "Cancellation available up to 2 hours before showtime. 75% refund.",
+            facilities=c.facilities or [],
+            images=c.images or [],
+            pincode=c.pincode,
+            landmark=c.landmark,
+            parking=c.parking or "Covered",
+            transit_stop=c.transit_stop,
+            phone=c.phone or "+91 80 4000 1234",
+            opening_hours=c.opening_hours or "09:00 AM - 11:30 PM",
+            is_demo_data=c.is_demo_data if c.is_demo_data is not None else True,
+            distance_km=dist_km,
+            directions_url=generate_directions_url(c.latitude, c.longitude)
+        )
+        cinema_responses.append(item)
+
+    if sort_by == "distance" and u_lat is not None and u_lng is not None:
+        cinema_responses.sort(key=lambda x: (x.distance_km if x.distance_km is not None else float("inf"), x.name))
+
+    if limit is not None:
+        cinema_responses = cinema_responses[offset:offset + limit]
+
+    return cinema_responses
 
 
 @router.get("/{id_or_slug}", response_model=CinemaDetailResponse)
@@ -54,7 +101,9 @@ async def get_cinema(id_or_slug: str, db: AsyncSession = Depends(get_db)):
     if not cinema:
         raise HTTPException(status_code=404, detail="Cinema not found")
 
-    return cinema
+    res = CinemaDetailResponse.model_validate(cinema)
+    res.directions_url = generate_directions_url(cinema.latitude, cinema.longitude)
+    return res
 
 
 @router.get("/{cinema_id}/showtimes")
