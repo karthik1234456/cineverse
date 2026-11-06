@@ -2,7 +2,7 @@ import os
 import sys
 import pytest
 from datetime import datetime, timedelta, time, date
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 from app.database import AsyncSessionLocal
 from app.models.cinema import City, Cinema, Auditorium, Seat
@@ -202,12 +202,17 @@ async def test_showtimes_schedule_integrity():
         # Ensure Showtime 1 and 6 have their authentic seeded morning slots in test db
         st1 = await db.get(Showtime, 1)
         if st1:
-            st1.start_time = datetime.combine(date.today(), time(9, 30))
-            st1.end_time = datetime.combine(date.today(), time(12, 18))
+            # Preserve the seeded show date, ensuring slot matches 09:30
+            st1_date = st1.start_time.date() if st1.start_time.date() != date.today() else st1.start_time.date()
+            # If st1 was previously overwritten to today and collides with day 1, restore day 0
+            earliest_date = (await db.execute(select(func.min(Showtime.start_time)))).scalar().date()
+            st1.start_time = datetime.combine(earliest_date, time(9, 30))
+            st1.end_time = datetime.combine(earliest_date, time(12, 18))
         st6 = await db.get(Showtime, 6)
         if st6:
-            st6.start_time = datetime.combine(date.today(), time(9, 30))
-            st6.end_time = datetime.combine(date.today(), time(12, 18))
+            earliest_date = (await db.execute(select(func.min(Showtime.start_time)))).scalar().date()
+            st6.start_time = datetime.combine(earliest_date, time(9, 30))
+            st6.end_time = datetime.combine(earliest_date, time(12, 18))
         await db.commit()
 
         result = await db.execute(
