@@ -17,6 +17,7 @@ const PREMIUM_SEAT_PATH = '/models/seat_premium.glb';
 export function AuditoriumModel() {
   const useHqModel = useCinemaStore((s) => s.useHqModel);
   const theatreLook = useCinemaStore((s) => s.theatreLook);
+  const qualityMode = useCinemaStore((s) => s.qualityMode);
   const cameraMode = useCinemaStore((s) => s.cameraMode);
   const activeSeatId = useCinemaStore((s) => s.activeSeatId);
 
@@ -63,10 +64,10 @@ export function AuditoriumModel() {
       new THREE.MeshBasicMaterial({
         color: '#030406',
         transparent: true,
-        opacity: 0.45,
+        opacity: qualityMode === 'smooth' ? 0.22 : 0.45,
         depthWrite: false,
       }),
-    []
+    [qualityMode]
   );
 
   const premiumMaterial = useMemo(
@@ -308,7 +309,7 @@ export function AuditoriumModel() {
   }, [scene, cameraMode, activeSeatId, seatNodeMap, useOriginalSeats]);
 
   // Dynamically update seat states without React re-rendering using InstancedMesh (Part D batching)
-  useFrame(({ clock }) => {
+  useFrame(({ clock, invalidate }) => {
     const seatMesh = premiumSeatsMeshRef.current;
     const time = clock.getElapsedTime();
     const pulse = 0.5 + Math.sin(time * 3.5) * 0.3;
@@ -320,6 +321,12 @@ export function AuditoriumModel() {
     const currentLook = getActiveLook(store.theatreLook);
     const camMode = store.cameraMode;
     const actSeatId = store.activeSeatId;
+
+    // Invalidate frame continuously only if there are pulsing held seats
+    const hasHeldSeats = Object.values(activeStatuses).some((s) => s === 'held');
+    if (hasHeldSeats) {
+      invalidate();
+    }
 
     // 1. If using original baked seats
     if (useOriginalSeats) {

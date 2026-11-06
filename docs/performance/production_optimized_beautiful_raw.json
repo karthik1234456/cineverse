@@ -1,0 +1,79 @@
+{
+  "serverLabel": "Production_Optimized_Beautiful",
+  "targetUrl": "http://localhost:3001",
+  "runs": [
+    {
+      "iteration": 1,
+      "domContentLoadedTimeMs": 95,
+      "canvasInitTimeMs": 565,
+      "totalFrames": 49,
+      "avgFps": 3.4,
+      "p50Ms": 300,
+      "p95Ms": 683.3,
+      "p99Ms": 1050,
+      "maxFrameTimeMs": 1050,
+      "longTasksCount": 0,
+      "maxLongTaskMs": 0,
+      "totalBlockingTimeMs": 0,
+      "drawCalls": 77,
+      "triangles": 203298,
+      "geometries": 264,
+      "textures": 15,
+      "memory": {
+        "usedJSHeapMB": 48.1,
+        "totalJSHeapMB": 61
+      },
+      "gpuInfo": {
+        "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "unmaskedVendor": "Google Inc. (Google)"
+      }
+    },
+    {
+      "iteration": 2,
+      "domContentLoadedTimeMs": 77,
+      "canvasInitTimeMs": 846,
+      "totalFrames": 47,
+      "avgFps": 3.3,
+      "p50Ms": 316.7,
+      "p95Ms": 716.7,
+      "p99Ms": 1083.3,
+      "maxFrameTimeMs": 1083.3,
+      "longTasksCount": 0,
+      "maxLongTaskMs": 0,
+      "totalBlockingTimeMs": 0,
+      "drawCalls": 77,
+      "triangles": 203298,
+      "geometries": 264,
+      "textures": 15,
+      "memory": {
+        "usedJSHeapMB": 48.1,
+        "totalJSHeapMB": 61
+      },
+      "gpuInfo": {
+        "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "unmaskedVendor": "Google Inc. (Google)"
+      }
+    }
+  ],
+  "summary": {
+    "avgFps": 3.35,
+    "p50Ms": 308.35,
+    "p95Ms": 700,
+    "p99Ms": 1066.65,
+    "maxFrameTimeMs": 1083.3,
+    "longTasksCount": 0,
+    "maxLongTaskMs": 0,
+    "totalBlockingTimeMs": 0,
+    "canvasInitTimeMs": 705.5,
+    "domContentLoadedTimeMs": 86,
+    "drawCalls": 77,
+    "triangles": 203298,
+    "geometries": 264,
+    "textures": 15,
+    "usedJSHeapMB": 48.1,
+    "gpu": {
+      "unmaskedRenderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+      "unmaskedVendor": "Google Inc. (Google)"
+    }
+  }
+}

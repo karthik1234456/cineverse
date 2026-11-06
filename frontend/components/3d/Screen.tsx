@@ -15,6 +15,7 @@ export function CinemaScreen() {
 
   const houseLights = useCinemaStore((s) => s.houseLights);
   const qualityTier = useCinemaStore((s) => s.qualityTier);
+  const qualityMode = useCinemaStore((s) => s.qualityMode);
   const trailer = useCinemaStore((s) => s.trailer);
   const toggleTrailerPlay = useCinemaStore((s) => s.toggleTrailerPlay);
   const toggleTrailerMute = useCinemaStore((s) => s.toggleTrailerMute);
@@ -23,12 +24,12 @@ export function CinemaScreen() {
   const [videoError, setVideoError] = useState(false);
   const [spillColor, setSpillColor] = useState<THREE.Color>(new THREE.Color('#38bdf8'));
 
-  // Tiny 16x9 sampling canvas for real-time light spill
+  // Ultra-fast 1x1 downsampling canvas for instantaneous light spill color without pixel looping
   const sampleCanvas = useMemo(() => {
     if (typeof document === 'undefined') return null;
     const c = document.createElement('canvas');
-    c.width = 16;
-    c.height = 9;
+    c.width = 1;
+    c.height = 1;
     return c;
   }, []);
 
@@ -205,34 +206,34 @@ export function CinemaScreen() {
 
   // Frame update: update video texture, fallback canvas and sample video for light spill
   const lastSampleTime = useRef(0);
+  const lastVideoTime = useRef(-1);
+
   useFrame(({ clock, invalidate }) => {
-    // If video is active and playing, update texture and trigger next frame
-    if (videoRef.current && (videoRef.current.currentTime > 0 || videoRef.current.readyState >= 2)) {
-      if (videoTextureRef.current) {
-        videoTextureRef.current.needsUpdate = true;
+    // If video is active and playing, update texture when frame advances and trigger next render
+    const isPlaying = trailer.isPlaying;
+    const vid = videoRef.current;
+    if (vid && isPlaying && (vid.currentTime > 0 || vid.readyState >= 2)) {
+      const curTime = vid.currentTime;
+      if (curTime !== lastVideoTime.current) {
+        lastVideoTime.current = curTime;
+        if (videoTextureRef.current) {
+          videoTextureRef.current.needsUpdate = true;
+        }
       }
       invalidate();
     }
     const now = clock.getElapsedTime();
 
-    // 1. Light spill sampling every 250ms
-    if (now - lastSampleTime.current > 0.25) {
+    // 1. Light spill sampling: disabled in Smooth mode; 1x1 GPU downsample every 500ms in Beautiful mode
+    if (qualityMode === 'beautiful' && isPlaying && now - lastSampleTime.current > 0.5) {
       lastSampleTime.current = now;
-      if (videoRef.current && videoLoaded && sampleCanvas) {
-        const sCtx = sampleCanvas.getContext('2d');
-        if (sCtx && videoRef.current.videoWidth > 0) {
+      if (vid && videoLoaded && sampleCanvas) {
+        const sCtx = sampleCanvas.getContext('2d', { willReadFrequently: true });
+        if (sCtx && vid.videoWidth > 0) {
           try {
-            sCtx.drawImage(videoRef.current, 0, 0, 16, 9);
-            const imgData = sCtx.getImageData(0, 0, 16, 9);
-            let r = 0, g = 0, b = 0;
-            const len = imgData.data.length;
-            for (let i = 0; i < len; i += 4) {
-              r += imgData.data[i];
-              g += imgData.data[i + 1];
-              b += imgData.data[i + 2];
-            }
-            const count = len / 4;
-            setSpillColor(new THREE.Color(r / count / 255, g / count / 255, b / count / 255));
+            sCtx.drawImage(vid, 0, 0, 1, 1);
+            const p = sCtx.getImageData(0, 0, 1, 1).data;
+            setSpillColor(new THREE.Color(p[0] / 255, p[1] / 255, p[2] / 255));
           } catch {
             // CORS restricted cross-origin canvas read
           }

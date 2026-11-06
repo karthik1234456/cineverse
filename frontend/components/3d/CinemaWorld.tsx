@@ -19,6 +19,7 @@ interface CinemaWorldProps {
 export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
   const [hasWebGL, setHasWebGL] = useState(true);
   const [canvasError, setCanvasError] = useState<string | null>(null);
+  const qualityMode = useCinemaStore((s) => s.qualityMode);
 
   // Check WebGL availability
   useEffect(() => {
@@ -56,8 +57,8 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 0.98,
         }}
-        dpr={[1, 1.5]} // Clamp DPR for performance
-        frameloop="always" // Active rendering for smooth camera slerp and screen trailer animation
+        dpr={qualityMode === 'smooth' ? 1.0 : [1, 1.5]}
+        frameloop="always" // Dynamically managed by AdaptiveFrameloopController
         onCreated={({ gl, scene }) => {
           gl.setClearColor('#07080a', 1.0);
           scene.background = new THREE.Color('#07080a');
@@ -65,6 +66,7 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
       >
         <fog attach="fog" args={['#07080a', 18, 65]} />
         <Suspense fallback={null}>
+          <AdaptiveFrameloopController />
           <AuditoriumModel />
           <SeatInteraction onSeatClick={onSeatSelect} />
           <CinemaScreen />
@@ -87,11 +89,43 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
 }
 
 /**
+ * Adaptive Frame Loop Controller:
+ * Enforces render-on-demand when scene is static and switches to continuous 60fps
+ * when camera transitions, player walks, user drags/orbits, or trailer video plays.
+ */
+function AdaptiveFrameloopController() {
+  const setFrameloop = useThree((s) => s.setFrameloop);
+  const invalidate = useThree((s) => s.invalidate);
+  const isPlaying = useCinemaStore((s) => s.trailer.isPlaying);
+  const mode = useCinemaStore((s) => s.mode);
+  const isContinuous = useCinemaStore((s) => s.isContinuousRendering);
+  const selectedSeats = useCinemaStore((s) => s.selectedSeats);
+  const seatStatuses = useCinemaStore((s) => s.seatStatuses);
+  const hoveredSeatId = useCinemaStore((s) => s.hoveredSeatId);
+  const houseLights = useCinemaStore((s) => s.houseLights);
+  const qualityMode = useCinemaStore((s) => s.qualityMode);
+  const theatreLook = useCinemaStore((s) => s.theatreLook);
+
+  // Invalidate and render frame whenever interactive state changes
+  useEffect(() => {
+    invalidate();
+  }, [hoveredSeatId, selectedSeats, seatStatuses, houseLights, qualityMode, theatreLook, invalidate]);
+
+  // Manage dynamic continuous vs demand frameloop
+  useEffect(() => {
+    const shouldBeContinuous = isPlaying || mode === 'walk' || isContinuous;
+    setFrameloop(shouldBeContinuous ? 'always' : 'demand');
+    invalidate();
+  }, [isPlaying, mode, isContinuous, setFrameloop, invalidate]);
+
+  return null;
+}
+
+/**
  * Dev bridge that captures render stats and exposes window.__cineverse
  */
 function DevBridge() {
   const { gl, camera, scene } = useThree();
-  const setRendererInfo = useCinemaStore((s) => s.setRendererInfo);
   const exportState = useCinemaStore((s) => s.exportState);
   const selectSeat = useCinemaStore((s) => s.selectSeat);
   const enterPOV = useCinemaStore((s) => s.enterPOV);
@@ -105,6 +139,7 @@ function DevBridge() {
   const updateSeatStatus = useCinemaStore((s) => s.updateSeatStatus);
   const setHouseLights = useCinemaStore((s) => s.setHouseLights);
   const setQualityTier = useCinemaStore((s) => s.setQualityTier);
+  const setQualityMode = useCinemaStore((s) => s.setQualityMode);
   const setFOV = useCinemaStore((s) => s.setFOV);
 
   const fpsFrames = useRef(0);
@@ -155,6 +190,7 @@ function DevBridge() {
       setHouseLights,
       setTheatreLook: (look: 'a' | 'b' | 'c') => useCinemaStore.getState().setTheatreLook(look),
       setQualityTier,
+      setQualityMode,
       setFOV,
       setHoveredSeat: (seatId: string | null) => useCinemaStore.getState().setHoveredSeat(seatId),
       getStore: () => useCinemaStore.getState(),
@@ -200,10 +236,11 @@ function DevBridge() {
     updateSeatStatus,
     setHouseLights,
     setQualityTier,
+    setQualityMode,
     setFOV,
   ]);
 
-  // Track FPS and renderer info periodically
+  // Track FPS periodically for getState().rendererInfo without triggering store re-renders
   useFrame(() => {
     fpsFrames.current++;
     const now = performance.now();
@@ -211,14 +248,6 @@ function DevBridge() {
       currentFps.current = Math.round((fpsFrames.current * 1000) / (now - lastFpsTime.current));
       fpsFrames.current = 0;
       lastFpsTime.current = now;
-
-      setRendererInfo({
-        triangles: gl.info.render.triangles,
-        calls: gl.info.render.calls,
-        fps: currentFps.current,
-        geometries: gl.info.memory.geometries,
-        textures: gl.info.memory.textures,
-      });
     }
   });
 

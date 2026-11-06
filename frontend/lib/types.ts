@@ -8,6 +8,8 @@ export type HouseLightsMode = 'full' | 'dim' | 'show';
 
 export type QualityTier = 'high' | 'medium' | 'low';
 
+export type QualityMode = 'smooth' | 'beautiful';
+
 export type CameraPreset = 'overview' | 'front' | 'back' | 'aerial';
 
 export interface BoundingBox3D {
@@ -157,6 +159,7 @@ export interface CineverseStateExport {
   hoveredSeatId: string | null;
   houseLights: HouseLightsMode;
   qualityTier: QualityTier;
+  qualityMode?: QualityMode;
   useHqModel: boolean;
   walkPlayer?: {
     position: [number, number, number];
@@ -192,6 +195,7 @@ declare global {
       setHouseLights: (mode: HouseLightsMode) => void;
       setTheatreLook: (look: 'a' | 'b' | 'c') => void;
       setQualityTier: (tier: QualityTier) => void;
+      setQualityMode: (mode: QualityMode) => void;
       setFOV: (fov: number) => void;
       setHoveredSeat: (seatId: string | null) => void;
       getStore: () => any;

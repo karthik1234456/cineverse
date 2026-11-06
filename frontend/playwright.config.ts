@@ -33,7 +33,7 @@ export default defineConfig({
   webServer: {
     command: 'npx next start -p 3001',
     port: 3001,
-    reuseExistingServer: false,
+    reuseExistingServer: !process.env.CI,
     timeout: 60000,
   },
 });

@@ -8,7 +8,7 @@ import { getActiveLook } from '@/lib/theatreLooks';
 
 export function TheatreLighting() {
   const houseLights = useCinemaStore((s) => s.houseLights);
-  const qualityTier = useCinemaStore((s) => s.qualityTier);
+  const qualityMode = useCinemaStore((s) => s.qualityMode);
   const theatreLook = useCinemaStore((s) => s.theatreLook);
 
   const look = useMemo(() => getActiveLook(theatreLook), [theatreLook]);
@@ -22,7 +22,7 @@ export function TheatreLighting() {
   const wallWasherRightRef = useRef<THREE.PointLight>(null);
 
   // Smooth animated transition between lighting modes (Lights Up vs Show)
-  useFrame((_, delta) => {
+  useFrame(({ invalidate }, delta) => {
     const isShow = houseLights === 'show';
     const isDim = houseLights === 'dim';
 
@@ -33,6 +33,12 @@ export function TheatreLighting() {
     const targetCeiling = isShow ? 0.08 : isDim ? 0.35 : 1.10;
     const targetWallWash = isShow ? 0.14 : isDim ? 0.40 : 0.85;
 
+    const curAmbient = ambientRef.current?.intensity ?? targetAmbient;
+    const needsTransition = Math.abs(curAmbient - targetAmbient) > 0.005;
+
+    if (!needsTransition) return; // Settled, let demand loop rest!
+
+    invalidate(); // Drive frames during active lighting transition
     const lerpSpeed = Math.min(delta * 4, 1);
 
     if (ambientRef.current) {
@@ -126,7 +132,7 @@ export function TheatreLighting() {
         intensity={1.10}
         distance={24}
         decay={1.8}
-        castShadow={qualityTier === 'high'}
+        castShadow={qualityMode === 'beautiful'}
         shadow-mapSize-width={512}
         shadow-mapSize-height={512}
       />
@@ -137,7 +143,7 @@ export function TheatreLighting() {
         intensity={1.10}
         distance={24}
         decay={1.8}
-        castShadow={qualityTier === 'high'}
+        castShadow={qualityMode === 'beautiful'}
         shadow-mapSize-width={512}
         shadow-mapSize-height={512}
       />

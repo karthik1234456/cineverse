@@ -192,6 +192,7 @@ export function CameraController() {
     t.startTime = performance.now();
     t.duration = isSeated ? 1.05 : 0.95;
     t.active = true;
+    useCinemaStore.getState().setContinuousRendering(true);
 
     // Reset POV look offsets on seat transition
     povLook.current.yaw = 0;
@@ -210,6 +211,7 @@ export function CameraController() {
         povLook.current.isDragging = true;
         povLook.current.lastX = e.clientX;
         povLook.current.lastY = e.clientY;
+        useCinemaStore.getState().setContinuousRendering(true);
       }
     };
 
@@ -231,6 +233,9 @@ export function CameraController() {
 
     const onPointerUp = () => {
       povLook.current.isDragging = false;
+      setTimeout(() => {
+        useCinemaStore.getState().setContinuousRendering(false);
+      }, 350);
     };
 
     dom.addEventListener('pointerdown', onPointerDown);
@@ -317,13 +322,14 @@ export function CameraController() {
   }, [isSeated, isOverview, activeSeatId, standUp, setMode, navigatePOV, toggleCompare, toggleSeat]);
 
   // Frame tick: transitions, head-look, boundary clamps
-  useFrame((_, delta) => {
+  useFrame(({ invalidate }, delta) => {
     if (isWalk) return; // WalkController handles camera in Walk mode
 
     const persCam = camera as THREE.PerspectiveCamera;
     const t = transitionRef.current;
 
     if (t.active && targetPose) {
+      invalidate();
       const elapsed = (performance.now() - t.startTime) / 1000;
       const progress = Math.min(1, elapsed / t.duration);
       const eased = easeInOutCubic(progress);
@@ -344,6 +350,7 @@ export function CameraController() {
 
       if (progress >= 1) {
         t.active = false;
+        useCinemaStore.getState().setContinuousRendering(false);
         persCam.position.copy(targetPose.position);
         persCam.quaternion.copy(targetPose.quaternion);
         persCam.fov = targetPose.fov;
@@ -356,6 +363,9 @@ export function CameraController() {
     } else if (isSeated && targetPose) {
       // Damped head-look in Seated mode
       const look = povLook.current;
+      if (look.isDragging || Math.abs(look.yaw - look.targetYaw) > 0.001 || Math.abs(look.pitch - look.targetPitch) > 0.001) {
+        invalidate();
+      }
       const dampSpeed = Math.min(delta * 12, 1);
       look.yaw = THREE.MathUtils.lerp(look.yaw, look.targetYaw, dampSpeed);
       look.pitch = THREE.MathUtils.lerp(look.pitch, look.targetPitch, dampSpeed);
@@ -428,6 +438,12 @@ export function CameraController() {
           maxPolarAngle={1.42}
           minPolarAngle={0.35}
           target={DEFAULT_CAMERA_TARGET}
+          onStart={() => useCinemaStore.getState().setContinuousRendering(true)}
+          onEnd={() => {
+            setTimeout(() => {
+              useCinemaStore.getState().setContinuousRendering(false);
+            }, 450);
+          }}
         />
       )}
     </>

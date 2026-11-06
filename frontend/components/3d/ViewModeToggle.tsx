@@ -16,6 +16,7 @@ import {
   Sun,
   Moon,
   Sparkles,
+  Zap,
   X,
 } from 'lucide-react';
 import { THEATRE_LOOKS, type TheatreLookId } from '@/lib/theatreLooks';
@@ -42,6 +43,8 @@ export function ViewModeToggle() {
   const setHouseLights = useCinemaStore((s) => s.setHouseLights);
   const qualityTier = useCinemaStore((s) => s.qualityTier);
   const setQualityTier = useCinemaStore((s) => s.setQualityTier);
+  const qualityMode = useCinemaStore((s) => s.qualityMode);
+  const setQualityMode = useCinemaStore((s) => s.setQualityMode);
 
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
@@ -180,7 +183,46 @@ export function ViewModeToggle() {
             </button>
           </div>
 
-          {/* 1. Camera Presets (Overview mode) */}
+          {/* 1. Rendering Quality: Smooth vs Beautiful (Task 2) */}
+          <div className="space-y-1.5" data-testid="quality-mode-selector">
+            <div className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+              <span>Rendering Quality</span>
+              <span className="text-[10px] font-mono uppercase bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-bold">
+                {qualityMode === 'smooth' ? 'Smooth (60 FPS)' : 'Beautiful (HQ)'}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setQualityMode('smooth')}
+                data-testid="quality-switch-smooth"
+                className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition ${qualityMode === 'smooth'
+                  ? 'bg-[#C8102E] text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+              >
+                <Zap className="h-3.5 w-3.5" />
+                <span>Smooth</span>
+              </button>
+              <button
+                onClick={() => setQualityMode('beautiful')}
+                data-testid="quality-switch-beautiful"
+                className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition ${qualityMode === 'beautiful'
+                  ? 'bg-[#C8102E] text-white shadow-sm'
+                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span>Beautiful</span>
+              </button>
+            </div>
+            <p className="text-[11px] text-slate-500 leading-tight">
+              {qualityMode === 'smooth'
+                ? 'High frame rates, 1x resolution, shadows disabled.'
+                : 'Enhanced point light shadows, rich spill & high resolution.'}
+            </p>
+          </div>
+
+          {/* 2. Camera Presets (Overview mode) */}
           <div className="space-y-1.5">
             <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Camera Viewpoint

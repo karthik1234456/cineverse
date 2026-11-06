@@ -5,6 +5,7 @@ import type {
   CameraPreset,
   HouseLightsMode,
   QualityTier,
+  QualityMode,
   CineverseStateExport,
 } from '@/lib/types';
 import type { TierSummaryItem } from '@/services/api';
@@ -73,7 +74,9 @@ export interface CinemaState {
   // Environment & Realism
   houseLights: HouseLightsMode;
   qualityTier: QualityTier;
+  qualityMode: QualityMode;
   useHqModel: boolean;
+  isContinuousRendering: boolean;
 
   // Comparison
   isComparing: boolean;
@@ -138,6 +141,8 @@ export interface CinemaState {
   theatreLook: 'a' | 'b' | 'c';
   setTheatreLook: (look: 'a' | 'b' | 'c') => void;
   setQualityTier: (tier: QualityTier) => void;
+  setQualityMode: (mode: QualityMode) => void;
+  setContinuousRendering: (continuous: boolean) => void;
   setUseHqModel: (useHq: boolean) => void;
 
   toggleCompare: () => void;
@@ -152,6 +157,20 @@ export interface CinemaState {
 }
 
 let toastTimer: any = null;
+
+function getInitialQualityMode(): QualityMode {
+  if (typeof window === 'undefined') return 'beautiful';
+  try {
+    const saved = localStorage.getItem('cineverse_quality_mode');
+    if (saved === 'smooth' || saved === 'beautiful') return saved;
+    if (window.innerWidth < 768 || ((navigator as any).hardwareConcurrency && (navigator as any).hardwareConcurrency <= 4)) {
+      return 'smooth';
+    }
+  } catch (e) {}
+  return 'beautiful';
+}
+
+const initialQuality = getInitialQualityMode();
 
 export const useCinemaStore = create<CinemaState>((set, get) => ({
   seatStatuses: {},
@@ -201,8 +220,10 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   houseLights: 'full',
   theatreLook: (typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('look') as 'a' | 'b' | 'c') || 'a' : 'a'),
   setTheatreLook: (look) => set({ theatreLook: look }),
-  qualityTier: 'high',
+  qualityTier: initialQuality === 'smooth' ? 'low' : 'high',
+  qualityMode: initialQuality,
   useHqModel: false,
+  isContinuousRendering: false,
 
   isComparing: false,
   compareSeats: [],
@@ -530,7 +551,29 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
   setHouseLights: (mode) => set({ houseLights: mode }),
 
-  setQualityTier: (tier) => set({ qualityTier: tier }),
+  setQualityTier: (tier) =>
+    set({
+      qualityTier: tier,
+      qualityMode: tier === 'low' ? 'smooth' : 'beautiful',
+    }),
+
+  setQualityMode: (mode) => {
+    try {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('cineverse_quality_mode', mode);
+      }
+    } catch (e) {}
+    set({
+      qualityMode: mode,
+      qualityTier: mode === 'smooth' ? 'low' : 'high',
+    });
+  },
+
+  setContinuousRendering: (continuous) => {
+    if (get().isContinuousRendering !== continuous) {
+      set({ isContinuousRendering: continuous });
+    }
+  },
 
   setUseHqModel: (useHq) => set({ useHqModel: useHq }),
 
@@ -597,6 +640,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
       hoveredSeatId: state.hoveredSeatId,
       houseLights: state.houseLights,
       qualityTier: state.qualityTier,
+      qualityMode: state.qualityMode,
       useHqModel: state.useHqModel,
       walkPlayer: {
         position: state.walkPlayer.position,

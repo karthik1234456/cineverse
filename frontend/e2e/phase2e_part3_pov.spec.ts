@@ -16,6 +16,14 @@ test.describe('Phase 2e — Part 3: Seat POV from 2D Map (Finding E7)', () => {
     if (!fs.existsSync(EVIDENCE_DIR)) {
       fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
     }
+    // Ensure A06 is held for showtime 1 for held seat inspection tests
+    try {
+      await fetch('http://127.0.0.1:8000/api/v1/bookings/hold?showtime_id=1', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seat_ids: ['A06'] }),
+      });
+    } catch (e) {}
   });
 
   test('01. 2D Map: "See view from this seat" button exists for available, booked, and held seats', async ({ page }) => {
