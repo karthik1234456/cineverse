@@ -10,10 +10,14 @@ from app.models.showtime import Showtime
 from app.models.auth import User, RoleEnum
 from app.schemas.booking import (
     SeatHoldRequest, SeatHoldResponse, SeatReleaseRequest, SeatExtendRequest,
-    BookingCreateRequest, BookingResponse, BookingSeatResponse, BookingAddonResponse, TicketResponse
+    BookingCreateRequest, BookingResponse, BookingSeatResponse, BookingAddonResponse, TicketResponse,
+    HoldQuoteResponse, HoldAddonsUpdateRequest, HoldCouponApplyRequest
 )
 from app.services.auth_service import get_current_user, require_user
-from app.services.hold_service import hold_seats, release_seats, extend_hold
+from app.services.hold_service import (
+    hold_seats, release_seats, extend_hold,
+    get_hold_quote, update_hold_addons, apply_hold_coupon
+)
 from app.services.booking_service import create_booking
 from app.services.payment_service import cancel_booking
 
@@ -60,6 +64,50 @@ async def api_release_seats(req: SeatReleaseRequest, db: AsyncSession = Depends(
 async def api_extend_hold(req: SeatExtendRequest, db: AsyncSession = Depends(get_db)):
     result = await extend_hold(db, req.hold_id)
     return result
+
+
+@router.get("/hold/{hold_id}", response_model=HoldQuoteResponse)
+async def api_get_hold_quote(
+    hold_id: str,
+    current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Fetches the locked server quote for an active seat hold.
+    Authentication is strictly required; users may only view their own holds (403 IDOR protection).
+    All pricing, taxes, fees, and totals are computed server-side.
+    """
+    quote = await get_hold_quote(db, hold_id, current_user)
+    return HoldQuoteResponse(**quote)
+
+
+@router.post("/hold/{hold_id}/addons", response_model=HoldQuoteResponse)
+async def api_update_hold_addons(
+    hold_id: str,
+    req: HoldAddonsUpdateRequest,
+    current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Updates selected F&B add-ons on the server hold and returns updated quote.
+    """
+    addons_data = [a.model_dump() for a in req.addons]
+    quote = await update_hold_addons(db, hold_id, addons_data, current_user)
+    return HoldQuoteResponse(**quote)
+
+
+@router.post("/hold/{hold_id}/coupon", response_model=HoldQuoteResponse)
+async def api_apply_hold_coupon(
+    hold_id: str,
+    req: HoldCouponApplyRequest,
+    current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Validates and applies a coupon to the server hold and returns updated quote.
+    """
+    quote = await apply_hold_coupon(db, hold_id, req.code, current_user)
+    return HoldQuoteResponse(**quote)
 
 
 @router.post("/create", response_model=BookingResponse)

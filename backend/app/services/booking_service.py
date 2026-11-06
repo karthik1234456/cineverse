@@ -68,10 +68,63 @@ async def create_booking(
     user_id: int,
     request: BookingCreateRequest
 ) -> Booking:
-    # 1. Fetch showtime
+    # 1. Fetch and verify held seats strictly by hold_id
+    now = datetime.utcnow()
+    seats_stmt = (
+        select(SeatInventory)
+        .where(SeatInventory.hold_id == request.hold_id)
+        .order_by(SeatInventory.seat_id)
+    )
+    seats_res = await db.execute(seats_stmt)
+    held_seats = seats_res.scalars().all()
+
+    if not held_seats:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Seat hold not found or has expired. Please select seats again."
+        )
+
+    # 2. Check for replay of an already converted/booked hold
+    if any(s.status == SeatStatusEnum.BOOKED or (s.status == SeatStatusEnum.PAYMENT_PENDING and s.booking_id is not None) for s in held_seats):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This seat hold has already been used or converted to a booking."
+        )
+
+    # 3. Check for expired hold
+    for s in held_seats:
+        if s.hold_expires_at and s.hold_expires_at <= now:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Hold has expired for seat {s.seat_id}. Please select seats again."
+            )
+
+    # 4. Check ownership / IDOR guard
+    if held_seats[0].held_by_user_id and held_seats[0].held_by_user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to book this seat hold reservation."
+        )
+
+    # 5. Validate client-supplied showtime_id and seat_ids against the server locked hold
+    actual_showtime_id = held_seats[0].showtime_id
+    if request.showtime_id is not None and request.showtime_id != actual_showtime_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Showtime ID does not match the held reservation."
+        )
+
+    actual_seat_ids = {s.seat_id for s in held_seats}
+    if request.seat_ids is not None and set(request.seat_ids) != actual_seat_ids:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Seat IDs do not match the held reservation."
+        )
+
+    # 6. Fetch showtime details
     showtime_stmt = (
         select(Showtime)
-        .where(Showtime.id == request.showtime_id)
+        .where(Showtime.id == actual_showtime_id)
         .options(
             selectinload(Showtime.movie),
             selectinload(Showtime.cinema),
@@ -83,71 +136,60 @@ async def create_booking(
     if not showtime:
         raise HTTPException(status_code=404, detail="Showtime not found")
 
-    # 2. Verify held seats
-    now = datetime.utcnow()
-    seats_stmt = select(SeatInventory).where(
-        SeatInventory.showtime_id == request.showtime_id,
-        SeatInventory.seat_id.in_(request.seat_ids),
-        SeatInventory.hold_id == request.hold_id
-    )
-    seats_res = await db.execute(seats_stmt)
-    held_seats = seats_res.scalars().all()
-
-    if len(held_seats) != len(request.seat_ids):
-        raise HTTPException(
-            status_code=400,
-            detail="Hold expired or one or more seats are not reserved by this hold ID"
-        )
-
-    for s in held_seats:
-        if s.hold_expires_at and s.hold_expires_at <= now:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Hold has expired for seat {s.seat_id}. Please select seats again."
-            )
-
-    # 3. Calculate ticket amount
+    # 7. Calculate ticket amounts exclusively from locked database seat prices
     total_ticket_amount = sum(s.price for s in held_seats)
     ticket_count = len(held_seats)
     convenience_fee = round(settings.CONVENIENCE_FEE_PER_TICKET * ticket_count, 2)
     gst_amount = round((convenience_fee * settings.GST_PERCENTAGE) / 100.0, 2)
 
-    # 4. Calculate addons
+    # 8. Calculate addons: use request.addons or server hold metadata
+    from app.services.hold_service import get_hold_metadata
+    meta = get_hold_metadata(request.hold_id)
+    addons_to_process = []
+    if request.addons:
+        addons_to_process = [
+            {"fnb_item_id": a.fnb_item_id, "quantity": a.quantity}
+            for a in request.addons
+        ]
+    elif meta.get("addons"):
+        addons_to_process = meta["addons"]
+
     addons_amount = 0.0
     addon_records = []
-    if request.addons:
-        fnb_ids = [a.fnb_item_id for a in request.addons]
+    if addons_to_process:
+        fnb_ids = [a["fnb_item_id"] for a in addons_to_process]
         fnb_stmt = select(FnbItem).where(FnbItem.id.in_(fnb_ids))
         fnb_res = await db.execute(fnb_stmt)
         fnb_map = {item.id: item for item in fnb_res.scalars().all()}
 
-        for addon in request.addons:
-            item = fnb_map.get(addon.fnb_item_id)
+        for addon in addons_to_process:
+            item = fnb_map.get(addon["fnb_item_id"])
             if not item:
                 continue
-            line_total = round(item.price * addon.quantity, 2)
+            line_total = round(item.price * addon["quantity"], 2)
             addons_amount += line_total
             addon_records.append({
                 "fnb_item_id": item.id,
                 "name": item.name,
-                "quantity": addon.quantity,
+                "quantity": addon["quantity"],
                 "unit_price": item.price,
                 "total_price": line_total
             })
 
     subtotal = total_ticket_amount + convenience_fee + gst_amount + addons_amount
 
-    # 5. Apply coupon if provided
+    # 9. Apply coupon if provided in request or attached to hold
+    coupon_code_to_apply = request.coupon_code or meta.get("coupon_code")
     discount_amount = 0.0
     matched_coupon = None
-    if request.coupon_code:
+    if coupon_code_to_apply:
         matched_coupon, discount_amount = await validate_coupon(
-            db, request.coupon_code.upper().strip(), user_id, total_ticket_amount
+            db, coupon_code_to_apply.upper().strip(), user_id, total_ticket_amount
         )
 
     final_total_amount = max(0.0, round(subtotal - discount_amount, 2))
 
-    # 6. Create Booking
+    # 10. Create Booking
     booking = Booking(
         booking_code=generate_booking_code(),
         user_id=user_id,

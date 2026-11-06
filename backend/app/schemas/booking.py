@@ -33,14 +33,76 @@ class AddonOrder(BaseModel):
     quantity: int
 
 
-class BookingCreateRequest(BaseModel):
-    showtime_id: int
+class HoldSeatQuote(BaseModel):
+    seat_id: str
+    category: str
+    price: float
+    price_display: str
+
+
+class HoldAddonQuote(BaseModel):
+    fnb_item_id: int
+    name: str
+    quantity: int
+    unit_price: float
+    unit_price_display: str
+    line_total: float
+    line_total_display: str
+
+
+class HoldCouponQuote(BaseModel):
+    code: str
+    discount_amount: float
+    discount_amount_display: str
+    message: Optional[str] = None
+
+
+class HoldQuoteResponse(BaseModel):
     hold_id: str
-    seat_ids: List[str]
+    showtime_id: int
+    movie_title: str
+    movie_poster_url: str
+    cinema_name: str
+    cinema_address: str
+    auditorium_name: str
+    screen_type: str
+    start_time: datetime
+    expires_at: datetime
+    hold_duration_seconds: int
+    held_seats: List[HoldSeatQuote]
+    ticket_subtotal: float
+    ticket_subtotal_display: str
+    convenience_fee: float
+    convenience_fee_display: str
+    gst_amount: float
+    gst_amount_display: str
+    addons: List[HoldAddonQuote] = []
+    addons_subtotal: float = 0.0
+    addons_subtotal_display: str = "₹0"
+    applied_coupon: Optional[HoldCouponQuote] = None
+    discount_amount: float = 0.0
+    discount_amount_display: str = "₹0"
+    final_total: float
+    final_total_display: str
+    price_lock_guarantee: str = "The price shown at checkout is final"
+
+
+class HoldAddonsUpdateRequest(BaseModel):
     addons: List[AddonOrder] = []
-    coupon_code: Optional[str] = None
+
+
+class HoldCouponApplyRequest(BaseModel):
+    code: str
+
+
+class BookingCreateRequest(BaseModel):
+    hold_id: str
     contact_email: EmailStr
     contact_phone: str
+    showtime_id: Optional[int] = None
+    seat_ids: Optional[List[str]] = None
+    addons: Optional[List[AddonOrder]] = None
+    coupon_code: Optional[str] = None
 
 
 class FnbItemResponse(BaseModel):
