@@ -30,7 +30,26 @@ function MoviesListContent() {
   const [selectedTab, setSelectedTab] = useState<'all' | 'now_showing' | 'coming_soon'>(
     paramStatus as 'all' | 'now_showing' | 'coming_soon'
   );
+  const [currentCityId, setCurrentCityId] = useState<number | undefined>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('cineverse_city_id');
+      if (stored) return parseInt(stored, 10);
+    }
+    return 1;
+  });
   const [loading, setLoading] = useState(true);
+
+  // Listen to city changes
+  useEffect(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('cineverse_city_id') : null;
+    if (stored) setCurrentCityId(parseInt(stored, 10));
+
+    function onCityChanged(e: any) {
+      if (e.detail?.id) setCurrentCityId(e.detail.id);
+    }
+    window.addEventListener('cityChanged', onCityChanged);
+    return () => window.removeEventListener('cityChanged', onCityChanged);
+  }, []);
 
   // Sync state back to URL
   const updateUrlParams = useCallback(
@@ -54,6 +73,7 @@ function MoviesListContent() {
   useEffect(() => {
     setLoading(true);
     getMovies({
+      city_id: currentCityId,
       search: search || undefined,
       language: selectedLanguage !== 'All' ? selectedLanguage : undefined,
       genre: selectedGenre !== 'All' ? selectedGenre : undefined,
@@ -65,7 +85,7 @@ function MoviesListContent() {
       .then((data) => setMovies(data))
       .catch((err) => console.warn(err))
       .finally(() => setLoading(false));
-  }, [search, selectedLanguage, selectedGenre, selectedFormat, selectedCertificate, selectedSort, selectedTab]);
+  }, [currentCityId, search, selectedLanguage, selectedGenre, selectedFormat, selectedCertificate, selectedSort, selectedTab]);
 
   function handleTabChange(tab: 'all' | 'now_showing' | 'coming_soon') {
     setSelectedTab(tab);

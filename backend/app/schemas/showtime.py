@@ -55,6 +55,7 @@ class SeatInventoryItem(BaseModel):
     distance_to_screen: float
     vertical_angle_deg: float
     horizontal_angle_deg: float
+    is_accessible: bool = False
 
 
 class ShowtimeSeatsResponse(BaseModel):
@@ -67,6 +68,7 @@ class ShowtimeSeatsResponse(BaseModel):
     auditorium_name: str
     screen_type: str
     has_3d_preview: bool
+    layout_data: Optional[dict] = None
     format: str
     language: str
     start_time: datetime

@@ -14,6 +14,9 @@ class Movie(Base):
     poster_url = Column(String(500), nullable=False)
     banner_url = Column(String(500), nullable=False)
     trailer_url = Column(String(500), nullable=True)
+    trailer_duration_seconds = Column(Integer, default=25)
+    trailer_poster_frame_url = Column(String(500), nullable=True)
+    trailer_captions_url = Column(String(500), nullable=True)
     duration_minutes = Column(Integer, default=150)
     certificate = Column(String(10), default="UA")  # U, UA, A
     release_date = Column(Date, default=date.today)

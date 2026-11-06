@@ -15,6 +15,7 @@ class SeatResponse(BaseModel):
     distance_to_screen: float
     vertical_angle_deg: float
     horizontal_angle_deg: float
+    is_accessible: bool = False
 
     class Config:
         from_attributes = True
@@ -27,6 +28,7 @@ class AuditoriumResponse(BaseModel):
     screen_type: str
     total_seats: int
     has_3d_preview: bool
+    layout_data: Optional[dict] = None
     glb_path: Optional[str] = "/models/cineverse_auditorium_v2.web.glb"
     layout_path: Optional[str] = "/models/seat_layout_v2.json"
 

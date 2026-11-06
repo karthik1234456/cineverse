@@ -14,6 +14,9 @@ export function MovieCard({ movie }: MovieCardProps) {
   return (
     <Link
       href={`/movies/${movie.slug}`}
+      data-testid="movie-card"
+      data-movie-id={movie.id}
+      data-movie-slug={movie.slug}
       className="group relative flex flex-col overflow-hidden rounded-2xl border border-[#E6DCD2] bg-white transition duration-200 hover:-translate-y-1 hover:shadow-dropdown shadow-card text-[#1B1320]"
     >
       {/* Poster image container */}

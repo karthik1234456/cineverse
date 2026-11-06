@@ -10,11 +10,25 @@ export default function CinemasPage() {
   const [cinemas, setCinemas] = useState<Cinema[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    getCinemas()
+  function loadCinemas(cityId?: number) {
+    setLoading(true);
+    getCinemas(cityId)
       .then((data) => setCinemas(data))
       .catch((err) => console.warn(err))
       .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    const storedCityId = typeof window !== 'undefined' ? localStorage.getItem('cineverse_city_id') : null;
+    loadCinemas(storedCityId ? parseInt(storedCityId, 10) : 1);
+
+    function onCityChanged(e: any) {
+      if (e.detail?.id) {
+        loadCinemas(e.detail.id);
+      }
+    }
+    window.addEventListener('cityChanged', onCityChanged);
+    return () => window.removeEventListener('cityChanged', onCityChanged);
   }, []);
 
   return (

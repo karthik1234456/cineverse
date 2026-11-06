@@ -91,7 +91,8 @@ async def get_showtime_seats(
             node_name=aud_seat.node_name if aud_seat else f"seat_{row}_{str(num).zfill(2)}",
             distance_to_screen=aud_seat.distance_to_screen if aud_seat else 10.0,
             vertical_angle_deg=aud_seat.vertical_angle_deg if aud_seat else 0.0,
-            horizontal_angle_deg=aud_seat.horizontal_angle_deg if aud_seat else 0.0
+            horizontal_angle_deg=aud_seat.horizontal_angle_deg if aud_seat else 0.0,
+            is_accessible=aud_seat.is_accessible if aud_seat else False
         ))
 
     # Sort seats alphabetically A01...J10
@@ -154,6 +155,7 @@ async def get_showtime_seats(
         auditorium_name=showtime.auditorium.name if showtime.auditorium else "Screen 1",
         screen_type=showtime.auditorium.screen_type if showtime.auditorium else "IMAX 3D",
         has_3d_preview=showtime.auditorium.has_3d_preview if showtime.auditorium else True,
+        layout_data=showtime.auditorium.layout_data if showtime.auditorium else None,
         format=showtime.format,
         language=showtime.language,
         start_time=showtime.start_time,

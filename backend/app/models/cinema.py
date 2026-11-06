@@ -43,7 +43,8 @@ class Auditorium(Base):
     name = Column(String(100), nullable=False)  # "Screen 1 - 3D Experience"
     screen_type = Column(String(50), default="IMAX 3D")  # IMAX 3D, 4DX, Dolby Atmos, Standard
     total_seats = Column(Integer, default=100)
-    has_3d_preview = Column(Boolean, default=True)
+    has_3d_preview = Column(Boolean, default=False)
+    layout_data = Column(JSON, nullable=True)
 
     cinema = relationship("Cinema", back_populates="auditoriums")
     seats = relationship("Seat", back_populates="auditorium")
@@ -82,6 +83,7 @@ class Seat(Base):
     distance_to_screen = Column(Float, default=10.0)
     vertical_angle_deg = Column(Float, default=0.0)
     horizontal_angle_deg = Column(Float, default=0.0)
+    is_accessible = Column(Boolean, default=False)
 
     auditorium = relationship("Auditorium", back_populates="seats")
 

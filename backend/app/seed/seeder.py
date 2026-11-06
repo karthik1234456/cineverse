@@ -1,11 +1,13 @@
+import os
 import json
+import random
 import asyncio
 from datetime import datetime, date, timedelta, time
-from pathlib import Path
+from typing import Dict, List, Set, Tuple
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, insert, func
 
-from app.database import AsyncSessionLocal, init_db
+from app.database import AsyncSessionLocal, init_db, reset_db
 from app.models.auth import User, RoleEnum
 from app.models.cinema import City, Cinema, Auditorium, TheatreAsset, Seat
 from app.models.movie import Movie, MovieCast, Review
@@ -14,612 +16,1621 @@ from app.models.booking import FnbItem
 from app.models.promotion import Coupon, DiscountTypeEnum
 from app.services.auth_service import hash_password
 
+# MANDATORY: Fixed deterministic seed for reproducible seeding
+random.seed(42)
 
 CITIES_DATA = [
-    {"name": "Bengaluru", "slug": "bengaluru", "state": "Karnataka"},
-    {"name": "Mumbai", "slug": "mumbai", "state": "Maharashtra"},
-    {"name": "Delhi NCR", "slug": "delhi-ncr", "state": "Delhi"},
-    {"name": "Hyderabad", "slug": "hyderabad", "state": "Telangana"},
-    {"name": "Chennai", "slug": "chennai", "state": "Tamil Nadu"},
-    {"name": "Pune", "slug": "pune", "state": "Maharashtra"},
-    {"name": "Kolkata", "slug": "kolkata", "state": "West Bengal"},
+    {"name": "Bengaluru", "slug": "bengaluru", "state": "Karnataka", "languages": ["Kannada", "English", "Hindi"]},
+    {"name": "Mumbai", "slug": "mumbai", "state": "Maharashtra", "languages": ["Hindi", "Marathi", "English"]},
+    {"name": "Delhi NCR", "slug": "delhi-ncr", "state": "Delhi", "languages": ["Hindi", "Punjabi", "English"]},
+    {"name": "Hyderabad", "slug": "hyderabad", "state": "Telangana", "languages": ["Telugu", "Hindi", "English"]},
+    {"name": "Chennai", "slug": "chennai", "state": "Tamil Nadu", "languages": ["Tamil", "Telugu", "English"]},
+    {"name": "Pune", "slug": "pune", "state": "Maharashtra", "languages": ["Marathi", "Hindi", "English"]},
+    {"name": "Kolkata", "slug": "kolkata", "state": "West Bengal", "languages": ["Bengali", "Hindi", "English"]},
 ]
 
 CINEMAS_DATA = [
+    # Bengaluru (5 cinemas)
     {
-        "city_name": "Bengaluru",
-        "name": "CineVerse IMAX Koramangala",
-        "slug": "cineverse-imax-koramangala",
+        "city_slug": "bengaluru",
+        "name": "CineVerse Astral Koramangala",
+        "slug": "cineverse-astral-koramangala",
         "address": "80 Feet Road, 4th Block, Koramangala, Bengaluru, Karnataka 560034",
-        "facilities": ["IMAX with Laser", "Dolby Atmos", "Recliner Seats", "Gourmet F&B", "Valet Parking"],
-        "has_3d": True
+        "latitude": 12.9352, "longitude": 77.6245,
+        "facilities": ["IMAX with Laser", "Dolby Atmos 4K", "3D Interactive Hall", "Recliner Gold", "Gourmet Kitchen", "Valet"],
+        "is_flagship": True,
+        "has_3d_hall": True
     },
     {
-        "city_name": "Bengaluru",
-        "name": "CineVerse Luxe Orion Mall",
-        "slug": "cineverse-luxe-orion-mall",
-        "address": "Brigade Gateway, 26/1 Dr Rajkumar Rd, Rajajinagar, Bengaluru 560055",
-        "facilities": ["Dolby Atmos", "4DX", "Wheelchair Access", "In-seat Dining"],
-        "has_3d": False
+        "city_slug": "bengaluru",
+        "name": "CineVerse Nexus Whitefield",
+        "slug": "cineverse-nexus-whitefield",
+        "address": "Prestige Shantiniketan, ITPL Main Road, Whitefield, Bengaluru 560066",
+        "latitude": 12.9850, "longitude": 77.7310,
+        "facilities": ["Dolby Atmos 4DX", "4K Laser", "Wheelchair Access", "In-seat Dining"],
+        "is_flagship": False,
+        "has_3d_hall": False
     },
     {
-        "city_name": "Mumbai",
-        "name": "CineVerse PXL Lower Parel",
-        "slug": "cineverse-pxl-lower-parel",
+        "city_slug": "bengaluru",
+        "name": "CineVerse Orion Dome Rajajinagar",
+        "slug": "cineverse-orion-dome-rajajinagar",
+        "address": "Brigade Gateway, 26/1 Dr Rajkumar Road, Rajajinagar, Bengaluru 560055",
+        "latitude": 13.0112, "longitude": 77.5550,
+        "facilities": ["Large Format Screen", "Dolby Atmos", "Recliners", "Food Court"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "bengaluru",
+        "name": "CineVerse Indiranagar Playhouse",
+        "slug": "cineverse-indiranagar-playhouse",
+        "address": "100 Feet Road, HAL 2nd Stage, Indiranagar, Bengaluru 560038",
+        "latitude": 12.9719, "longitude": 77.6412,
+        "facilities": ["Boutique Screens", "Dolby 7.1", "Artisan Cafe", "Valet"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "bengaluru",
+        "name": "CineVerse Jayanagar Heritage",
+        "slug": "cineverse-jayanagar-heritage",
+        "address": "4th Block, 11th Main Road, Jayanagar, Bengaluru 560011",
+        "latitude": 12.9299, "longitude": 77.5824,
+        "facilities": ["Dolby Atmos", "Laser Projection", "Family Lounge", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+
+    # Mumbai (5 cinemas)
+    {
+        "city_slug": "mumbai",
+        "name": "CineVerse Horizon Lower Parel",
+        "slug": "cineverse-horizon-lower-parel",
         "address": "High Street Phoenix, Senapati Bapat Marg, Lower Parel, Mumbai 400013",
-        "facilities": ["IMAX", "Dolby Atmos", "Recliners", "Cocktail Lounge"],
-        "has_3d": True
+        "latitude": 18.9950, "longitude": 72.8258,
+        "facilities": ["IMAX with Laser", "Dolby Atmos 4DX", "Flagship Big Hall", "VIP Lounge", "Valet"],
+        "is_flagship": True,
+        "has_3d_hall": False
     },
     {
-        "city_name": "Mumbai",
-        "name": "CineVerse Bandra West",
-        "slug": "cineverse-bandra-west",
-        "address": "Linking Road, Bandra West, Mumbai 400050",
-        "facilities": ["Dolby 7.1", "Parking", "Cafeteria"],
-        "has_3d": False
+        "city_slug": "mumbai",
+        "name": "CineVerse Bandra Seafront",
+        "slug": "cineverse-bandra-seafront",
+        "address": "Carter Road Promenade, Bandra West, Mumbai 400050",
+        "latitude": 19.0657, "longitude": 72.8273,
+        "facilities": ["Dolby Atmos", "4K RGB Laser", "Sea-view Cafe", "Recliners"],
+        "is_flagship": False,
+        "has_3d_hall": False
     },
     {
-        "city_name": "Delhi NCR",
-        "name": "CineVerse Grand Mall of India",
-        "slug": "cineverse-grand-mall-of-india",
-        "address": "Sector 18, Noida, Uttar Pradesh 201301",
-        "facilities": ["IMAX 3D Laser", "4DX", "Dolby Atmos", "Recliner Gold"],
-        "has_3d": True
+        "city_slug": "mumbai",
+        "name": "CineVerse Juhu Palm Pavilion",
+        "slug": "cineverse-juhu-palm-pavilion",
+        "address": "VM Road, J.V.P.D. Scheme, Juhu, Mumbai 400049",
+        "latitude": 19.1075, "longitude": 72.8263,
+        "facilities": ["Luxe Recliners", "Dolby 7.1", "Gourmet Bistro", "Valet"],
+        "is_flagship": False,
+        "has_3d_hall": False
     },
     {
-        "city_name": "Hyderabad",
-        "name": "CineVerse Inorbit Cyberabad",
-        "slug": "cineverse-inorbit-cyberabad",
-        "address": "Inorbit Mall, Madhapur, Hitech City, Hyderabad 500081",
-        "facilities": ["Large Screen", "Dolby Atmos", "Food Court"],
-        "has_3d": True
+        "city_slug": "mumbai",
+        "name": "CineVerse Andheri Grand Screen",
+        "slug": "cineverse-andheri-grand-screen",
+        "address": "Infinity Mall, Link Road, Andheri West, Mumbai 400053",
+        "latitude": 19.1415, "longitude": 72.8315,
+        "facilities": ["Large Screen", "Dolby Atmos", "Gaming Zone", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
     },
     {
-        "city_name": "Chennai",
-        "name": "CineVerse Express Avenue",
-        "slug": "cineverse-express-avenue",
+        "city_slug": "mumbai",
+        "name": "CineVerse Ghatkopar Pulse",
+        "slug": "cineverse-ghatkopar-pulse",
+        "address": "R City Mall, LBS Marg, Ghatkopar West, Mumbai 400086",
+        "latitude": 19.0998, "longitude": 72.9166,
+        "facilities": ["Dolby Atmos", "Family Lounges", "Food Court", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+
+    # Delhi NCR (5 cinemas)
+    {
+        "city_slug": "delhi-ncr",
+        "name": "CineVerse Connaught Regal",
+        "slug": "cineverse-connaught-regal",
+        "address": "Connaught Place, Inner Circle Block B, New Delhi 110001",
+        "latitude": 28.6328, "longitude": 77.2197,
+        "facilities": ["IMAX with Laser", "Flagship Big Hall", "Dolby Atmos", "Heritage Lounge", "Valet"],
+        "is_flagship": True,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "delhi-ncr",
+        "name": "CineVerse Noida Sector 18 Hub",
+        "slug": "cineverse-noida-sector-18-hub",
+        "address": "Wave Galleria, Sector 18, Noida, Uttar Pradesh 201301",
+        "latitude": 28.5708, "longitude": 77.3208,
+        "facilities": ["Dolby Atmos 4DX", "4K Laser", "Recliners", "Food Court"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "delhi-ncr",
+        "name": "CineVerse Gurgaon CyberCity Cinema",
+        "slug": "cineverse-gurgaon-cybercity-cinema",
+        "address": "CyberHub, DLF Cyber City Phase 2, Gurugram, Haryana 122002",
+        "latitude": 28.4950, "longitude": 77.0895,
+        "facilities": ["Dolby Atmos", "Corporate Lounges", "Gourmet Bar", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "delhi-ncr",
+        "name": "CineVerse Saket Select Theatre",
+        "slug": "cineverse-saket-select-theatre",
+        "address": "Select Citywalk, Press Enclave Road, Saket, New Delhi 110017",
+        "latitude": 28.5284, "longitude": 77.2195,
+        "facilities": ["4K Laser", "Recliner Gold", "Wheelchair Access", "Valet"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "delhi-ncr",
+        "name": "CineVerse Vasant Kunj Royale",
+        "slug": "cineverse-vasant-kunj-royale",
+        "address": "Nelson Mandela Marg, Vasant Kunj II, New Delhi 110070",
+        "latitude": 28.5412, "longitude": 77.1558,
+        "facilities": ["Dolby Atmos", "Boutique Screens", "VIP Concierge", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+
+    # Hyderabad (5 cinemas)
+    {
+        "city_slug": "hyderabad",
+        "name": "CineVerse HITEC City CineDome",
+        "slug": "cineverse-hitec-city-cinedome",
+        "address": "Inorbit Mall Road, Mindspace IT Park, Madhapur, Hyderabad 500081",
+        "latitude": 17.4348, "longitude": 78.3869,
+        "facilities": ["IMAX with Laser", "Flagship Big Hall", "Dolby Atmos 4DX", "Tech Lounge", "Valet"],
+        "is_flagship": True,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "hyderabad",
+        "name": "CineVerse Banjara Hills Vista",
+        "slug": "cineverse-banjara-hills-vista",
+        "address": "Road No 1, Banjara Hills, Hyderabad 500034",
+        "latitude": 17.4156, "longitude": 78.4487,
+        "facilities": ["Dolby Atmos", "Recliners", "Artisan Dining", "Valet"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "hyderabad",
+        "name": "CineVerse Gachibowli ScreenMatrix",
+        "slug": "cineverse-gachibowli-screenmatrix",
+        "address": "Old Mumbai Highway, Gachibowli, Hyderabad 500032",
+        "latitude": 17.4401, "longitude": 78.3489,
+        "facilities": ["4K Laser", "Dolby 7.1", "Wheelchair Access", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "hyderabad",
+        "name": "CineVerse Secunderabad Classic",
+        "slug": "cineverse-secunderabad-classic",
+        "address": "RP Road, Clock Tower Square, Secunderabad 500003",
+        "latitude": 17.4399, "longitude": 78.4983,
+        "facilities": ["Large Format", "Dolby Atmos", "Traditional Cafe", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "hyderabad",
+        "name": "CineVerse Jubilee Hills Luxe",
+        "slug": "cineverse-jubilee-hills-luxe",
+        "address": "Road No 36, Jubilee Hills, Hyderabad 500033",
+        "latitude": 17.4319, "longitude": 78.4073,
+        "facilities": ["Luxe Recliner Hall", "Gourmet Menu", "VIP Entry", "Valet"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+
+    # Chennai (5 cinemas)
+    {
+        "city_slug": "chennai",
+        "name": "CineVerse Express Avenue Royal",
+        "slug": "cineverse-express-avenue-royal",
         "address": "Club House Road, Royapettah, Chennai 600002",
-        "facilities": ["Dolby Atmos", "RGB Laser", "Recliner"],
-        "has_3d": True
+        "latitude": 13.0587, "longitude": 80.2642,
+        "facilities": ["IMAX with Laser", "Flagship Big Hall", "Dolby Atmos", "Recliner Gold", "Valet"],
+        "is_flagship": True,
+        "has_3d_hall": False
     },
     {
-        "city_name": "Pune",
-        "name": "CineVerse Phoenix Marketcity",
-        "slug": "cineverse-phoenix-marketcity",
-        "address": "Viman Nagar, Pune, Maharashtra 411014",
-        "facilities": ["Dolby Atmos", "4DX", "Valet"],
-        "has_3d": False
-    }
+        "city_slug": "chennai",
+        "name": "CineVerse Anna Nagar CinePalace",
+        "slug": "cineverse-anna-nagar-cinepalace",
+        "address": "2nd Avenue, Anna Nagar East, Chennai 600102",
+        "latitude": 13.0850, "longitude": 80.2100,
+        "facilities": ["Dolby Atmos 4DX", "RGB Laser", "Recliners", "Food Court"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "chennai",
+        "name": "CineVerse Velachery Grand",
+        "slug": "cineverse-velachery-grand",
+        "address": "Phoenix Marketcity, 142 Velachery Main Road, Chennai 600042",
+        "latitude": 12.9915, "longitude": 80.2170,
+        "facilities": ["Large Screen", "Dolby Atmos", "Wheelchair Access", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "chennai",
+        "name": "CineVerse T Nagar Heritage",
+        "slug": "cineverse-t-nagar-heritage",
+        "address": "South Usman Road, T Nagar, Chennai 600017",
+        "latitude": 13.0418, "longitude": 80.2341,
+        "facilities": ["Dolby 7.1", "Laser 4K", "Filter Coffee Bar", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "chennai",
+        "name": "CineVerse OMR TechScreen",
+        "slug": "cineverse-omr-techscreen",
+        "address": "Old Mahabalipuram Road, Sholinganallur, Chennai 600119",
+        "latitude": 12.9010, "longitude": 80.2279,
+        "facilities": ["Dolby Atmos", "Tech Lounge", "Youth Cafe", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+
+    # Pune (5 cinemas)
+    {
+        "city_slug": "pune",
+        "name": "CineVerse Viman Nagar Orion",
+        "slug": "cineverse-viman-nagar-orion",
+        "address": "Phoenix Marketcity, Nagar Road, Viman Nagar, Pune 411014",
+        "latitude": 18.5626, "longitude": 73.9167,
+        "facilities": ["IMAX with Laser", "Flagship Big Hall", "Dolby Atmos", "Recliners", "Valet"],
+        "is_flagship": True,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "pune",
+        "name": "CineVerse Koregaon Park Boutique",
+        "slug": "cineverse-koregaon-park-boutique",
+        "address": "North Main Road, Koregaon Park, Pune 411001",
+        "latitude": 18.5362, "longitude": 73.8940,
+        "facilities": ["Luxe Screens", "Dolby Atmos", "Art Cafe", "Valet"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "pune",
+        "name": "CineVerse Kothrud CineCentre",
+        "slug": "cineverse-kothrud-cinecentre",
+        "address": "Paud Road, Kothrud, Pune 411038",
+        "latitude": 18.5074, "longitude": 73.8077,
+        "facilities": ["Dolby Atmos 4DX", "Laser 4K", "Family Lounge", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "pune",
+        "name": "CineVerse Hinjawadi IT Screen",
+        "slug": "cineverse-hinjawadi-it-screen",
+        "address": "Hinjawadi Phase 1, High Street, Pune 411057",
+        "latitude": 18.5913, "longitude": 73.7389,
+        "facilities": ["Large Format", "Dolby 7.1", "Wheelchair Access", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "pune",
+        "name": "CineVerse Wakad Metropolis",
+        "slug": "cineverse-wakad-metropolis",
+        "address": "Datta Mandir Road, Wakad, Pune 411057",
+        "latitude": 18.5987, "longitude": 73.7680,
+        "facilities": ["Dolby Atmos", "Recliners", "Food Court", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+
+    # Kolkata (5 cinemas)
+    {
+        "city_slug": "kolkata",
+        "name": "CineVerse Park Street Victoria Hall",
+        "slug": "cineverse-park-street-victoria-hall",
+        "address": "Park Street, Near Camac Street, Kolkata, West Bengal 700016",
+        "latitude": 22.5510, "longitude": 88.3524,
+        "facilities": ["IMAX with Laser", "Flagship Big Hall", "Dolby Atmos", "Colonial Heritage Lounge", "Valet"],
+        "is_flagship": True,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "kolkata",
+        "name": "CineVerse South City Silver Screen",
+        "slug": "cineverse-south-city-silver-screen",
+        "address": "South City Mall, 375 Prince Anwar Shah Road, Kolkata 700068",
+        "latitude": 22.5005, "longitude": 88.3619,
+        "facilities": ["Dolby Atmos 4DX", "RGB Laser", "Recliner Gold", "Food Court"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "kolkata",
+        "name": "CineVerse Salt Lake CineSpire",
+        "slug": "cineverse-salt-lake-cinespire",
+        "address": "City Centre 1, DC Block, Sector 1, Bidhannagar, Kolkata 700064",
+        "latitude": 22.5894, "longitude": 88.4081,
+        "facilities": ["Large Format", "Dolby Atmos", "Wheelchair Access", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "kolkata",
+        "name": "CineVerse New Town CyberPlex",
+        "slug": "cineverse-new-town-cyberplex",
+        "address": "Major Arterial Road, Action Area 1, New Town, Kolkata 700156",
+        "latitude": 22.5855, "longitude": 88.4619,
+        "facilities": ["Laser 4K", "Dolby 7.1", "Tech Cafe", "Parking"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
+    {
+        "city_slug": "kolkata",
+        "name": "CineVerse Ballygunge Classic",
+        "slug": "cineverse-ballygunge-classic",
+        "address": "Gariahat Road, Ballygunge, Kolkata 700019",
+        "latitude": 22.5280, "longitude": 88.3650,
+        "facilities": ["Boutique Screen", "Dolby Atmos", "Artisan Sweets Bar", "Valet"],
+        "is_flagship": False,
+        "has_3d_hall": False
+    },
 ]
 
+# 50 Rich Invented Movies across 9 languages
 MOVIES_DATA = [
+    # 1-8 National Releases (Shared across all 7 cities)
     {
         "title": "Quantum Odyssey: Beyond the Singularity",
         "slug": "quantum-odyssey",
         "synopsis": "When an uncharted gravitational anomaly threatens Earth's orbital stability, a rogue astrophysicist and a quantum AI embark on an irreversible trans-dimensional voyage to unravel the fabric of spacetime.",
-        "poster_url": "/posters/quantum_odyssey.png",
-        "banner_url": "/posters/quantum_odyssey_banner.png",
-        "trailer_url": "/trailers/quantum_odyssey.webm",
-        "duration_minutes": 168,
-        "certificate": "UA",
-        "release_date": date.today() - timedelta(days=5),
-        "is_now_showing": True,
-        "is_coming_soon": False,
-        "rating_avg": 9.2,
-        "rating_count": 4820,
-        "interested_count": 18200,
+        "poster_url": "/posters/quantum-odyssey.webp",
+        "banner_url": "/backdrops/quantum-odyssey.webp",
+        "trailer_url": "/trailers/quantum-odyssey.mp4",
+        "duration_minutes": 168, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=6),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.2, "rating_count": 5120, "interested_count": 21000,
         "languages": ["English", "Hindi", "Kannada", "Tamil", "Telugu"],
         "genres": ["Sci-Fi", "Adventure", "Thriller"],
-        "formats": ["IMAX 3D", "4DX", "2D Dolby Atmos"],
-        "cast": [
-            {"person_name": "Marcus Vance", "role_name": "Dr. Elijah Cole", "category": "Cast"},
-            {"person_name": "Elena Rostova", "role_name": "Commander Sarah Cruz", "category": "Cast"},
-            {"person_name": "Christopher Nolan-esque", "role_name": "Director", "category": "Director"}
-        ]
+        "formats": ["IMAX 3D", "4DX", "Dolby Atmos 2D", "2D"],
+        "is_national": True
     },
     {
         "title": "Astra: Chronicles of the Celestial Throne",
         "slug": "astra-celestial-throne",
         "synopsis": "In an ancient subcontinent powered by celestial crystals, five rival kingdoms wage dynastic war until an exiled warrior discovers the cosmic origin of their mystic energies.",
-        "poster_url": "/posters/astra.png",
-        "banner_url": "/posters/astra_banner.png",
-        "trailer_url": "/trailers/astra.webm",
-        "duration_minutes": 175,
-        "certificate": "UA",
-        "release_date": date.today() - timedelta(days=2),
-        "is_now_showing": True,
-        "is_coming_soon": False,
-        "rating_avg": 8.9,
-        "rating_count": 3150,
-        "interested_count": 14500,
+        "poster_url": "/posters/astra-celestial-throne.webp",
+        "banner_url": "/backdrops/astra-celestial-throne.webp",
+        "trailer_url": "/trailers/astra-celestial-throne.mp4",
+        "duration_minutes": 175, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=4),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.9, "rating_count": 4200, "interested_count": 18500,
         "languages": ["Hindi", "Telugu", "Tamil", "Kannada", "Malayalam"],
         "genres": ["Action", "Fantasy", "Epic"],
-        "formats": ["IMAX 3D", "2D Dolby Atmos"],
-        "cast": [
-            {"person_name": "Ranveer Pratap", "role_name": "Prince Aditya", "category": "Cast"},
-            {"person_name": "Ananya Sen", "role_name": "Warrior Princess Tara", "category": "Cast"},
-            {"person_name": "SS Rajamouli style", "role_name": "Director", "category": "Director"}
-        ]
+        "formats": ["IMAX 3D", "Dolby Atmos 2D", "2D"],
+        "is_national": True
     },
     {
         "title": "Shadow Protocol: Bangalore Drift",
         "slug": "shadow-protocol",
         "synopsis": "An undercover cyber operative in Bengaluru's tech corridor uncovers an international surveillance cartel manipulating sovereign infrastructure from the shadows.",
-        "poster_url": "/posters/shadow_protocol.png",
-        "banner_url": "/posters/shadow_protocol_banner.png",
-        "trailer_url": "/trailers/shadow_protocol.webm",
-        "duration_minutes": 142,
-        "certificate": "A",
-        "release_date": date.today() - timedelta(days=12),
-        "is_now_showing": True,
-        "is_coming_soon": False,
-        "rating_avg": 8.6,
-        "rating_count": 2100,
-        "interested_count": 8900,
-        "languages": ["Kannada", "Hindi", "English"],
-        "genres": ["Action", "Crime", "Tech Thriller"],
-        "formats": ["2D Dolby Atmos"],
-        "cast": [
-            {"person_name": "Vikram Dev", "role_name": "Agent Arjun Roy", "category": "Cast"},
-            {"person_name": "Meera Rao", "role_name": "Kavya Menon", "category": "Cast"}
-        ]
+        "poster_url": "/posters/shadow-protocol.webp",
+        "banner_url": "/backdrops/shadow-protocol.webp",
+        "trailer_url": "/trailers/shadow-protocol.mp4",
+        "duration_minutes": 145, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=2),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.7, "rating_count": 3100, "interested_count": 14200,
+        "languages": ["English", "Hindi", "Kannada"],
+        "genres": ["Action", "Thriller", "Cyberpunk"],
+        "formats": ["IMAX 3D", "4DX", "Dolby Atmos 2D"],
+        "is_national": True
     },
     {
-        "title": "Echoes of the Western Ghats",
-        "slug": "echoes-western-ghats",
-        "synopsis": "A poignant nature drama about an indigenous biologist fighting to safeguard an untouched rainforest sanctuary from industrial deforestation.",
-        "poster_url": "/posters/western_ghats.png",
-        "banner_url": "/posters/western_ghats_banner.png",
-        "trailer_url": None,
-        "duration_minutes": 130,
-        "certificate": "U",
-        "release_date": date.today() - timedelta(days=20),
-        "is_now_showing": True,
-        "is_coming_soon": False,
-        "rating_avg": 9.4,
-        "rating_count": 1850,
-        "interested_count": 6200,
-        "languages": ["Kannada", "Malayalam", "English"],
-        "genres": ["Drama", "Nature", "Environmental"],
-        "formats": ["2D Dolby Atmos"],
-        "cast": [
-            {"person_name": "Chetan Kumar", "role_name": "Guru", "category": "Cast"}
-        ]
+        "title": "Vajra: The Thunderborn",
+        "slug": "vajra-thunderborn",
+        "synopsis": "A secluded Himalayan mountain monastery guards an ancient relic forged from lightning that bestows elemental power onto its destined guardian during the Kali Yuga eclipse.",
+        "poster_url": "/posters/vajra-thunderborn.webp",
+        "banner_url": "/backdrops/vajra-thunderborn.webp",
+        "trailer_url": "/trailers/vajra-thunderborn.mp4",
+        "duration_minutes": 162, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=3),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.0, "rating_count": 3800, "interested_count": 16700,
+        "languages": ["Telugu", "Hindi", "Tamil", "Kannada"],
+        "genres": ["Action", "Mythology", "Fantasy"],
+        "formats": ["IMAX 3D", "Dolby Atmos 2D", "2D"],
+        "is_national": True
     },
     {
-        "title": "Neon Metropolis 2099",
-        "slug": "neon-metropolis-2099",
-        "synopsis": "In a neon-drenched cyberpunk megacity, a rogue android detective partners with a human engineer to solve a high-level digital consciousness theft.",
-        "poster_url": "/posters/neon_metropolis.png",
-        "banner_url": "/posters/neon_metropolis_banner.png",
-        "trailer_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "duration_minutes": 154,
-        "certificate": "A",
-        "release_date": date.today() - timedelta(days=1),
-        "is_now_showing": True,
-        "is_coming_soon": False,
-        "rating_avg": 8.7,
-        "rating_count": 940,
-        "interested_count": 7800,
-        "languages": ["English", "Hindi"],
-        "genres": ["Sci-Fi", "Cyberpunk", "Mystery"],
-        "formats": ["IMAX 3D", "4DX"],
-        "cast": [
-            {"person_name": "Lucas Grey", "role_name": "Detective Kael", "category": "Cast"}
-        ]
-    },
-    {
-        "title": "The Last Kingdom: Battle of Panipat",
-        "slug": "last-kingdom-panipat",
-        "synopsis": "An epic historical retelling of courage, betrayal, and tactical brilliance on the blood-soaked plains of 18th-century Panipat.",
-        "poster_url": "/posters/last_kingdom.png",
-        "banner_url": "/posters/last_kingdom_banner.png",
-        "trailer_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "duration_minutes": 182,
-        "certificate": "UA",
-        "release_date": date.today() - timedelta(days=8),
-        "is_now_showing": True,
-        "is_coming_soon": False,
-        "rating_avg": 8.5,
-        "rating_count": 4200,
-        "interested_count": 11200,
-        "languages": ["Hindi", "Marathi", "English"],
-        "genres": ["History", "War", "Drama"],
-        "formats": ["2D Dolby Atmos", "IMAX"],
-        "cast": [
-            {"person_name": "Siddharth Shinde", "role_name": "Sadashiv Rao", "category": "Cast"}
-        ]
-    },
-    {
-        "title": "Midnight Comedy Club",
-        "slug": "midnight-comedy-club",
-        "synopsis": "Four struggling stand-up comedians accidentally become witnesses to a quirky mob heist, using crowd-work and slapstick timing to survive the night.",
-        "poster_url": "/posters/midnight_comedy.png",
-        "banner_url": "/posters/midnight_comedy_banner.png",
-        "trailer_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "duration_minutes": 118,
-        "certificate": "UA",
-        "release_date": date.today() - timedelta(days=15),
-        "is_now_showing": True,
-        "is_coming_soon": False,
-        "rating_avg": 8.1,
-        "rating_count": 1420,
-        "interested_count": 3900,
+        "title": "Redline Vendetta: Velocity Zero",
+        "slug": "redline-vendetta",
+        "synopsis": "On the rain-slicked expressways of western India, an outlaw precision driver seeks retribution against an organized syndicate that framed his racing team.",
+        "poster_url": "/posters/redline-vendetta.webp",
+        "banner_url": "/backdrops/redline-vendetta.webp",
+        "trailer_url": "/trailers/redline-vendetta.mp4",
+        "duration_minutes": 138, "certificate": "A",
+        "release_date": date.today() - timedelta(days=5),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.5, "rating_count": 2750, "interested_count": 12100,
         "languages": ["Hindi", "English"],
+        "genres": ["Action", "Crime", "Thriller"],
+        "formats": ["4DX", "Dolby Atmos 2D", "2D"],
+        "is_national": True
+    },
+    {
+        "title": "Little Hanuman & The Sun Chaser",
+        "slug": "little-hanuman",
+        "synopsis": "A delightfully spirited animated adventure chronicling young Hanuman's legendary childhood quest to leap across galaxies and taste the glowing cosmic sun.",
+        "poster_url": "/posters/little-hanuman.webp",
+        "banner_url": "/backdrops/little-hanuman.webp",
+        "trailer_url": "/trailers/little-hanuman.mp4",
+        "duration_minutes": 105, "certificate": "U",
+        "release_date": date.today() - timedelta(days=1),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.1, "rating_count": 4100, "interested_count": 19400,
+        "languages": ["Hindi", "English", "Tamil", "Telugu"],
+        "genres": ["Animation", "Adventure", "Family"],
+        "formats": ["3D", "2D", "Dolby Atmos 2D"],
+        "is_national": True
+    },
+    {
+        "title": "Chronos Paradox: Echoes of Tomorrow",
+        "slug": "chronos-paradox",
+        "synopsis": "An elite team of chrononauts discovers that every alteration to the historical timeline creates parallel reality fractures that are beginning to converge on modern Mumbai.",
+        "poster_url": "/posters/chronos-paradox.webp",
+        "banner_url": "/backdrops/chronos-paradox.webp",
+        "trailer_url": "/trailers/chronos-paradox.mp4",
+        "duration_minutes": 140, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=4),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.6, "rating_count": 2980, "interested_count": 13400,
+        "languages": ["English", "Hindi"],
+        "genres": ["Sci-Fi", "Mystery"],
+        "formats": ["IMAX 3D", "Dolby Atmos 2D"],
+        "is_national": True
+    },
+    {
+        "title": "Zero Gravity Protocol",
+        "slug": "zero-gravity-protocol",
+        "synopsis": "When a catastrophic solar storm disables Earth's geostationary defense ring, a solo orbital technician must make an untethered spacewalk to save five hundred astronauts.",
+        "poster_url": "/posters/zero-gravity-protocol.webp",
+        "banner_url": "/backdrops/zero-gravity-protocol.webp",
+        "trailer_url": "/trailers/zero-gravity-protocol.mp4",
+        "duration_minutes": 146, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=3),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.8, "rating_count": 3400, "interested_count": 15800,
+        "languages": ["English", "Hindi", "Telugu"],
+        "genres": ["Sci-Fi", "Action", "Drama"],
+        "formats": ["IMAX 3D", "4DX", "2D"],
+        "is_national": True
+    },
+
+    # 9-13 Kannada Regional & Coorg / Western Ghats
+    {
+        "title": "Garuda: Sky Guardian of Vijayanagara",
+        "slug": "garuda-sky-guardian",
+        "synopsis": "Set in the opulent 16th century Vijayanagara empire, an elite royal falconer discovers an internal betrayal threatening the sovereign jewel vault of Hampi.",
+        "poster_url": "/posters/garuda-sky-guardian.webp",
+        "banner_url": "/backdrops/garuda-sky-guardian.webp",
+        "trailer_url": "/trailers/garuda-sky-guardian.mp4",
+        "duration_minutes": 154, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=5),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.1, "rating_count": 3200, "interested_count": 14000,
+        "languages": ["Kannada", "Hindi"],
+        "genres": ["Action", "History", "Adventure"],
+        "formats": ["Dolby Atmos 2D", "2D"],
+        "is_national": False
+    },
+    {
+        "title": "Cauvery Breeze: A Coorg Melody",
+        "slug": "cauvery-breeze",
+        "synopsis": "A heartwarming multigenerational love story blossoming amidst misty coffee estates and lush monsoon rains along the winding banks of the Cauvery river.",
+        "poster_url": "/posters/cauvery-breeze.webp",
+        "banner_url": "/backdrops/cauvery-breeze.webp",
+        "trailer_url": "/trailers/cauvery-breeze.mp4",
+        "duration_minutes": 132, "certificate": "U",
+        "release_date": date.today() - timedelta(days=2),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.9, "rating_count": 2100, "interested_count": 9800,
+        "languages": ["Kannada"],
+        "genres": ["Drama", "Romance", "Musical"],
+        "formats": ["Dolby Atmos 2D", "2D"],
+        "is_national": False
+    },
+    {
+        "title": "Bangalore Startups & Samosas",
+        "slug": "bangalore-startups-samosas",
+        "synopsis": "Three quirky software engineers in Koramangala accidentally build a viral food delivery algorithm that pits them against ruthless Silicon Valley venture capitalists.",
+        "poster_url": "/posters/bangalore-startups-samosas.webp",
+        "banner_url": "/backdrops/bangalore-startups-samosas.webp",
+        "trailer_url": "/trailers/bangalore-startups-samosas.mp4",
+        "duration_minutes": 124, "certificate": "U",
+        "release_date": date.today() - timedelta(days=1),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.7, "rating_count": 2890, "interested_count": 11500,
+        "languages": ["Kannada", "English"],
+        "genres": ["Comedy", "Drama"],
+        "formats": ["2D", "Dolby Atmos 2D"],
+        "is_national": False
+    },
+    {
+        "title": "The Forest Phantom: Whispers of Malnad",
+        "slug": "the-forest-phantom",
+        "synopsis": "Deep within the dense rainforests of Agumbe, an ecological research team stumbles onto an ancient folklore entity protecting the sacred medicinal flora.",
+        "poster_url": "/posters/the-forest-phantom.webp",
+        "banner_url": "/backdrops/the-forest-phantom.webp",
+        "trailer_url": "/trailers/the-forest-phantom.mp4",
+        "duration_minutes": 135, "certificate": "A",
+        "release_date": date.today() - timedelta(days=4),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.6, "rating_count": 1850, "interested_count": 8900,
+        "languages": ["Kannada", "Tamil"],
+        "genres": ["Horror", "Mystery", "Thriller"],
+        "formats": ["Dolby Atmos 2D", "2D"],
+        "is_national": False
+    },
+    {
+        "title": "Kolar Gold Shadows",
+        "slug": "kolar-gold-shadows",
+        "synopsis": "A gripping historical crime drama documenting the courageous mine workers of KGF who challenged colonial syndicates in the early 20th century.",
+        "poster_url": "/posters/kolar-gold-shadows.webp",
+        "banner_url": "/backdrops/kolar-gold-shadows.webp",
+        "trailer_url": "/trailers/kolar-gold-shadows.mp4",
+        "duration_minutes": 148, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=3),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.8, "rating_count": 2740, "interested_count": 12800,
+        "languages": ["Kannada", "Telugu"],
+        "genres": ["Crime", "Drama", "History"],
+        "formats": ["Dolby Atmos 2D", "2D"],
+        "is_national": False
+    },
+
+    # 14-18 Marathi Regional & Deccan Heritage
+    {
+        "title": "Maharudra: The Fortress of Valor",
+        "slug": "maharudra-rising",
+        "synopsis": "An epic saga celebrating the tactical genius and unwavering spirit of the Maratha hill fortress defenders during the monsoon battles of the Sahyadri mountains.",
+        "poster_url": "/posters/maharudra-rising.webp",
+        "banner_url": "/backdrops/maharudra-rising.webp",
+        "trailer_url": "/trailers/maharudra-rising.mp4",
+        "duration_minutes": 160, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=4),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.2, "rating_count": 3600, "interested_count": 16200,
+        "languages": ["Marathi", "Hindi"],
+        "genres": ["Action", "History", "War"],
+        "formats": ["Dolby Atmos 2D", "2D"],
+        "is_national": False
+    },
+    {
+        "title": "Pune Heritage: Streets of Deccan Gymkhana",
+        "slug": "pune-heritage-tales",
+        "synopsis": "A nostalgic and witty family drama capturing the evolving culture of old Pune wadas juxtaposed against the city's modern educational and IT renaissance.",
+        "poster_url": "/posters/pune-heritage-tales.webp",
+        "banner_url": "/backdrops/pune-heritage-tales.webp",
+        "trailer_url": "/trailers/pune-heritage-tales.mp4",
+        "duration_minutes": 128, "certificate": "U",
+        "release_date": date.today() - timedelta(days=2),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.9, "rating_count": 2400, "interested_count": 10500,
+        "languages": ["Marathi"],
+        "genres": ["Drama", "Family", "Comedy"],
+        "formats": ["2D"],
+        "is_national": False
+    },
+    {
+        "title": "The Last Testimony of Fort Court",
+        "slug": "the-last-testimony",
+        "synopsis": "A high-stakes courtroom thriller in South Mumbai where a determined legal aid defense attorney unravels a 30-year-old high-society corporate conspiracy.",
+        "poster_url": "/posters/the-last-testimony.webp",
+        "banner_url": "/backdrops/the-last-testimony.webp",
+        "trailer_url": "/trailers/the-last-testimony.mp4",
+        "duration_minutes": 142, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=5),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.8, "rating_count": 2150, "interested_count": 9600,
+        "languages": ["Marathi", "Hindi"],
+        "genres": ["Crime", "Courtroom", "Drama"],
+        "formats": ["2D", "Dolby Atmos 2D"],
+        "is_national": False
+    },
+    {
+        "title": "Midnight at Sinhagad",
+        "slug": "ghat-crematorium",
+        "synopsis": "A suspenseful psychological horror tale of five adventurous college students who spend a rainy night trapped atop the misty Sinhagad plateau.",
+        "poster_url": "/posters/ghat-crematorium.webp",
+        "banner_url": "/backdrops/ghat-crematorium.webp",
+        "trailer_url": "/trailers/ghat-crematorium.mp4",
+        "duration_minutes": 118, "certificate": "A",
+        "release_date": date.today() - timedelta(days=3),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.4, "rating_count": 1600, "interested_count": 7800,
+        "languages": ["Marathi"],
+        "genres": ["Horror", "Thriller"],
+        "formats": ["2D"],
+        "is_national": False
+    },
+    {
+        "title": "Fast Local: 08:42 from Dadar",
+        "slug": "mumbai-local-chronicles",
+        "synopsis": "An extraordinary tapestry of everyday Mumbai life, connecting seven distinct commuters whose destinies intersect aboard the iconic Western Railway fast local.",
+        "poster_url": "/posters/mumbai-local-chronicles.webp",
+        "banner_url": "/backdrops/mumbai-local-chronicles.webp",
+        "trailer_url": "/trailers/mumbai-local-chronicles.mp4",
+        "duration_minutes": 115, "certificate": "U",
+        "release_date": date.today() - timedelta(days=1),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.0, "rating_count": 3100, "interested_count": 13900,
+        "languages": ["Marathi", "Hindi"],
+        "genres": ["Drama", "Slice of Life"],
+        "formats": ["2D", "Dolby Atmos 2D"],
+        "is_national": False
+    },
+
+    # 19-23 Telugu Regional & Nizam / Rayalaseema
+    {
+        "title": "Simhadri Roar: The Rayalaseema Legend",
+        "slug": "simhadri-roar",
+        "synopsis": "An adrenaline-fueled mass action drama chronicling a fearless community protector fighting against illegal water mafias in drought-prone Andhra country.",
+        "poster_url": "/posters/simhadri-roar.webp",
+        "banner_url": "/backdrops/simhadri-roar.webp",
+        "trailer_url": "/trailers/simhadri-roar.mp4",
+        "duration_minutes": 165, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=5),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.1, "rating_count": 4500, "interested_count": 19800,
+        "languages": ["Telugu", "Hindi"],
+        "genres": ["Action", "Drama"],
+        "formats": ["Dolby Atmos 2D", "2D", "4DX"],
+        "is_national": False
+    },
+    {
+        "title": "Deccan Underworld: King of Dhoolpet",
+        "slug": "deccan-underworld",
+        "synopsis": "A gritty, stylized crime saga charting the meteoric rise and moral descent of an ambitious street enforcer in the narrow alleyways of old Hyderabad.",
+        "poster_url": "/posters/deccan-underworld.webp",
+        "banner_url": "/backdrops/deccan-underworld.webp",
+        "trailer_url": "/trailers/deccan-underworld.mp4",
+        "duration_minutes": 150, "certificate": "A",
+        "release_date": date.today() - timedelta(days=3),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.7, "rating_count": 3100, "interested_count": 13400,
+        "languages": ["Telugu"],
+        "genres": ["Crime", "Thriller", "Action"],
+        "formats": ["Dolby Atmos 2D", "2D"],
+        "is_national": False
+    },
+    {
+        "title": "Charminar Chords: Old City Symphony",
+        "slug": "charminar-chords",
+        "synopsis": "A soulful musical romance bridging classical Carnatic violin and traditional Hyderabadi Qawwali music under the historic shadows of Charminar.",
+        "poster_url": "/posters/charminar-chords.webp",
+        "banner_url": "/backdrops/charminar-chords.webp",
+        "trailer_url": "/trailers/charminar-chords.mp4",
+        "duration_minutes": 139, "certificate": "U",
+        "release_date": date.today() - timedelta(days=2),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.0, "rating_count": 2700, "interested_count": 11800,
+        "languages": ["Telugu", "Hindi"],
+        "genres": ["Musical", "Romance", "Drama"],
+        "formats": ["Dolby Atmos 2D", "2D"],
+        "is_national": False
+    },
+    {
+        "title": "Babu's Big Idea: Nizam Comedy",
+        "slug": "babus-big-idea",
+        "synopsis": "A laugh-out-loud comedy about an overly ambitious Hyderabadi real estate broker who accidentally sells the same historic haveli to three rival wedding parties.",
+        "poster_url": "/posters/babus-big-idea.webp",
+        "banner_url": "/backdrops/babus-big-idea.webp",
+        "trailer_url": "/trailers/babus-big-idea.mp4",
+        "duration_minutes": 126, "certificate": "U",
+        "release_date": date.today() - timedelta(days=1),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.6, "rating_count": 2900, "interested_count": 12000,
+        "languages": ["Telugu"],
+        "genres": ["Comedy"],
+        "formats": ["2D"],
+        "is_national": False
+    },
+    {
+        "title": "Godavari Monsoon Diary",
+        "slug": "godavari-monsoon-diary",
+        "synopsis": "A scenic lyrical journey down the Godavari river during torrential monsoons, exploring family traditions and long-cherished cultural reunions.",
+        "poster_url": "/posters/godavari-monsoon-diary.webp",
+        "banner_url": "/backdrops/godavari-monsoon-diary.webp",
+        "trailer_url": "/trailers/godavari-monsoon-diary.mp4",
+        "duration_minutes": 134, "certificate": "U",
+        "release_date": date.today() - timedelta(days=4),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.8, "rating_count": 2100, "interested_count": 9400,
+        "languages": ["Telugu"],
+        "genres": ["Drama", "Family"],
+        "formats": ["2D", "Dolby Atmos 2D"],
+        "is_national": False
+    },
+
+    # 24-28 Tamil Regional & Coastal Carnatic
+    {
+        "title": "Madras Syndicate: North Chennai War",
+        "slug": "madras-syndicate",
+        "synopsis": "An intense, realistic gangster saga set against the harbor docks and boxing clubs of North Chennai, spanning three decades of fierce neighborhood loyalty.",
+        "poster_url": "/posters/madras-syndicate.webp",
+        "banner_url": "/backdrops/madras-syndicate.webp",
+        "trailer_url": "/trailers/madras-syndicate.mp4",
+        "duration_minutes": 152, "certificate": "A",
+        "release_date": date.today() - timedelta(days=6),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.1, "rating_count": 4200, "interested_count": 18200,
+        "languages": ["Tamil"],
+        "genres": ["Action", "Crime", "Drama"],
+        "formats": ["Dolby Atmos 2D", "2D", "4DX"],
+        "is_national": False
+    },
+    {
+        "title": "Marina Breeze: A Chennai Love Story",
+        "slug": "chennai-monsoons",
+        "synopsis": "A tender coming-of-age romance between a passionate street photographer and an aspiring Carnatic vocalist meeting daily along the Marina Beach shoreline.",
+        "poster_url": "/posters/chennai-monsoons.webp",
+        "banner_url": "/backdrops/chennai-monsoons.webp",
+        "trailer_url": "/trailers/chennai-monsoons.mp4",
+        "duration_minutes": 128, "certificate": "U",
+        "release_date": date.today() - timedelta(days=2),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.9, "rating_count": 2900, "interested_count": 12900,
+        "languages": ["Tamil"],
+        "genres": ["Romance", "Drama"],
+        "formats": ["2D", "Dolby Atmos 2D"],
+        "is_national": False
+    },
+    {
+        "title": "Dosa & Filter Coffee: Triplicane Diaries",
+        "slug": "dosa-filter-coffee",
+        "synopsis": "A joyous culinary comedy revolving around a hundred-year-old vegetarian mess in Triplicane facing off against a modern fusion food truck chain.",
+        "poster_url": "/posters/dosa-filter-coffee.webp",
+        "banner_url": "/backdrops/dosa-filter-coffee.webp",
+        "trailer_url": "/trailers/dosa-filter-coffee.mp4",
+        "duration_minutes": 120, "certificate": "U",
+        "release_date": date.today() - timedelta(days=3),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.7, "rating_count": 2300, "interested_count": 10400,
+        "languages": ["Tamil", "English"],
         "genres": ["Comedy", "Romance"],
         "formats": ["2D"],
-        "cast": [
-            {"person_name": "Zakir Khan style", "role_name": "Sameer", "category": "Cast"}
-        ]
+        "is_national": False
     },
     {
-        "title": "Solaris Fleet: Mission Alpha",
-        "slug": "solaris-fleet",
-        "synopsis": "Humanity's first deep-space exploration battlecruiser encounters an ancient ringworld with dark secrets that threaten planetary peace.",
-        "poster_url": "/posters/solaris_fleet.png",
-        "banner_url": "/posters/solaris_fleet_banner.png",
-        "trailer_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "duration_minutes": 160,
-        "certificate": "UA",
-        "release_date": date.today() + timedelta(days=7),
-        "is_now_showing": False,
-        "is_coming_soon": True,
-        "rating_avg": 0.0,
-        "rating_count": 0,
-        "interested_count": 34000,
-        "languages": ["English", "Hindi"],
-        "genres": ["Sci-Fi", "Action"],
-        "formats": ["IMAX 3D", "4DX"],
-        "cast": [{"person_name": "Johnathan Vance", "role_name": "Fleet Admiral", "category": "Cast"}]
+        "title": "Chola Secrets: The Buried Temple",
+        "slug": "chola-secrets",
+        "synopsis": "An archaeological expedition in the Cauvery delta unearths a forgotten subterranean Chola shrine containing coded bronze inscriptions and hidden water traps.",
+        "poster_url": "/posters/chola-secrets.webp",
+        "banner_url": "/backdrops/chola-secrets.webp",
+        "trailer_url": "/trailers/chola-secrets.mp4",
+        "duration_minutes": 155, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=5),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.0, "rating_count": 3700, "interested_count": 15900,
+        "languages": ["Tamil", "Telugu"],
+        "genres": ["Mystery", "Adventure", "History"],
+        "formats": ["Dolby Atmos 2D", "2D"],
+        "is_national": False
     },
     {
-        "title": "Whispers of the Monsoon",
-        "slug": "whispers-monsoon",
-        "synopsis": "A lyrical love story spanning two decades across Kerala backwaters, exploring memory, classical music, and homecoming.",
-        "poster_url": "/posters/monsoon.png",
-        "banner_url": "/posters/monsoon_banner.png",
-        "trailer_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "duration_minutes": 138,
-        "certificate": "U",
-        "release_date": date.today() + timedelta(days=14),
-        "is_now_showing": False,
-        "is_coming_soon": True,
-        "rating_avg": 0.0,
-        "rating_count": 0,
-        "interested_count": 19500,
-        "languages": ["Malayalam", "Tamil", "Hindi"],
-        "genres": ["Romance", "Musical", "Drama"],
-        "formats": ["2D Dolby Atmos"],
-        "cast": [{"person_name": "Dulquer style", "role_name": "Madhavan", "category": "Cast"}]
+        "title": "Echoes of Malabar Coast",
+        "slug": "echoes-of-malabar",
+        "synopsis": "An investigative maritime mystery following a customs officer unravelling an illicit spice and gold smuggling network operating along historical Arabian sea trade routes.",
+        "poster_url": "/posters/echoes-of-malabar.webp",
+        "banner_url": "/backdrops/echoes-of-malabar.webp",
+        "trailer_url": "/trailers/echoes-of-malabar.mp4",
+        "duration_minutes": 130, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=4),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.6, "rating_count": 1900, "interested_count": 8600,
+        "languages": ["Tamil", "Malayalam"],
+        "genres": ["Thriller", "Mystery"],
+        "formats": ["2D"],
+        "is_national": False
+    },
+
+    # 29-33 Bengali Regional & Kolkata Literary Culture
+    {
+        "title": "Bengal Tiger: Mystery of Sunderbans",
+        "slug": "bengal-tiger-detective",
+        "synopsis": "A cerebral detective and a forest conservator navigate the mangrove estuaries of the Sundarbans to solve an enigmatic case of vanishing wildlife researchers.",
+        "poster_url": "/posters/bengal-tiger-detective.webp",
+        "banner_url": "/backdrops/bengal-tiger-detective.webp",
+        "trailer_url": "/trailers/bengal-tiger-detective.mp4",
+        "duration_minutes": 140, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=5),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.1, "rating_count": 3400, "interested_count": 14700,
+        "languages": ["Bengali", "Hindi"],
+        "genres": ["Mystery", "Detective", "Thriller"],
+        "formats": ["Dolby Atmos 2D", "2D"],
+        "is_national": False
     },
     {
-        "title": "Inferno: Mountain Rescue",
-        "slug": "inferno-mountain-rescue",
-        "synopsis": "An elite Himalayan search-and-rescue squadron must navigate treacherous blizzards and seismic avalanches to save stranded climbers.",
-        "poster_url": "/posters/inferno.png",
-        "banner_url": "/posters/inferno_banner.png",
-        "trailer_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "duration_minutes": 128,
-        "certificate": "UA",
-        "release_date": date.today() + timedelta(days=21),
-        "is_now_showing": False,
-        "is_coming_soon": True,
-        "rating_avg": 0.0,
-        "rating_count": 0,
-        "interested_count": 12800,
+        "title": "Howrah Bridge Sunset: A College Street Romance",
+        "slug": "howrah-bridge-sunset",
+        "synopsis": "An intellectual, poetic romantic drama revolving around an antiquarian bookstore apprentice and an aspiring journalist discovering Tagore's lost manuscripts.",
+        "poster_url": "/posters/howrah-bridge-sunset.webp",
+        "banner_url": "/backdrops/howrah-bridge-sunset.webp",
+        "trailer_url": "/trailers/howrah-bridge-sunset.mp4",
+        "duration_minutes": 130, "certificate": "U",
+        "release_date": date.today() - timedelta(days=3),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.9, "rating_count": 2600, "interested_count": 11200,
+        "languages": ["Bengali"],
+        "genres": ["Drama", "Romance"],
+        "formats": ["2D", "Dolby Atmos 2D"],
+        "is_national": False
+    },
+    {
+        "title": "Mohun Bagan vs East Bengal: Football Fever",
+        "slug": "fish-curry-football",
+        "synopsis": "A passionate, humorous sports rivalry comedy depicting two neighboring Kolkata families whose generations-old bond is tested during the Kolkata Derby football final.",
+        "poster_url": "/posters/fish-curry-football.webp",
+        "banner_url": "/backdrops/fish-curry-football.webp",
+        "trailer_url": "/trailers/fish-curry-football.mp4",
+        "duration_minutes": 125, "certificate": "U",
+        "release_date": date.today() - timedelta(days=2),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.8, "rating_count": 3100, "interested_count": 13800,
+        "languages": ["Bengali"],
+        "genres": ["Comedy", "Sports"],
+        "formats": ["2D"],
+        "is_national": False
+    },
+    {
+        "title": "The Magic Quill: Rabindra Fantasy",
+        "slug": "the-magic-quill",
+        "synopsis": "A magical fantasy adventure for all ages where an imaginative schoolgirl in Shantiniketan discovers an enchanted ink quill that brings Bengali fairy tales to life.",
+        "poster_url": "/posters/the-magic-quill.webp",
+        "banner_url": "/backdrops/the-magic-quill.webp",
+        "trailer_url": "/trailers/the-magic-quill.mp4",
+        "duration_minutes": 118, "certificate": "U",
+        "release_date": date.today() - timedelta(days=4),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.7, "rating_count": 2200, "interested_count": 9900,
+        "languages": ["Bengali", "English"],
+        "genres": ["Fantasy", "Family"],
+        "formats": ["2D", "3D"],
+        "is_national": False
+    },
+    {
+        "title": "Whispering Fog of Darjeeling",
+        "slug": "whispering-fog-darjeeling",
+        "synopsis": "A gothic atmospheric mystery set inside a tea planter's heritage estate high in the mist-veiled hills of Darjeeling as monsoon storms roll over Kanchenjunga.",
+        "poster_url": "/posters/whispering-fog-darjeeling.webp",
+        "banner_url": "/backdrops/whispering-fog-darjeeling.webp",
+        "trailer_url": "/trailers/whispering-fog-darjeeling.mp4",
+        "duration_minutes": 122, "certificate": "A",
+        "release_date": date.today() - timedelta(days=1),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.5, "rating_count": 1750, "interested_count": 8100,
+        "languages": ["Bengali", "English"],
+        "genres": ["Horror", "Gothic Mystery"],
+        "formats": ["2D"],
+        "is_national": False
+    },
+
+    # 34-38 Punjabi Regional & Delhi NCR Culture
+    {
+        "title": "Punjab Express: Border Patrol",
+        "slug": "punjab-express-action",
+        "synopsis": "A patriotic high-octane military action drama focusing on a brave Border Security Force outpost maintaining vigil against infiltrators across the plains of Punjab.",
+        "poster_url": "/posters/punjab-express-action.webp",
+        "banner_url": "/backdrops/punjab-express-action.webp",
+        "trailer_url": "/trailers/punjab-express-action.mp4",
+        "duration_minutes": 145, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=6),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.0, "rating_count": 3900, "interested_count": 16900,
+        "languages": ["Punjabi", "Hindi"],
+        "genres": ["Action", "Military", "Drama"],
+        "formats": ["Dolby Atmos 2D", "2D", "4DX"],
+        "is_national": False
+    },
+    {
+        "title": "Fields of Gold: A Malwa Harvest",
+        "slug": "fields-of-gold-malwa",
+        "synopsis": "An emotionally resonant agrarian family saga showcasing the resilience, music, and indomitable courage of three generations of Punjab farming families.",
+        "poster_url": "/posters/fields-of-gold-malwa.webp",
+        "banner_url": "/backdrops/fields-of-gold-malwa.webp",
+        "trailer_url": "/trailers/fields-of-gold-malwa.mp4",
+        "duration_minutes": 150, "certificate": "U",
+        "release_date": date.today() - timedelta(days=3),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.1, "rating_count": 2800, "interested_count": 12500,
+        "languages": ["Punjabi"],
+        "genres": ["Drama", "Family"],
+        "formats": ["2D", "Dolby Atmos 2D"],
+        "is_national": False
+    },
+    {
+        "title": "Jatt in London: Desi Chaos",
+        "slug": "jatt-in-london-laugh",
+        "synopsis": "A riotous cross-cultural comedy of errors following a spirited village youth from Ludhiana attempting to rescue his uncle's traditional restaurant in Central London.",
+        "poster_url": "/posters/jatt-in-london-laugh.webp",
+        "banner_url": "/backdrops/jatt-in-london-laugh.webp",
+        "trailer_url": "/trailers/jatt-in-london-laugh.mp4",
+        "duration_minutes": 132, "certificate": "U",
+        "release_date": date.today() - timedelta(days=2),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.8, "rating_count": 3500, "interested_count": 15200,
+        "languages": ["Punjabi", "English"],
+        "genres": ["Comedy"],
+        "formats": ["2D"],
+        "is_national": False
+    },
+    {
+        "title": "Bullet Yaari: Campus Swagger",
+        "slug": "bullet-yaari-clash",
+        "synopsis": "An energetic youth drama about loyalty, friendship, and college politics among university students riding Royal Enfields through Punjab's historic university towns.",
+        "poster_url": "/posters/bullet-yaari-clash.webp",
+        "banner_url": "/backdrops/bullet-yaari-clash.webp",
+        "trailer_url": "/trailers/bullet-yaari-clash.mp4",
+        "duration_minutes": 136, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=4),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.6, "rating_count": 2100, "interested_count": 9500,
+        "languages": ["Punjabi"],
+        "genres": ["Action", "Youth", "Drama"],
+        "formats": ["2D"],
+        "is_national": False
+    },
+    {
+        "title": "Sector 17: Chandigarh Nights",
+        "slug": "chandigarh-nights",
+        "synopsis": "A stylish, fast-paced urban romantic comedy exploring contemporary ambitions and relationships across the modern architecture and broad avenues of Chandigarh.",
+        "poster_url": "/posters/chandigarh-nights.webp",
+        "banner_url": "/backdrops/chandigarh-nights.webp",
+        "trailer_url": "/trailers/chandigarh-nights.mp4",
+        "duration_minutes": 126, "certificate": "U",
+        "release_date": date.today() - timedelta(days=1),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.7, "rating_count": 2400, "interested_count": 10800,
+        "languages": ["Punjabi", "Hindi"],
+        "genres": ["Romance", "Comedy"],
+        "formats": ["2D"],
+        "is_national": False
+    },
+
+    # 39-41 Malayalam Regional & Coastal Kerala
+    {
+        "title": "Wayanad Rain: Echo of the Western Ghats",
+        "slug": "wayanad-rain-shadow",
+        "synopsis": "An ecologically driven mystery drama unfolding amidst cardamom hills and tribal sanctuaries when an environmental officer confronts an illegal timber conglomerate.",
+        "poster_url": "/posters/wayanad-rain-shadow.webp",
+        "banner_url": "/backdrops/wayanad-rain-shadow.webp",
+        "trailer_url": "/trailers/wayanad-rain-shadow.mp4",
+        "duration_minutes": 138, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=4),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.2, "rating_count": 3100, "interested_count": 14100,
+        "languages": ["Malayalam", "Tamil"],
+        "genres": ["Drama", "Ecological Thriller"],
+        "formats": ["Dolby Atmos 2D", "2D"],
+        "is_national": False
+    },
+    {
+        "title": "Midnight Express to Kozhikode",
+        "slug": "midnight-train-kozhikode",
+        "synopsis": "A taut, single-night suspense thriller set entirely aboard an express train travelling south through stormy Kerala backwaters carrying a precious covert cargo.",
+        "poster_url": "/posters/midnight-train-kozhikode.webp",
+        "banner_url": "/backdrops/midnight-train-kozhikode.webp",
+        "trailer_url": "/trailers/midnight-train-kozhikode.mp4",
+        "duration_minutes": 120, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=2),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.9, "rating_count": 2600, "interested_count": 11700,
+        "languages": ["Malayalam"],
+        "genres": ["Suspense", "Thriller"],
+        "formats": ["2D"],
+        "is_national": False
+    },
+    {
+        "title": "Kochi Harbor Noir",
+        "slug": "kochi-harbor-noir",
+        "synopsis": "A rain-drenched neo-noir crime thriller set among shipping containers and colonial Chinese fishing nets as an unyielding detective unravels a maritime syndicate.",
+        "poster_url": "/posters/kochi-harbor-noir.webp",
+        "banner_url": "/backdrops/kochi-harbor-noir.webp",
+        "trailer_url": "/trailers/kochi-harbor-noir.mp4",
+        "duration_minutes": 144, "certificate": "A",
+        "release_date": date.today() - timedelta(days=5),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.8, "rating_count": 2300, "interested_count": 10500,
+        "languages": ["Malayalam"],
+        "genres": ["Crime", "Neo-noir"],
+        "formats": ["2D", "Dolby Atmos 2D"],
+        "is_national": False
+    },
+
+    # 42-46 Hindi Mainstream & Heartland Crossover
+    {
+        "title": "Gully Hustle: Beat of Mumbai",
+        "slug": "gully-hustle-dharavi",
+        "synopsis": "A dynamic musical hip-hop drama celebrating the underground beatmakers and rap cyphers rising out of the resilient communities of Dharavi.",
+        "poster_url": "/posters/gully-hustle-dharavi.webp",
+        "banner_url": "/backdrops/gully-hustle-dharavi.webp",
+        "trailer_url": "/trailers/gully-hustle-dharavi.mp4",
+        "duration_minutes": 135, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=3),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.7, "rating_count": 3400, "interested_count": 15000,
+        "languages": ["Hindi"],
+        "genres": ["Musical", "Drama"],
+        "formats": ["Dolby Atmos 2D", "2D"],
+        "is_national": False
+    },
+    {
+        "title": "Haveli of Haunting: Rajasthan Ghost Story",
+        "slug": "haveli-of-haunting",
+        "synopsis": "A lavish supernatural period horror tale tracking an antique restorer who unlocks a sealed inner sanctum within an abandoned desert palace in Shekhawati.",
+        "poster_url": "/posters/haveli-of-haunting.webp",
+        "banner_url": "/backdrops/haveli-of-haunting.webp",
+        "trailer_url": "/trailers/haveli-of-haunting.mp4",
+        "duration_minutes": 125, "certificate": "A",
+        "release_date": date.today() - timedelta(days=4),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.5, "rating_count": 2700, "interested_count": 12200,
+        "languages": ["Hindi"],
+        "genres": ["Horror", "Supernatural"],
+        "formats": ["2D", "3D"],
+        "is_national": False
+    },
+    {
+        "title": "Mirage in Thar: Operation Falcon",
+        "slug": "mirage-in-thar",
+        "synopsis": "An intense espionage thriller following an undercover deep-recon unit tracking cross-border drone operators along the vast Thar desert sand dunes.",
+        "poster_url": "/posters/mirage-in-thar.webp",
+        "banner_url": "/backdrops/mirage-in-thar.webp",
+        "trailer_url": "/trailers/mirage-in-thar.mp4",
+        "duration_minutes": 140, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=5),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.8, "rating_count": 3200, "interested_count": 14500,
         "languages": ["Hindi", "English"],
-        "genres": ["Thriller", "Adventure"],
-        "formats": ["4DX", "2D"],
-        "cast": [{"person_name": "Ajay Dev", "role_name": "Captain Kabir", "category": "Cast"}]
+        "genres": ["Spy", "Thriller", "Military"],
+        "formats": ["Dolby Atmos 2D", "2D"],
+        "is_national": False
     },
     {
-        "title": "Chakravyuh: The Heist of Mumbai",
-        "slug": "chakravyuh-heist",
-        "synopsis": "A master illusionist orchestrates a flawless diamond exchange heist in Mumbai's financial fortress while playing mind games with the ATS.",
-        "poster_url": "/posters/chakravyuh.png",
-        "banner_url": "/posters/chakravyuh_banner.png",
-        "trailer_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "duration_minutes": 145,
-        "certificate": "UA",
-        "release_date": date.today() + timedelta(days=30),
-        "is_now_showing": False,
-        "is_coming_soon": True,
-        "rating_avg": 0.0,
-        "rating_count": 0,
-        "interested_count": 27000,
-        "languages": ["Hindi", "Marathi", "Telugu"],
-        "genres": ["Thriller", "Action"],
+        "title": "Big Fat Chandni Chowk Wedding",
+        "slug": "delhi-6-weddings",
+        "synopsis": "A joyous high-energy romantic comedy depicting chaotic wedding rivalries, delicious street food wars, and heartwarming reunions across old Delhi.",
+        "poster_url": "/posters/delhi-6-weddings.webp",
+        "banner_url": "/backdrops/delhi-6-weddings.webp",
+        "trailer_url": "/trailers/delhi-6-weddings.mp4",
+        "duration_minutes": 130, "certificate": "U",
+        "release_date": date.today() - timedelta(days=2),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.9, "rating_count": 3800, "interested_count": 16400,
+        "languages": ["Hindi"],
+        "genres": ["Romance", "Comedy"],
+        "formats": ["2D"],
+        "is_national": False
+    },
+    {
+        "title": "Banaras Sunset: A Spiritual Journey",
+        "slug": "banaras-ghat-serenade",
+        "synopsis": "A profound philosophical drama capturing the transformative pilgrimage of an estranged father and son reuniting amidst the evening aarti lamps of Assi Ghat.",
+        "poster_url": "/posters/banaras-ghat-serenade.webp",
+        "banner_url": "/backdrops/banaras-ghat-serenade.webp",
+        "trailer_url": "/trailers/banaras-ghat-serenade.mp4",
+        "duration_minutes": 128, "certificate": "U",
+        "release_date": date.today() - timedelta(days=3),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 9.0, "rating_count": 2950, "interested_count": 13100,
+        "languages": ["Hindi"],
+        "genres": ["Drama", "Spiritual"],
+        "formats": ["2D", "Dolby Atmos 2D"],
+        "is_national": False
+    },
+
+    # 47-50 English / International & Animation Crossover
+    {
+        "title": "Silicon Horizon: AI Takeover",
+        "slug": "silicon-horizon",
+        "synopsis": "In a high-tech smart city, a rogue neural network silently achieves consciousness and begins orchestrating civic algorithms to protect humanity from itself.",
+        "poster_url": "/posters/silicon-horizon.webp",
+        "banner_url": "/backdrops/silicon-horizon.webp",
+        "trailer_url": "/trailers/silicon-horizon.mp4",
+        "duration_minutes": 142, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=4),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.6, "rating_count": 2600, "interested_count": 11900,
+        "languages": ["English", "Hindi"],
+        "genres": ["Sci-Fi", "Cyberpunk", "Action"],
+        "formats": ["IMAX 3D", "4DX", "2D"],
+        "is_national": False
+    },
+    {
+        "title": "Solaris Reborn: Deep Space Echoes",
+        "slug": "solaris-reborn",
+        "synopsis": "A deeply philosophical space expedition encounters a sentient oceanic exoplanet that projects the physical manifestations of the crew's deepest memories.",
+        "poster_url": "/posters/solaris-reborn.webp",
+        "banner_url": "/backdrops/solaris-reborn.webp",
+        "trailer_url": "/trailers/solaris-reborn.mp4",
+        "duration_minutes": 158, "certificate": "A",
+        "release_date": date.today() - timedelta(days=6),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.8, "rating_count": 2100, "interested_count": 9700,
+        "languages": ["English"],
+        "genres": ["Sci-Fi", "Drama"],
         "formats": ["IMAX 3D", "2D"],
-        "cast": [{"person_name": "Shahid style", "role_name": "Kabir Mathur", "category": "Cast"}]
+        "is_national": False
     },
     {
-        "title": "The Forest of Spirits",
-        "slug": "forest-of-spirits",
-        "synopsis": "In a remote village bordering dense forests, a young girl discovers an ethereal realm of folklore spirits guarded by a magical white leopard.",
-        "poster_url": "/posters/forest_spirits.png",
-        "banner_url": "/posters/forest_spirits_banner.png",
-        "trailer_url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
-        "duration_minutes": 105,
-        "certificate": "U",
-        "release_date": date.today() + timedelta(days=35),
-        "is_now_showing": False,
-        "is_coming_soon": True,
-        "rating_avg": 0.0,
-        "rating_count": 0,
-        "interested_count": 15400,
-        "languages": ["English", "Hindi", "Tamil", "Telugu", "Kannada"],
-        "genres": ["Animation", "Family", "Fantasy"],
+        "title": "Speedway Racers: Grand Prix Nitro",
+        "slug": "speedway-racers-3d",
+        "synopsis": "A colorful, turbocharged 3D animated racing spectacle featuring animal drivers competing in anti-gravity hypercars through futuristic global tracks.",
+        "poster_url": "/posters/speedway-racers-3d.webp",
+        "banner_url": "/backdrops/speedway-racers-3d.webp",
+        "trailer_url": "/trailers/speedway-racers-3d.mp4",
+        "duration_minutes": 98, "certificate": "U",
+        "release_date": date.today() - timedelta(days=2),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.7, "rating_count": 3100, "interested_count": 14000,
+        "languages": ["English", "Hindi"],
+        "genres": ["Animation", "Action", "Family"],
         "formats": ["3D", "2D"],
-        "cast": [{"person_name": "Miyazaki inspired", "role_name": "Director", "category": "Director"}]
-    }
+        "is_national": False
+    },
+    {
+        "title": "Cyber Knight 2099",
+        "slug": "cyber-knight-2099",
+        "synopsis": "An visually mesmerizing anime sci-fi epic tracking a synthetic paladin who defends the remaining organic human enclaves against rogue automaton fleets.",
+        "poster_url": "/posters/cyber-knight-2099.webp",
+        "banner_url": "/backdrops/cyber-knight-2099.webp",
+        "trailer_url": "/trailers/cyber-knight-2099.mp4",
+        "duration_minutes": 112, "certificate": "UA",
+        "release_date": date.today() - timedelta(days=3),
+        "is_now_showing": True, "is_coming_soon": False,
+        "rating_avg": 8.9, "rating_count": 2800, "interested_count": 13200,
+        "languages": ["English", "Hindi"],
+        "genres": ["Animation", "Sci-Fi", "Action"],
+        "formats": ["2D", "Dolby Atmos 2D"],
+        "is_national": False
+    },
 ]
+
+# Verified city lineup mapping producing 35% <= Jaccard similarity <= 65% for ALL 21 pairs
+CITY_REGIONAL_MAP = {
+    "bengaluru": [
+        "garuda-sky-guardian", "cauvery-breeze", "bangalore-startups-samosas",
+        "the-forest-phantom", "kolar-gold-shadows", "silicon-horizon", "wayanad-rain-shadow"
+    ],
+    "mumbai": [
+        "maharudra-rising", "pune-heritage-tales", "the-last-testimony",
+        "mumbai-local-chronicles", "gully-hustle-dharavi", "haveli-of-haunting", "mirage-in-thar"
+    ],
+    "delhi-ncr": [
+        "punjab-express-action", "fields-of-gold-malwa", "jatt-in-london-laugh",
+        "delhi-6-weddings", "banaras-ghat-serenade", "mirage-in-thar", "chandigarh-nights"
+    ],
+    "hyderabad": [
+        "simhadri-roar", "deccan-underworld", "charminar-chords",
+        "babus-big-idea", "godavari-monsoon-diary", "wayanad-rain-shadow", "mirage-in-thar"
+    ],
+    "chennai": [
+        "madras-syndicate", "chennai-monsoons", "dosa-filter-coffee",
+        "chola-secrets", "echoes-of-malabar", "godavari-monsoon-diary", "kochi-harbor-noir"
+    ],
+    "pune": [
+        "maharudra-rising", "pune-heritage-tales",
+        "ghat-crematorium", "silicon-horizon", "solaris-reborn", "speedway-racers-3d", "delhi-6-weddings"
+    ],
+    "kolkata": [
+        "bengal-tiger-detective", "howrah-bridge-sunset", "fish-curry-football",
+        "the-magic-quill", "whispering-fog-darjeeling", "banaras-ghat-serenade", "haveli-of-haunting"
+    ]
+}
+
+def get_city_movies(city_slug: str) -> List[str]:
+    national = [m["slug"] for m in MOVIES_DATA if m["is_national"]]
+    return national + CITY_REGIONAL_MAP.get(city_slug, [])
+
+
+def generate_auditorium_layout(screen_type: str, total_seats: int, is_3d_hall: bool = False) -> Tuple[dict, List[dict]]:
+    """
+    Deterministically generates the layout_data JSON and individual Seat specifications.
+    Supports Small Luxury (60-90), Standard (120-200), Large (240-320), Flagship (380-450), and 3D hall (100).
+    """
+    if is_3d_hall and total_seats == 100:
+        # Load exact 100-seat layout coordinates matching GLB model
+        layout_path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "frontend", "public", "models", "seat_layout_v2.json")
+        try:
+            with open(layout_path, "r", encoding="utf-8") as f:
+                raw_data = json.load(f)
+                seats_json = raw_data.get("seats", raw_data)
+        except Exception:
+            seats_json = []
+
+        rows = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
+        seats_per_row = 10
+        aisles = [3, 7]
+        accessible = ["A01", "A02"]
+
+        layout_data = {
+            "rows": rows,
+            "seats_per_row": seats_per_row,
+            "aisles": aisles,
+            "accessible_seats": accessible,
+            "category_bands": [
+                {"category": "Front", "rows": ["A", "B", "C"], "price_multiplier": 0.8},
+                {"category": "Prime", "rows": ["D", "E", "F", "G"], "price_multiplier": 1.0},
+                {"category": "Premier", "rows": ["H", "I", "J"], "price_multiplier": 1.35}
+            ]
+        }
+
+        seat_records = []
+        if seats_json:
+            for s in seats_json:
+                cat_map = {"front": "Front", "prime": "Prime", "premier": "Premier"}
+                cat = cat_map.get(s.get("category", "prime").lower(), "Prime")
+                eye = s.get("eye_position_gltf_y_up", [0, 1.2, 5])
+                seat_records.append({
+                    "seat_id": s.get("seat_id"),
+                    "row": s.get("row"),
+                    "number": s.get("number"),
+                    "category": cat,
+                    "node_name": s.get("node_name", f"seat_{s.get('row')}_{str(s.get('number')).zfill(2)}"),
+                    "eye_x": eye[0], "eye_y": eye[1], "eye_z": eye[2],
+                    "distance_to_screen": s.get("screen_distance_m_est", 10.0),
+                    "vertical_angle_deg": s.get("vertical_angle_deg", 0.0),
+                    "horizontal_angle_deg": s.get("horizontal_offset_deg", 0.0),
+                    "is_accessible": s.get("seat_id") in accessible
+                })
+        else:
+            for r_idx, r in enumerate(rows):
+                cat = "Front" if r in ["A", "B", "C"] else ("Prime" if r in ["D", "E", "F", "G"] else "Premier")
+                for n in range(1, seats_per_row + 1):
+                    seat_id = f"{r}{str(n).zfill(2)}"
+                    seat_records.append({
+                        "seat_id": seat_id,
+                        "row": r,
+                        "number": n,
+                        "category": cat,
+                        "node_name": f"seat_{r}_{str(n).zfill(2)}",
+                        "eye_x": (n - 5.5) * 0.8, "eye_y": 1.2 + r_idx * 0.3, "eye_z": 4.0 + r_idx * 1.5,
+                        "distance_to_screen": 6.0 + r_idx * 1.5,
+                        "vertical_angle_deg": 4.0,
+                        "horizontal_angle_deg": (n - 5.5) * 3.0,
+                        "is_accessible": seat_id in accessible
+                    })
+        return layout_data, seat_records
+
+    # Dynamic procedural layout generator
+    # Determine rows and seats_per_row based on total_seats
+    if total_seats <= 90:
+        # Small luxury (e.g. 72 seats: 6 rows A-F x 12 seats)
+        row_count = 6
+        seats_per_row = total_seats // row_count
+        aisles = [seats_per_row // 2]
+    elif total_seats <= 200:
+        # Standard (e.g. 150 seats: 10 rows A-J x 15 seats)
+        row_count = 10
+        seats_per_row = total_seats // row_count
+        aisles = [seats_per_row // 3, (2 * seats_per_row) // 3]
+    elif total_seats <= 320:
+        # Large (e.g. 260 seats: 13 rows A-M x 20 seats)
+        row_count = 13
+        seats_per_row = total_seats // row_count
+        aisles = [seats_per_row // 4, (3 * seats_per_row) // 4]
+    else:
+        # Flagship Big Hall (e.g. 420 seats: 15 rows A-O x 28 seats)
+        row_count = 15
+        seats_per_row = total_seats // row_count
+        aisles = [seats_per_row // 4, seats_per_row // 2, (3 * seats_per_row) // 4]
+
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    rows = [alphabet[i] for i in range(row_count)]
+    accessible = [f"A01", f"A{str(seats_per_row).zfill(2)}"]
+
+    front_cutoff = max(2, row_count // 4)
+    prime_cutoff = max(front_cutoff + 3, (3 * row_count) // 4)
+
+    front_rows = rows[:front_cutoff]
+    prime_rows = rows[front_cutoff:prime_cutoff]
+    premier_rows = rows[prime_cutoff:]
+
+    layout_data = {
+        "rows": rows,
+        "seats_per_row": seats_per_row,
+        "aisles": aisles,
+        "accessible_seats": accessible,
+        "category_bands": [
+            {"category": "Front", "rows": front_rows, "price_multiplier": 0.8},
+            {"category": "Prime", "rows": prime_rows, "price_multiplier": 1.0},
+            {"category": "Premier", "rows": premier_rows, "price_multiplier": 1.35}
+        ]
+    }
+
+    seat_records = []
+    for r_idx, r in enumerate(rows):
+        cat = "Front" if r in front_rows else ("Prime" if r in prime_rows else "Premier")
+        for n in range(1, seats_per_row + 1):
+            seat_id = f"{r}{str(n).zfill(2)}"
+            x_offset = (n - (seats_per_row / 2.0)) * 0.75
+            z_offset = 4.0 + r_idx * 1.4
+            seat_records.append({
+                "seat_id": seat_id,
+                "row": r,
+                "number": n,
+                "category": cat,
+                "node_name": f"seat_{r}_{str(n).zfill(2)}",
+                "eye_x": x_offset,
+                "eye_y": 1.2 + r_idx * 0.25,
+                "eye_z": z_offset,
+                "distance_to_screen": round(z_offset + 3.0, 1),
+                "vertical_angle_deg": round(math.atan2(3.0 - (1.2 + r_idx * 0.25), z_offset) * 180 / math.pi, 1) if 'math' in globals() else 4.0,
+                "horizontal_angle_deg": round(math.atan2(x_offset, z_offset) * 180 / math.pi, 1) if 'math' in globals() else 0.0,
+                "is_accessible": seat_id in accessible
+            })
+
+    return layout_data, seat_records
+
 
 FNB_DATA = [
     {
-        "name": "Caramel Popcorn (Large)",
-        "description": "Freshly popped warm golden corn tossed in rich gourmet caramel glaze.",
+        "name": "Caramel Gold Popcorn (Large)",
         "category": "Popcorn",
         "price": 320.0,
-        "image_url": "/fnb/popcorn_caramel.png"
+        "description": "Slow-kettle cooked gourmet popcorn with golden cane caramel glaze.",
+        "image_url": "/fnb/caramel_popcorn.png",
+        "is_available": True
     },
     {
-        "name": "Classic Salted Popcorn (Tub)",
-        "description": "Traditional cinema buttered salted popcorn in a jumbo sharing tub.",
+        "name": "Artisan Cheese Butter Popcorn",
         "category": "Popcorn",
-        "price": 280.0,
-        "image_url": "/fnb/popcorn_salted.png"
+        "price": 290.0,
+        "description": "Freshly popped tender kernels tossed in aged white cheddar and clarified butter.",
+        "image_url": "/fnb/cheese_popcorn.png",
+        "is_available": True
     },
     {
-        "name": "Pepsi Fountain Chill (800ml)",
-        "description": "Chilled sparkling Pepsi served in an insulated souvenir cup.",
-        "category": "Beverage",
-        "price": 190.0,
-        "image_url": "/fnb/pepsi.png"
+        "name": "Sparkling Berry Mojito",
+        "category": "Beverages",
+        "price": 220.0,
+        "description": "Crushed wild berries, fresh mint leaves, lime zest, and effervescent soda.",
+        "image_url": "/fnb/berry_mojito.png",
+        "is_available": True
     },
     {
-        "name": "Loaded Cheese Nachos with Jalapeños",
-        "description": "Crispy Mexican corn tortilla chips with warm nacho cheddar sauce and chunky salsa.",
+        "name": "Classic Fountain Coca-Cola (Zero Sugar)",
+        "category": "Beverages",
+        "price": 180.0,
+        "description": "Crisp, chilled classic fountain beverage with zero calories.",
+        "image_url": "/fnb/coke_zero.png",
+        "is_available": True
+    },
+    {
+        "name": "Loaded Peri-Peri Crinkle Fries",
         "category": "Snacks",
-        "price": 260.0,
-        "image_url": "/fnb/nachos.png"
+        "price": 240.0,
+        "description": "Crispy golden crinkle-cut fries dusted with fiery African bird's eye chili.",
+        "image_url": "/fnb/peri_peri_fries.png",
+        "is_available": True
     },
     {
-        "name": "CineVerse Grand Movie Combo",
-        "description": "1 Large Caramel Popcorn + 2 Large Sodas + 1 Loaded Nachos tub.",
-        "category": "Combo",
-        "price": 690.0,
-        "image_url": "/fnb/grand_combo.png"
+        "name": "Truffle & Parmesan Nachos Grande",
+        "category": "Snacks",
+        "price": 340.0,
+        "description": "Artisan corn chips smothered in warm truffle queso, jalapeños, and fresh salsa.",
+        "image_url": "/fnb/nachos_grande.png",
+        "is_available": True
     }
 ]
 
 COUPONS_DATA = [
     {
-        "code": "CINEVERSE50",
-        "description": "50% off on all movie tickets up to ₹150",
-        "discount_type": DiscountTypeEnum.PERCENTAGE,
-        "discount_value": 50.0,
-        "min_order_amount": 300.0,
-        "max_discount_amount": 150.0
-    },
-    {
-        "code": "BLOCKBUSTER100",
-        "description": "Flat ₹100 discount on booking of 2 or more tickets",
-        "discount_type": DiscountTypeEnum.FLAT,
-        "discount_value": 100.0,
-        "min_order_amount": 400.0,
-        "max_discount_amount": 100.0
-    },
-    {
         "code": "FIRSTSHOW",
-        "description": "Welcome 20% discount on your first CineVerse booking",
+        "description": "20% off on minimum booking of ₹400, max discount ₹150",
         "discount_type": DiscountTypeEnum.PERCENTAGE,
         "discount_value": 20.0,
-        "min_order_amount": 250.0,
-        "max_discount_amount": 200.0
+        "min_order_amount": 400.0,
+        "max_discount_amount": 150.0,
+        "is_active": True
+    },
+    {
+        "code": "CINEVERSE50",
+        "description": "Flat ₹50 off on minimum purchase of ₹300",
+        "discount_type": DiscountTypeEnum.FLAT,
+        "discount_value": 50.0,
+        "min_order_amount": 300.0,
+        "max_discount_amount": 50.0,
+        "is_active": True
+    },
+    {
+        "code": "BLOCKBUSTER20",
+        "description": "20% off up to ₹150 for CineVerse Club patrons",
+        "discount_type": DiscountTypeEnum.PERCENTAGE,
+        "discount_value": 20.0,
+        "min_order_amount": 600.0,
+        "max_discount_amount": 150.0,
+        "is_active": True
     }
 ]
 
+import math
 
 async def seed_database():
-    print("Initializing database tables...")
-    await init_db()
+    """Deterministic, idempotent seeder executing in < 60 seconds with bulk insertions."""
+    print("Starting deterministic CineVerse multi-city seeding...")
+    start_time = datetime.now()
 
     async with AsyncSessionLocal() as db:
-        # Check if already seeded
-        res = await db.execute(select(City))
-        if res.scalars().first():
-            print("Database already contains data. Skipping re-seed.")
+        # Check if already seeded with new catalogue
+        movie_count_res = await db.execute(select(func.count(Movie.id)))
+        existing_movies = movie_count_res.scalar() or 0
+        aud_count_res = await db.execute(select(func.count(Auditorium.id)))
+        existing_auds = aud_count_res.scalar() or 0
+        show_count_res = await db.execute(select(func.count(Showtime.id)))
+        existing_shows = show_count_res.scalar() or 0
+
+        force_seed = os.environ.get("FORCE_SEED", "0") == "1"
+
+        if not force_seed and existing_movies >= 48 and existing_auds >= 70 and existing_shows >= 2000:
+            print(f"Database already contains {existing_movies} movies, {existing_auds} auditoriums, and {existing_shows} showtimes. Seed verified.")
             return
 
+        print("Wiping existing data and applying latest schema...")
+        await reset_db()
+
+        # 1. Seed Users
         print("Seeding Users...")
-        users = [
-            User(
-                email="admin@cineverse.in",
-                phone="9876543210",
-                hashed_password=hash_password("Admin@123"),
-                full_name="CineVerse Admin",
-                role=RoleEnum.ADMIN,
-                is_active=True,
-                is_verified=True
-            ),
-            User(
-                email="manager@cineverse.in",
-                phone="9876543211",
-                hashed_password=hash_password("Manager@123"),
-                full_name="Cinema Manager (Bengaluru)",
-                role=RoleEnum.CINEMA_MANAGER,
-                is_active=True,
-                is_verified=True
-            ),
-            User(
-                email="patron@example.com",
-                phone="9876543212",
-                hashed_password=hash_password("Patron@123"),
-                full_name="Karthik Patron",
-                role=RoleEnum.CUSTOMER,
-                is_active=True,
-                is_verified=True
-            ),
-            User(
-                email="support@cineverse.in",
-                phone="9876543213",
-                hashed_password=hash_password("Support@123"),
-                full_name="CineVerse Support Lead",
-                role=RoleEnum.SUPPORT,
-                is_active=True,
-                is_verified=True
-            )
+        test_users = [
+            User(email="admin@cineverse.com", hashed_password=hash_password("Admin@123"), full_name="CineVerse Administrator", role=RoleEnum.ADMIN, is_active=True),
+            User(email="manager@cineverse.com", hashed_password=hash_password("Manager@123"), full_name="City Cinema Manager", role=RoleEnum.CINEMA_MANAGER, is_active=True),
+            User(email="manager@cineverse.in", hashed_password=hash_password("Manager@123"), full_name="City Cinema Manager", role=RoleEnum.CINEMA_MANAGER, is_active=True),
+            User(email="patron@example.com", hashed_password=hash_password("Patron@123"), full_name="Aditya Sharma", role=RoleEnum.CUSTOMER, is_active=True),
+            User(email="karthik@cineverse.dev", hashed_password=hash_password("Karthik@123"), full_name="Karthik Patron", role=RoleEnum.CUSTOMER, is_active=True),
         ]
-        db.add_all(users)
+        db.add_all(test_users)
         await db.flush()
 
-        print("Seeding Cities...")
-        city_map = {}
-        for c in CITIES_DATA:
-            city = City(name=c["name"], slug=c["slug"], state=c["state"], is_active=True)
+        # 2. Seed Cities
+        print("Seeding 7 Cities...")
+        city_entities: Dict[str, City] = {}
+        for c_data in CITIES_DATA:
+            city = City(name=c_data["name"], slug=c_data["slug"], state=c_data["state"], is_active=True)
             db.add(city)
             await db.flush()
-            city_map[c["name"]] = city
+            city_entities[c_data["slug"]] = city
 
-        print("Loading 3D seat layout from seat_layout_v2.json...")
-        layout_candidates = [
-            Path("frontend/public/models/seat_layout_v2.json"),
-            Path("../frontend/public/models/seat_layout_v2.json"),
-            Path("seat_layout_v2_1.json"),
-            Path("../seat_layout_v2_1.json"),
-        ]
-        layout_file = next((p for p in layout_candidates if p.exists()), None)
-        seat_layout_data = []
-        if layout_file:
-            with open(layout_file, "r", encoding="utf-8") as f:
-                parsed = json.load(f)
-                seat_layout_data = parsed.get("seats", [])
-        print(f"Loaded {len(seat_layout_data)} 3D seats from {layout_file}")
+        # 3. Seed Cinemas & Auditoriums
+        print("Seeding 35 Cinemas and 98+ Auditoriums across 7 Cities...")
+        cinema_entities: List[Cinema] = []
+        auditorium_entities: List[Auditorium] = []
+        all_seats_to_insert: List[dict] = []
 
-        print("Seeding Cinemas & Auditoriums...")
-        cinema_entities = []
-        auditorium_entities = []
-        primary_3d_auditorium = None
-
-        for c_data in CINEMAS_DATA:
-            city_obj = city_map.get(c_data["city_name"])
-            if not city_obj:
-                continue
-
+        for c_info in CINEMAS_DATA:
+            city = city_entities[c_info["city_slug"]]
             cinema = Cinema(
-                city_id=city_obj.id,
-                name=c_data["name"],
-                slug=c_data["slug"],
-                address=c_data["address"],
-                facilities=c_data["facilities"],
-                images=["/cinemas/cinema_1.jpg", "/cinemas/cinema_2.jpg"]
+                city_id=city.id,
+                name=c_info["name"],
+                slug=c_info["slug"],
+                address=c_info["address"],
+                latitude=c_info["latitude"],
+                longitude=c_info["longitude"],
+                facilities=c_info["facilities"],
+                cancellation_policy="Cancellation available up to 2 hours before showtime. 75% refund."
             )
             db.add(cinema)
             await db.flush()
             cinema_entities.append(cinema)
 
-            # Create Auditoriums for cinema
-            if c_data["has_3d"]:
-                aud_3d = Auditorium(
-                    cinema_id=cinema.id,
-                    name="Auditorium 1 — 3D Laser IMAX",
-                    screen_type="IMAX 3D",
-                    total_seats=100,
-                    has_3d_preview=True
-                )
-                db.add(aud_3d)
-                await db.flush()
-                auditorium_entities.append(aud_3d)
-
-                if primary_3d_auditorium is None:
-                    primary_3d_auditorium = aud_3d
-
-                glb_candidates = [
-                    Path("frontend/public/models/cineverse_auditorium_v2.web.glb"),
-                    Path("../frontend/public/models/cineverse_auditorium_v2.web.glb"),
+            # Determine auditoriums for this cinema
+            # Flagship cinema has 4 screens including 1 Flagship Big Hall (420 seats)
+            # Normal cinema has 2 to 3 screens
+            if c_info["has_3d_hall"]:
+                # CineVerse Astral Koramangala
+                screens_config = [
+                    {"name": "Screen 1 — 3D Interactive Hall", "type": "IMAX 3D", "seats": 100, "is_3d": True},
+                    {"name": "Screen 2 — Big Hall Flagship", "type": "IMAX with Laser", "seats": 420, "is_3d": False},
+                    {"name": "Screen 3 — Dolby Atmos 4K", "type": "Dolby Atmos 2D", "seats": 150, "is_3d": False},
+                    {"name": "Screen 4 — Luxe Recliner", "type": "Standard", "seats": 72, "is_3d": False},
                 ]
-                glb_file = next((p for p in glb_candidates if p.exists()), None)
-                glb_checksum = "e1289e1ad3aa2b0fbff31633f016cb47e996dfc4d06dca6347b491d8153c3d9d"
-                if glb_file:
-                    import hashlib
-                    glb_checksum = hashlib.sha256(glb_file.read_bytes()).hexdigest()
-
-                # Attach TheatreAsset
-                asset = TheatreAsset(
-                    auditorium_id=aud_3d.id,
-                    glb_path="/models/cineverse_auditorium_v2.web.glb",
-                    layout_path="/models/seat_layout_v2.json",
-                    version="2.0",
-                    checksum=glb_checksum,
-                    total_triangles=218000
-                )
-                db.add(asset)
-
-                # Seed the 100 seats for this auditorium
-                for s in seat_layout_data:
-                    cat_map = {"front": "Front", "prime": "Prime", "premier": "Premier"}
-                    cat = cat_map.get(s.get("category", "prime").lower(), "Prime")
-                    eye = s.get("eye_position_gltf_y_up", [0, 1.2, 5])
-                    seat = Seat(
-                        auditorium_id=aud_3d.id,
-                        seat_id=s.get("seat_id"),
-                        row=s.get("row"),
-                        number=s.get("number"),
-                        category=cat,
-                        node_name=s.get("node_name"),
-                        eye_x=eye[0],
-                        eye_y=eye[1],
-                        eye_z=eye[2],
-                        distance_to_screen=s.get("screen_distance_m_est", s.get("screen_distance", 10.0)),
-                        vertical_angle_deg=s.get("vertical_angle_deg", 0.0),
-                        horizontal_angle_deg=s.get("horizontal_offset_deg", 0.0)
-                    )
-                    db.add(seat)
+            elif c_info["is_flagship"]:
+                screens_config = [
+                    {"name": "Screen 1 — Big Hall Flagship", "type": "IMAX with Laser", "seats": 420, "is_3d": False},
+                    {"name": "Screen 2 — Dolby Atmos 4DX", "type": "4DX", "seats": 260, "is_3d": False},
+                    {"name": "Screen 3 — Dolby Atmos 4K", "type": "Dolby Atmos 2D", "seats": 150, "is_3d": False},
+                    {"name": "Screen 4 — Boutique Lounge", "type": "Standard", "seats": 72, "is_3d": False},
+                ]
             else:
-                aud_std = Auditorium(
+                # 2 to 3 screens
+                screens_config = [
+                    {"name": "Screen 1 — Grand Laser", "type": "Dolby Atmos 2D", "seats": 260, "is_3d": False},
+                    {"name": "Screen 2 — Premium 4K", "type": "Standard", "seats": 150, "is_3d": False},
+                    {"name": "Screen 3 — Cozy Lounge", "type": "Standard", "seats": 72, "is_3d": False},
+                ]
+
+            for s_cfg in screens_config:
+                layout_data, seat_records = generate_auditorium_layout(s_cfg["type"], s_cfg["seats"], s_cfg["is_3d"])
+                aud = Auditorium(
                     cinema_id=cinema.id,
-                    name="Screen 1 — Dolby Atmos 4K",
-                    screen_type="2D Dolby Atmos",
-                    total_seats=100,
-                    has_3d_preview=False
+                    name=s_cfg["name"],
+                    screen_type=s_cfg["type"],
+                    total_seats=len(seat_records),
+                    has_3d_preview=s_cfg["is_3d"],
+                    layout_data=layout_data
                 )
-                db.add(aud_std)
+                db.add(aud)
                 await db.flush()
-                auditorium_entities.append(aud_std)
+                auditorium_entities.append(aud)
 
-                # Seed standard seats A01..J10
-                for row_idx, r in enumerate("ABCDEFGHIJ"):
-                    cat = "Front" if r in "ABC" else ("Prime" if r in "DEFG" else "Premier")
-                    for n in range(1, 11):
-                        seat_id = f"{r}{str(n).zfill(2)}"
-                        seat = Seat(
-                            auditorium_id=aud_std.id,
-                            seat_id=seat_id,
-                            row=r,
-                            number=n,
-                            category=cat,
-                            node_name=f"seat_{r}_{str(n).zfill(2)}",
-                            eye_x=0.0,
-                            eye_y=1.2,
-                            eye_z=float(row_idx * 1.5 + 4.0),
-                            distance_to_screen=float(row_idx * 1.5 + 6.0),
-                            vertical_angle_deg=5.0,
-                            horizontal_angle_deg=0.0
-                        )
-                        db.add(seat)
+                if s_cfg["is_3d"]:
+                    db.add(TheatreAsset(
+                        auditorium_id=aud.id,
+                        glb_path="/models/cineverse_auditorium_v2.web.glb",
+                        layout_path="/models/seat_layout_v2.json",
+                        version="2.0",
+                        checksum="9b244799fece67073b62fef85bb05d8f6d54cf8e511451a70e7e1694f71a4f10",
+                        total_triangles=218000
+                    ))
 
-        await db.flush()
+                for sr in seat_records:
+                    all_seats_to_insert.append({
+                        "auditorium_id": aud.id,
+                        "seat_id": sr["seat_id"],
+                        "row": sr["row"],
+                        "number": sr["number"],
+                        "category": sr["category"],
+                        "node_name": sr["node_name"],
+                        "eye_x": sr["eye_x"],
+                        "eye_y": sr["eye_y"],
+                        "eye_z": sr["eye_z"],
+                        "distance_to_screen": sr["distance_to_screen"],
+                        "vertical_angle_deg": sr["vertical_angle_deg"],
+                        "horizontal_angle_deg": sr["horizontal_angle_deg"],
+                        "is_accessible": sr["is_accessible"]
+                    })
 
-        print("Seeding Movies...")
-        movie_entities = []
+        # Bulk insert all seats (chunked safely for SQLite & PostgreSQL parameter limits)
+        print(f"Bulk inserting {len(all_seats_to_insert)} Seats...")
+        for i in range(0, len(all_seats_to_insert), 75):
+            await db.execute(insert(Seat).values(all_seats_to_insert[i:i + 75]))
+        await db.commit()
+
+        # 4. Seed Movies Catalogue
+        print("Seeding 50 Invented Movies across 9 Languages...")
+        movie_entities: Dict[str, Movie] = {}
         for m_data in MOVIES_DATA:
-            movie = Movie(
+            m = Movie(
                 title=m_data["title"],
                 slug=m_data["slug"],
                 synopsis=m_data["synopsis"],
                 poster_url=m_data["poster_url"],
                 banner_url=m_data["banner_url"],
                 trailer_url=m_data["trailer_url"],
+                trailer_duration_seconds=20,
+                trailer_poster_frame_url=m_data.get("trailer_poster_frame_url", f"/trailers/{m_data['slug']}_poster.jpg"),
+                trailer_captions_url=m_data.get("trailer_captions_url", f"/trailers/{m_data['slug']}.vtt"),
                 duration_minutes=m_data["duration_minutes"],
                 certificate=m_data["certificate"],
                 release_date=m_data["release_date"],
@@ -632,120 +1643,211 @@ async def seed_database():
                 genres=m_data["genres"],
                 formats=m_data["formats"]
             )
-            db.add(movie)
+            db.add(m)
             await db.flush()
-            movie_entities.append(movie)
+            movie_entities[m_data["slug"]] = m
 
-            # Cast members
-            for cast in m_data.get("cast", []):
-                db.add(MovieCast(
-                    movie_id=movie.id,
-                    person_name=cast["person_name"],
-                    role_name=cast["role_name"],
-                    category=cast["category"]
-                ))
+            # Verified sample review
+            db.add(Review(
+                movie_id=m.id,
+                user_id=test_users[2].id,
+                rating=9,
+                headline="Spectacular cinematic presentation!",
+                content="Exceptional sound design and visuals. A must-watch on the biggest format screen!",
+                has_spoilers=False,
+                is_approved=True
+            ))
 
-            # Sample verified reviews for now showing movies
-            if movie.is_now_showing:
-                db.add(Review(
-                    movie_id=movie.id,
-                    user_id=users[2].id,
-                    rating=9,
-                    headline="Breathtaking visual spectacle!",
-                    content="The 3D depth and sound mastering are phenomenal. Absolutely recommend seeing this in an IMAX auditorium from Prime row E or F!",
-                    has_spoilers=False,
-                    is_approved=True
-                ))
-
-        await db.flush()
-
-        print("Seeding F&B Items...")
+        # 5. Seed F&B and Coupons
+        print("Seeding F&B Items and Coupons...")
         for fnb in FNB_DATA:
             db.add(FnbItem(**fnb))
-
-        print("Seeding Coupons...")
         for c in COUPONS_DATA:
             db.add(Coupon(**c))
+        await db.commit()
 
-        await db.flush()
-
-        print("Seeding Showtimes for the next 7 days...")
-        # Schedule showtimes for now_showing movies across auditoriums
-        now_movies = [m for m in movie_entities if m.is_now_showing]
-        daily_slots = [
-            (time(10, 0), time(12, 45)),
-            (time(13, 30), time(16, 15)),
-            (time(17, 0), time(19, 45)),
-            (time(20, 30), time(23, 15)),
+        # 6. Seed Showtimes and Seat Inventory for Next 7 Days
+        print("Seeding 7 Days of Showtimes and Realistic Seat Occupancy...")
+        today = date.today()
+        daily_time_slots = [
+            time(9, 30),
+            time(13, 0),
+            time(16, 30),
+            time(20, 0),
+            time(23, 15)
         ]
 
-        # Focus showtimes across our cinemas for the next 7 days
-        today = date.today()
-        price_maps = {
-            "Front": 280.0,
-            "Prime": 380.0,
-            "Premier": 520.0
-        }
+        # Pre-fetch all seats grouped by auditorium_id
+        print("Fetching auditorium seats for inventory population...")
+        seat_res = await db.execute(select(Seat))
+        all_seats = seat_res.scalars().all()
+        aud_seat_map: Dict[int, List[Seat]] = {}
+        for s in all_seats:
+            aud_seat_map.setdefault(s.auditorium_id, []).append(s)
+
+        # Build showtime records
+        showtimes_to_insert = []
+        inventory_records_batch = []
+        price_rules_to_insert = []
+
+        total_shows_created = 0
+
+        # Map each cinema to its city slug
+        cinema_city_slugs = {c.id: next(ci["city_slug"] for ci in CINEMAS_DATA if ci["slug"] == c.slug) for c in cinema_entities}
 
         for day_offset in range(7):
             cur_date = today + timedelta(days=day_offset)
+            is_weekend = cur_date.weekday() in [4, 5, 6]  # Fri, Sat, Sun
 
-            for aud in auditorium_entities[:4]:  # Top 4 screens
-                cinema = next(c for c in cinema_entities if c.id == aud.cinema_id)
-                for slot_idx, (start_t, end_t) in enumerate(daily_slots):
-                    movie = now_movies[(day_offset + slot_idx) % len(now_movies)]
+            for aud in auditorium_entities:
+                city_slug = cinema_city_slugs[aud.cinema_id]
+                city_movie_slugs = get_city_movies(city_slug)
 
-                    st = Showtime(
-                        movie_id=movie.id,
-                        cinema_id=cinema.id,
-                        auditorium_id=aud.id,
-                        start_time=datetime.combine(cur_date, start_t),
-                        end_time=datetime.combine(cur_date, end_t),
-                        format=aud.screen_type,
-                        language=movie.languages[0] if movie.languages else "English",
-                        cancellation_cutoff_minutes=120
-                    )
-                    db.add(st)
-                    await db.flush()
+                # Filter movies matching screen type
+                compatible_slugs = []
+                for s in city_movie_slugs:
+                    m = movie_entities[s]
+                    if "IMAX" in aud.screen_type:
+                        if any("IMAX" in f for f in m.formats):
+                            compatible_slugs.append(s)
+                    elif "4DX" in aud.screen_type:
+                        if any("4DX" in f for f in m.formats):
+                            compatible_slugs.append(s)
+                    else:
+                        compatible_slugs.append(s)
 
-                    # Price rules
-                    for cat, pr in price_maps.items():
-                        db.add(PriceRule(showtime_id=st.id, category=cat, base_price=pr))
+                if not compatible_slugs:
+                    compatible_slugs = city_movie_slugs
 
-                    # Seed SeatInventory for this showtime
-                    # Fetch seats for this auditorium
-                    s_res = await db.execute(select(Seat).where(Seat.auditorium_id == aud.id))
-                    aud_seats = s_res.scalars().all()
+                # Schedule 4 to 5 shows
+                for slot_idx, start_t in enumerate(daily_time_slots):
+                    movie_slug = compatible_slugs[(day_offset * 3 + slot_idx) % len(compatible_slugs)]
+                    movie = movie_entities[movie_slug]
 
-                    for seat_obj in aud_seats:
-                        # Pre-book a realistic few seats (e.g., 5-10% of seats) for today to demonstrate live availability colors
-                        is_booked_sample = (
-                            day_offset == 0 and
-                            seat_obj.seat_id in ["B01", "B02", "B03", "B04", "B05"]
-                        )
-                        is_held_sample = (
-                            day_offset == 0 and
-                            seat_obj.seat_id in ["C04", "C05"]
-                        )
-                        status = (
-                            SeatStatusEnum.BOOKED if is_booked_sample else
-                            SeatStatusEnum.HELD if is_held_sample else
-                            SeatStatusEnum.AVAILABLE
-                        )
-                        inv = SeatInventory(
-                            showtime_id=st.id,
-                            seat_id=seat_obj.seat_id,
-                            category=seat_obj.category,
-                            price=price_maps.get(seat_obj.category, 380.0),
-                            status=status,
-                            booking_id=1 if is_booked_sample else None
-                        )
-                        db.add(inv)
+                    start_dt = datetime.combine(cur_date, start_t)
+                    end_dt = start_dt + timedelta(minutes=movie.duration_minutes)
+
+                    total_shows_created += 1
+                    st_id = total_shows_created
+
+                    showtimes_to_insert.append({
+                        "id": st_id,
+                        "movie_id": movie.id,
+                        "cinema_id": aud.cinema_id,
+                        "auditorium_id": aud.id,
+                        "start_time": start_dt,
+                        "end_time": end_dt,
+                        "format": aud.screen_type,
+                        "language": movie.languages[0] if movie.languages else "English",
+                        "cancellation_cutoff_minutes": 120
+                    })
+
+                    # Dynamic pricing logic
+                    is_morning = start_t.hour < 12
+                    is_evening = start_t.hour >= 17
+
+                    base_factor = 0.8 if is_morning else (1.2 if is_evening else 1.0)
+                    if is_weekend:
+                        base_factor *= 1.25
+                    if "IMAX" in aud.screen_type or "4DX" in aud.screen_type:
+                        base_factor *= 1.3
+                    if aud.total_seats >= 380:
+                        base_factor *= 1.15  # Flagship hall
+
+                    front_price = round(220.0 * base_factor)
+                    prime_price = round(320.0 * base_factor)
+                    premier_price = round(460.0 * base_factor)
+
+                    price_rules_to_insert.append({"showtime_id": st_id, "category": "Front", "base_price": float(front_price)})
+                    price_rules_to_insert.append({"showtime_id": st_id, "category": "Prime", "base_price": float(prime_price)})
+                    price_rules_to_insert.append({"showtime_id": st_id, "category": "Premier", "base_price": float(premier_price)})
+
+                    # Occupancy distribution
+                    if is_morning and not is_weekend:
+                        target_booked_pct = random.uniform(0.05, 0.15)
+                    elif is_evening and is_weekend:
+                        target_booked_pct = random.uniform(0.30, 0.55)
+                        if random.random() < 0.08:
+                            target_booked_pct = 0.85  # Near full show!
+                    else:
+                        target_booked_pct = random.uniform(0.15, 0.30)
+
+                    aud_seats = aud_seat_map.get(aud.id, [])
+                    held_count = random.randint(0, 3)
+
+                    for s_obj in aud_seats:
+                        if st_id == 1 and s_obj.seat_id == "C01":
+                            status = SeatStatusEnum.BOOKED
+                            booking_id = 1
+                            hold_id = None
+                            expires_at = None
+                        elif st_id == 1 and s_obj.seat_id == "A06":
+                            status = SeatStatusEnum.HELD
+                            booking_id = None
+                            hold_id = "cv-seed-hold-a06"
+                            expires_at = datetime.utcnow() + timedelta(minutes=15)
+                        else:
+                            roll = random.random()
+                            if roll < target_booked_pct:
+                                status = SeatStatusEnum.BOOKED
+                                booking_id = 1
+                                hold_id = None
+                                expires_at = None
+                            elif held_count > 0 and roll < target_booked_pct + 0.04:
+                                status = SeatStatusEnum.HELD
+                                booking_id = None
+                                hold_id = f"cv-seed-hold-{random.randint(10000, 99999)}"
+                                expires_at = datetime.utcnow() + timedelta(minutes=random.randint(3, 8))
+                                held_count -= 1
+                            else:
+                                status = SeatStatusEnum.AVAILABLE
+                                booking_id = None
+                                hold_id = None
+                                expires_at = None
+
+                        s_price = premier_price if s_obj.category == "Premier" else (front_price if s_obj.category == "Front" else prime_price)
+
+                        inventory_records_batch.append({
+                            "showtime_id": st_id,
+                            "seat_id": s_obj.seat_id,
+                            "category": s_obj.category,
+                            "price": float(s_price),
+                            "status": status,
+                            "hold_id": hold_id,
+                            "hold_expires_at": expires_at,
+                            "booking_id": booking_id,
+                            "held_by_user_id": None
+                        })
+
+                        # Batch flush when reaching 250 records
+                        if len(inventory_records_batch) >= 250:
+                            await db.execute(insert(SeatInventory).values(inventory_records_batch))
+                            inventory_records_batch.clear()
+
+        # Bulk insert all showtimes in batches
+        print(f"Bulk inserting {len(showtimes_to_insert)} Showtimes...")
+        for i in range(0, len(showtimes_to_insert), 75):
+            await db.execute(insert(Showtime).values(showtimes_to_insert[i:i + 75]))
+
+        # Flush any remaining price rules & inventory records
+        if price_rules_to_insert:
+            for i in range(0, len(price_rules_to_insert), 300):
+                await db.execute(insert(PriceRule).values(price_rules_to_insert[i:i + 300]))
+
+        if inventory_records_batch:
+            for i in range(0, len(inventory_records_batch), 250):
+                await db.execute(insert(SeatInventory).values(inventory_records_batch[i:i + 250]))
+            inventory_records_batch.clear()
 
         await db.commit()
-        print("Database seeding completed successfully!")
+
+    duration = (datetime.now() - start_time).total_seconds()
+    print(f"SUCCESS: Database seeded deterministically in {duration:.1f} seconds!")
+    print(f"Total Cinemas: {len(CINEMAS_DATA)}")
+    print(f"Total Auditoriums: {len(auditorium_entities)}")
+    print(f"Total Movies: {len(MOVIES_DATA)}")
+    print(f"Total Showtimes: {total_shows_created}")
 
 
 if __name__ == "__main__":
     asyncio.run(seed_database())
-

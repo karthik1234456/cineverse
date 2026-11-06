@@ -252,6 +252,21 @@ export interface SeatInventoryItem {
   distance_to_screen: number;
   vertical_angle_deg: number;
   horizontal_angle_deg: number;
+  is_accessible?: boolean;
+}
+
+export interface CategoryBand {
+  category: string;
+  rows: string[];
+  price_multiplier?: number;
+}
+
+export interface AuditoriumLayoutData {
+  rows: string[];
+  seats_per_row: number;
+  aisles: number[];
+  accessible_seats?: string[];
+  category_bands?: CategoryBand[];
 }
 
 export interface ShowtimeSeatsResponse {
@@ -264,6 +279,7 @@ export interface ShowtimeSeatsResponse {
   auditorium_name: string;
   screen_type: string;
   has_3d_preview: boolean;
+  layout_data?: AuditoriumLayoutData | null;
   format: string;
   language: string;
   start_time: string;

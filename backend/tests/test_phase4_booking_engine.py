@@ -254,7 +254,7 @@ async def test_price_convenience_fee_and_gst_math(client: AsyncClient):
         await db.execute(
             update(SeatInventory)
             .where(SeatInventory.showtime_id == showtime_id, SeatInventory.seat_id.in_(seats))
-            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None)
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, price=520.0)
         )
         await db.commit()
 

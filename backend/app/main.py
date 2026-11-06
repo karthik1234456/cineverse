@@ -200,6 +200,21 @@ def create_app() -> FastAPI:
     application.include_router(transfer_router)
     application.include_router(ws_router, tags=["WebSockets"])
 
+    # 6. Static files mount for trailers, posters, backdrops with byte-range support
+    from starlette.staticfiles import StaticFiles
+    import os
+    frontend_public = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "public"))
+    trailers_dir = os.path.join(frontend_public, "trailers")
+    posters_dir = os.path.join(frontend_public, "posters")
+    backdrops_dir = os.path.join(frontend_public, "backdrops")
+
+    if os.path.exists(trailers_dir):
+        application.mount("/trailers", StaticFiles(directory=trailers_dir), name="trailers")
+    if os.path.exists(posters_dir):
+        application.mount("/posters", StaticFiles(directory=posters_dir), name="posters")
+    if os.path.exists(backdrops_dir):
+        application.mount("/backdrops", StaticFiles(directory=backdrops_dir), name="backdrops")
+
     return application
 
 

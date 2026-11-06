@@ -45,6 +45,9 @@ class MovieResponse(BaseModel):
     poster_url: str
     banner_url: str
     trailer_url: Optional[str] = None
+    trailer_duration_seconds: Optional[int] = 25
+    trailer_poster_frame_url: Optional[str] = None
+    trailer_captions_url: Optional[str] = None
     duration_minutes: int
     certificate: str
     release_date: date

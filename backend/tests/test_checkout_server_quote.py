@@ -52,7 +52,7 @@ async def test_server_quote_locked_calculation_and_guarantee(client: AsyncClient
         await db.execute(
             update(SeatInventory)
             .where(SeatInventory.showtime_id == showtime_id, SeatInventory.seat_id.in_(seats))
-            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None, price=380.0)
         )
         await db.commit()
 
@@ -114,7 +114,7 @@ async def test_idor_protection_another_user_hold_refused(client: AsyncClient):
         await db.execute(
             update(SeatInventory)
             .where(SeatInventory.showtime_id == showtime_id, SeatInventory.seat_id.in_(seats))
-            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None, price=380.0)
         )
         await db.commit()
 
@@ -172,7 +172,7 @@ async def test_expired_hold_refused_with_friendly_message(client: AsyncClient):
         await db.execute(
             update(SeatInventory)
             .where(SeatInventory.showtime_id == showtime_id, SeatInventory.seat_id.in_(seats))
-            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None, price=380.0)
         )
         await db.commit()
 
@@ -234,7 +234,7 @@ async def test_replay_old_hold_id_refused(client: AsyncClient):
         await db.execute(
             update(SeatInventory)
             .where(SeatInventory.showtime_id == showtime_id, SeatInventory.seat_id.in_(seats))
-            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None, price=380.0)
         )
         await db.commit()
 
@@ -289,7 +289,7 @@ async def test_request_body_tampering_seat_and_showtime_mismatch_refused(client:
         await db.execute(
             update(SeatInventory)
             .where(SeatInventory.showtime_id == showtime_id, SeatInventory.seat_id.in_(seats))
-            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None, price=380.0)
         )
         await db.commit()
 
@@ -350,7 +350,7 @@ async def test_addons_and_coupon_attached_to_server_quote(client: AsyncClient):
         await db.execute(
             update(SeatInventory)
             .where(SeatInventory.showtime_id == showtime_id, SeatInventory.seat_id.in_(seats))
-            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None, price=380.0)
         )
         await db.commit()
 
@@ -422,7 +422,7 @@ async def test_payment_order_creation_uses_only_server_quote(client: AsyncClient
         await db.execute(
             update(SeatInventory)
             .where(SeatInventory.showtime_id == showtime_id, SeatInventory.seat_id.in_(seats))
-            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None, price=380.0)
         )
         await db.commit()
 

@@ -57,28 +57,22 @@ async def _cleanup_database_state():
         await db.execute(delete(BookingSeat))
         await db.execute(delete(Booking))
 
-        # Reset all seat inventory to AVAILABLE and standard tier prices
+        # Reset Showtime 1 seat inventory for booking tests
         await db.execute(
             update(SeatInventory)
-            .where(SeatInventory.category.ilike("front"))
-            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None, price=280.0)
+            .where(SeatInventory.showtime_id == 1)
+            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
         )
         await db.execute(
             update(SeatInventory)
-            .where(SeatInventory.category.ilike("prime"))
-            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None, price=380.0)
+            .where(SeatInventory.showtime_id == 1, SeatInventory.seat_id == 'C01')
+            .values(status=SeatStatusEnum.BOOKED, booking_id=1)
         )
         await db.execute(
             update(SeatInventory)
-            .where(SeatInventory.category.ilike("premier"))
-            .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None, price=520.0)
+            .where(SeatInventory.showtime_id == 1, SeatInventory.seat_id == 'A06')
+            .values(status=SeatStatusEnum.HELD, hold_id='cv-seed-hold-a06', hold_expires_at=datetime.utcnow() + timedelta(hours=2))
         )
-
-        # Restore Showtime 1 to today with late evening start time
-        st1 = await db.get(Showtime, 1)
-        if st1:
-            st1.start_time = datetime.combine(date.today(), time(23, 59))
-            st1.end_time = datetime.combine(date.today(), time(23, 59)) + timedelta(hours=2, minutes=30)
 
         await db.commit()
 

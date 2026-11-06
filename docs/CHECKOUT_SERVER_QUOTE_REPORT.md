@@ -85,3 +85,4 @@ This hardening initiative resolves all vulnerabilities associated with client-co
 - `da5dcd1` — `feat(checkout): Part 2 - opaque hold_id URL, client total removal, and server-driven checkout UI`
 - `7e4e755` — `refactor(pricing): Part 3 - remove decimal price formatting and eliminate client-side totals app-wide`
 - `3cd8c23` — `test(checkout): Part 4 - end-to-end verification, security test proofs, and production evidence`
+

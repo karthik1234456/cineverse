@@ -16,6 +16,7 @@ class Showtime(Base):
     __tablename__ = "showtimes"
     __table_args__ = (
         Index("ix_showtimes_cinema_movie_date", "cinema_id", "movie_id", "start_time"),
+        Index("ix_showtimes_auditorium_start", "auditorium_id", "start_time"),
     )
 
     id = Column(Integer, primary_key=True, index=True)
@@ -51,6 +52,7 @@ class SeatInventory(Base):
     __tablename__ = "seat_inventory"
     __table_args__ = (
         UniqueConstraint("showtime_id", "seat_id", name="uq_showtime_seat"),
+        Index("ix_seat_inventory_showtime_status", "showtime_id", "status"),
     )
 
     id = Column(Integer, primary_key=True, index=True)

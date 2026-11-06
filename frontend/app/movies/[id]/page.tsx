@@ -20,8 +20,21 @@ export default function MovieDetailPage() {
   const [movie, setMovie] = useState<MovieDetail | null>(null);
   const [showtimesGroups, setShowtimesGroups] = useState<CinemaShowtimesGroup[]>([]);
   const [selectedDateIdx, setSelectedDateIdx] = useState<number>(0);
+  const [currentCityId, setCurrentCityId] = useState<number | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const openTrailer = useTrailerStore((s) => s.openTrailer);
+
+  // Listen to city changes
+  useEffect(() => {
+    const stored = typeof window !== 'undefined' ? localStorage.getItem('cineverse_city_id') : null;
+    if (stored) setCurrentCityId(parseInt(stored, 10));
+
+    function onCityChanged(e: any) {
+      if (e.detail?.id) setCurrentCityId(e.detail.id);
+    }
+    window.addEventListener('cityChanged', onCityChanged);
+    return () => window.removeEventListener('cityChanged', onCityChanged);
+  }, []);
 
   // Generate 7-day dates strip
   const dates = [...Array(7)].map((_, i) => {
@@ -40,19 +53,17 @@ export default function MovieDetailPage() {
 
   useEffect(() => {
     setLoading(true);
-    const storedCityId = typeof window !== 'undefined' ? localStorage.getItem('cineverse_city_id') : null;
-    const cityId = storedCityId ? parseInt(storedCityId, 10) : undefined;
 
     getMovie(movieIdOrSlug)
       .then(async (m) => {
         setMovie(m);
-        const groups = await getMovieShowtimes(m.id, cityId, selectedDate.iso);
+        const groups = await getMovieShowtimes(m.id, currentCityId, selectedDate.iso);
         if (groups && groups.length > 0) {
           setShowtimesGroups(groups);
         } else if (selectedDateIdx === 0) {
           // Check subsequent days to show the first available showtime
           for (let i = 1; i < dates.length; i++) {
-            const nextGroups = await getMovieShowtimes(m.id, cityId, dates[i].iso);
+            const nextGroups = await getMovieShowtimes(m.id, currentCityId, dates[i].iso);
             if (nextGroups && nextGroups.length > 0) {
               setSelectedDateIdx(i);
               setShowtimesGroups(nextGroups);
@@ -66,7 +77,7 @@ export default function MovieDetailPage() {
       })
       .catch((err) => console.warn(err))
       .finally(() => setLoading(false));
-  }, [movieIdOrSlug, selectedDateIdx]);
+  }, [movieIdOrSlug, selectedDateIdx, currentCityId]);
 
   if (loading && !movie) {
     return (

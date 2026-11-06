@@ -32,4 +32,7 @@ blob-report/
 .env
 .env.local
 *.zip
+*.exe
+*.whl
+
 
