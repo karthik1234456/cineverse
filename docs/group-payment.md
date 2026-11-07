@@ -83,3 +83,4 @@ $$\sum_{i=1}^N \text{share}_i \equiv T \quad \text{guaranteed with zero rounding
 2. **Anti-Hoarding Rate Limits**: Maximum 2 active unconfirmed group bookings per user at any time.
 3. **IDOR Prevention**: All member queries strictly check `user_id == current_user.id` or `host_user_id == current_user.id`.
 4. **WebSocket Authentication**: Tickets and seat updates over WebSocket require authenticated user JWTs with origin verification.
+

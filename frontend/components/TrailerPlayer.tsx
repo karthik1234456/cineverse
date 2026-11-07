@@ -18,9 +18,11 @@ import {
 } from 'lucide-react';
 import { useTrailerStore } from '@/store/useTrailerStore';
 import { useMovieBackdrop } from '@/context/MovieBackdropContext';
+import { useComfortStore } from '@/store/useComfortStore';
 
 export function TrailerPlayer() {
   const activeTrailer = useTrailerStore((s) => s.activeTrailer);
+  const captionsAlwaysOn = useComfortStore((s) => s.captionsAlwaysOn);
   const closeTrailer = useTrailerStore((s) => s.closeTrailer);
   const dockTrailer = useTrailerStore((s) => s.dockTrailer);
   const setPlaying = useTrailerStore((s) => s.setPlaying);
@@ -235,7 +237,7 @@ export function TrailerPlayer() {
                 />
 
                 {/* Subtitle / WebVTT overlay simulation if enabled */}
-                {activeTrailer.captionsEnabled && (
+                {(activeTrailer.captionsEnabled || captionsAlwaysOn) && (
                   <div className="pointer-events-none absolute bottom-16 left-1/2 -translate-x-1/2 rounded-lg bg-black/80 px-4 py-1.5 text-center text-sm font-medium text-white shadow backdrop-blur-sm">
                     [Soundtrack playing · Audio Dialogue]
                   </div>

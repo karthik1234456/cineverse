@@ -50,7 +50,9 @@ async def get_auditorium_layout(auditorium_id: int, db: AsyncSession = Depends(g
             "eye_position": [s.eye_x, s.eye_y, s.eye_z],
             "distance_to_screen": s.distance_to_screen,
             "vertical_angle_deg": s.vertical_angle_deg,
-            "horizontal_angle_deg": s.horizontal_angle_deg
+            "horizontal_angle_deg": s.horizontal_angle_deg,
+            "is_accessible": bool(s.is_accessible),
+            "is_companion": bool(getattr(s, "is_companion", False))
         })
 
     return {

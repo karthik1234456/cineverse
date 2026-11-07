@@ -208,3 +208,51 @@ async def claim_referral_reward(
 
     await db.commit()
     return {"status": "success", "points_awarded": 100, "new_balance": user_acc.points_balance}
+
+
+class LoyaltyRedeemRequest(BaseModel):
+    points_to_redeem: int
+
+
+@router.post("/redeem")
+async def redeem_loyalty_points(
+    req: LoyaltyRedeemRequest,
+    current_user: User = Depends(require_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Redeems points atomically for a booking discount.
+    Enforces ledger invariant: account balance can never drop below zero.
+    """
+    if req.points_to_redeem <= 0:
+        raise HTTPException(status_code=400, detail="Points to redeem must be greater than zero")
+
+    stmt = select(LoyaltyAccount).where(LoyaltyAccount.user_id == current_user.id)
+    res = await db.execute(stmt)
+    account = res.scalars().first()
+    if not account or account.points_balance < req.points_to_redeem:
+        raise HTTPException(status_code=400, detail="Insufficient loyalty points balance")
+
+    # Invariant assertion: balance must never become negative
+    account.points_balance -= req.points_to_redeem
+    if account.points_balance < 0:
+        raise HTTPException(status_code=400, detail="Points balance invariant violation")
+
+    # 100 points = Rs. 50 discount
+    discount_inr = round((req.points_to_redeem / 100.0) * 50.0, 2)
+
+    ledger = LoyaltyLedger(
+        account_id=account.id,
+        points_delta=-req.points_to_redeem,
+        action=LoyaltyActionEnum.REDEEM,
+        description=f"Redeemed {req.points_to_redeem} points for Rs. {discount_inr} concession discount"
+    )
+    db.add(ledger)
+    await db.commit()
+
+    return {
+        "status": "success",
+        "points_redeemed": req.points_to_redeem,
+        "discount_inr": discount_inr,
+        "remaining_points": account.points_balance
+    }

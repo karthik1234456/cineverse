@@ -8,6 +8,7 @@ import { useCinemaStore } from '@/store/useCinemaStore';
 import { getShowtimeSeats, type ShowtimeSeatsResponse } from '@/services/api';
 import { LayoutGrid, Maximize2, Minimize2, ArrowLeft } from 'lucide-react';
 import { useMovieBackdrop } from '@/context/MovieBackdropContext';
+import { useComfortStore } from '@/store/useComfortStore';
 
 interface AuditoriumViewRouterProps {
   cinemaId: string;
@@ -31,6 +32,8 @@ export function AuditoriumViewRouter({
   const [currentMode, setCurrentMode] = useState<'2d' | '3d'>(
     (modeParam === '3d' || modeParam === 'pov' || initialMode === '3d') ? '3d' : '2d'
   );
+  const simpleMode = useComfortStore((s) => s.simpleMode);
+  const is3DActive = currentMode === '3d' && !simpleMode;
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showtimeDetails, setShowtimeDetails] = useState<ShowtimeSeatsResponse | null>(null);
@@ -135,7 +138,7 @@ export function AuditoriumViewRouter({
     router.replace(`?${params.toString()}`);
   }
 
-  if (currentMode === '3d') {
+  if (is3DActive) {
     return (
       <div className="relative h-[100dvh] w-full overflow-hidden" data-testid="auditorium-3d-wrapper">
         {/* Slim Immersive Top Bar (§ Part E / Finding F8 fixed) */}

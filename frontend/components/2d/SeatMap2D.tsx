@@ -17,6 +17,12 @@ import obstructionsData from '@/public/models/seat_obstructions.json';
 import { viewScore, bestAvailable, type PreferenceType, type ScoredSeatInput } from '@/lib/seatScoring';
 import { GroupBookingModal } from '@/components/group/GroupBookingModal';
 import { GroupRoomBanner } from '@/components/group/GroupRoomBanner';
+import { useFeatureFlags } from '@/store/useFeatureFlags';
+import { Guided3DTour } from '@/components/extras/Guided3DTour';
+import { SeatCompareModal } from '@/components/extras/SeatCompareModal';
+import { ShareMyViewModal } from '@/components/extras/ShareMyViewModal';
+import { HearItFromHereModal } from '@/components/extras/HearItFromHereModal';
+import { VrSeatPreviewModal } from '@/components/extras/VrSeatPreviewModal';
 import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
 
 interface SeatMap2DProps {
@@ -130,6 +136,22 @@ export function SeatMap2D({
   const [isWaitlistModalOpen, setIsWaitlistModalOpen] = useState(false);
   const [waitlistStatus, setWaitlistStatus] = useState<any>(null);
   const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [liveAnnouncement, setLiveAnnouncement] = useState<string>('');
+
+  // Optional Feature Flags (Part 2 Extras — Off by default)
+  const {
+    enableGuidedTour,
+    enableSeatCompare,
+    enableShareView,
+    enableSoundPreview,
+    enableVrPreview,
+  } = useFeatureFlags();
+
+  const [isTourOpen, setIsTourOpen] = useState(false);
+  const [isCompareOpen, setIsCompareOpen] = useState(false);
+  const [isShareOpen, setIsShareOpen] = useState(false);
+  const [isSoundOpen, setIsSoundOpen] = useState(false);
+  const [isVrOpen, setIsVrOpen] = useState(false);
 
   // WebGL detection for "Explore in 3D" button visibility
   const [isWebGLSupported, setIsWebGLSupported] = useState(true);
@@ -479,6 +501,147 @@ export function SeatMap2D({
     [seatsList, seatStatuses, preference, aisles, clearSelection, selectSeat, showToast]
   );
 
+  const allRowsOrdered = useMemo(() => {
+    return categoryTiers.flatMap((t) => t.rows);
+  }, [categoryTiers]);
+
+  const handleSeatToggle = useCallback((seatId: string) => {
+    const inv = seatInventoryMap.get(seatId);
+    const rawStatus = (seatStatuses[seatId] || inv?.status || 'AVAILABLE').toString().toLowerCase();
+    const status = rawStatus === 'payment_pending' ? 'held' : rawStatus;
+    const isBooked = status === 'booked';
+    const isHeld = status === 'held';
+
+    if (isBooked || isHeld) {
+      const msg = `Seat ${seatId} is ${status} and cannot be selected. You can still preview its sightline.`;
+      showToast(msg);
+      setLiveAnnouncement(msg);
+      return;
+    }
+
+    const s = seatsList.find((st) => st.seat_id === seatId);
+    const currentlySelected = selectedSeats.includes(seatId);
+    toggleSeat(seatId);
+
+    const newSelected = currentlySelected
+      ? selectedSeats.filter((id) => id !== seatId)
+      : [...selectedSeats, seatId];
+    const newCount = newSelected.length;
+    const newTotal = newSelected.reduce((sum, id) => sum + (seatInventoryMap.get(id)?.price ?? 380), 0);
+
+    if (!currentlySelected && s) {
+      setLiveAnnouncement(`Selected Row ${s.row}, seat ${s.number}. ${newCount} seat${newCount === 1 ? '' : 's'} selected, total ${newTotal} rupees.`);
+    } else if (s) {
+      setLiveAnnouncement(`Deselected Row ${s.row}, seat ${s.number}. ${newCount} seat${newCount === 1 ? '' : 's'} selected, total ${newTotal} rupees.`);
+    }
+  }, [seatInventoryMap, seatStatuses, seatsList, selectedSeats, showToast, toggleSeat]);
+
+  const handleGridArrowNavigation = useCallback((
+    e: React.KeyboardEvent,
+    s: ScoredSeatInput,
+    seatsInRow: ScoredSeatInput[],
+    seatId: string
+  ) => {
+    if (e.key === 'v' || e.key === 'V' || e.key === 'KeyV' || e.code === 'KeyV') {
+      e.preventDefault();
+      handleViewPOV(seatId);
+      return;
+    }
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleSeatToggle(seatId);
+      return;
+    }
+
+    const idxInRow = seatsInRow.findIndex((item) => item.seat_id === seatId);
+    const currentRowIdx = allRowsOrdered.indexOf(s.row);
+
+    let targetSeatId: string | null = null;
+
+    if (e.key === 'ArrowRight' && idxInRow < seatsInRow.length - 1) {
+      e.preventDefault();
+      targetSeatId = seatsInRow[idxInRow + 1].seat_id;
+    } else if (e.key === 'ArrowLeft' && idxInRow > 0) {
+      e.preventDefault();
+      targetSeatId = seatsInRow[idxInRow - 1].seat_id;
+    } else if (e.key === 'ArrowDown' && currentRowIdx < allRowsOrdered.length - 1) {
+      e.preventDefault();
+      const nextRow = allRowsOrdered[currentRowIdx + 1];
+      const seatsInNext = rowSeats[nextRow] || [];
+      if (seatsInNext.length > 0) {
+        const closest = seatsInNext.reduce((prev, curr) =>
+          Math.abs(curr.number - s.number) < Math.abs(prev.number - s.number) ? curr : prev
+        );
+        targetSeatId = closest.seat_id;
+      }
+    } else if (e.key === 'ArrowUp' && currentRowIdx > 0) {
+      e.preventDefault();
+      const prevRow = allRowsOrdered[currentRowIdx - 1];
+      const seatsInPrev = rowSeats[prevRow] || [];
+      if (seatsInPrev.length > 0) {
+        const closest = seatsInPrev.reduce((prev, curr) =>
+          Math.abs(curr.number - s.number) < Math.abs(prev.number - s.number) ? curr : prev
+        );
+        targetSeatId = closest.seat_id;
+      }
+    } else if (e.key === 'Home') {
+      e.preventDefault();
+      targetSeatId = seatsInRow[0].seat_id;
+    } else if (e.key === 'End') {
+      e.preventDefault();
+      targetSeatId = seatsInRow[seatsInRow.length - 1].seat_id;
+    }
+
+    if (targetSeatId) {
+      focusedSeatIdRef.current = targetSeatId;
+      setFocusedSeatId(targetSeatId);
+      const targetEl = document.querySelector<HTMLButtonElement>(`[data-testid="seat-2d-${targetSeatId}"]`);
+      targetEl?.focus();
+    }
+  }, [allRowsOrdered, handleSeatToggle, handleViewPOV, rowSeats]);
+
+  const handleFindAccessibleSeats = useCallback(() => {
+    const accessibleSeats = seatsList.filter((s) => {
+      const inv = seatInventoryMap.get(s.seat_id);
+      const rawStatus = (seatStatuses[s.seat_id] || inv?.status || 'AVAILABLE').toString().toLowerCase();
+      const isAvail = rawStatus === 'available';
+      return (s.is_accessible || accessibleSeatsList.includes(s.seat_id) || inv?.is_accessible) && isAvail;
+    });
+
+    const anyAccessible = accessibleSeats.length > 0
+      ? accessibleSeats[0]
+      : seatsList.find((s) => s.is_accessible || accessibleSeatsList.includes(s.seat_id));
+
+    if (anyAccessible) {
+      const target = anyAccessible;
+      focusedSeatIdRef.current = target.seat_id;
+      setFocusedSeatId(target.seat_id);
+      setHoveredSeat({
+        seat_id: target.seat_id,
+        row: target.row,
+        number: target.number,
+        category: target.category || 'Wheelchair Space',
+        price: seatInventoryMap.get(target.seat_id)?.price ?? 280,
+        status: 'available',
+        is_accessible: true,
+      });
+      const companion = seatsList.find((s) => s.row === target.row && Math.abs(s.number - target.number) === 1);
+      setLiveAnnouncement(
+        `Found accessible seats. Focused on Row ${target.row}, seat ${target.number} (Wheelchair space). ${
+          companion ? `Companion seat ${companion.row}${companion.number} is adjacent.` : ''
+        }`
+      );
+      setTimeout(() => {
+        const el = document.querySelector<HTMLButtonElement>(`[data-testid="seat-2d-${target.seat_id}"]`);
+        el?.focus();
+      }, 50);
+      showToast(`Focused on accessible seat ${target.seat_id}. Companion seat available adjacent.`);
+    } else {
+      setLiveAnnouncement('No wheelchair accessible seats currently available for this showtime.');
+      showToast('No wheelchair accessible seats currently available for this showtime.');
+    }
+  }, [accessibleSeatsList, seatInventoryMap, seatStatuses, seatsList, showToast]);
+
   // Handle Waitlist Join
   const handleJoinWaitlist = async () => {
     setWaitlistLoading(true);
@@ -606,6 +769,17 @@ export function SeatMap2D({
 
           {/* Action Tools: Heatmap Toggle & Explore in 3D */}
           <div className="flex items-center gap-3 flex-wrap">
+            {/* Find Accessible Seats Shortcut (WCAG 2.2 AA) */}
+            <button
+              onClick={handleFindAccessibleSeats}
+              data-testid="find-accessible-seats-btn"
+              className="flex min-h-[44px] items-center gap-2 rounded-xl border border-blue-300 bg-blue-50 px-4 py-2 text-sm font-bold text-blue-900 shadow-sm hover:bg-blue-100 transition active:scale-95"
+              aria-label="Find Accessible Seats: wheelchair and companion spaces"
+            >
+              <span className="text-base" aria-hidden="true">♿</span>
+              <span>Find Accessible Seats</span>
+            </button>
+
             {/* Book With Friends Button (Phase 10) */}
             <button
               onClick={() => setIsGroupModalOpen(true)}
@@ -637,10 +811,66 @@ export function SeatMap2D({
                 onClick={onSwitchTo3D}
                 className="flex min-h-[44px] items-center gap-2 rounded-xl bg-amber-500/10 border-2 border-amber-500 px-5 py-2 text-sm font-bold text-amber-900 shadow hover:bg-amber-500/20 transition"
                 data-testid="explore-in-3d-button"
-                aria-label="Switch to 3D Auditorium Sightline View"
+                aria-label="Explore in 3D: Switch to 3D Auditorium Sightline View"
               >
                 <Compass className="h-4 w-4 text-amber-600 animate-spin-slow" />
                 <span>Explore in 3D</span>
+              </button>
+            )}
+
+            {/* Optional Extras (Part 2) behind Feature Flags */}
+            {enableGuidedTour && (
+              <button
+                type="button"
+                onClick={() => setIsTourOpen(true)}
+                data-testid="guided-tour-btn"
+                className="flex min-h-[44px] items-center gap-2 rounded-xl border border-purple-300 bg-purple-50 px-4 py-2 text-sm font-bold text-purple-900 shadow-sm hover:bg-purple-100 transition active:scale-95"
+              >
+                <span>3D Tour (30s)</span>
+              </button>
+            )}
+
+            {enableSeatCompare && (
+              <button
+                type="button"
+                onClick={() => setIsCompareOpen(true)}
+                data-testid="seat-compare-btn"
+                className="flex min-h-[44px] items-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-900 shadow-sm hover:bg-amber-100 transition active:scale-95"
+              >
+                <span>Compare Seats</span>
+              </button>
+            )}
+
+            {enableShareView && (
+              <button
+                type="button"
+                onClick={() => setIsShareOpen(true)}
+                data-testid="share-view-btn"
+                className="flex min-h-[44px] items-center gap-2 rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-bold text-[#C8102E] shadow-sm hover:bg-rose-100 transition active:scale-95"
+              >
+                <span>Share View</span>
+              </button>
+            )}
+
+            {enableSoundPreview && (
+              <button
+                type="button"
+                onClick={() => setIsSoundOpen(true)}
+                data-testid="sound-preview-btn"
+                className="flex min-h-[44px] items-center gap-2 rounded-xl border border-purple-300 bg-purple-50 px-4 py-2 text-sm font-bold text-purple-900 shadow-sm hover:bg-purple-100 transition active:scale-95"
+              >
+                <span>Hear From Here</span>
+              </button>
+            )}
+
+            {enableVrPreview && (
+              <button
+                type="button"
+                onClick={() => setIsVrOpen(true)}
+                data-testid="vr-preview-btn"
+                className="flex min-h-[44px] items-center gap-2 rounded-xl border border-indigo-300 bg-indigo-50 px-4 py-2 text-sm font-bold text-indigo-900 shadow-sm hover:bg-indigo-100 transition active:scale-95"
+              >
+                <span>VR Preview</span>
               </button>
             )}
           </div>
@@ -823,6 +1053,7 @@ export function SeatMap2D({
         <div className="relative w-full overflow-x-auto pb-6 pt-2">
           <div
             role="grid"
+            data-testid="seatmap-grid"
             aria-label="2D Auditorium Seat Selection Map"
             className="space-y-8 py-2 min-w-max mx-auto flex flex-col items-center transition-transform duration-150 origin-top"
             style={{ transform: zoom !== 1 ? `scale(${zoom})` : undefined }}
@@ -894,31 +1125,43 @@ export function SeatMap2D({
 
                             const groupMember = seatGroupMemberMap.get(seatId);
 
+                            const statusWord = isSelected ? 'selected' : (isBooked ? 'booked' : (isHeld ? 'held' : 'available'));
+                            const accessibleKind = isAccessible ? ', accessible wheelchair space' : (s.is_companion ? ', companion seat' : '');
+                            const accessibleName = `Row ${s.row}, seat ${s.number}, ${tier.name}, ${Math.round(seatPrice)} rupees, ${statusWord}${accessibleKind}`;
+
                             return (
                               <div
                                 key={seatId}
+                                role="gridcell"
+                                aria-selected={isSelected}
                                 className={`relative flex items-center justify-center p-1 ${
                                   hasAisleAfter ? 'mr-5 sm:mr-8 md:mr-10' : ''
                                 }`}
                               >
                                 <button
                                   type="button"
-                                  role="gridcell"
-                                  aria-selected={isSelected}
+                                  aria-pressed={isSelected}
                                   aria-disabled={isBooked || isHeld}
-                                  aria-label={`Seat ${seatId}, ${tier.name} ₹${Math.round(seatPrice)}, ${status}, Comfort Score: ${score}`}
+                                  aria-label={accessibleName}
                                   onClick={() => {
                                     focusedSeatIdRef.current = seatId;
                                     setFocusedSeatId(seatId);
-                                    if (!isBooked && !isHeld) {
-                                      toggleSeat(seatId);
-                                    } else {
-                                      showToast(`Seat ${seatId} is ${status} and cannot be selected. You can still preview its sightline.`);
-                                    }
+                                    handleSeatToggle(seatId);
                                   }}
-                                  onFocus={() => {
+                                  onFocus={(e) => {
                                     focusedSeatIdRef.current = seatId;
                                     setFocusedSeatId(seatId);
+                                    const rect = e.currentTarget.getBoundingClientRect();
+                                    setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top });
+                                    setHoveredSeat({
+                                      seat_id: seatId,
+                                      row: s.row,
+                                      number: s.number,
+                                      category: s.category || tier.name,
+                                      price: seatPrice,
+                                      status: status,
+                                      is_accessible: isAccessible,
+                                    });
                                   }}
                                   onMouseEnter={(e) => {
                                     focusedSeatIdRef.current = seatId;
@@ -936,27 +1179,30 @@ export function SeatMap2D({
                                     });
                                   }}
                                   onMouseLeave={() => setHoveredSeat(null)}
-                                  onKeyDown={(e) => {
-                                    if (e.key === 'v' || e.key === 'V' || e.key === 'KeyV' || e.code === 'KeyV') {
-                                      e.preventDefault();
-                                      handleViewPOV(seatId);
-                                    }
-                                  }}
-                                  className={`h-9 w-9 sm:h-10 sm:w-10 min-w-[36px] min-h-[36px] rounded-xl border-2 text-sm font-bold flex items-center justify-center transition-all duration-150 relative touch-manipulation before:absolute before:-inset-1 before:min-w-[44px] before:min-h-[44px] before:content-[''] ${bgClass} ${
+                                  onKeyDown={(e) => handleGridArrowNavigation(e, s, seatsInRow, seatId)}
+                                  className={`h-9 w-9 sm:h-10 sm:w-10 min-w-[36px] min-h-[36px] rounded-xl border-2 text-sm font-bold flex items-center justify-center transition-all duration-150 relative touch-manipulation before:absolute before:-inset-1 before:min-w-[44px] before:min-h-[44px] before:content-[''] focus-visible:ring-4 focus-visible:ring-[#C8102E] focus-visible:ring-offset-2 outline-none ${bgClass} ${
                                     isFocused ? 'ring-2 ring-[#C8102E]' : ''
-                                  }`}
+                                  } ${tier.category === 'premier' ? 'rounded-2xl' : ''}`}
                                   data-testid={`seat-2d-${seatId}`}
                                   data-seat-id={seatId}
                                   data-status={isSelected ? 'selected' : status}
                                   data-score={score}
                                 >
-                                  {isHeatmapActive && !isSelected ? Math.round(score) : (isSelected ? '✓' : s.number)}
+                                  {isSelected ? '✓' : (isBooked ? '✕' : (isHeld ? '⏳' : (isHeatmapActive ? Math.round(score) : s.number)))}
                                   {isAccessible && !isSelected && (
                                     <span
                                       title="Wheelchair Accessible Seat"
                                       className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white font-bold ring-1 ring-white"
                                     >
                                       ♿
+                                    </span>
+                                  )}
+                                  {s.is_companion && !isSelected && (
+                                    <span
+                                      title="Companion Seat"
+                                      className="absolute -top-1.5 -left-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-purple-600 text-[9px] text-white font-bold ring-1 ring-white"
+                                    >
+                                      C
                                     </span>
                                   )}
                                   {groupMember && (
@@ -1039,6 +1285,28 @@ export function SeatMap2D({
                   <Compass className="h-4 w-4 text-[#C8102E]" />
                   <span>See view from this seat</span>
                 </button>
+
+                {enableShareView && (
+                  <button
+                    type="button"
+                    onClick={() => setIsShareOpen(true)}
+                    data-testid="open-share-view-btn"
+                    className="flex min-h-[44px] items-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 px-3.5 py-2 text-sm font-bold text-[#C8102E] shadow-sm hover:bg-rose-100 transition active:scale-95"
+                  >
+                    <span>Share View</span>
+                  </button>
+                )}
+
+                {enableSoundPreview && (
+                  <button
+                    type="button"
+                    onClick={() => setIsSoundOpen(true)}
+                    data-testid="open-sound-preview-btn"
+                    className="flex min-h-[44px] items-center gap-1.5 rounded-xl border border-purple-300 bg-purple-50 px-3.5 py-2 text-sm font-bold text-purple-900 shadow-sm hover:bg-purple-100 transition active:scale-95"
+                  >
+                    <span>Hear From Here</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1236,6 +1504,66 @@ export function SeatMap2D({
           onClose={() => setIsGroupModalOpen(false)}
           showtimeId={Number(showtimeId)}
         />
+
+        {/* Optional Extras (Part 2) Modals */}
+        {enableGuidedTour && (
+          <Guided3DTour
+            isOpen={isTourOpen}
+            onClose={() => setIsTourOpen(false)}
+            cinemaName={showtimeDetails?.cinema_name}
+            auditoriumName={showtimeDetails?.auditorium_name}
+          />
+        )}
+
+        {enableSeatCompare && (
+          <SeatCompareModal
+            isOpen={isCompareOpen}
+            onClose={() => setIsCompareOpen(false)}
+            availableSeats={seatsList.map((s) => s.seat_id)}
+            initialSeats={selectedSeats.length > 0 ? selectedSeats : ['E05', 'F06', 'A02']}
+            onSelectSeat={(sId) => handleSeatToggle(sId)}
+          />
+        )}
+
+        {enableShareView && (focusedSeat || seatsList[0]) && (
+          <ShareMyViewModal
+            isOpen={isShareOpen}
+            onClose={() => setIsShareOpen(false)}
+            seatId={(focusedSeat || seatsList[0]).seat_id}
+            movieTitle={showtimeDetails?.movie_title}
+            cinemaName={showtimeDetails?.cinema_name}
+            auditoriumName={showtimeDetails?.auditorium_name}
+          />
+        )}
+
+        {enableSoundPreview && (focusedSeat || seatsList[0]) && (
+          <HearItFromHereModal
+            isOpen={isSoundOpen}
+            onClose={() => setIsSoundOpen(false)}
+            seatId={(focusedSeat || seatsList[0]).seat_id}
+            distanceMeters={Math.round((focusedSeat || seatsList[0]).position_gltf_y_up?.[2] || 12)}
+            offsetDeg={Math.round((focusedSeat || seatsList[0]).horizontal_offset_deg || 0)}
+          />
+        )}
+
+        {enableVrPreview && (focusedSeat || seatsList[0]) && (
+          <VrSeatPreviewModal
+            isOpen={isVrOpen}
+            onClose={() => setIsVrOpen(false)}
+            seatId={(focusedSeat || seatsList[0]).seat_id}
+          />
+        )}
+
+        {/* Screen Reader Live Announcements (WCAG 4.1.3 Status Messages) */}
+        <div
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+          className="sr-only"
+          data-testid="seat-map-announcer"
+        >
+          {liveAnnouncement}
+        </div>
       </div>
     </div>
   );

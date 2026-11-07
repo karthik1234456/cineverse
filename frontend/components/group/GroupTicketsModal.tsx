@@ -149,3 +149,4 @@ export function GroupTicketsModal({ isOpen, onClose, groupId }: GroupTicketsModa
     </div>
   );
 }
+

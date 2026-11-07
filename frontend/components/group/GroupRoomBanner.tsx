@@ -18,6 +18,7 @@ export function GroupRoomBanner({ showtimeId, onRefreshSeats }: GroupRoomBannerP
   const selectedSeats = useCinemaStore((s) => s.selectedSeats);
 
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [timerAnnouncement, setTimerAnnouncement] = useState<string>('');
   const [isExtending, setIsExtending] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
   const [isTicketsOpen, setIsTicketsOpen] = useState(false);
@@ -96,6 +97,12 @@ export function GroupRoomBanner({ showtimeId, onRefreshSeats }: GroupRoomBannerP
     const interval = setInterval(() => {
       const remaining = Math.max(0, Math.floor((target - Date.now()) / 1000));
       setTimeLeft(remaining);
+
+      // Throttled screen reader announcement at key milestones (WCAG 4.1.3)
+      if (remaining === 300 || remaining === 120 || remaining === 60 || remaining === 30) {
+        setTimerAnnouncement(`Group seat hold expires in ${formatTimer(remaining)}.`);
+      }
+
       if (remaining <= 0 && (activeGroup.status === 'HELD' || activeGroup.status === 'PARTIALLY_PAID')) {
         // Trigger timeout check on backend
         apiFetch(`/groups/${activeGroup.id}/timeout`, { method: 'POST' })
@@ -328,6 +335,11 @@ export function GroupRoomBanner({ showtimeId, onRefreshSeats }: GroupRoomBannerP
         onClose={() => setIsTicketsOpen(false)}
         groupId={activeGroup.id}
       />
+
+      {/* Screen Reader Hold Timer Milestone Announcements */}
+      <div role="status" aria-live="polite" className="sr-only">
+        {timerAnnouncement}
+      </div>
     </>
   );
 }

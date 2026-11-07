@@ -15,6 +15,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useMovieBackdrop, BackdropMovie } from '@/context/MovieBackdropContext';
+import { useComfortStore } from '@/store/useComfortStore';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -139,6 +140,8 @@ export function MovieBackdrop() {
 
   const reducedMotion = useReducedMotion();
   const dataSaver = useDataSaver();
+  const simpleMode = useComfortStore((s) => s.simpleMode);
+  const comfortReducedMotion = useComfortStore((s) => s.reducedMotion);
 
   // Crossfade: we keep "displayed" and "incoming" movies to animate between them
   const [displayedMovie, setDisplayedMovie] = useState<BackdropMovie | null>(null);
@@ -166,6 +169,8 @@ export function MovieBackdrop() {
     visible &&
     isBgVideoEnabled &&
     !reducedMotion &&
+    !comfortReducedMotion &&
+    !simpleMode &&
     !dataSaver &&
     !isTrailerModalOpen &&
     !isPausedBy3D;

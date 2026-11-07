@@ -21,16 +21,87 @@ html {
   color: var(--foreground);
 }
 
+/* Dynamic text size scaling (WCAG 1.4.4 Resize text) */
+html.text-size-100 {
+  font-size: 16px;
+}
+html.text-size-125 {
+  font-size: 20px;
+}
+html.text-size-150 {
+  font-size: 24px;
+}
+
+/* High contrast mode (WCAG 1.4.3 / 1.4.6 Contrast) */
+html.high-contrast {
+  --background: #000000 !important;
+  --foreground: #FFFFFF !important;
+  --text-muted: #E2E8F0 !important;
+  --card-bg: #0A0A0A !important;
+  --border-color: #FFFFFF !important;
+  --primary-crimson: #FFFF00 !important;
+  --primary-hover: #FFF000 !important;
+}
+
+html.high-contrast body {
+  background-color: #000000 !important;
+  color: #FFFFFF !important;
+}
+
+html.high-contrast .border-[#E6DCD2],
+html.high-contrast .border {
+  border-color: #FFFFFF !important;
+}
+
+html.high-contrast .bg-white,
+html.high-contrast .bg-[#FFF8F1],
+html.high-contrast .bg-[#FAF6F0],
+html.high-contrast .bg-[#FDEBD8] {
+  background-color: #121212 !important;
+  color: #FFFFFF !important;
+}
+
+html.high-contrast .text-[#1B1320],
+html.high-contrast .text-[#4A4056] {
+  color: #FFFFFF !important;
+}
+
+html.high-contrast :focus-visible {
+  outline: 4px solid #FFFF00 !important;
+  outline-offset: 3px !important;
+}
+
+/* Reduced motion mode (WCAG 2.3.3 Animation from Interactions) */
+html.reduced-motion *,
+html.reduced-motion *::before,
+html.reduced-motion *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+/* Simple mode: hides 3D canvas and looping video for fast/accessible reading */
+html.simple-mode [data-testid="auditorium-3d-wrapper"],
+html.simple-mode [data-testid="movie-backdrop-video"] {
+  display: none !important;
+}
+
 body {
   color: var(--foreground);
   background-color: var(--background);
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', 'Plus Jakarta Sans', sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Noto Sans Devanagari', 'Noto Sans Kannada', 'Segoe UI', Roboto, 'Inter', 'Plus Jakarta Sans', sans-serif;
   font-size: 1.125rem; /* 18px body baseline */
   line-height: 1.6;
   margin: 0;
   padding: 0;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Multi-lingual word wrapping for longer regional strings (Hindi, Kannada) */
+p, span, h1, h2, h3, h4, h5, h6, button, a {
+  overflow-wrap: break-word;
 }
 
 /* Ensure no text anywhere renders below 14px */

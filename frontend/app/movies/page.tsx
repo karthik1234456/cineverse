@@ -202,6 +202,7 @@ function MoviesListContent() {
           onChange={(e) => handleLanguageChange(e.target.value)}
           className="rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3.5 py-2.5 text-sm font-medium text-[#1B1320] focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           data-testid="language-filter"
+          aria-label="Filter by Language"
         >
           <option value="All">All Languages</option>
           <option value="English">English</option>
@@ -218,6 +219,7 @@ function MoviesListContent() {
           onChange={(e) => handleGenreChange(e.target.value)}
           className="rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3.5 py-2.5 text-sm font-medium text-[#1B1320] focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           data-testid="genre-filter"
+          aria-label="Filter by Genre"
         >
           <option value="All">All Genres</option>
           <option value="Sci-Fi">Sci-Fi</option>
@@ -234,6 +236,7 @@ function MoviesListContent() {
           onChange={(e) => handleFormatChange(e.target.value)}
           className="rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3.5 py-2.5 text-sm font-medium text-[#1B1320] focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           data-testid="format-filter"
+          aria-label="Filter by Format"
         >
           <option value="All">All Formats</option>
           <option value="IMAX 3D">IMAX 3D</option>
@@ -248,6 +251,7 @@ function MoviesListContent() {
           onChange={(e) => handleCertChange(e.target.value)}
           className="rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3.5 py-2.5 text-sm font-medium text-[#1B1320] focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           data-testid="certificate-filter"
+          aria-label="Filter by Age Rating Certificate"
         >
           <option value="All">All Ratings</option>
           <option value="U">U (Universal)</option>
@@ -263,6 +267,7 @@ function MoviesListContent() {
             onChange={(e) => handleSortChange(e.target.value)}
             className="rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3.5 py-2.5 text-sm font-medium text-[#1B1320] focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
             data-testid="sort-filter"
+            aria-label="Sort Movies By"
           >
             <option value="popularity">Popularity</option>
             <option value="rating">Top Rated</option>

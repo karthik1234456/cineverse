@@ -270,3 +270,4 @@ def check_invariants(s: GroupState, all_effects: List[Effect]) -> List[str]:
         bad.append("seats released and confirmed")
 
     return bad
+

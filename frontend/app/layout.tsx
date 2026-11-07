@@ -7,6 +7,7 @@ import { TrailerPlayer } from '@/components/TrailerPlayer';
 import { MiniPlayerDock } from '@/components/MiniPlayerDock';
 import { MovieBackdropProvider } from '@/context/MovieBackdropContext';
 import { MovieBackdrop } from '@/components/backdrop/MovieBackdrop';
+import { ComfortInitializer } from '@/components/ComfortInitializer';
 
 export const metadata: Metadata = {
   title: 'CineVerse — Experience The Theatre Before Booking Your Movie',
@@ -32,6 +33,7 @@ export default function RootLayout({
       </head>
       <body className="bg-[#FFF8F1] text-[#1B1320] text-base antialiased min-h-screen flex flex-col font-sans">
         <QueryProvider>
+          <ComfortInitializer />
           <MovieBackdropProvider>
             {/* Fixed behind all content */}
             <MovieBackdrop />

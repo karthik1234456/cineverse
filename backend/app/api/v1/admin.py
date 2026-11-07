@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import List, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
@@ -209,4 +209,164 @@ async def create_showtime(
     await db.refresh(showtime)
 
     return {"message": "Showtime created successfully", "showtime_id": showtime.id}
+
+
+@router.get("/operations/dashboard")
+async def get_cinema_operations_dashboard(
+    cinema_id: int,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.CINEMA_MANAGER])),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Cinema operations dashboard for managers:
+    Returns today's shows with live occupancy, scan admission counts,
+    food orders, cancellations, and refunds.
+    Enforces cinema manager isolation: each manager sees only their own cinema.
+    """
+    if current_user.role == RoleEnum.CINEMA_MANAGER:
+        if current_user.cinema_id is not None and current_user.cinema_id != cinema_id:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Forbidden: Cinema manager is not authorized to access cinema {cinema_id}"
+            )
+
+    cinema = await db.get(Cinema, cinema_id)
+    if not cinema:
+        raise HTTPException(status_code=404, detail="Cinema not found")
+
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timedelta(days=1)
+
+    shows_stmt = (
+        select(Showtime)
+        .where(
+            Showtime.cinema_id == cinema_id,
+            Showtime.start_time >= today_start,
+            Showtime.start_time < today_end
+        )
+        .options(
+            selectinload(Showtime.movie),
+            selectinload(Showtime.auditorium)
+        )
+        .order_by(Showtime.start_time.asc())
+    )
+    shows_res = await db.execute(shows_stmt)
+    shows = shows_res.scalars().all()
+
+    from app.models.operations import TicketScanLog, ScanResultEnum, FoodOrder, FoodDeliveryStatusEnum
+
+    shows_data = []
+    total_scans_today = 0
+    total_food_orders_today = 0
+    total_cancellations_today = 0
+    total_refunds_today = 0.0
+
+    for sh in shows:
+        # Occupancy
+        inv_stmt = select(SeatInventory).where(SeatInventory.showtime_id == sh.id)
+        inv_res = await db.execute(inv_stmt)
+        invs = inv_res.scalars().all()
+        total_capacity = len(invs) or 1
+        booked_seats = sum(1 for i in invs if i.status in [SeatStatusEnum.BOOKED, SeatStatusEnum.HELD])
+        occupancy_pct = round((booked_seats / total_capacity) * 100, 1)
+
+        # Scans
+        from app.models.booking import Ticket
+        scan_stmt = (
+            select(func.count(TicketScanLog.id))
+            .join(Ticket, TicketScanLog.ticket_id == Ticket.id)
+            .join(Booking, Ticket.booking_id == Booking.id)
+            .where(
+                Booking.showtime_id == sh.id,
+                TicketScanLog.scan_result.in_([ScanResultEnum.SUCCESS, ScanResultEnum.OFFLINE_RESOLVED])
+            )
+        )
+        scan_res = await db.execute(scan_stmt)
+        admitted_scans = scan_res.scalar() or 0
+        total_scans_today += admitted_scans
+
+        # Food orders
+        food_stmt = select(FoodOrder).where(FoodOrder.showtime_id == sh.id)
+        food_res = await db.execute(food_stmt)
+        food_orders = food_res.scalars().all()
+        food_count = len(food_orders)
+        total_food_orders_today += food_count
+
+        food_preparing = sum(1 for fo in food_orders if fo.delivery_status == FoodDeliveryStatusEnum.PREPARING)
+        food_ready = sum(1 for fo in food_orders if fo.delivery_status == FoodDeliveryStatusEnum.READY)
+        food_delivered = sum(1 for fo in food_orders if fo.delivery_status == FoodDeliveryStatusEnum.DELIVERED)
+
+        # Cancellations & refunds for this showtime
+        cancel_stmt = select(Booking).where(
+            Booking.showtime_id == sh.id,
+            Booking.status == BookingStatusEnum.CANCELLED
+        )
+        cancel_res = await db.execute(cancel_stmt)
+        cancelled_bookings = cancel_res.scalars().all()
+        cancel_count = len(cancelled_bookings)
+        refund_amount = sum(b.final_total_amount * 0.75 for b in cancelled_bookings)  # 75% refund policy
+        total_cancellations_today += cancel_count
+        total_refunds_today += refund_amount
+
+        shows_data.append({
+            "showtime_id": sh.id,
+            "movie_title": sh.movie.title if sh.movie else "Feature Film",
+            "auditorium_name": sh.auditorium.name if sh.auditorium else f"Auditorium {sh.auditorium_id}",
+            "start_time": sh.start_time.isoformat(),
+            "format": sh.format,
+            "language": sh.language,
+            "total_capacity": total_capacity,
+            "booked_seats": booked_seats,
+            "occupancy_percentage": occupancy_pct,
+            "admitted_scans": admitted_scans,
+            "food_orders_count": food_count,
+            "food_breakdown": {
+                "preparing": food_preparing,
+                "ready": food_ready,
+                "delivered": food_delivered
+            },
+            "cancellations_count": cancel_count,
+            "refund_amount_inr": round(refund_amount, 2)
+        })
+
+    return {
+        "cinema_id": cinema.id,
+        "cinema_name": cinema.name,
+        "date": today_start.strftime("%Y-%m-%d"),
+        "total_shows": len(shows),
+        "total_admitted_scans": total_scans_today,
+        "total_food_orders": total_food_orders_today,
+        "total_cancellations": total_cancellations_today,
+        "total_refunds_inr": round(total_refunds_today, 2),
+        "shows": shows_data
+    }
+
+
+@router.get("/operations/export")
+async def export_cinema_operations_csv(
+    cinema_id: int,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.CINEMA_MANAGER])),
+    db: AsyncSession = Depends(get_db)
+):
+    """Exports cinema operations telemetry as CSV."""
+    dash = await get_cinema_operations_dashboard(cinema_id, current_user, db)
+    import csv
+    import io
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Showtime ID", "Movie Title", "Auditorium", "Start Time", "Capacity",
+        "Booked Seats", "Occupancy %", "Admitted Scans", "Food Orders", "Cancellations", "Refunds (INR)"
+    ])
+    for s in dash["shows"]:
+        writer.writerow([
+            s["showtime_id"], s["movie_title"], s["auditorium_name"], s["start_time"],
+            s["total_capacity"], s["booked_seats"], f"{s['occupancy_percentage']}%",
+            s["admitted_scans"], s["food_orders_count"], s["cancellations_count"], s["refund_amount_inr"]
+        ])
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=cinema_{cinema_id}_operations_{dash['date']}.csv"}
+    )
 

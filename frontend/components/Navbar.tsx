@@ -6,10 +6,11 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import {
   MapPin, Search, User, LogOut, Ticket, ShieldCheck,
-  Film, History, X, Star, Building2
+  Film, History, X, Star, Building2, Eye
 } from 'lucide-react';
 import { CityModal } from './CityModal';
 import { AuthModal } from './AuthModal';
+import { ComfortSettingsModal } from './ComfortSettingsModal';
 import type { City, SearchResult } from '@/services/api';
 import { getCities, getStoredUser, logoutUser, globalSearch } from '@/services/api';
 
@@ -20,6 +21,7 @@ export function Navbar() {
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
   const [isCityModalOpen, setIsCityModalOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isComfortModalOpen, setIsComfortModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);
 
   // Search state
@@ -128,23 +130,23 @@ export function Navbar() {
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b border-[#E6DCD2] bg-white/95 backdrop-blur-md shadow-sm">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-2 sm:px-6 lg:px-8">
           {/* Logo & City Selector */}
-          <div className="flex items-center gap-5">
-            <Link href="/" className="flex items-center gap-2 group">
-              <span className="text-3xl font-black tracking-tight text-[#C8102E]">
+          <div className="flex items-center gap-2 sm:gap-5 min-w-0">
+            <Link href="/" className="flex items-center gap-1 shrink-0">
+              <span className="text-xl sm:text-3xl font-black tracking-tight text-[#C8102E]">
                 CINEVERSE
               </span>
             </Link>
 
             <button
               onClick={() => setIsCityModalOpen(true)}
-              className="flex items-center gap-2 rounded-full border border-[#E6DCD2] bg-[#FDEBD8] px-3.5 py-2 text-sm font-semibold text-[#1B1320] hover:bg-[#fbdcb9] hover:border-[#d4c2b0] transition shadow-sm min-h-[44px]"
+              className="flex items-center gap-1.5 rounded-full border border-[#E6DCD2] bg-[#FDEBD8] px-2.5 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-semibold text-[#1B1320] hover:bg-[#fbdcb9] hover:border-[#d4c2b0] transition shadow-sm min-h-[44px] shrink-0"
               data-testid="city-selector-button"
-              aria-label="Select City"
+              aria-label={selectedCity ? `${selectedCity.name}, change city` : "Select City"}
             >
-              <MapPin className="h-4 w-4 text-[#C8102E]" />
-              <span>{selectedCity ? selectedCity.name : 'Select City'}</span>
+              <MapPin className="h-4 w-4 text-[#C8102E] shrink-0" />
+              <span className="truncate max-w-[70px] sm:max-w-none">{selectedCity ? selectedCity.name : 'City'}</span>
             </button>
           </div>
 
@@ -327,10 +329,10 @@ export function Navbar() {
           </div>
 
           {/* Simple Navigation Links & Account (< 6 visible items) */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
             <Link
               href="/movies"
-              className="text-base font-semibold text-[#1B1320] hover:text-[#C8102E] px-3 py-2 rounded-lg transition min-h-[44px] flex items-center"
+              className="hidden md:flex text-base font-semibold text-[#1B1320] hover:text-[#C8102E] px-3 py-2 rounded-lg transition min-h-[44px] items-center"
             >
               Movies
             </Link>
@@ -348,6 +350,18 @@ export function Navbar() {
             >
               My Tickets
             </Link>
+
+            <button
+              type="button"
+              onClick={() => setIsComfortModalOpen(true)}
+              className="p-2 sm:p-2.5 rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] text-[#1B1320] hover:text-[#C8102E] hover:border-[#C8102E] transition min-w-[44px] min-h-[44px] flex items-center justify-center gap-1.5 font-medium text-sm shrink-0"
+              title="Comfort & Accessibility Settings"
+              aria-label="Comfort & Accessibility Settings"
+              data-testid="comfort-settings-btn"
+            >
+              <Eye className="h-5 w-5 text-[#C8102E]" aria-hidden="true" />
+              <span className="hidden md:inline">Comfort</span>
+            </button>
 
             {currentUser ? (
               <div className="flex items-center gap-2 pl-2 border-l border-[#E6DCD2]">
@@ -382,9 +396,9 @@ export function Navbar() {
             ) : (
               <button
                 onClick={() => setIsAuthModalOpen(true)}
-                className="flex items-center gap-2 rounded-xl bg-[#C8102E] px-5 py-2.5 text-base font-bold text-white hover:bg-[#A60D26] active:bg-[#8B0A20] transition shadow-md min-h-[48px]"
+                className="flex items-center gap-1.5 rounded-xl bg-[#C8102E] px-3 sm:px-5 py-2 sm:py-2.5 text-sm sm:text-base font-bold text-white hover:bg-[#A60D26] active:bg-[#8B0A20] transition shadow-md min-h-[44px] sm:min-h-[48px] shrink-0"
               >
-                <User className="h-5 w-5" />
+                <User className="h-4 w-4 sm:h-5 sm:w-5" />
                 <span>Sign In</span>
               </button>
             )}
@@ -412,6 +426,11 @@ export function Navbar() {
           setCurrentUser(u);
           setIsAuthModalOpen(false);
         }}
+      />
+      {/* Comfort Settings Modal */}
+      <ComfortSettingsModal
+        isOpen={isComfortModalOpen}
+        onClose={() => setIsComfortModalOpen(false)}
       />
     </>
   );

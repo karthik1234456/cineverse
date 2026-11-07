@@ -91,6 +91,7 @@ class Seat(Base):
     vertical_angle_deg = Column(Float, default=0.0)
     horizontal_angle_deg = Column(Float, default=0.0)
     is_accessible = Column(Boolean, default=False)
+    is_companion = Column(Boolean, default=False)
 
     auditorium = relationship("Auditorium", back_populates="seats")
 
