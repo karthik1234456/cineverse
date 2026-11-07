@@ -64,8 +64,19 @@ test("idempotency: same event id twice, and same payment id under a new event id
 });
 test("after CONFIRMED: payments are refunded, expiry and cancel do nothing, confirm is never repeated", () => {
   const a = run(mk(), [pay("1", "host", 21234), pay("2", "m1", 21233), pay("3", "m2", 21233)]);
-  const b = run(a.s, [{ id: "x", type: "HOLD_EXPIRED" }, { id: "c", type: "CANCEL", byMemberId: "host" }, pay("4", "m1", 21233)]);
-  assert.equal(b.s.phase, "CONFIRMED"); assert.equal(count(b.all, "refund"), 1); assert.equal(count(b.all, "releaseSeats"), 0); assert.equal(count(b.all, "confirmBooking"), 0);
+  const all = [...a.all];
+  const postEvents: GroupEvent[] = [{ id: "x", type: "HOLD_EXPIRED" }, { id: "c", type: "CANCEL", byMemberId: "host" }, pay("4", "m1", 21233)];
+  let s = a.s;
+  for (const e of postEvents) {
+    const r = reduce(s, e);
+    s = r.state;
+    all.push(...r.effects);
+    assert.deepEqual(checkInvariants(s, all), [], `after post-event ${e.type} ${e.id}`);
+  }
+  assert.equal(s.phase, "CONFIRMED");
+  assert.equal(count(all, "refund"), 1);
+  assert.equal(count(all, "releaseSeats"), 0);
+  assert.equal(count(all, "confirmBooking"), 1);
 });
 test("only the host can cancel; cancel refunds paid shares and releases seats", () => {
   const a = run(mk(), [pay("1", "m1", 21233), { id: "c1", type: "CANCEL", byMemberId: "m2" }]); assert.equal(a.s.phase, "PARTIALLY_PAID");

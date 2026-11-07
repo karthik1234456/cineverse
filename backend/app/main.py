@@ -34,6 +34,7 @@ from app.api.v1.operations.scanning import router as scanning_router
 from app.api.v1.operations.food import router as food_router
 from app.api.v1.operations.loyalty import router as loyalty_router
 from app.api.v1.operations.transfer import router as transfer_router
+from app.api.v1.group_booking import router as group_booking_router
 from app.api.v1.waitlist import router as waitlist_router
 from app.api.v1.pricing import router as pricing_router
 from app.api.v1.insights import router as insights_router
@@ -206,6 +207,7 @@ def create_app() -> FastAPI:
     application.include_router(food_router)
     application.include_router(loyalty_router)
     application.include_router(transfer_router)
+    application.include_router(group_booking_router, prefix=f"{v1}/groups", tags=["Group Booking"])
     application.include_router(ws_router, tags=["WebSockets"])
 
     # 6. Static files mount for trailers, posters, backdrops with byte-range support
