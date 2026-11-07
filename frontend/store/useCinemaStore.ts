@@ -107,6 +107,12 @@ export interface CinemaState {
   toggleHeatmap: () => void;
   setHeatmapActive: (active: boolean) => void;
 
+  // Phase 10 Group Booking
+  activeGroup: any | null;
+  groupMemberMap: Record<string, { userId: number; userName: string; initials: string; color: string; proposedSeats: string[]; assignedSeats: string[]; role: string }>;
+  setActiveGroup: (group: any | null) => void;
+  updateGroupMemberSeats: (userId: number, seats: string[]) => void;
+
   // Feedback & Toast
   toastMessage: string | null;
   lastBoundaryNoticeTime: number;
@@ -260,6 +266,43 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   isHeatmapActive: false,
   toggleHeatmap: () => set((state) => ({ isHeatmapActive: !state.isHeatmapActive })),
   setHeatmapActive: (active) => set({ isHeatmapActive: active }),
+
+  activeGroup: null,
+  groupMemberMap: {},
+  setActiveGroup: (group) => {
+    if (!group) {
+      set({ activeGroup: null, groupMemberMap: {} });
+      return;
+    }
+    const memberMap: Record<string, any> = {};
+    for (const m of group.members || []) {
+      memberMap[m.user_id] = {
+        userId: m.user_id,
+        userName: m.user_name,
+        initials: m.initials,
+        color: m.color,
+        proposedSeats: m.proposed_seats || [],
+        assignedSeats: m.assigned_seats || [],
+        role: m.role,
+      };
+    }
+    set({ activeGroup: group, groupMemberMap: memberMap });
+  },
+  updateGroupMemberSeats: (userId, seats) => {
+    set((state) => {
+      const current = state.groupMemberMap[userId];
+      if (!current) return state;
+      return {
+        groupMemberMap: {
+          ...state.groupMemberMap,
+          [userId]: {
+            ...current,
+            proposedSeats: seats,
+          },
+        },
+      };
+    });
+  },
 
   toastMessage: null,
   lastBoundaryNoticeTime: 0,

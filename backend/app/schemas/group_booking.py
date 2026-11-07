@@ -22,6 +22,37 @@ class JoinGroupRequest(BaseModel):
     invite_token: str
 
 
+class ConfirmSelectionRequest(BaseModel):
+    seat_allocations: Dict[int, List[str]]
+    share_amounts_paise: Optional[Dict[int, int]] = None
+
+
+class RecordPaymentRequest(BaseModel):
+    payment_id: str
+    amount_paise: int
+
+
+class ExtendHoldResponse(BaseModel):
+    success: bool
+    hold_expires_at: datetime
+    hold_extended_count: int
+    message: str
+
+
+class GroupTicketResponse(BaseModel):
+    member_id: int
+    user_id: int
+    user_name: str
+    ticket_number: str
+    seats: List[str]
+    qr_data: str
+    qr_code_url: Optional[str] = None
+    movie_title: str
+    cinema_name: str
+    show_time: datetime
+    is_paid: bool
+
+
 class GroupMemberResponse(BaseModel):
     id: int
     user_id: int
@@ -52,6 +83,7 @@ class GroupBookingResponse(BaseModel):
     max_members: int
     hold_id: Optional[str] = None
     hold_expires_at: Optional[datetime] = None
+    hold_extended_count: int = 0
     total_amount: float
     total_amount_paise: int
     members: List[GroupMemberResponse]

@@ -11,6 +11,7 @@ import { CameraController } from './CameraController';
 import { TheatreLighting } from './TheatreLighting';
 import { CinemaScreen } from './Screen';
 import { WayfindingLabels } from './WayfindingLabels';
+import { GroupSeatMarkers } from './GroupSeatMarkers';
 import { LoadingOverlay, WebGLFallback } from './LoadingOverlay';
 
 interface CinemaWorldProps {
@@ -84,6 +85,7 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
           <CinemaScreen />
           <TheatreLighting />
           <WayfindingLabels />
+          <GroupSeatMarkers />
           <CameraController />
           <DevBridge />
         </Suspense>

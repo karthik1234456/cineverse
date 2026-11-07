@@ -1,20 +1,22 @@
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Compass, ArrowLeft, X,
   Ticket, AlertCircle, Loader2,
-  Flame, Sparkles, Bell, ShieldCheck, UserCheck, ZoomIn, ZoomOut, RotateCcw
+  Flame, Sparkles, Bell, ShieldCheck, UserCheck, ZoomIn, ZoomOut, RotateCcw, Users
 } from 'lucide-react';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import { useSeatData } from '@/hooks/useSeatData';
 import { useSeatSocket } from '@/hooks/useSeatSocket';
-import { holdSeats, updateHoldAddons, getShowtimeSeats, type ShowtimeSeatsResponse, type SeatInventoryItem } from '@/services/api';
+import { holdSeats, updateHoldAddons, getShowtimeSeats, apiFetch, type ShowtimeSeatsResponse, type SeatInventoryItem } from '@/services/api';
 import { FnbAddonModal } from '@/components/FnbAddonModal';
 import layoutDataFallback from '@/public/models/seat_layout_v2.json';
 import obstructionsData from '@/public/models/seat_obstructions.json';
 import { viewScore, bestAvailable, type PreferenceType, type ScoredSeatInput } from '@/lib/seatScoring';
+import { GroupBookingModal } from '@/components/group/GroupBookingModal';
+import { GroupRoomBanner } from '@/components/group/GroupRoomBanner';
 import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
 
 interface SeatMap2DProps {
@@ -58,6 +60,47 @@ export function SeatMap2D({
   const showToast = useCinemaStore((s) => s.showToast);
   const isHeatmapActive = useCinemaStore((s) => s.isHeatmapActive);
   const toggleHeatmap = useCinemaStore((s) => s.toggleHeatmap);
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+
+  // Phase 10 Group Session Store & Params
+  const activeGroup = useCinemaStore((s) => s.activeGroup);
+  const groupMemberMap = useCinemaStore((s) => s.groupMemberMap);
+  const setActiveGroup = useCinemaStore((s) => s.setActiveGroup);
+  const searchParams = useSearchParams();
+  const groupIdParam = searchParams ? searchParams.get('groupId') : null;
+
+  useEffect(() => {
+    if (groupIdParam && (!activeGroup || activeGroup.id !== Number(groupIdParam))) {
+      apiFetch<any>(`/groups/${groupIdParam}`)
+        .then((g) => setActiveGroup(g))
+        .catch(() => {});
+    }
+  }, [groupIdParam, activeGroup, setActiveGroup]);
+
+  // Compute seatId -> group member representation
+  const seatGroupMemberMap = useMemo(() => {
+    const map = new Map<string, { initials: string; color: string; userName: string; isAssigned: boolean }>();
+    if (!groupMemberMap) return map;
+    for (const m of Object.values(groupMemberMap)) {
+      for (const s of m.proposedSeats || []) {
+        map.set(s, {
+          initials: m.initials,
+          color: m.color || '#E50914',
+          userName: m.userName,
+          isAssigned: false,
+        });
+      }
+      for (const s of m.assignedSeats || []) {
+        map.set(s, {
+          initials: m.initials,
+          color: m.color || '#E50914',
+          userName: m.userName,
+          isAssigned: true,
+        });
+      }
+    }
+    return map;
+  }, [groupMemberMap]);
 
   // TanStack Query + WebSocket sync
   useSeatData(showtimeId);
@@ -563,6 +606,16 @@ export function SeatMap2D({
 
           {/* Action Tools: Heatmap Toggle & Explore in 3D */}
           <div className="flex items-center gap-3 flex-wrap">
+            {/* Book With Friends Button (Phase 10) */}
+            <button
+              onClick={() => setIsGroupModalOpen(true)}
+              data-testid="book-with-friends-btn"
+              className="flex min-h-[44px] items-center gap-2 rounded-xl bg-gradient-to-r from-[#C8102E] to-rose-700 px-4 py-2 text-sm font-bold text-white shadow-md hover:from-rose-700 hover:to-rose-800 transition active:scale-95"
+            >
+              <Users className="h-4 w-4" />
+              <span>Book with friends</span>
+            </button>
+
             {/* Comfort Heatmap Toggle */}
             <button
               onClick={toggleHeatmap}
@@ -665,6 +718,9 @@ export function SeatMap2D({
             </div>
           </div>
         </div>
+
+        {/* Phase 10: Group Booking Active Session Room Banner */}
+        <GroupRoomBanner showtimeId={Number(showtimeId)} />
 
         {/* Curved Screen Banner with ambient glow */}
         <div className="pt-2 pb-6 flex flex-col items-center">
@@ -836,6 +892,8 @@ export function SeatMap2D({
                             // Aisle gap margin
                             const hasAisleAfter = aisles.includes(s.number);
 
+                            const groupMember = seatGroupMemberMap.get(seatId);
+
                             return (
                               <div
                                 key={seatId}
@@ -899,6 +957,16 @@ export function SeatMap2D({
                                       className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white font-bold ring-1 ring-white"
                                     >
                                       ♿
+                                    </span>
+                                  )}
+                                  {groupMember && (
+                                    <span
+                                      title={`Seat selected by ${groupMember.userName}`}
+                                      data-testid={`group-seat-badge-${seatId}`}
+                                      className="absolute -bottom-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black text-white ring-1 ring-white shadow-sm"
+                                      style={{ backgroundColor: groupMember.color }}
+                                    >
+                                      {groupMember.initials}
                                     </span>
                                   )}
                                 </button>
@@ -1160,6 +1228,13 @@ export function SeatMap2D({
           isOpen={isFnbModalOpen}
           onClose={() => setIsFnbModalOpen(false)}
           onProceed={handleCompleteCheckout}
+        />
+
+        {/* Group Booking Modal (Phase 10) */}
+        <GroupBookingModal
+          isOpen={isGroupModalOpen}
+          onClose={() => setIsGroupModalOpen(false)}
+          showtimeId={Number(showtimeId)}
         />
       </div>
     </div>

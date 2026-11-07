@@ -37,7 +37,7 @@ export function createGroup(hostId: string, shares: { memberId: string; amount: 
     shares: Object.fromEntries(shares.map((s) => [s.memberId, { memberId: s.memberId, amount: s.amount, status: "UNPAID" as const }])) };
 }
 const terminal = (p: Phase) => p === "CONFIRMED" || p === "EXPIRED" || p === "CANCELLED";
-const unpaidAmount = (s: GroupState) => Object.values(s.shares).filter((x) => x.status !== "PAID").reduce((a, x) => a + x.amount, 0);
+const _unpaidAmount = (s: GroupState) => Object.values(s.shares).filter((x) => x.status !== "PAID").reduce((a, x) => a + x.amount, 0);
 
 function refundAllPaid(s: GroupState, fx: Effect[], reason: string) {
   for (const sh of Object.values(s.shares)) if (sh.status === "PAID" && sh.paymentId) {

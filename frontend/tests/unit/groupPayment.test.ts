@@ -1,7 +1,7 @@
-import test from "node:test";
+import { test } from "vitest";
 import assert from "node:assert/strict";
-import { createGroup, reduce, checkInvariants, type GroupState, type GroupEvent, type Effect, type Policy } from "../../lib/groupPayment.ts";
-import { splitEqual } from "../../lib/money.ts";
+import { createGroup, reduce, checkInvariants, type GroupState, type GroupEvent, type Effect, type Policy } from "../../lib/groupPayment";
+import { splitEqual } from "../../lib/money";
 
 const mk = (policy: Policy = "refund_all", amounts = [21234, 21233, 21233]) => createGroup("host", amounts.map((a, i) => ({ memberId: i === 0 ? "host" : `m${i}`, amount: a })), policy);
 function run(s: GroupState, events: GroupEvent[]) {
