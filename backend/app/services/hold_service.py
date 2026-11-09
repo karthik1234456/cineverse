@@ -141,6 +141,28 @@ async def hold_seats(
     # 2. Rate limiting & Bot Protection
     _check_rate_limits(user_id, client_ip)
 
+    # 2.5 Server-enforced recliner pair integrity
+    st_res = await db.execute(select(Showtime).where(Showtime.id == showtime_id))
+    st_obj = st_res.scalar_one_or_none()
+    if st_obj:
+        from app.models.cinema import Auditorium
+        aud_res = await db.execute(select(Auditorium).where(Auditorium.id == st_obj.auditorium_id))
+        aud_obj = aud_res.scalar_one_or_none()
+        if aud_obj and aud_obj.layout_data:
+            recliner_pairs = aud_obj.layout_data.get("recliner_pairs", [])
+            pair_map = {}
+            for p in recliner_pairs:
+                if len(p) == 2:
+                    pair_map[p[0]] = p[1]
+                    pair_map[p[1]] = p[0]
+
+            expanded_seat_ids = list(seat_ids)
+            for sid in seat_ids:
+                partner = pair_map.get(sid)
+                if partner and partner not in expanded_seat_ids:
+                    expanded_seat_ids.append(partner)
+            seat_ids = expanded_seat_ids
+
     # 3. Clean up expired holds for this showtime first
     await db.execute(
         update(SeatInventory)

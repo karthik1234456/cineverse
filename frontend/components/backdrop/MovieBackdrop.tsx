@@ -111,6 +111,7 @@ function VideoLayer({ movie, shouldPlay, visible }: VideoLayerProps) {
   return (
     <video
       ref={videoRef}
+      data-testid="movie-backdrop-video"
       className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
       style={{ opacity: visible && movie?.glimpse_url ? 0.6 : 0 }}
       muted
@@ -193,10 +194,11 @@ export function MovieBackdrop() {
             key={displayedMovie.slug}
             src={displayedMovie.banner_url}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover"
+            className={`absolute inset-0 w-full h-full object-cover ${
+              !reducedMotion && !comfortReducedMotion ? 'ambient-still-pan' : ''
+            }`}
             style={{
               filter: 'blur(20px) saturate(1.1)',
-              transform: 'scale(1.08)',
               opacity: visible ? 1 : 0,
               transition: 'opacity 500ms ease',
             }}

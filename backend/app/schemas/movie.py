@@ -63,6 +63,11 @@ class MovieResponse(BaseModel):
     languages: List[str]
     genres: List[str]
     formats: List[str]
+    tmdb_id: Optional[int] = None
+    tmdb_vote_average: Optional[float] = None
+    tmdb_popularity: Optional[float] = None
+    is_tmdb: Optional[bool] = False
+    youtube_trailer_id: Optional[str] = None
 
     class Config:
         from_attributes = True

@@ -219,4 +219,99 @@ describe('Procedural Auditorium Generator — Faithfulness & Geometry Tests', ()
       expect(rowA[27].position_gltf_y_up[0]).toBe(-18.0);
     });
   });
+
+  describe('5. Realistic Cinema Upgrades: Levels, Curved Rows, Recliner Pairs, 4DX Flags and Architectural Geometries', () => {
+    const inputBalconyCurved4DX: AuditoriumLayoutInput = {
+      rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'],
+      seats_per_row: 20,
+      aisles: [5, 15],
+      accessible_seats: ['A01', 'A20'],
+      companion_seats: ['A02', 'A19'],
+      screen_type: 'Dolby Atmos 4DX',
+      total_seats: 260,
+      base_price: 380,
+      curve_radius: 28.0,
+      has_balcony: true,
+      balcony_rows: ['K', 'L', 'M'],
+      features: {
+        is_4dx: true,
+        motion_seats: true,
+        wind: true,
+        water: true,
+        fog: true,
+        scent: true,
+        strobe: true,
+        ticklers: true,
+        dolby_atmos: true,
+      },
+    };
+
+    const res = generateProceduralAuditorium(inputBalconyCurved4DX);
+
+    it('generates distinct Stalls and Balcony levels with elevated balcony tiers and structure', () => {
+      expect(res.seatLayout.has_balcony).toBe(true);
+      expect(res.seatLayout.levels?.stalls?.rows).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']);
+      expect(res.seatLayout.levels?.balcony?.rows).toEqual(['K', 'L', 'M']);
+
+      const rowJ = res.seatLayout.seats.find((s) => s.row === 'J' && s.number === 10);
+      const rowK = res.seatLayout.seats.find((s) => s.row === 'K' && s.number === 10);
+      expect(rowJ).toBeDefined();
+      expect(rowK).toBeDefined();
+      // Row K (Balcony) should have an elevation jump of > 2.0 meters above Row J (Stalls)
+      expect(rowK!.position_gltf_y_up[1]).toBeGreaterThan(rowJ!.position_gltf_y_up[1] + 2.0);
+
+      // Balcony structure exists with platform, fascia, railing, and coveLightBounds
+      expect(res.geometry.balconyStructure).toBeDefined();
+      expect(res.geometry.balconyStructure?.platform).toBeDefined();
+      expect(res.geometry.balconyStructure?.coveLightBounds).toBeDefined();
+    });
+
+    it('curves row arcs towards the screen at the side wings based on curve_radius', () => {
+      // For row D (Z baseline), the center seat (10 or 11) should have smaller Z than the edge seat (1)
+      const seatD01 = res.seatLayout.seats.find((s) => s.seat_id === 'D01')!;
+      const seatD10 = res.seatLayout.seats.find((s) => s.seat_id === 'D10')!;
+      // D01 has large X, so sagZ curves it towards screen (+Z direction)
+      expect(seatD01.position_gltf_y_up[2]).toBeGreaterThan(seatD10.position_gltf_y_up[2]);
+    });
+
+    it('designates recliner pairs with bidirectional partner linkage', () => {
+      const premierSeats = res.seatLayout.seats.filter((s) => s.seat_type === 'recliner_pair');
+      expect(premierSeats.length).toBeGreaterThan(0);
+
+      const seat1 = premierSeats[0];
+      expect(seat1.pair_partner_id).toBeDefined();
+      const partner = res.seatLayout.seats.find((s) => s.seat_id === seat1.pair_partner_id);
+      expect(partner).toBeDefined();
+      expect(partner!.pair_partner_id).toBe(seat1.seat_id);
+    });
+
+    it('marks accessible and companion seats appropriately', () => {
+      const a01 = res.seatLayout.seats.find((s) => s.seat_id === 'A01')!;
+      const a02 = res.seatLayout.seats.find((s) => s.seat_id === 'A02')!;
+      expect(a01.seat_type).toBe('accessible');
+      expect(a02.seat_type).toBe('companion');
+    });
+
+    it('flags 4DX features and motion zone seats', () => {
+      expect(res.seatLayout.features?.is_4dx).toBe(true);
+      expect(res.seatLayout.features?.motion_seats).toBe(true);
+      const motionSeats = res.seatLayout.seats.filter((s) => s.in_motion_zone);
+      expect(motionSeats.length).toBeGreaterThan(0);
+      // Row E should be in motion zone
+      expect(res.seatLayout.seats.find((s) => s.row === 'E')!.in_motion_zone).toBe(true);
+    });
+
+    it('generates rich architectural details: wooden slats, curtains, proscenium, exit signs, downlights, atmos speakers', () => {
+      expect(res.geometry.woodenSlats.length).toBeGreaterThan(0);
+      expect(res.geometry.sideCurtains.left).toBeDefined();
+      expect(res.geometry.sideCurtains.right).toBeDefined();
+      expect(res.geometry.proscenium).toBeDefined();
+      expect(res.geometry.exitSigns.length).toBe(2);
+      expect(res.geometry.ceilingDownlights.length).toBeGreaterThan(0);
+      expect(res.geometry.atmosSpeakers.length).toBe(12);
+      expect(res.geometry.carpetRunners.length).toBe(2);
+      expect(res.geometry.cameraPresets?.balcony).toBeDefined();
+      expect(res.geometry.cameraPresets?.screen).toBeDefined();
+    });
+  });
 });

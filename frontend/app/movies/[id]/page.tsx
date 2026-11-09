@@ -15,6 +15,7 @@ import {
 import { CinemaLocationModal } from '@/components/map/CinemaLocationModal';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useMovieBackdrop } from '@/context/MovieBackdropContext';
+import { MoviePoster } from '@/components/MoviePoster';
 
 export default function MovieDetailPage() {
   const params = useParams();
@@ -190,13 +191,14 @@ export default function MovieDetailPage() {
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 w-full flex flex-col md:flex-row items-center md:items-end gap-8">
           {/* Poster */}
           <div className="w-52 sm:w-60 shrink-0 aspect-[2/3] rounded-3xl overflow-hidden border-2 border-white/20 shadow-2xl bg-black/40 relative">
-            <img
+            <MoviePoster
               src={movie.poster_url}
               alt={movie.title}
+              title={movie.title}
+              certificate={movie.certificate}
               className="h-full w-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = 'none';
-              }}
+              containerClassName="h-full w-full"
+              priority
             />
             <div className="absolute top-3 left-3 rounded-lg bg-black/70 px-2.5 py-1 text-sm font-bold border border-white/20 backdrop-blur-md">
               {movie.certificate}

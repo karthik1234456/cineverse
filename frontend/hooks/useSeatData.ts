@@ -92,10 +92,18 @@ export function useSeatData(showtimeId: string = '1') {
             seats_per_row: data.layout_data.seats_per_row,
             aisles: data.layout_data.aisles || [],
             accessible_seats: data.layout_data.accessible_seats,
+            companion_seats: data.layout_data.companion_seats,
             category_bands: data.layout_data.category_bands as any,
             screen_type: data.screen_type,
             total_seats: data.seats && data.seats.length > 0 ? data.seats.length : (data.layout_data.rows.length * data.layout_data.seats_per_row),
             base_price: data.seats && data.seats[0] ? data.seats[0].price : 280,
+            curve_radius: data.layout_data.curve_radius,
+            angle_span: data.layout_data.angle_span,
+            levels: data.layout_data.levels,
+            has_balcony: data.layout_data.has_balcony,
+            balcony_rows: data.layout_data.balcony_rows || data.layout_data.levels?.balcony?.rows,
+            recliner_pairs: data.layout_data.recliner_pairs as [string, string][] | undefined,
+            features: data.layout_data.features,
           });
           setAuditoriumData(audId, proceduralData);
         }

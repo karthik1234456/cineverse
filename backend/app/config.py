@@ -7,6 +7,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "CineVerse API"
     VERSION: str = "1.0.0"
     API_V1_PREFIX: str = "/api/v1"
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "development")
 
     # Database
     DATABASE_URL: str = os.getenv(
@@ -40,6 +41,13 @@ class Settings(BaseSettings):
     ENABLE_WAITLIST: bool = True
     ENABLE_OFFLINE_SCANNING: bool = True
     ENABLE_TICKET_TRANSFERS: bool = True  # Can be toggled to false via ENABLE_TICKET_TRANSFERS=false for state compliance
+
+    # Catalog Source & TMDB Settings
+    CATALOG_SOURCE: str = os.getenv("CATALOG_SOURCE", "local")  # "local" or "tmdb"
+    TMDB_API_KEY: str = os.getenv("TMDB_API_KEY", "")
+    TMDB_BASE_URL: str = "https://api.themoviedb.org/3"
+    TMDB_IMAGE_BASE_URL: str = "https://image.tmdb.org/t/p"
+    TMDB_CACHE_TTL_SECONDS: int = 86400
 
     # Payments (Razorpay Test Mode)
     RAZORPAY_KEY_ID: str = os.getenv("RAZORPAY_KEY_ID", "rzp_test_cineverse123")

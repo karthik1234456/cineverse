@@ -107,6 +107,31 @@ export interface CinemaState {
   toggleHeatmap: () => void;
   setHeatmapActive: (active: boolean) => void;
 
+  // Audience Simulation (§ 4)
+  showPeople: boolean;
+  setShowPeople: (show: boolean) => void;
+  toggleShowPeople: () => void;
+
+  // 4DX Experience Simulation (§ 8)
+  experience4dxActive: boolean;
+  setExperience4dxActive: (active: boolean) => void;
+  experience4dxIntensity: 'off' | 'light' | 'medium' | 'full';
+  setExperience4dxIntensity: (intensity: 'off' | 'light' | 'medium' | 'full') => void;
+
+  // Guided Tour & Presets (§ 9)
+  tourActive: boolean;
+  setTourActive: (active: boolean) => void;
+  tourStepIndex: number;
+  setTourStepIndex: (index: number) => void;
+
+  // Multilingual Support (§ 9)
+  selectedLanguage: 'en' | 'hi' | 'kn' | 'ta' | 'te';
+  setSelectedLanguage: (lang: 'en' | 'hi' | 'kn' | 'ta' | 'te') => void;
+
+  // Settings Modal (§ 9)
+  settingsModalOpen: boolean;
+  setSettingsModalOpen: (open: boolean) => void;
+
   // Phase 10 Group Booking
   activeGroup: any | null;
   groupMemberMap: Record<string, { userId: number; userName: string; initials: string; color: string; proposedSeats: string[]; assignedSeats: string[]; role: string }>;
@@ -313,6 +338,31 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     }
   },
 
+  // Audience Simulation (§ 4)
+  showPeople: true,
+  setShowPeople: (show) => set({ showPeople: show }),
+  toggleShowPeople: () => set((state) => ({ showPeople: !state.showPeople })),
+
+  // 4DX Experience Simulation (§ 8)
+  experience4dxActive: false,
+  setExperience4dxActive: (active) => set({ experience4dxActive: active }),
+  experience4dxIntensity: 'medium',
+  setExperience4dxIntensity: (intensity) => set({ experience4dxIntensity: intensity }),
+
+  // Guided Tour & Presets (§ 9)
+  tourActive: false,
+  setTourActive: (active) => set({ tourActive: active }),
+  tourStepIndex: 0,
+  setTourStepIndex: (index) => set({ tourStepIndex: index }),
+
+  // Multilingual Support (§ 9)
+  selectedLanguage: 'en',
+  setSelectedLanguage: (lang) => set({ selectedLanguage: lang }),
+
+  // Settings Modal (§ 9)
+  settingsModalOpen: false,
+  setSettingsModalOpen: (open) => set({ settingsModalOpen: open }),
+
   rendererInfo: {
     triangles: 0,
     calls: 0,
@@ -371,7 +421,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     })),
 
   selectSeat: (seatId) => {
-    const { seatStatuses, selectedSeats, showToast } = get();
+    const { seatStatuses, selectedSeats, showToast, auditoriumLayout } = get();
     const status = seatStatuses[seatId] || 'available';
 
     if (status === 'booked') {
@@ -388,6 +438,28 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
       return false;
     }
 
+    // Check recliner pair
+    const seatRec = auditoriumLayout?.seats?.find((s) => s.seat_id === seatId);
+    const partnerId = seatRec?.pair_partner_id;
+
+    if (partnerId && !selectedSeats.includes(partnerId)) {
+      const partnerStatus = seatStatuses[partnerId] || 'available';
+      if (partnerStatus === 'booked' || partnerStatus === 'held') {
+        showToast(`Recliner ${seatId} requires partner ${partnerId}, which is currently ${partnerStatus}.`);
+        return false;
+      }
+      if (selectedSeats.length + 2 > MAX_SELECTED_SEATS) {
+        showToast(`Selecting this recliner pair exceeds the maximum ${MAX_SELECTED_SEATS} seats allowed.`);
+        return false;
+      }
+      set({
+        selectedSeats: [...selectedSeats, seatId, partnerId],
+        activeSeatId: seatId,
+      });
+      showToast(`Recliners come in pairs, so ${partnerId} was added too`);
+      return true;
+    }
+
     if (selectedSeats.length >= MAX_SELECTED_SEATS) {
       showToast(`Maximum ${MAX_SELECTED_SEATS} seats allowed per booking.`);
       return false;
@@ -401,7 +473,18 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   },
 
   deselectSeat: (seatId) => {
-    const { selectedSeats } = get();
+    const { selectedSeats, auditoriumLayout, showToast } = get();
+    const seatRec = auditoriumLayout?.seats?.find((s) => s.seat_id === seatId);
+    const partnerId = seatRec?.pair_partner_id;
+
+    if (partnerId && selectedSeats.includes(partnerId)) {
+      set({
+        selectedSeats: selectedSeats.filter((id) => id !== seatId && id !== partnerId),
+      });
+      showToast(`Deselected recliner pair ${seatId} and ${partnerId}`);
+      return;
+    }
+
     set({
       selectedSeats: selectedSeats.filter((id) => id !== seatId),
     });
@@ -433,9 +516,21 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
         cameraMode: 'orbit',
       });
     } else if (mode === 'walk') {
+      const camPos = get().cameraPosition;
+      const bounds = get().cameraBounds || DEFAULT_AUDITORIUM_BOUNDS;
+      const targetX = 0.0; // center main aisle
+      let targetZ = camPos ? camPos[2] : -12.0;
+      targetZ = Math.max(bounds.minZ + 1.5, Math.min(bounds.maxZ - 1.5, targetZ));
+
       set({
         mode: 'walk',
         cameraMode: 'walk',
+        walkPlayer: {
+          ...get().walkPlayer,
+          position: [targetX, 0.0, targetZ],
+          yaw: 0.0, // facing screen
+          pitch: 0.0,
+        },
       });
     } else if (mode === 'seated') {
       const active = get().activeSeatId || 'E05';
@@ -463,6 +558,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
         position = DEFAULT_CAMERA_POS;
         break;
       case 'front':
+      case 'screen':
         position = [0.0, 4.0, -11.0];
         break;
       case 'back':
@@ -470,6 +566,15 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
         break;
       case 'aerial':
         position = [0.0, 10.2, -15.0];
+        break;
+      case 'balcony':
+        position = [0.0, 9.8, -26.0];
+        break;
+      case 'top':
+        position = [0.0, 15.0, -15.0];
+        break;
+      case 'picker':
+        position = [0.0, 12.0, -21.0];
         break;
     }
 

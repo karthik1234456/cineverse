@@ -2,7 +2,11 @@ export type SeatStatus = 'available' | 'booked' | 'held' | 'selected';
 
 export type SeatCategory = 'front' | 'prime' | 'premier';
 
-export type CameraMode = 'orbit' | 'pov' | 'walk' | 'overview' | 'seated' | 'transitioning';
+export type SeatType = 'standard' | 'recliner_pair' | 'accessible' | 'companion';
+
+export type HallLevel = 'stalls' | 'balcony';
+
+export type CameraMode = 'drone' | 'orbit' | 'pov' | 'walk' | 'overview' | 'seated' | 'transitioning';
 
 export type HouseLightsMode = 'full' | 'dim' | 'show';
 
@@ -10,7 +14,7 @@ export type QualityTier = 'high' | 'medium' | 'low';
 
 export type QualityMode = 'smooth' | 'beautiful';
 
-export type CameraPreset = 'overview' | 'front' | 'back' | 'aerial';
+export type CameraPreset = 'overview' | 'front' | 'back' | 'aerial' | 'screen' | 'balcony' | 'top' | 'picker';
 
 export interface BoundingBox3D {
   min: [number, number, number];
@@ -33,6 +37,11 @@ export interface SeatRecord {
   vertical_angle_deg: number;
   screen_h_fov_deg: number;
   screen_v_fov_deg: number;
+  seat_type?: SeatType;
+  pair_partner_id?: string;
+  level?: HallLevel;
+  section?: string;
+  in_motion_zone?: boolean;
 }
 
 export interface CategoryInfo {
@@ -71,6 +80,22 @@ export interface SeatLayoutFile {
     disclaimer: string;
   };
   categories: Record<SeatCategory, CategoryInfo>;
+  levels?: {
+    stalls?: { label: string; height: number; rows: string[] };
+    balcony?: { label: string; height: number; rows: string[] };
+  };
+  has_balcony?: boolean;
+  features?: {
+    motion_seats?: boolean;
+    wind?: boolean;
+    water?: boolean;
+    fog?: boolean;
+    scent?: boolean;
+    strobe?: boolean;
+    ticklers?: boolean;
+    is_4dx?: boolean;
+    dolby_atmos?: boolean;
+  };
   seats: SeatRecord[];
 }
 

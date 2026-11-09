@@ -23,6 +23,7 @@ import { SeatCompareModal } from '@/components/extras/SeatCompareModal';
 import { ShareMyViewModal } from '@/components/extras/ShareMyViewModal';
 import { HearItFromHereModal } from '@/components/extras/HearItFromHereModal';
 import { VrSeatPreviewModal } from '@/components/extras/VrSeatPreviewModal';
+import { MoviePoster } from '@/components/MoviePoster';
 import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
 
 interface SeatMap2DProps {
@@ -328,6 +329,31 @@ export function SeatMap2D({
     return [3, 7]; // Default 2 aisles for 100-seat hall
   }, [showtimeDetails?.layout_data]);
 
+  const reclinerPairMap = useMemo(() => {
+    const map = new Map<string, string>();
+    const pairs = showtimeDetails?.layout_data?.recliner_pairs || [];
+    for (const p of pairs) {
+      if (Array.isArray(p) && p.length === 2) {
+        map.set(p[0], p[1]);
+        map.set(p[1], p[0]);
+      }
+    }
+    return map;
+  }, [showtimeDetails?.layout_data?.recliner_pairs]);
+
+  const hasBalconyLevel = useMemo(() => {
+    return !!(showtimeDetails?.layout_data?.has_balcony || showtimeDetails?.layout_data?.levels?.balcony);
+  }, [showtimeDetails?.layout_data]);
+
+  const balconyRowsSet = useMemo(() => {
+    const bRows = showtimeDetails?.layout_data?.levels?.balcony?.rows || [];
+    return new Set(bRows);
+  }, [showtimeDetails?.layout_data]);
+
+  const isRowCurved = useMemo(() => {
+    return !!(showtimeDetails?.layout_data?.curve_radius);
+  }, [showtimeDetails?.layout_data]);
+
   const accessibleSeatsList = useMemo(() => {
     if (showtimeDetails?.layout_data?.accessible_seats) {
       return showtimeDetails.layout_data.accessible_seats;
@@ -519,22 +545,27 @@ export function SeatMap2D({
       return;
     }
 
+    const partnerId = reclinerPairMap.get(seatId);
+    if (partnerId) {
+      const partnerStatus = (seatStatuses[partnerId] || seatInventoryMap.get(partnerId)?.status || 'AVAILABLE').toString().toLowerCase();
+      if ((partnerStatus === 'booked' || partnerStatus === 'held') && !selectedSeats.includes(seatId)) {
+        showToast(`Recliners come in pairs, but partner ${partnerId} is ${partnerStatus}.`);
+        return;
+      }
+    }
+
     const s = seatsList.find((st) => st.seat_id === seatId);
     const currentlySelected = selectedSeats.includes(seatId);
     toggleSeat(seatId);
 
-    const newSelected = currentlySelected
-      ? selectedSeats.filter((id) => id !== seatId)
-      : [...selectedSeats, seatId];
-    const newCount = newSelected.length;
-    const newTotal = newSelected.reduce((sum, id) => sum + (seatInventoryMap.get(id)?.price ?? 380), 0);
-
+    const partnerOffset = partnerId ? (currentlySelected ? -2 : 2) : (currentlySelected ? -1 : 1);
+    const newCount = Math.max(0, selectedSeats.length + partnerOffset);
     if (!currentlySelected && s) {
-      setLiveAnnouncement(`Selected Row ${s.row}, seat ${s.number}. ${newCount} seat${newCount === 1 ? '' : 's'} selected, total ${newTotal} rupees.`);
+      setLiveAnnouncement(`Selected Row ${s.row}, seat ${s.number}${partnerId ? ` and pair partner ${partnerId}` : ''}. ${newCount} seat${newCount === 1 ? '' : 's'} selected.`);
     } else if (s) {
-      setLiveAnnouncement(`Deselected Row ${s.row}, seat ${s.number}. ${newCount} seat${newCount === 1 ? '' : 's'} selected, total ${newTotal} rupees.`);
+      setLiveAnnouncement(`Deselected Row ${s.row}, seat ${s.number}${partnerId ? ` and pair partner ${partnerId}` : ''}. ${newCount} seat${newCount === 1 ? '' : 's'} selected.`);
     }
-  }, [seatInventoryMap, seatStatuses, seatsList, selectedSeats, showToast, toggleSeat]);
+  }, [seatInventoryMap, seatStatuses, reclinerPairMap, seatsList, selectedSeats, showToast, toggleSeat]);
 
   const handleGridArrowNavigation = useCallback((
     e: React.KeyboardEvent,
@@ -753,6 +784,17 @@ export function SeatMap2D({
               <ArrowLeft className="h-4 w-4" />
               <span>Back</span>
             </button>
+
+            {/* Movie Poster thumbnail on Seat Page */}
+            <div className="h-16 w-12 rounded-xl overflow-hidden shrink-0 border border-[#E6DCD2] shadow-sm bg-[#FDEBD8] hidden sm:block">
+              <MoviePoster
+                src={showtimeDetails?.poster_url || '/posters/quantum-odyssey.webp'}
+                alt={showtimeDetails?.movie_title || 'Movie Poster'}
+                title={showtimeDetails?.movie_title || 'Movie'}
+                className="h-full w-full object-cover"
+                containerClassName="h-full w-full"
+              />
+            </div>
 
             <div>
               <h1 className="text-2xl font-black text-[#1B1320] flex items-center gap-3">
@@ -1070,6 +1112,11 @@ export function SeatMap2D({
                     <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">
                       (Rows {tier.rows[tier.rows.length - 1]}–{tier.rows[0]})
                     </span>
+                    {hasBalconyLevel && tier.rows.some((r) => balconyRowsSet.has(r)) && (
+                      <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-black uppercase tracking-wider">
+                        Balcony Tier
+                      </span>
+                    )}
                   </div>
                   <span className="font-black text-lg text-[#C8102E]">₹{Math.round(tier.price)}</span>
                 </div>
@@ -1078,14 +1125,17 @@ export function SeatMap2D({
                 <div className="space-y-3 pt-2">
                   {tier.rows.map((row) => {
                     const seatsInRow = rowSeats[row] || [];
+                    const isBalconyRow = balconyRowsSet.has(row);
+                    const midIndex = (seatsInRow.length + 1) / 2;
                     return (
                       <div key={row} role="row" className="flex items-center justify-center gap-2 sm:gap-3">
                         {/* Left Row Label */}
-                        <span className="w-8 shrink-0 text-center text-sm font-black text-slate-500">
+                        <span className="w-8 shrink-0 text-center text-sm font-black text-slate-500 flex items-center justify-center gap-1">
                           {row}
+                          {isBalconyRow && <span className="text-[9px] text-amber-700 font-black">B</span>}
                         </span>
 
-                        {/* Seats in Row */}
+                        {/* Seats in Row (curved as an arc when curve_radius is active) */}
                         <div className="flex items-center">
                           {seatsInRow.map((s) => {
                             const seatId = s.seat_id;
@@ -1097,6 +1147,8 @@ export function SeatMap2D({
                             const isBooked = status === 'booked';
                             const isFocused = focusedSeatId === seatId;
                             const isAccessible = s.seat_id in accessibleSeatsList || accessibleSeatsList.includes(s.seat_id) || inv?.is_accessible;
+                            const partnerId = reclinerPairMap.get(seatId);
+                            const isRecliner = !!partnerId;
 
                             // Compute comfort score for this seat
                             const scored = viewScore(s);
@@ -1120,6 +1172,9 @@ export function SeatMap2D({
                               bgClass = 'border-slate-200 bg-slate-200 text-slate-400 cursor-not-allowed opacity-60';
                             }
 
+                            // Curved arc vertical sag (dipping down at edges for realism)
+                            const arcOffset = isRowCurved && midIndex > 0 ? Math.round(Math.pow((s.number - midIndex) / midIndex, 2) * 14) : 0;
+
                             // Aisle gap margin
                             const hasAisleAfter = aisles.includes(s.number);
 
@@ -1127,13 +1182,15 @@ export function SeatMap2D({
 
                             const statusWord = isSelected ? 'selected' : (isBooked ? 'booked' : (isHeld ? 'held' : 'available'));
                             const accessibleKind = isAccessible ? ', accessible wheelchair space' : (s.is_companion ? ', companion seat' : '');
-                            const accessibleName = `Row ${s.row}, seat ${s.number}, ${tier.name}, ${Math.round(seatPrice)} rupees, ${statusWord}${accessibleKind}`;
+                            const reclinerKind = isRecliner ? `, recliner pair with ${partnerId}` : '';
+                            const accessibleName = `Row ${s.row}, seat ${s.number}, ${tier.name}, ${Math.round(seatPrice)} rupees, ${statusWord}${accessibleKind}${reclinerKind}`;
 
                             return (
                               <div
                                 key={seatId}
                                 role="gridcell"
                                 aria-selected={isSelected}
+                                style={arcOffset ? { transform: `translateY(${arcOffset}px)` } : undefined}
                                 className={`relative flex items-center justify-center p-1 ${
                                   hasAisleAfter ? 'mr-5 sm:mr-8 md:mr-10' : ''
                                 }`}
@@ -1195,6 +1252,14 @@ export function SeatMap2D({
                                       className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white font-bold ring-1 ring-white"
                                     >
                                       ♿
+                                    </span>
+                                  )}
+                                  {isRecliner && !isAccessible && !isSelected && (
+                                    <span
+                                      title={`Recliner Pair with ${partnerId}`}
+                                      className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#9F1239] text-[8px] text-white font-black ring-1 ring-white"
+                                    >
+                                      2
                                     </span>
                                   )}
                                   {s.is_companion && !isSelected && (

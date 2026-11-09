@@ -12,7 +12,9 @@ import { CompareView } from './CompareView';
 import { MobileControls } from './MobileControls';
 import { useMovieBackdrop } from '@/context/MovieBackdropContext';
 import { WalkHUD } from './WalkHUD';
-import { TrailerControls } from './TrailerControls';
+import { DroneHUD } from './DroneHUD';
+import { ScreenMediaCluster } from './ScreenMediaCluster';
+import { MotionEffectsOverlay } from './MotionEffectsOverlay';
 import { BoundaryNotice } from './BoundaryNotice';
 import { ToastNotification } from '../ui/ToastNotification';
 import { useCinemaStore } from '@/store/useCinemaStore';
@@ -82,8 +84,10 @@ export function AuditoriumExperience({
       <SeatHoverTooltip />
       <SelectedSeatsBar />
       <ViewModeToggle />
-      <TrailerControls />
+      <ScreenMediaCluster />
+      <MotionEffectsOverlay />
       <WalkHUD />
+      <DroneHUD />
       <CompareView />
       <MobileControls />
       <BoundaryNotice />

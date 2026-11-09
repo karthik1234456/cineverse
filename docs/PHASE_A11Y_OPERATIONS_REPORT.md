@@ -136,3 +136,4 @@ All optional extras are housed in `frontend/components/extras/` and gated behind
 - **Responsive 320px Viewport Evidence:** [responsive-320px-cinema.png](file:///d:/projects/CineVerse/docs/evidence/phase-a11y/responsive-320px-cinema.png)
 - **E2E Test Suite:** [accessibility_and_operations.spec.ts](file:///d:/projects/CineVerse/frontend/e2e/accessibility_and_operations.spec.ts)
 - **Backend Operations Test Suite:** [test_operations_new_endpoints.py](file:///d:/projects/CineVerse/backend/tests/test_operations_new_endpoints.py)
+

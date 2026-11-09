@@ -5,6 +5,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Star, Play, Tag, ArrowRight } from 'lucide-react';
 import { MovieCard } from '@/components/MovieCard';
+import { MoviePoster } from '@/components/MoviePoster';
 import { useTrailerStore } from '@/store/useTrailerStore';
 import { getMovies, type Movie } from '@/services/api';
 import { useMovieBackdrop } from '@/context/MovieBackdropContext';
@@ -145,10 +146,14 @@ export default function HomePage() {
                     className="group block relative w-64 xl:w-72 aspect-[2/3] rounded-2xl overflow-hidden shadow-2xl border-2 border-white/25 hover:border-white/50 transition duration-300 transform hover:-translate-y-1"
                     data-testid="hero-poster-card"
                   >
-                    <img
+                    <MoviePoster
                       src={heroMovie.poster_url}
                       alt={heroMovie.title}
+                      title={heroMovie.title}
+                      certificate={heroMovie.certificate}
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                      containerClassName="h-full w-full"
+                      priority
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-300 flex items-end p-4">
                       <span className="text-white text-sm font-bold flex items-center gap-1.5">

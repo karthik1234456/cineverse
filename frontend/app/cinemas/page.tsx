@@ -402,7 +402,8 @@ export default function CinemasPage() {
                         ? 'border-[#C8102E] bg-[#FFF8F1]'
                         : 'border-[#E6DCD2] bg-white hover:border-[#C8102E]'
                     }`}
-                    data-testid={`cinema-list-item-${c.id}`}
+                    data-testid="cinema-card"
+                    data-cinema-id={c.id}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <h4 className="font-bold text-base text-[#1B1320]">{c.name}</h4>
@@ -413,6 +414,18 @@ export default function CinemasPage() {
                       )}
                     </div>
                     <p className="text-sm text-[#4A4056] line-clamp-1 mt-1">{c.address}</p>
+                    {c.facilities && c.facilities.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {c.facilities.slice(0, 3).map((f) => (
+                          <span
+                            key={f}
+                            className="text-[11px] font-semibold text-[#1B1320] bg-white border border-[#E6DCD2] px-1.5 py-0.5 rounded"
+                          >
+                            {f}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -426,7 +439,8 @@ export default function CinemasPage() {
             <div
               key={c.id}
               className="flex flex-col justify-between rounded-3xl border border-[#E6DCD2] bg-white p-7 shadow-sm hover:shadow-md transition group"
-              data-testid={`cinema-card-${c.id}`}
+              data-testid="cinema-card"
+              data-cinema-id={c.id}
             >
               <div>
                 <div className="flex items-center justify-between mb-3">

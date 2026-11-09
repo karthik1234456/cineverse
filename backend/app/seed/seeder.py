@@ -1359,6 +1359,24 @@ def generate_auditorium_layout(screen_type: str, total_seats: int, is_3d_hall: b
     prime_rows = rows[front_cutoff:prime_cutoff]
     premier_rows = rows[prime_cutoff:]
 
+    has_balcony = total_seats >= 240
+    balcony_rows = premier_rows[-3:] if has_balcony and len(premier_rows) >= 3 else (premier_rows if has_balcony else [])
+    stalls_rows = [r for r in rows if r not in balcony_rows]
+
+    # Pre-generate recliner pairs for premier rows
+    recliner_pairs = []
+    pair_map = {}
+    for pr in premier_rows:
+        for s in range(1, seats_per_row, 2):
+            s1 = f"{pr}{str(s).zfill(2)}"
+            s2 = f"{pr}{str(s + 1).zfill(2)}"
+            recliner_pairs.append([s1, s2])
+            pair_map[s1] = s2
+            pair_map[s2] = s1
+
+    is_4dx = "4DX" in screen_type
+    motion_rows = ["D", "E", "F", "G"] if is_4dx else []
+
     layout_data = {
         "rows": rows,
         "seats_per_row": seats_per_row,
@@ -1368,7 +1386,25 @@ def generate_auditorium_layout(screen_type: str, total_seats: int, is_3d_hall: b
             {"category": "Front", "rows": front_rows, "price_multiplier": 0.8},
             {"category": "Prime", "rows": prime_rows, "price_multiplier": 1.0},
             {"category": "Premier", "rows": premier_rows, "price_multiplier": 1.35}
-        ]
+        ],
+        "has_balcony": has_balcony,
+        "levels": {
+            "stalls": {"label": "Stalls", "height": 0.0, "rows": stalls_rows},
+            **({"balcony": {"label": "Balcony", "height": 2.4, "rows": balcony_rows}} if has_balcony else {})
+        },
+        "recliner_pairs": recliner_pairs,
+        "curve_radius": 28.0 if ("IMAX" in screen_type or total_seats >= 240) else None,
+        "features": {
+            "is_4dx": is_4dx,
+            "motion_seats": is_4dx,
+            "wind": is_4dx,
+            "water": is_4dx,
+            "fog": is_4dx,
+            "scent": is_4dx,
+            "strobe": is_4dx,
+            "ticklers": is_4dx,
+            "dolby_atmos": "Atmos" in screen_type or is_4dx
+        }
     }
 
     seat_records = []
@@ -1378,6 +1414,9 @@ def generate_auditorium_layout(screen_type: str, total_seats: int, is_3d_hall: b
             seat_id = f"{r}{str(n).zfill(2)}"
             x_offset = (n - (seats_per_row / 2.0)) * 0.75
             z_offset = 4.0 + r_idx * 1.4
+            is_acc = seat_id in accessible
+            is_comp = not is_acc and f"{r}{str(n - 1).zfill(2)}" in accessible
+            seat_type = "accessible" if is_acc else ("companion" if is_comp else ("recliner_pair" if seat_id in pair_map else "standard"))
             seat_records.append({
                 "seat_id": seat_id,
                 "row": r,
@@ -1390,7 +1429,12 @@ def generate_auditorium_layout(screen_type: str, total_seats: int, is_3d_hall: b
                 "distance_to_screen": round(z_offset + 3.0, 1),
                 "vertical_angle_deg": round(math.atan2(3.0 - (1.2 + r_idx * 0.25), z_offset) * 180 / math.pi, 1) if 'math' in globals() else 4.0,
                 "horizontal_angle_deg": round(math.atan2(x_offset, z_offset) * 180 / math.pi, 1) if 'math' in globals() else 0.0,
-                "is_accessible": seat_id in accessible
+                "is_accessible": is_acc,
+                "is_companion": is_comp,
+                "seat_type": seat_type,
+                "pair_partner_id": pair_map.get(seat_id),
+                "level": "balcony" if r in balcony_rows else "stalls",
+                "in_motion_zone": r in motion_rows
             })
 
     return layout_data, seat_records
@@ -1585,6 +1629,10 @@ async def seed_database():
             if mov_synced_count > 0:
                 await db.commit()
                 print(f"Movie backdrop and glimpse metadata updated for {mov_synced_count} existing movies.")
+
+            # Ensure TMDB non-showcase movies are seeded if not present
+            from app.seed.seed_tmdb_movies import seed_tmdb_movies_data
+            await seed_tmdb_movies_data(db)
 
             print(f"Database already contains {existing_movies} movies, {existing_auds} auditoriums, and {existing_shows} showtimes. Seed verified.")
             return

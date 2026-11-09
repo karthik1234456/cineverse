@@ -20,6 +20,19 @@ import { useTrailerStore } from '@/store/useTrailerStore';
 import { useMovieBackdrop } from '@/context/MovieBackdropContext';
 import { useComfortStore } from '@/store/useComfortStore';
 
+function getYoutubeEmbedUrl(url: string): string {
+  let videoId = '';
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  if (match) {
+    videoId = match[1];
+  } else if (url.includes('embed/')) {
+    videoId = url.split('embed/')[1]?.split('?')[0] || '';
+  }
+  return videoId
+    ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&modestbranding=1&rel=0`
+    : url;
+}
+
 export function TrailerPlayer() {
   const activeTrailer = useTrailerStore((s) => s.activeTrailer);
   const captionsAlwaysOn = useComfortStore((s) => s.captionsAlwaysOn);
@@ -243,13 +256,15 @@ export function TrailerPlayer() {
                   </div>
                 )}
               </>
-            ) : activeTrailer.trailerUrl?.includes('youtube') ? (
+            ) : activeTrailer.trailerUrl?.includes('youtube') || activeTrailer.trailerUrl?.includes('youtu.be') ? (
               <iframe
-                src={activeTrailer.trailerUrl.replace('watch?v=', 'embed/')}
-                title={`${activeTrailer.title} Trailer`}
-                className="h-full w-full"
+                src={getYoutubeEmbedUrl(activeTrailer.trailerUrl)}
+                title={`${activeTrailer.title} Official Trailer`}
+                className="h-full w-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
                 allowFullScreen
+                data-testid="youtube-trailer-iframe"
               />
             ) : (
               <div className="p-8 text-center text-slate-300">

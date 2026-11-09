@@ -37,7 +37,13 @@ export function AuditoriumViewRouter({
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showtimeDetails, setShowtimeDetails] = useState<ShowtimeSeatsResponse | null>(null);
-  const { setActiveMovie } = useMovieBackdrop();
+  const { setActiveMovie, setPausedBy3D } = useMovieBackdrop();
+
+  // Sync 3D active state to pause background video when 3D theatre canvas is active
+  useEffect(() => {
+    setPausedBy3D(is3DActive);
+    return () => setPausedBy3D(false);
+  }, [is3DActive, setPausedBy3D]);
 
   useEffect(() => {
     getShowtimeSeats(showtimeId)

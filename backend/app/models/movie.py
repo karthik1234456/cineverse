@@ -11,8 +11,8 @@ class Movie(Base):
     title = Column(String(255), index=True, nullable=False)
     slug = Column(String(255), unique=True, index=True, nullable=False)
     synopsis = Column(Text, nullable=False)
-    poster_url = Column(String(500), nullable=False)
-    banner_url = Column(String(500), nullable=False)
+    poster_url = Column(String(500), nullable=True)
+    banner_url = Column(String(500), nullable=True)
     trailer_url = Column(String(500), nullable=True)
     trailer_duration_seconds = Column(Integer, default=25)
     trailer_poster_frame_url = Column(String(500), nullable=True)
@@ -32,6 +32,11 @@ class Movie(Base):
     languages = Column(JSON, default=list)  # ["Hindi", "English", "Kannada"]
     genres = Column(JSON, default=list)     # ["Action", "Sci-Fi", "Drama"]
     formats = Column(JSON, default=list)    # ["2D", "3D", "IMAX 3D", "4DX"]
+    tmdb_id = Column(Integer, nullable=True, index=True)
+    tmdb_vote_average = Column(Float, nullable=True)
+    tmdb_popularity = Column(Float, nullable=True)
+    is_tmdb = Column(Boolean, default=False)
+    youtube_trailer_id = Column(String(50), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     cast_members = relationship("MovieCast", back_populates="movie", cascade="all, delete-orphan")

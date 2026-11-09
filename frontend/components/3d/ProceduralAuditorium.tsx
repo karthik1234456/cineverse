@@ -8,6 +8,7 @@ import { useCinemaStore } from '@/store/useCinemaStore';
 import { getActiveLook } from '@/lib/theatreLooks';
 import type { ProceduralGeometryData } from '@/lib/proceduralAuditorium';
 import type { SeatRecord } from '@/lib/types';
+import { AudienceSimulation } from './AudienceSimulation';
 
 const PREMIUM_SEAT_PATH = '/models/seat_premium.glb';
 
@@ -73,6 +74,9 @@ export function ProceduralAuditorium({
   const trimMeshRef = useRef<THREE.InstancedMesh>(null);
   const sconcesMeshRef = useRef<THREE.InstancedMesh>(null);
   const stepLightsMeshRef = useRef<THREE.InstancedMesh>(null);
+  const slatsMeshRef = useRef<THREE.InstancedMesh>(null);
+  const downlightsMeshRef = useRef<THREE.InstancedMesh>(null);
+  const atmosSpeakersMeshRef = useRef<THREE.InstancedMesh>(null);
   const seatStateCache = useRef<Map<string, string>>(new Map());
 
   // Architectural materials matching art direction
@@ -193,11 +197,107 @@ export function ProceduralAuditorium({
     [look.stepLightColor]
   );
 
+  const woodSlatMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#2e1c14',
+        roughness: 0.65,
+        metalness: 0.05,
+      }),
+    []
+  );
+
+  const curtainMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#5b101c',
+        roughness: 0.95,
+        metalness: 0.02,
+      }),
+    []
+  );
+
+  const prosceniumMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#13151b',
+        roughness: 0.85,
+        metalness: 0.1,
+      }),
+    []
+  );
+
+  const downlightMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#fffbf0',
+        emissive: '#fff0d0',
+        emissiveIntensity: 1.8,
+        roughness: 0.2,
+      }),
+    []
+  );
+
+  const speakerMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#181b22',
+        roughness: 0.45,
+        metalness: 0.15,
+      }),
+    []
+  );
+
+  const exitSignMaterial = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: '#10b981',
+      }),
+    []
+  );
+
+  const carpetRunnerMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#4a111a',
+        roughness: 0.92,
+        metalness: 0.02,
+      }),
+    []
+  );
+
+  const coveLightMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#ffe6b3',
+        emissive: '#ffe6b3',
+        emissiveIntensity: 2.2,
+        roughness: 0.1,
+      }),
+    []
+  );
+
+  const balconyRailingMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#1e2430',
+        roughness: 0.3,
+        metalness: 0.8,
+        transparent: true,
+        opacity: 0.6,
+      }),
+    []
+  );
+
   // Reusable geoms for instanced decor
   const panelGeom = useMemo(() => new THREE.BoxGeometry(0.12, 4.5, 1.8), []);
   const trimGeom = useMemo(() => new THREE.BoxGeometry(0.14, 4.54, 1.84), []);
   const sconceGeom = useMemo(() => new THREE.BoxGeometry(0.08, 0.35, 0.14), []);
   const stepLightGeom = useMemo(() => new THREE.BoxGeometry(0.04, 0.02, 0.12), []);
+  const slatGeom = useMemo(() => new THREE.BoxGeometry(0.06, 6.2, 0.12), []);
+  const downlightGeom = useMemo(() => new THREE.CylinderGeometry(0.12, 0.12, 0.06, 8), []);
+  const speakerGeom = useMemo(() => new THREE.BoxGeometry(0.35, 0.22, 0.28), []);
+  const exitSignGeom = useMemo(() => new THREE.BoxGeometry(0.65, 0.3, 0.08), []);
 
   // Initialize InstancedMesh positions
   useEffect(() => {
@@ -269,6 +369,42 @@ export function ProceduralAuditorium({
       });
       stepLightsMeshRef.current.instanceMatrix.needsUpdate = true;
     }
+
+    // 5. Wooden slats
+    if (slatsMeshRef.current && geometry.woodenSlats && geometry.woodenSlats.length > 0) {
+      geometry.woodenSlats.forEach((sl, idx) => {
+        dummy.position.set(...sl.position);
+        dummy.rotation.set(0, sl.rotationY, 0);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        slatsMeshRef.current!.setMatrixAt(idx, dummy.matrix);
+      });
+      slatsMeshRef.current.instanceMatrix.needsUpdate = true;
+    }
+
+    // 6. Ceiling downlights
+    if (downlightsMeshRef.current && geometry.ceilingDownlights && geometry.ceilingDownlights.length > 0) {
+      geometry.ceilingDownlights.forEach((dl, idx) => {
+        dummy.position.set(...dl.position);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        downlightsMeshRef.current!.setMatrixAt(idx, dummy.matrix);
+      });
+      downlightsMeshRef.current.instanceMatrix.needsUpdate = true;
+    }
+
+    // 7. Atmos speakers
+    if (atmosSpeakersMeshRef.current && geometry.atmosSpeakers && geometry.atmosSpeakers.length > 0) {
+      geometry.atmosSpeakers.forEach((spk, idx) => {
+        dummy.position.set(...spk.position);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        atmosSpeakersMeshRef.current!.setMatrixAt(idx, dummy.matrix);
+      });
+      atmosSpeakersMeshRef.current.instanceMatrix.needsUpdate = true;
+    }
   }, [seats, geometry]);
 
   // Per-frame color & state updates for instanced seats
@@ -291,6 +427,9 @@ export function ProceduralAuditorium({
     let matricesNeedUpdate = false;
     const dummy = new THREE.Object3D();
     const tempColor = new THREE.Color();
+
+    const is4dxActive = useCinemaStore.getState().experience4dxActive;
+    const intensity4dx = useCinemaStore.getState().experience4dxIntensity;
 
     for (let idx = 0; idx < seats.length; idx++) {
       const seat = seats[idx];
@@ -329,16 +468,33 @@ export function ProceduralAuditorium({
       }
 
       const stateKey = `${isSelected ? 1 : 0}-${isHeld ? pulse.toFixed(1) : 0}-${isBooked ? 1 : 0}-${isHovered ? 1 : 0}-${isShow ? 1 : 0}-${currentLook.id}-${isHiddenInPov ? 1 : 0}`;
-      if (seatStateCache.current.get(seat.seat_id) !== stateKey) {
-        seatStateCache.current.set(seat.seat_id, stateKey);
+      const isSeatShaking = is4dxActive && !!seat.in_motion_zone;
+
+      if (seatStateCache.current.get(seat.seat_id) !== stateKey || isSeatShaking) {
+        if (!isSeatShaking) {
+          seatStateCache.current.set(seat.seat_id, stateKey);
+        }
         seatMesh.setColorAt(idx, tempColor);
         colorsNeedUpdate = true;
 
         const { min, max } = seat.bounds_gltf_y_up;
         const posX = (min[0] + max[0]) / 2;
-        const posY = min[1];
-        const posZ = (min[2] + max[2]) / 2;
+        let posY = min[1];
+        let posZ = (min[2] + max[2]) / 2;
+        let pitch = 0;
+        let roll = 0;
+
+        if (isSeatShaking) {
+          const t4 = performance.now() * 0.007;
+          const intMult = intensity4dx === 'full' ? 1.0 : (intensity4dx === 'light' ? 0.35 : 0.65);
+          const heave = Math.sin(t4 * 7.5 + idx * 0.5) * 0.025 * intMult;
+          pitch = Math.sin(t4 * 5.5 + idx) * 0.035 * intMult;
+          roll = Math.cos(t4 * 6.5 + idx * 0.4) * 0.02 * intMult;
+          posY += heave;
+        }
+
         dummy.position.set(posX, posY, posZ);
+        dummy.rotation.set(pitch, 0, roll);
         dummy.scale.set(isHiddenInPov ? 0 : 1, isHiddenInPov ? 0 : 1, isHiddenInPov ? 0 : 1);
         dummy.updateMatrix();
         seatMesh.setMatrixAt(idx, dummy.matrix);
@@ -524,6 +680,71 @@ export function ProceduralAuditorium({
         <boxGeometry args={stageLipBox.size} />
       </mesh>
 
+      {/* 6b. Subtle Proscenium Arch & Crimson Side Curtains */}
+      {geometry.proscenium && (
+        <mesh
+          name="proscenium_arch"
+          position={boxHelper(geometry.proscenium).center}
+          material={prosceniumMaterial}
+        >
+          <boxGeometry args={boxHelper(geometry.proscenium).size} />
+        </mesh>
+      )}
+
+      {geometry.sideCurtains && (
+        <group name="SideCurtains">
+          <mesh
+            name="side_curtain_left"
+            position={boxHelper(geometry.sideCurtains.left).center}
+            material={curtainMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.sideCurtains.left).size} />
+          </mesh>
+          <mesh
+            name="side_curtain_right"
+            position={boxHelper(geometry.sideCurtains.right).center}
+            material={curtainMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.sideCurtains.right).size} />
+          </mesh>
+        </group>
+      )}
+
+      {/* 6c. Balcony Structure & Under-Balcony Warm Cove Light */}
+      {geometry.balconyStructure && (
+        <group name="BalconyArchitecture">
+          <mesh
+            name="balcony_platform"
+            position={boxHelper(geometry.balconyStructure.platform).center}
+            material={tierMaterial}
+            receiveShadow
+          >
+            <boxGeometry args={boxHelper(geometry.balconyStructure.platform).size} />
+          </mesh>
+          <mesh
+            name="balcony_fascia"
+            position={boxHelper(geometry.balconyStructure.fascia).center}
+            material={wallMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.balconyStructure.fascia).size} />
+          </mesh>
+          <mesh
+            name="balcony_railing"
+            position={boxHelper(geometry.balconyStructure.railing).center}
+            material={balconyRailingMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.balconyStructure.railing).size} />
+          </mesh>
+          <mesh
+            name="under_balcony_cove_light"
+            position={boxHelper(geometry.balconyStructure.coveLightBounds).center}
+            material={coveLightMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.balconyStructure.coveLightBounds).size} />
+          </mesh>
+        </group>
+      )}
+
       {/* 7. Instanced Acoustic Panels, Trims & Sconces (Ultra-low Draw Calls) */}
       {geometry.acousticPanels.length > 0 && (
         <group name="InstancedAcousticPanelsContainer">
@@ -540,6 +761,14 @@ export function ProceduralAuditorium({
         </group>
       )}
 
+      {geometry.woodenSlats && geometry.woodenSlats.length > 0 && (
+        <instancedMesh
+          ref={slatsMeshRef}
+          args={[slatGeom, woodSlatMaterial, geometry.woodenSlats.length]}
+          name="InstancedWoodenSlats"
+        />
+      )}
+
       {geometry.sconces.length > 0 && (
         <instancedMesh
           ref={sconcesMeshRef}
@@ -548,13 +777,53 @@ export function ProceduralAuditorium({
         />
       )}
 
-      {/* 8. Instanced Aisle Step Lights (1 Draw Call instead of 90) */}
+      {/* 8. Instanced Aisle Step Lights, Downlights & Atmos Speakers */}
       {geometry.stepLights.length > 0 && (
         <instancedMesh
           ref={stepLightsMeshRef}
           args={[stepLightGeom, stepLightMaterial, geometry.stepLights.length]}
           name="InstancedAisleStepLights"
         />
+      )}
+
+      {geometry.ceilingDownlights && geometry.ceilingDownlights.length > 0 && (
+        <instancedMesh
+          ref={downlightsMeshRef}
+          args={[downlightGeom, downlightMaterial, geometry.ceilingDownlights.length]}
+          name="InstancedCeilingDownlights"
+        />
+      )}
+
+      {geometry.atmosSpeakers && geometry.atmosSpeakers.length > 0 && (
+        <instancedMesh
+          ref={atmosSpeakersMeshRef}
+          args={[speakerGeom, speakerMaterial, geometry.atmosSpeakers.length]}
+          name="InstancedDolbyAtmosSpeakers"
+        />
+      )}
+
+      {/* 8b. Illuminated EXIT signs & Carpet Runners */}
+      {geometry.exitSigns && (
+        <group name="ExitSigns">
+          {geometry.exitSigns.map((es) => (
+            <mesh key={es.id} position={es.position} material={exitSignMaterial}>
+              <boxGeometry args={[0.65, 0.3, 0.08]} />
+            </mesh>
+          ))}
+        </group>
+      )}
+
+      {geometry.carpetRunners && (
+        <group name="CarpetRunners">
+          {geometry.carpetRunners.map((cr) => {
+            const { size, center } = boxHelper(cr.bounds);
+            return (
+              <mesh key={cr.name} position={center} material={carpetRunnerMaterial}>
+                <boxGeometry args={size} />
+              </mesh>
+            );
+          })}
+        </group>
       )}
 
       {/* 9. Instanced Premium Seats & Contact Shadows with Built-in Raycast Interactivity */}
@@ -574,6 +843,9 @@ export function ProceduralAuditorium({
           onPointerOut={handleInstancePointerOut}
         />
       </group>
+
+      {/* 9b. Instanced Audience Simulation on Booked Seats Only */}
+      <AudienceSimulation seats={seats} />
 
       {/* 10. Debug Proxies (Only when ?debug=proxies enabled, otherwise 0 draw calls) */}
       {debugProxies && (

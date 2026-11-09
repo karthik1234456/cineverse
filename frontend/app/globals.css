@@ -215,3 +215,22 @@ body:has([data-testid="auditorium-3d-wrapper"]) main {
   background-color: #FDEBD8;
   border-color: #D4C3B3;
 }
+
+/* Ambient Still-Image Pan/Zoom Fallback (Ken Burns) */
+@keyframes ambientSlowPan {
+  0% { transform: scale(1.05) translate(0, 0); }
+  50% { transform: scale(1.12) translate(-1%, -1%); }
+  100% { transform: scale(1.05) translate(0, 0); }
+}
+
+.ambient-still-pan {
+  animation: ambientSlowPan 24s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-still-pan {
+    animation: none !important;
+  }
+}
+

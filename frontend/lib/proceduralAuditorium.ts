@@ -36,6 +36,7 @@ export interface AuditoriumLayoutInput {
   seats_per_row: number;
   aisles: number[];
   accessible_seats?: string[];
+  companion_seats?: string[];
   category_bands?: Array<{
     category: string;
     rows: string[];
@@ -44,6 +45,27 @@ export interface AuditoriumLayoutInput {
   screen_type?: string;
   total_seats?: number;
   base_price?: number;
+  curve_radius?: number;
+  angle_span?: number;
+  levels?: {
+    stalls?: { label: string; height: number; rows: string[] };
+    balcony?: { label: string; height: number; rows: string[] };
+  };
+  has_balcony?: boolean;
+  balcony_rows?: string[];
+  recliner_pairs?: Array<[string, string]>;
+  motion_rows?: string[];
+  features?: {
+    motion_seats?: boolean;
+    wind?: boolean;
+    water?: boolean;
+    fog?: boolean;
+    scent?: boolean;
+    strobe?: boolean;
+    ticklers?: boolean;
+    is_4dx?: boolean;
+    dolby_atmos?: boolean;
+  };
 }
 
 export interface AcousticPanelDef {
@@ -68,6 +90,7 @@ export interface ProceduralGeometryData {
     row: string;
     bounds: BoundingBox3D;
     topY: number;
+    level?: 'stalls' | 'balcony';
   }>;
   aisleSteps: Array<{
     name: string;
@@ -90,9 +113,30 @@ export interface ProceduralGeometryData {
   };
   screenFrame: BoundingBox3D;
   stageLip: BoundingBox3D;
+  proscenium: BoundingBox3D;
+  sideCurtains: {
+    left: BoundingBox3D;
+    right: BoundingBox3D;
+  };
+  woodenSlats: Array<{
+    id: string;
+    position: [number, number, number];
+    size: [number, number, number];
+    rotationY: number;
+  }>;
   acousticPanels: AcousticPanelDef[];
   stepLights: Array<{ id: string; position: [number, number, number] }>;
   sconces: Array<{ id: string; position: [number, number, number] }>;
+  ceilingDownlights: Array<{ id: string; position: [number, number, number] }>;
+  atmosSpeakers: Array<{ id: string; position: [number, number, number]; channel: string }>;
+  exitSigns: Array<{ id: string; position: [number, number, number]; label: string }>;
+  carpetRunners: Array<{ name: string; bounds: BoundingBox3D }>;
+  balconyStructure?: {
+    platform: BoundingBox3D;
+    fascia: BoundingBox3D;
+    railing: BoundingBox3D;
+    coveLightBounds: BoundingBox3D;
+  };
   cameraBounds: {
     minX: number;
     maxX: number;
@@ -111,6 +155,7 @@ export interface ProceduralGeometryData {
   };
   defaultCameraPos: [number, number, number];
   defaultCameraTarget: [number, number, number];
+  cameraPresets?: Record<string, { position: [number, number, number]; target: [number, number, number]; caption: string }>;
 }
 
 export interface ProceduralAuditoriumResult {
@@ -227,14 +272,63 @@ export function generateProceduralAuditorium(
     return { cat: 'prime', mult: 1.0 };
   }
 
-  // 5. Build Seat Records
+  // 5. Balcony & Curve configuration
+  const hasBalcony = !!(input.has_balcony || (input.balcony_rows && input.balcony_rows.length > 0) || (input.levels?.balcony && input.levels.balcony.rows.length > 0));
+  const balconyRowsList: string[] = input.balcony_rows || (input.levels?.balcony?.rows) || (hasBalcony ? rows.slice(Math.max(rows.length - 3, 8)) : []);
+  const balconyRowSet = new Set(balconyRowsList);
+  const stallsRowsList = rows.filter((r) => !balconyRowSet.has(r));
+  const stallsCount = stallsRowsList.length;
+  const curveRadius = input.curve_radius;
+
+  // 6. Build Seat Records
   const seatRecords: SeatRecord[] = [];
   const colliders: ColliderAABB[] = [];
+  const reclinerPairMap = new Map<string, string>();
+
+  // If explicit recliner pairs passed, index them
+  if (input.recliner_pairs) {
+    for (const [s1, s2] of input.recliner_pairs) {
+      reclinerPairMap.set(s1, s2);
+      reclinerPairMap.set(s2, s1);
+    }
+  }
+
+  // Pre-calculate pairs for premier rows if not explicitly provided
+  const premierRows = categoryBands.find((b) => b.category.toLowerCase() === 'premier')?.rows || [];
+  if (!input.recliner_pairs) {
+    for (const pRow of premierRows) {
+      for (let s = 1; s <= seatsPerRow; s += 2) {
+        if (s + 1 <= seatsPerRow) {
+          const s1 = `${pRow}${String(s).padStart(2, '0')}`;
+          const s2 = `${pRow}${String(s + 1).padStart(2, '0')}`;
+          // Don't pair if accessible
+          if (!_accessibleSeats.has(s1) && !_accessibleSeats.has(s2)) {
+            reclinerPairMap.set(s1, s2);
+            reclinerPairMap.set(s2, s1);
+          }
+        }
+      }
+    }
+  }
+
+  const motionRows = new Set(input.motion_rows || (screenType.includes('4DX') || input.features?.is_4dx ? ['D', 'E', 'F', 'G'] : []));
 
   for (let rIdx = 0; rIdx < rows.length; rIdx++) {
     const row = rows[rIdx];
-    const rowY = Math.round((ROW_A_Y + rIdx * TIER_RISE) * 1000) / 1000;
-    const rowZ = Math.round((ROW_A_Z - rIdx * ROW_PITCH) * 1000) / 1000;
+    const isBalcony = balconyRowSet.has(row);
+    let rowY: number;
+    let rowZ: number;
+
+    if (isBalcony) {
+      const bIdx = balconyRowsList.indexOf(row);
+      const balconyElevationJump = 2.4;
+      rowY = Math.round((ROW_A_Y + stallsCount * TIER_RISE + balconyElevationJump + bIdx * 0.35) * 1000) / 1000;
+      rowZ = Math.round((ROW_A_Z - (stallsCount + bIdx) * ROW_PITCH - 0.5) * 1000) / 1000;
+    } else {
+      rowY = Math.round((ROW_A_Y + rIdx * TIER_RISE) * 1000) / 1000;
+      rowZ = Math.round((ROW_A_Z - rIdx * ROW_PITCH) * 1000) / 1000;
+    }
+
     const { cat, mult } = getSeatCategory(row);
     const price = Math.round(basePrice * mult);
 
@@ -243,7 +337,8 @@ export function generateProceduralAuditorium(
       const seatId = `${row}${String(num).padStart(2, '0')}`;
       const posX = xPositions[sIdx];
       const posY = rowY;
-      const posZ = rowZ;
+      const sagZ = curveRadius ? Math.round(((posX * posX) / (2 * curveRadius)) * 1000) / 1000 : 0.0;
+      const posZ = Math.round((rowZ + sagZ) * 1000) / 1000;
 
       const bounds: BoundingBox3D = {
         min: [
@@ -271,6 +366,12 @@ export function generateProceduralAuditorium(
       const vAngle = verticalAngle(eyePos, screenCenter);
       const fov = screenFov(eyePos, screenWidth, screenHeight, screenCenter);
 
+      const isAccessible = _accessibleSeats.has(seatId);
+      const isCompanion = (input.companion_seats && input.companion_seats.includes(seatId)) ||
+        (isAccessible === false && _accessibleSeats.has(`${row}${String(num - 1).padStart(2, '0')}`));
+      const pairPartner = reclinerPairMap.get(seatId);
+      const seatType = isAccessible ? 'accessible' : (isCompanion ? 'companion' : (pairPartner ? 'recliner_pair' : 'standard'));
+
       const seatRec: SeatRecord = {
         seat_id: seatId,
         node_name: `seat_${row}_${String(num).padStart(2, '0')}`,
@@ -287,6 +388,11 @@ export function generateProceduralAuditorium(
         vertical_angle_deg: Math.round(vAngle * 100) / 100,
         screen_h_fov_deg: Math.round(fov.hFov * 10) / 10,
         screen_v_fov_deg: Math.round(fov.vFov * 10) / 10,
+        seat_type: seatType,
+        pair_partner_id: pairPartner,
+        level: isBalcony ? 'balcony' : 'stalls',
+        section: isBalcony ? 'Balcony' : 'Stalls',
+        in_motion_zone: motionRows.has(row),
       };
 
       seatRecords.push(seatRec);
@@ -315,12 +421,24 @@ export function generateProceduralAuditorium(
   });
 
   // Tier platforms
-  const tierGeometries: Array<{ name: string; row: string; bounds: BoundingBox3D; topY: number }> = [];
+  const tierGeometries: Array<{ name: string; row: string; bounds: BoundingBox3D; topY: number; level?: 'stalls' | 'balcony' }> = [];
   for (let rIdx = 0; rIdx < rows.length; rIdx++) {
     const row = rows[rIdx];
-    const rowZ = ROW_A_Z - rIdx * ROW_PITCH;
-    const tierTopY = Math.round((rIdx + 1) * TIER_RISE * 1000) / 1000;
-    const tierBottomY = Math.round(rIdx * TIER_RISE * 1000) / 1000;
+    const isBalcony = balconyRowSet.has(row);
+    let rowZ = ROW_A_Z - rIdx * ROW_PITCH;
+    let tierTopY: number;
+    let tierBottomY: number;
+
+    if (isBalcony) {
+      const bIdx = balconyRowsList.indexOf(row);
+      const balconyElevationJump = 2.4;
+      tierTopY = Math.round((ROW_A_Y + stallsCount * TIER_RISE + balconyElevationJump + (bIdx + 1) * 0.35) * 1000) / 1000;
+      tierBottomY = Math.round((ROW_A_Y + stallsCount * TIER_RISE + balconyElevationJump + bIdx * 0.35) * 1000) / 1000;
+      rowZ = ROW_A_Z - (stallsCount + bIdx) * ROW_PITCH - 0.5;
+    } else {
+      tierTopY = Math.round((rIdx + 1) * TIER_RISE * 1000) / 1000;
+      tierBottomY = Math.round(rIdx * TIER_RISE * 1000) / 1000;
+    }
 
     const tierBounds: BoundingBox3D = {
       min: [-halfWidth + 2.0, tierBottomY, Math.round((rowZ - 0.818) * 1000) / 1000],
@@ -332,6 +450,7 @@ export function generateProceduralAuditorium(
       row,
       bounds: tierBounds,
       topY: tierTopY,
+      level: isBalcony ? ('balcony' as const) : ('stalls' as const),
     };
 
     tierGeometries.push(tierObj);
@@ -357,8 +476,18 @@ export function generateProceduralAuditorium(
 
       for (let rIdx = 0; rIdx < rows.length; rIdx++) {
         const row = rows[rIdx];
-        const rowZ = ROW_A_Z - rIdx * ROW_PITCH;
-        const treadY = Math.round((rIdx + 1) * TIER_RISE * 1000) / 1000;
+        const isBalcony = balconyRowSet.has(row);
+        let rowZ = ROW_A_Z - rIdx * ROW_PITCH;
+        let treadY: number;
+
+        if (isBalcony) {
+          const bIdx = balconyRowsList.indexOf(row);
+          const balconyElevationJump = 2.4;
+          treadY = Math.round((ROW_A_Y + stallsCount * TIER_RISE + balconyElevationJump + (bIdx + 1) * 0.35) * 1000) / 1000;
+          rowZ = ROW_A_Z - (stallsCount + bIdx) * ROW_PITCH - 0.5;
+        } else {
+          treadY = Math.round((rIdx + 1) * TIER_RISE * 1000) / 1000;
+        }
 
         const stepBounds: BoundingBox3D = {
           min: [
@@ -433,10 +562,11 @@ export function generateProceduralAuditorium(
   };
   colliders.push({ name: 'stage_lip', type: 'screen_structure', bounds: stageLip });
 
-  // 8. Acoustic Wall Panels & Lighting Accents
+  // 8. Architectural Features (Wood Slats, Curtains, Proscenium, Exit Signs, Runners)
   const acousticPanels: AcousticPanelDef[] = [];
   const sconces: Array<{ id: string; position: [number, number, number] }> = [];
   const stepLights: Array<{ id: string; position: [number, number, number] }> = [];
+  const woodenSlats: Array<{ id: string; position: [number, number, number]; size: [number, number, number]; rotationY: number }> = [];
 
   const panelCount = Math.max(5, Math.floor(Math.abs(zBack) / 2.8));
   const zStep = (Math.abs(zBack) - 3.0) / panelCount;
@@ -469,6 +599,27 @@ export function generateProceduralAuditorium(
     });
   }
 
+  // Wooden vertical slats spaced on side walls
+  const slatSpacing = 0.55;
+  const slatCount = Math.floor((Math.abs(zBack) - 4.0) / slatSpacing);
+  for (let i = 0; i < slatCount; i++) {
+    const sZ = Math.round((-2.2 - i * slatSpacing) * 1000) / 1000;
+    // Left side wall
+    woodenSlats.push({
+      id: `slat_left_${i}`,
+      position: [halfWidth - 0.08, 4.2, sZ],
+      size: [0.06, 6.2, 0.12],
+      rotationY: 0,
+    });
+    // Right side wall
+    woodenSlats.push({
+      id: `slat_right_${i}`,
+      position: [-halfWidth + 0.08, 4.2, sZ],
+      size: [0.06, 6.2, 0.12],
+      rotationY: 0,
+    });
+  }
+
   // Step illumination accents on each aisle
   for (const acX of aisleCenters) {
     for (let rIdx = 0; rIdx < rows.length; rIdx++) {
@@ -483,6 +634,93 @@ export function generateProceduralAuditorium(
         position: [acX + 0.55, stepY + 0.02, rowZ],
       });
     }
+  }
+
+  // Ceiling downlights along aisles
+  const ceilingDownlights: Array<{ id: string; position: [number, number, number] }> = [];
+  for (const acX of aisleCenters) {
+    for (let z = -4.0; z >= zBack + 1.0; z -= 3.2) {
+      ceilingDownlights.push({
+        id: `downlight_${acX.toFixed(1)}_${Math.abs(z).toFixed(0)}`,
+        position: [acX, ceilingHeight - 0.2, z],
+      });
+    }
+  }
+
+  // Dolby Atmos overhead & surround speaker coordinates
+  const atmosSpeakers: Array<{ id: string; position: [number, number, number]; channel: string }> = [
+    // Overhead rows (6 speakers)
+    { id: 'atmos_top_l1', position: [-halfWidth * 0.45, ceilingHeight - 0.4, -6.5], channel: 'top_left_front' },
+    { id: 'atmos_top_r1', position: [halfWidth * 0.45, ceilingHeight - 0.4, -6.5], channel: 'top_right_front' },
+    { id: 'atmos_top_l2', position: [-halfWidth * 0.45, ceilingHeight - 0.4, -13.0], channel: 'top_left_middle' },
+    { id: 'atmos_top_r2', position: [halfWidth * 0.45, ceilingHeight - 0.4, -13.0], channel: 'top_right_middle' },
+    { id: 'atmos_top_l3', position: [-halfWidth * 0.45, ceilingHeight - 0.4, zBack + 3.0], channel: 'top_left_rear' },
+    { id: 'atmos_top_r3', position: [halfWidth * 0.45, ceilingHeight - 0.4, zBack + 3.0], channel: 'top_right_rear' },
+    // Side surround (6 speakers)
+    { id: 'atmos_surr_l1', position: [halfWidth - 0.25, 6.2, -7.0], channel: 'surround_left_front' },
+    { id: 'atmos_surr_r1', position: [-halfWidth + 0.25, 6.2, -7.0], channel: 'surround_right_front' },
+    { id: 'atmos_surr_l2', position: [halfWidth - 0.25, 6.6, -14.0], channel: 'surround_left_middle' },
+    { id: 'atmos_surr_r2', position: [-halfWidth + 0.25, 6.6, -14.0], channel: 'surround_right_middle' },
+    { id: 'atmos_surr_l3', position: [halfWidth - 0.25, 7.0, zBack + 3.0], channel: 'surround_left_rear' },
+    { id: 'atmos_surr_r3', position: [-halfWidth + 0.25, 7.0, zBack + 3.0], channel: 'surround_right_rear' },
+  ];
+
+  // Side curtains flanking the screen
+  const sideCurtains = {
+    left: {
+      min: [screenWidth / 2 + 0.1, 0.0, SCREEN_Z - 0.25] as [number, number, number],
+      max: [halfWidth - 0.5, screenCenterY + screenHeight / 2 + 1.2, SCREEN_Z + 0.35] as [number, number, number],
+    },
+    right: {
+      min: [-halfWidth + 0.5, 0.0, SCREEN_Z - 0.25] as [number, number, number],
+      max: [-screenWidth / 2 - 0.1, screenCenterY + screenHeight / 2 + 1.2, SCREEN_Z + 0.35] as [number, number, number],
+    },
+  };
+
+  // Subtle proscenium arch around screen
+  const proscenium: BoundingBox3D = {
+    min: [-screenWidth / 2 - 0.8, 0.0, SCREEN_Z - 0.22],
+    max: [screenWidth / 2 + 0.8, screenCenterY + screenHeight / 2 + 0.85, SCREEN_Z - 0.04],
+  };
+
+  // Illuminated EXIT signs
+  const exitSigns: Array<{ id: string; position: [number, number, number]; label: string }> = [
+    { id: 'exit_front_left', position: [halfWidth - 1.2, 4.0, SCREEN_Z + 1.6], label: 'EXIT' },
+    { id: 'exit_rear_right', position: [-halfWidth + 1.2, topTierY + 3.5, zBack + 1.4], label: 'EXIT' },
+  ];
+
+  // Carpet runners along aisles
+  const carpetRunners: Array<{ name: string; bounds: BoundingBox3D }> = aisleCenters.map((acX, idx) => ({
+    name: `carpet_runner_${idx}`,
+    bounds: {
+      min: [acX - 0.5, -0.02, zBack + 0.5],
+      max: [acX + 0.5, topTierY + 0.02, -5.0],
+    },
+  }));
+
+  // Balcony cantilevered structure if hall has balcony
+  let balconyStructure: ProceduralGeometryData['balconyStructure'];
+  if (hasBalcony && balconyRowsList.length > 0) {
+    const balconyFrontZ = ROW_A_Z - stallsCount * ROW_PITCH - 0.2;
+    const bBaseY = ROW_A_Y + stallsCount * TIER_RISE + 2.4;
+    balconyStructure = {
+      platform: {
+        min: [-halfWidth + 1.2, bBaseY - 0.65, zBack],
+        max: [halfWidth - 1.2, bBaseY, balconyFrontZ + 1.4],
+      },
+      fascia: {
+        min: [-halfWidth + 1.2, bBaseY - 0.65, balconyFrontZ + 1.3],
+        max: [halfWidth - 1.2, bBaseY + 0.05, balconyFrontZ + 1.45],
+      },
+      railing: {
+        min: [-halfWidth + 1.2, bBaseY, balconyFrontZ + 1.38],
+        max: [halfWidth - 1.2, bBaseY + 0.88, balconyFrontZ + 1.45],
+      },
+      coveLightBounds: {
+        min: [-halfWidth + 1.4, bBaseY - 0.72, balconyFrontZ + 1.25],
+        max: [halfWidth - 1.4, bBaseY - 0.62, balconyFrontZ + 1.35],
+      },
+    };
   }
 
   // 9. Camera Boundaries and Safe Limits
@@ -514,6 +752,45 @@ export function generateProceduralAuditorium(
     screenCenterY * 0.68,
     -8.0,
   ];
+
+  // Camera Presets (§ Product Polish)
+  const cameraPresets: Record<string, { position: [number, number, number]; target: [number, number, number]; caption: string }> = {
+    overview: {
+      position: defaultCameraPos,
+      target: defaultCameraTarget,
+      caption: 'Auditorium Overview',
+    },
+    front: {
+      position: [0.0, 3.2, -6.8],
+      target: [0.0, screenCenterY, SCREEN_Z],
+      caption: 'Front Stalls View',
+    },
+    back: {
+      position: [0.0, Math.min(topTierY + 4.2, ceilingHeight - 1.8), zBack + 1.5],
+      target: [0.0, screenCenterY, SCREEN_Z],
+      caption: 'Premier Centre View',
+    },
+    balcony: {
+      position: [0.0, hasBalcony ? topTierY + 4.8 : topTierY + 3.5, zBack + 1.2],
+      target: [0.0, screenCenterY * 0.9, SCREEN_Z],
+      caption: 'Balcony Tier View',
+    },
+    screen: {
+      position: [0.0, 2.5, SCREEN_Z + 1.8],
+      target: [0.0, topTierY * 0.5 + 2.0, (ROW_A_Z + zBack) / 2],
+      caption: 'Near Screen Facing Seating',
+    },
+    top: {
+      position: [0.0, ceilingHeight - 1.4, (ROW_A_Z + zBack) / 2],
+      target: [0.0, 1.0, (ROW_A_Z + zBack) / 2],
+      caption: 'Top-down Plan View',
+    },
+    picker: {
+      position: [0.0, 6.8, -14.5],
+      target: [0.0, 2.5, -11.5],
+      caption: 'Seat Picker View',
+    },
+  };
 
   // 10. Assemble Output Data Structures
   const categoriesRecord: Record<SeatCategory, CategoryInfo> = {
@@ -549,6 +826,22 @@ export function generateProceduralAuditorium(
       disclaimer: 'Viewing angles and sightlines are geometric estimates based on SMPTE standards. Procedural halls are idealized acoustic and architectural models and not physical laser scans.',
     },
     categories: categoriesRecord,
+    levels: {
+      stalls: { label: 'Stalls', height: 0.0, rows: stallsRowsList },
+      ...(hasBalcony ? { balcony: { label: 'Balcony', height: 2.4, rows: balconyRowsList } } : {}),
+    },
+    has_balcony: hasBalcony,
+    features: {
+      is_4dx: screenType.includes('4DX') || !!input.features?.is_4dx,
+      motion_seats: screenType.includes('4DX') || !!input.features?.motion_seats || !!input.features?.is_4dx,
+      wind: screenType.includes('4DX') || !!input.features?.wind || !!input.features?.is_4dx,
+      water: screenType.includes('4DX') || !!input.features?.water || !!input.features?.is_4dx,
+      fog: screenType.includes('4DX') || !!input.features?.fog || !!input.features?.is_4dx,
+      scent: screenType.includes('4DX') || !!input.features?.scent || !!input.features?.is_4dx,
+      strobe: screenType.includes('4DX') || !!input.features?.strobe || !!input.features?.is_4dx,
+      ticklers: screenType.includes('4DX') || !!input.features?.ticklers || !!input.features?.is_4dx,
+      dolby_atmos: screenType.includes('Atmos') || screenType.includes('4DX') || !!input.features?.dolby_atmos,
+    },
     seats: seatRecords,
   };
 
@@ -620,13 +913,22 @@ export function generateProceduralAuditorium(
       max: [screenWidth / 2 + 0.4, screenCenterY + screenHeight / 2 + 0.4, SCREEN_Z - 0.01],
     },
     stageLip,
+    proscenium,
+    sideCurtains,
+    woodenSlats,
     acousticPanels,
     stepLights,
     sconces,
+    ceilingDownlights,
+    atmosSpeakers,
+    exitSigns,
+    carpetRunners,
+    balconyStructure,
     cameraBounds,
     targetBounds,
     defaultCameraPos,
     defaultCameraTarget,
+    cameraPresets,
   };
 
   return {

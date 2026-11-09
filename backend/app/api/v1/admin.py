@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
@@ -369,4 +369,44 @@ async def export_cinema_operations_csv(
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=cinema_{cinema_id}_operations_{dash['date']}.csv"}
     )
+
+
+@router.get("/catalog/status")
+async def get_catalog_status(
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns current catalog provider state and licensing status."""
+    from app.config import settings
+    from app.services.catalog.factory import get_catalog_provider
+    provider = get_catalog_provider()
+    
+    # Count TMDB vs local movies
+    res_tmdb = await db.execute(select(func.count(Movie.id)).where(Movie.is_tmdb.is_(True)))
+    tmdb_count = res_tmdb.scalar() or 0
+    res_all = await db.execute(select(func.count(Movie.id)))
+    total_count = res_all.scalar() or 0
+
+    return {
+        "catalog_source": settings.CATALOG_SOURCE,
+        "active_provider": provider.source_name,
+        "has_tmdb_key": bool(settings.TMDB_API_KEY),
+        "tmdb_movies_count": tmdb_count,
+        "total_movies_count": total_count,
+        "licensing_warning": "TMDB API free tier is for demonstration and non-commercial testing only. A commercial launch requires official content licensing and commercial TMDB terms.",
+        "is_demo_mode": True,
+    }
+
+
+@router.post("/catalog/sync")
+async def trigger_catalog_sync(
+    languages: Optional[List[str]] = None,
+    force_refresh: bool = False,
+    db: AsyncSession = Depends(get_db)
+):
+    """Triggers an idempotent sync of movies from the active catalog provider."""
+    from app.services.catalog.factory import get_catalog_provider
+    provider = get_catalog_provider()
+    report = await provider.sync_catalog(db, languages=languages, force_refresh=force_refresh)
+    return report
+
 

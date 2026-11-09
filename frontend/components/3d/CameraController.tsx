@@ -9,6 +9,7 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import layoutData from '@/public/models/seat_layout_v2.json';
 import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
 import { WalkController } from './WalkController';
+import { DroneController } from './DroneController';
 
 // Safe boundary box inside auditorium interior to prevent clipping through geometry
 export const AUDITORIUM_BOUNDS = {
@@ -435,24 +436,7 @@ export function CameraController() {
   return (
     <>
       {isWalk && <WalkController />}
-      {isOverview && (
-        <OrbitControls
-          ref={controlsRef}
-          enableDamping
-          dampingFactor={0.06}
-          minDistance={2.5}
-          maxDistance={20.0}
-          maxPolarAngle={1.42}
-          minPolarAngle={0.35}
-          target={DEFAULT_CAMERA_TARGET}
-          onStart={() => useCinemaStore.getState().setContinuousRendering(true)}
-          onEnd={() => {
-            setTimeout(() => {
-              useCinemaStore.getState().setContinuousRendering(false);
-            }, 450);
-          }}
-        />
-      )}
+      {isOverview && <DroneController />}
     </>
   );
 }

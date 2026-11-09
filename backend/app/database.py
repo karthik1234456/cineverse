@@ -54,12 +54,10 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db():
+    from sqlalchemy import text
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # Migrate columns if missing (inspect first so failed statements do not abort SQLite transactions)
-    from sqlalchemy import text
-    async with engine.connect() as conn:
         # Check cinema columns
         try:
             res = await conn.execute(text("PRAGMA table_info(cinemas)"))
@@ -77,10 +75,9 @@ async def init_db():
             ("is_demo_data", "BOOLEAN DEFAULT 1"),
         ]
         for col_name, col_def in new_cinema_cols:
-            if not cinema_cols or col_name not in cinema_cols:
+            if cinema_cols and col_name not in cinema_cols:
                 try:
                     await conn.execute(text(f"ALTER TABLE cinemas ADD COLUMN {col_name} {col_def}"))
-                    await conn.commit()
                 except Exception:
                     pass
 
@@ -96,12 +93,16 @@ async def init_db():
             ("glimpse_url", "VARCHAR(500)"),
             ("glimpse_webm_url", "VARCHAR(500)"),
             ("glimpse_720p_url", "VARCHAR(500)"),
+            ("tmdb_id", "INTEGER"),
+            ("tmdb_vote_average", "FLOAT"),
+            ("tmdb_popularity", "FLOAT"),
+            ("is_tmdb", "BOOLEAN DEFAULT 0"),
+            ("youtube_trailer_id", "VARCHAR(50)"),
         ]
         for col_name, col_def in movie_cols:
-            if not existing_movie_cols or col_name not in existing_movie_cols:
+            if existing_movie_cols and col_name not in existing_movie_cols:
                 try:
                     await conn.execute(text(f"ALTER TABLE movies ADD COLUMN {col_name} {col_def}"))
-                    await conn.commit()
                 except Exception:
                     pass
 

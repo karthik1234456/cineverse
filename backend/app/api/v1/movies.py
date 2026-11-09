@@ -17,6 +17,7 @@ from app.services.geo_service import haversine_distance_km, generate_directions_
 router = APIRouter()
 
 
+@router.get("", response_model=List[MovieResponse], include_in_schema=False)
 @router.get("/", response_model=List[MovieResponse])
 async def list_movies(
     response: Response,
@@ -86,6 +87,10 @@ async def list_movies(
     # In-memory filter for JSON array fields (genres, languages, formats)
     filtered = []
     for m in movies:
+        # Rule: do NOT silently use generated art for real titles; hide real titles that have no poster from Now Showing
+        if m.is_tmdb and not (m.poster_url and m.poster_url.strip()):
+            if status == "now_showing" or m.is_now_showing:
+                continue
         if genre and genre.lower() != "all" and genre not in (m.genres or []):
             continue
         if language and language.lower() != "all" and language not in (m.languages or []):
@@ -103,6 +108,19 @@ async def list_movies(
     start = (page - 1) * page_size
     end = start + page_size
     return filtered[start:end]
+
+
+@router.get("/catalog-info")
+async def get_movies_catalog_info():
+    """Returns catalog provider public metadata and demonstration notice."""
+    from app.config import settings
+    return {
+        "catalog_source": settings.CATALOG_SOURCE,
+        "is_demo_mode": True,
+        "attribution_required": settings.CATALOG_SOURCE.lower() == "tmdb",
+        "tmdb_attribution_text": "This product uses the TMDB API but is not endorsed or certified by TMDB.",
+        "sample_notice": "Sample showtimes for demonstration"
+    }
 
 
 @router.get("/{id_or_slug}", response_model=MovieDetailResponse)
@@ -328,4 +346,5 @@ async def post_review(
         created_at=review.created_at,
         user_name=current_user.full_name
     )
+
 

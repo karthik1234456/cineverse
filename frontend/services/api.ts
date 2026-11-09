@@ -79,6 +79,10 @@ export interface Movie {
   languages: string[];
   genres: string[];
   formats: string[];
+  tmdb_id?: number;
+  tmdb_vote_average?: number;
+  is_tmdb?: boolean;
+  youtube_trailer_id?: string;
 }
 
 export interface CastMember {
@@ -316,7 +320,14 @@ export interface AuditoriumLayoutData {
   seats_per_row: number;
   aisles: number[];
   accessible_seats?: string[];
+  companion_seats?: string[];
   category_bands?: CategoryBand[];
+  recliner_pairs?: [string, string][];
+  curve_radius?: number;
+  angle_span?: number;
+  levels?: { balcony?: any; stalls?: any } | any;
+  has_balcony?: boolean;
+  [key: string]: any;
 }
 
 export interface ShowtimeSeatsResponse {

@@ -8,6 +8,8 @@ import { MiniPlayerDock } from '@/components/MiniPlayerDock';
 import { MovieBackdropProvider } from '@/context/MovieBackdropContext';
 import { MovieBackdrop } from '@/components/backdrop/MovieBackdrop';
 import { ComfortInitializer } from '@/components/ComfortInitializer';
+import { TmdbAttribution } from '@/components/TmdbAttribution';
+import { TmdbReadinessBanner } from '@/components/TmdbReadinessBanner';
 
 export const metadata: Metadata = {
   title: 'CineVerse — Experience The Theatre Before Booking Your Movie',
@@ -39,6 +41,7 @@ export default function RootLayout({
             <MovieBackdrop />
             {/* Page chrome: z-10 so it sits above backdrop */}
             <Navbar />
+            <TmdbReadinessBanner />
             <main className="flex-1 flex flex-col relative z-10">{children}</main>
             {/* Footer */}
             <footer className="mt-auto border-t border-[#E6DCD2] bg-white py-8 px-4 text-center text-sm text-[#4A4056] relative z-10">
@@ -55,10 +58,12 @@ export default function RootLayout({
                   <a href="/legal/terms" className="hover:text-[#C8102E] transition">Terms</a>
                   <a href="/legal/privacy" className="hover:text-[#C8102E] transition">Privacy (DPDP)</a>
                   <a href="/legal/refunds" className="hover:text-[#C8102E] transition">Refunds</a>
+                  <a href="/about" className="hover:text-[#C8102E] transition">About</a>
                   <span className="text-[#E6DCD2] hidden md:inline">|</span>
                   <span>© 2026 CineVerse Cinemas India</span>
                 </div>
               </div>
+              <TmdbAttribution />
             </footer>
             <VoiceAgentFloatingButton />
             <TrailerPlayer />

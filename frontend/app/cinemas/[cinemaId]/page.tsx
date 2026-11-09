@@ -9,6 +9,7 @@ import { getCinema, getCinemaShowtimes, type Cinema, type CinemaMovieShowtimes }
 import { MiniMap } from '@/components/map/MiniMap';
 import { AdminMapPicker } from '@/components/map/AdminMapPicker';
 import { getDirectionsUrl } from '@/components/map/MapAdapter';
+import { MoviePoster } from '@/components/MoviePoster';
 
 export default function CinemaDetailPage() {
   const params = useParams();
@@ -325,13 +326,13 @@ export default function CinemaDetailPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E6DCD2]">
                   <div className="flex items-center gap-4">
                     <div className="h-16 w-12 rounded-xl bg-[#E6DCD2] shrink-0 overflow-hidden border border-[#E6DCD2]">
-                      <img
+                      <MoviePoster
                         src={item.poster_url}
                         alt={item.title}
+                        title={item.title}
+                        certificate={item.certificate}
                         className="h-full w-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
+                        containerClassName="h-full w-full"
                       />
                     </div>
                     <div>
