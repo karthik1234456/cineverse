@@ -7,19 +7,18 @@ export function TmdbReadinessBanner() {
   const [banner, setBanner] = useState<string | null>(null);
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://127.0.0.1:8000';
-    fetch(`${apiUrl}/api/dev/readiness.json`)
-      .then((res) => {
-        if (res.ok) return res.json();
-        return null;
-      })
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1';
+    fetch(`${apiBase}/movies/catalog-info`)
+      .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (data?.environment?.banner) {
-          setBanner(data.environment.banner);
+        if (data?.readiness_banner) {
+          setBanner(data.readiness_banner);
+        } else {
+          setBanner(null);
         }
       })
       .catch(() => {
-        // Fallback banner when key is missing or rejected
+        // Fallback banner when server verification fails
         setBanner('Real posters unavailable: TMDB key missing or rejected');
       });
   }, []);
@@ -37,3 +36,5 @@ export function TmdbReadinessBanner() {
     </div>
   );
 }
+
+

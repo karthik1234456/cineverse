@@ -14,6 +14,8 @@ if backend_dir not in sys.path:
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_cineverse.db"
 os.environ["REDIS_URL"] = "redis://localhost:6379/1"
 os.environ["USE_FAKEREDIS_FALLBACK"] = "True"
+os.environ["CATALOG_SOURCE"] = "local"
+
 
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import update, delete

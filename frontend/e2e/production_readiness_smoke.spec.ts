@@ -70,7 +70,7 @@ test.describe('Production Readiness Smoke Suite — Zero Silent Failures', () =>
 
     for (const slug of testSlugs) {
       await page.goto(`/movies/${slug}`);
-      await page.waitForLoadState('networkidle');
+      await page.waitForLoadState('domcontentloaded');
 
       // Click watch trailer or locate player
       const trailerBtn = page.locator('button:has-text("Watch Trailer"), [data-testid="watch-trailer-btn"]');

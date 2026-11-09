@@ -279,9 +279,8 @@ export default function DeveloperReadinessPage() {
             {data.metrics.non_showcase_movies_count}
           </div>
           <div
-            className={`mt-1 flex items-center gap-1 text-xs font-semibold ${
-              data.metrics.non_showcase_tmdb_ratio >= 0.9 ? 'text-emerald-700' : 'text-red-700'
-            }`}
+            className={`mt-1 flex items-center gap-1 text-xs font-semibold ${data.metrics.non_showcase_tmdb_ratio >= 0.9 ? 'text-emerald-700' : 'text-red-700'
+              }`}
           >
             {data.metrics.non_showcase_tmdb_ratio >= 0.9 ? (
               <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
@@ -321,11 +320,10 @@ export default function DeveloperReadinessPage() {
         <button
           onClick={() => setActiveTab('movies')}
           data-testid="tab-movies-btn"
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${
-            activeTab === 'movies'
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${activeTab === 'movies'
               ? 'bg-[#C8102E] text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-100'
-          }`}
+            }`}
         >
           <Film className="h-4 w-4" />
           <span>Movies ({data.movies.length})</span>
@@ -334,11 +332,10 @@ export default function DeveloperReadinessPage() {
         <button
           onClick={() => setActiveTab('halls')}
           data-testid="tab-halls-btn"
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${
-            activeTab === 'halls'
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${activeTab === 'halls'
               ? 'bg-[#C8102E] text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-100'
-          }`}
+            }`}
         >
           <Tv className="h-4 w-4" />
           <span>Halls & 3D ({data.halls.length})</span>
@@ -347,11 +344,10 @@ export default function DeveloperReadinessPage() {
         <button
           onClick={() => setActiveTab('cities')}
           data-testid="tab-cities-btn"
-          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${
-            activeTab === 'cities'
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${activeTab === 'cities'
               ? 'bg-[#C8102E] text-white shadow-sm'
               : 'text-slate-600 hover:bg-slate-100'
-          }`}
+            }`}
         >
           <MapPin className="h-4 w-4" />
           <span>Cities ({data.cities.length})</span>
@@ -368,11 +364,10 @@ export default function DeveloperReadinessPage() {
                 <button
                   key={f}
                   onClick={() => setMovieFilter(f)}
-                  className={`rounded-xl px-3 py-1.5 text-xs font-bold capitalize transition ${
-                    movieFilter === f
+                  className={`rounded-xl px-3 py-1.5 text-xs font-bold capitalize transition ${movieFilter === f
                       ? 'bg-slate-900 text-white'
                       : 'bg-white border border-[#E6DCD2] text-slate-700 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   {f}
                 </button>
@@ -513,13 +508,12 @@ export default function DeveloperReadinessPage() {
                       {/* 7. Effects Track */}
                       <td className="p-3">
                         <span
-                          className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${
-                            m.effects_track.status === 'reviewed'
+                          className={`rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${m.effects_track.status === 'reviewed'
                               ? 'bg-purple-50 text-purple-800 border border-purple-200'
                               : m.effects_track.status === 'auto'
-                              ? 'bg-blue-50 text-blue-800 border border-blue-200'
-                              : 'bg-slate-100 text-slate-600'
-                          }`}
+                                ? 'bg-blue-50 text-blue-800 border border-blue-200'
+                                : 'bg-slate-100 text-slate-600'
+                            }`}
                         >
                           {m.effects_track.status}
                         </span>
@@ -532,14 +526,12 @@ export default function DeveloperReadinessPage() {
                       <td className="p-3">
                         <div className="flex items-center gap-1.5">
                           <span
-                            className={`rounded-full h-2 w-2 shrink-0 ${
-                              m.status_ok ? 'bg-emerald-500' : 'bg-red-500'
-                            }`}
+                            className={`rounded-full h-2 w-2 shrink-0 ${m.status_ok ? 'bg-emerald-500' : 'bg-red-500'
+                              }`}
                           />
                           <span
-                            className={`font-bold ${
-                              m.status_ok ? 'text-emerald-800' : 'text-red-700'
-                            }`}
+                            className={`font-bold ${m.status_ok ? 'text-emerald-800' : 'text-red-700'
+                              }`}
                           >
                             {m.status_ok ? 'Pass' : 'Degraded'}
                           </span>
@@ -565,11 +557,10 @@ export default function DeveloperReadinessPage() {
               <span className="text-xs font-bold text-slate-500 mr-1">Theatre Type:</span>
               <button
                 onClick={() => setHallFilter('all')}
-                className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
-                  hallFilter === 'all'
+                className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${hallFilter === 'all'
                     ? 'bg-slate-900 text-white'
                     : 'bg-white border border-[#E6DCD2] text-slate-700'
-                }`}
+                  }`}
               >
                 All ({data.halls.length})
               </button>
@@ -579,11 +570,10 @@ export default function DeveloperReadinessPage() {
                   <button
                     key={t}
                     onClick={() => setHallFilter(t)}
-                    className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${
-                      hallFilter.toLowerCase() === t.toLowerCase()
+                    className={`rounded-xl px-3 py-1.5 text-xs font-bold transition ${hallFilter.toLowerCase() === t.toLowerCase()
                         ? 'bg-slate-900 text-white'
                         : 'bg-white border border-[#E6DCD2] text-slate-700'
-                    }`}
+                      }`}
                   >
                     {t} ({count})
                   </button>
@@ -642,11 +632,10 @@ export default function DeveloperReadinessPage() {
 
                     <td className="p-3">
                       <span
-                        className={`rounded-md px-2 py-0.5 text-xs font-bold ${
-                          h.source_3d === 'supplied model'
+                        className={`rounded-md px-2 py-0.5 text-xs font-bold ${h.source_3d === 'supplied model'
                             ? 'bg-amber-50 text-amber-900 border border-amber-200'
                             : 'bg-indigo-50 text-indigo-900 border border-indigo-200'
-                        }`}
+                          }`}
                       >
                         {h.source_3d}
                       </span>

@@ -1518,6 +1518,15 @@ COUPONS_DATA = [
         "min_order_amount": 600.0,
         "max_discount_amount": 150.0,
         "is_active": True
+    },
+    {
+        "code": "BLOCKBUSTER100",
+        "description": "Flat ₹100 off on minimum purchase of ₹600",
+        "discount_type": DiscountTypeEnum.FLAT,
+        "discount_value": 100.0,
+        "min_order_amount": 600.0,
+        "max_discount_amount": 100.0,
+        "is_active": True
     }
 ]
 
@@ -1807,6 +1816,20 @@ async def seed_database():
                 content="Exceptional sound design and visuals. A must-watch on the biggest format screen!",
                 has_spoilers=False,
                 is_approved=True
+            ))
+
+            # Sample cast members for search and movie details
+            db.add(MovieCast(
+                movie_id=m.id,
+                person_name="Marcus Vance",
+                role_name="Dr. Marcus Vance",
+                category="Cast"
+            ))
+            db.add(MovieCast(
+                movie_id=m.id,
+                person_name="Elena Rostova",
+                role_name="Commander Elena Rostova",
+                category="Cast"
             ))
 
         # 5. Seed F&B and Coupons

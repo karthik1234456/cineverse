@@ -41,6 +41,57 @@ def slugify(text: str) -> str:
     return text or "movie"
 
 
+_KEY_CHECK_CACHE: Dict[str, Any] = {"expires_at": 0, "result": None}
+
+
+async def check_tmdb_key_status() -> Dict[str, Any]:
+    """
+    Validates TMDB API key against TMDB API without ever exposing the key string.
+    Cached for 5 minutes in memory.
+    """
+    import time
+    now = time.time()
+    if _KEY_CHECK_CACHE["result"] is not None and now < _KEY_CHECK_CACHE["expires_at"]:
+        return _KEY_CHECK_CACHE["result"]
+
+    tmdb_key = settings.TMDB_API_KEY.strip() if settings.TMDB_API_KEY else ""
+    tmdb_key_set = bool(tmdb_key)
+    tmdb_key_valid = False
+    tmdb_validation_reason = "TMDB_API_KEY is not set in environment"
+
+    if tmdb_key_set:
+        try:
+            headers = {"Authorization": f"Bearer {tmdb_key}"} if len(tmdb_key) > 40 else {}
+            params = {"api_key": tmdb_key} if len(tmdb_key) <= 40 else {}
+            async with httpx.AsyncClient(timeout=4.0) as client:
+                auth_resp = await client.get(
+                    f"{settings.TMDB_BASE_URL}/authentication",
+                    headers=headers,
+                    params=params
+                )
+                if auth_resp.status_code == 200:
+                    tmdb_key_valid = True
+                    tmdb_validation_reason = "TMDB API key verified and accepted (HTTP 200 OK)"
+                else:
+                    tmdb_validation_reason = f"TMDB rejected API key (HTTP {auth_resp.status_code})"
+        except Exception as ex:
+            tmdb_validation_reason = f"Error validating TMDB key: {str(ex)[:80]}"
+
+    has_banner = not (tmdb_key_set and tmdb_key_valid)
+    banner_message = "Real posters unavailable: TMDB key missing or rejected" if has_banner else None
+
+    res = {
+        "is_set": tmdb_key_set,
+        "is_valid": tmdb_key_valid,
+        "reason": tmdb_validation_reason,
+        "banner": banner_message,
+    }
+    _KEY_CHECK_CACHE["expires_at"] = now + 300
+    _KEY_CHECK_CACHE["result"] = res
+    return res
+
+
+
 class TMDBCatalogProvider(CatalogProvider):
     """
     TMDB Catalog Provider for real Indian movie releases.

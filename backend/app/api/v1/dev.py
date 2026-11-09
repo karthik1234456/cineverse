@@ -141,28 +141,11 @@ async def get_developer_readiness(
         )
 
     # 1. Environment & TMDB Key Check
-    tmdb_key = settings.TMDB_API_KEY.strip() if settings.TMDB_API_KEY else ""
-    tmdb_key_set = bool(tmdb_key)
-    tmdb_key_valid = False
-    tmdb_validation_reason = "TMDB_API_KEY is not set in environment"
-
-    if tmdb_key_set:
-        try:
-            headers = {"Authorization": f"Bearer {tmdb_key}"} if len(tmdb_key) > 40 else {}
-            params = {"api_key": tmdb_key} if len(tmdb_key) <= 40 else {}
-            async with httpx.AsyncClient(timeout=3.0) as client:
-                auth_resp = await client.get(
-                    f"{settings.TMDB_BASE_URL}/authentication",
-                    headers=headers,
-                    params=params
-                )
-                if auth_resp.status_code == 200:
-                    tmdb_key_valid = True
-                    tmdb_validation_reason = "TMDB API key verified and accepted (HTTP 200 OK)"
-                else:
-                    tmdb_validation_reason = f"TMDB rejected API key (HTTP {auth_resp.status_code}: {auth_resp.text[:80]})"
-        except Exception as ex:
-            tmdb_validation_reason = f"Error validating TMDB key: {str(ex)[:80]}"
+    from app.services.catalog.tmdb import check_tmdb_key_status
+    key_status = await check_tmdb_key_status()
+    tmdb_key_set = key_status["is_set"]
+    tmdb_key_valid = key_status["is_valid"]
+    tmdb_validation_reason = key_status["reason"]
 
     # Count TMDB vs local movies
     res_tmdb = await db.execute(select(func.count(Movie.id)).where(Movie.is_tmdb.is_(True)))

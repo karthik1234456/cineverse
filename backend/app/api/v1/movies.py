@@ -114,12 +114,20 @@ async def list_movies(
 async def get_movies_catalog_info():
     """Returns catalog provider public metadata and demonstration notice."""
     from app.config import settings
+    from app.services.catalog.tmdb import check_tmdb_key_status
+
+    key_status = await check_tmdb_key_status()
+    banner = key_status.get("banner") if settings.CATALOG_SOURCE.lower() == "tmdb" else None
+
     return {
         "catalog_source": settings.CATALOG_SOURCE,
         "is_demo_mode": True,
         "attribution_required": settings.CATALOG_SOURCE.lower() == "tmdb",
         "tmdb_attribution_text": "This product uses the TMDB API but is not endorsed or certified by TMDB.",
-        "sample_notice": "Sample showtimes for demonstration"
+        "sample_notice": "Sample showtimes for demonstration",
+        "tmdb_key_set": key_status.get("is_set", False),
+        "tmdb_key_valid": key_status.get("is_valid", False),
+        "readiness_banner": banner,
     }
 
 

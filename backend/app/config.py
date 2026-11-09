@@ -1,6 +1,20 @@
 import os
 from typing import List
+from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Pre-load environment files safely in priority order
+_backend_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+_root_dir = os.path.abspath(os.path.join(_backend_dir, ".."))
+_root_env = os.path.join(_root_dir, ".env")
+_backend_env = os.path.join(_backend_dir, ".env")
+
+if os.path.exists(_root_env):
+    load_dotenv(_root_env, override=False)
+if os.path.exists(_backend_env):
+    load_dotenv(_backend_env, override=False)
+load_dotenv(".env", override=False)
+
 
 
 class Settings(BaseSettings):
@@ -63,7 +77,7 @@ class Settings(BaseSettings):
     ]
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(_root_env, _backend_env, ".env"),
         env_file_encoding="utf-8",
         extra="ignore"
     )
