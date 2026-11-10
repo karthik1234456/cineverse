@@ -2,7 +2,7 @@ export type SeatStatus = 'available' | 'booked' | 'held' | 'selected';
 
 export type SeatCategory = 'front' | 'prime' | 'premier';
 
-export type SeatType = 'standard' | 'recliner_pair' | 'accessible' | 'companion';
+export type SeatType = 'standard' | 'recliner' | 'recliner_pair' | 'sofa' | 'accessible' | 'companion';
 
 export type HallLevel = 'stalls' | 'balcony';
 
@@ -62,6 +62,28 @@ export interface ScreenConfig {
 export interface SeatLayoutFile {
   version: number;
   generated_from: string;
+  theatre_type?: string;
+  theatre_type_name?: string;
+  theatre_type_label?: string;
+  arrangement_pattern?: string;
+  blocks_pattern?: number[];
+  sweet_spot?: {
+    rows: string[];
+    seat_numbers: number[];
+    label?: string;
+    price_multiplier?: number;
+  };
+  documented_scale?: {
+    meters_to_scene: number;
+    scene_to_meters: number;
+    seat_width_m: number;
+    row_pitch_m: number;
+    rake_step_m: number;
+    aisle_width_m: number;
+    ceiling_height_m: number;
+    screen_width_m: number;
+    screen_height_m: number;
+  };
   coordinate_system: string;
   units: {
     scene_unit: string;
@@ -85,6 +107,8 @@ export interface SeatLayoutFile {
     balcony?: { label: string; height: number; rows: string[] };
   };
   has_balcony?: boolean;
+  recliner_pairs?: Array<[string, string]>;
+  sofa_pairs?: Array<[string, string]>;
   features?: {
     motion_seats?: boolean;
     wind?: boolean;
@@ -140,6 +164,7 @@ export interface WalkNavFile {
     central: { x_min: number; x_max: number; width: number };
     side_left: { x_min: number; x_max: number };
     side_right: { x_min: number; x_max: number };
+    aisle_centers?: number[];
   };
   walkable_count: number;
   collider_count: number;
@@ -253,6 +278,14 @@ declare global {
       simulateHold: (seatId: string) => void;
       updateSeatStatus: (seatId: string, status: SeatStatus) => void;
       setHouseLights: (mode: HouseLightsMode) => void;
+      setLightIntensity: (intensity: 'normal' | 'brighter') => void;
+      sampleLuminance: () => {
+        meanLuminance: number;
+        nearBlackPercent: number;
+        highlightPercent: number;
+        width: number;
+        height: number;
+      };
       setTheatreLook: (look: 'a' | 'b' | 'c') => void;
       setQualityTier: (tier: QualityTier) => void;
       setQualityMode: (mode: QualityMode) => void;
@@ -260,6 +293,7 @@ declare global {
       setHoveredSeat: (seatId: string | null) => void;
       getStore: () => any;
       getVisibleProxiesCount: () => number;
+      getShadowCastersCount: () => number;
     };
   }
 }

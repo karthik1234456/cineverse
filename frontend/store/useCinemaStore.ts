@@ -93,6 +93,8 @@ export interface CinemaState {
 
   // Environment & Realism
   houseLights: HouseLightsMode;
+  lightIntensity: 'normal' | 'brighter';
+  setLightIntensity: (intensity: 'normal' | 'brighter') => void;
   qualityTier: QualityTier;
   qualityMode: QualityMode;
   useHqModel: boolean;
@@ -232,6 +234,18 @@ function getInitialQualityMode(): QualityMode {
 
 const initialQuality = getInitialQualityMode();
 
+function getInitialLightIntensity(): 'normal' | 'brighter' {
+  if (typeof window !== 'undefined') {
+    const fromStorage = localStorage.getItem('cineverse_light_intensity');
+    if (fromStorage === 'normal' || fromStorage === 'brighter') {
+      return fromStorage;
+    }
+  }
+  return 'normal';
+}
+
+const initialLightIntensity = getInitialLightIntensity();
+
 export const useCinemaStore = create<CinemaState>((set, get) => ({
   seatStatuses: {},
   seatPrices: {},
@@ -278,6 +292,15 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   },
 
   houseLights: 'full',
+  lightIntensity: initialLightIntensity,
+  setLightIntensity: (intensity) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('cineverse_light_intensity', intensity);
+      } catch (e) {}
+    }
+    set({ lightIntensity: intensity });
+  },
   theatreLook: (typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('look') as 'a' | 'b' | 'c') || 'a' : 'a'),
   setTheatreLook: (look) => set({ theatreLook: look }),
   qualityTier: initialQuality === 'smooth' ? 'low' : 'high',

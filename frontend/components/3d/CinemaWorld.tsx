@@ -23,6 +23,7 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
   const [hasWebGL, setHasWebGL] = useState(true);
   const [canvasError, setCanvasError] = useState<string | null>(null);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
+  const houseLights = useCinemaStore((s) => s.houseLights);
   const proceduralResult = useCinemaStore((s) => s.proceduralResult);
 
   // Check WebGL availability
@@ -57,6 +58,7 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
         gl={{
           antialias: true,
           alpha: false,
+          preserveDrawingBuffer: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
           toneMappingExposure: 0.98,
@@ -64,11 +66,18 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
         dpr={qualityMode === 'smooth' ? 1.0 : [1, 1.5]}
         frameloop="always" // Dynamically managed by AdaptiveFrameloopController
         onCreated={({ gl, scene }) => {
-          gl.setClearColor('#07080a', 1.0);
-          scene.background = new THREE.Color('#07080a');
+          gl.setClearColor(houseLights === 'show' ? '#07080a' : '#14171d', 1.0);
+          scene.background = new THREE.Color(houseLights === 'show' ? '#07080a' : '#14171d');
         }}
       >
-        <fog attach="fog" args={['#07080a', 18, 65]} />
+        <fog
+          attach="fog"
+          args={[
+            houseLights === 'show' ? '#07080a' : '#14171d',
+            houseLights === 'show' ? 25 : 100,
+            houseLights === 'show' ? 90 : 300,
+          ]}
+        />
         <Suspense fallback={null}>
           <AdaptiveFrameloopController />
           {proceduralResult ? (
@@ -204,11 +213,43 @@ function DevBridge() {
       simulateHold: (seatId: string) => updateSeatStatus(seatId, 'held'),
       updateSeatStatus,
       setHouseLights,
+      setLightIntensity: (intensity: 'normal' | 'brighter') => useCinemaStore.getState().setLightIntensity(intensity),
       setTheatreLook: (look: 'a' | 'b' | 'c') => useCinemaStore.getState().setTheatreLook(look),
       setQualityTier,
       setQualityMode,
       setFOV,
       setHoveredSeat: (seatId: string | null) => useCinemaStore.getState().setHoveredSeat(seatId),
+      sampleLuminance: () => {
+        const rawGl = gl.getContext();
+        const width = rawGl.drawingBufferWidth || gl.domElement.width;
+        const height = rawGl.drawingBufferHeight || gl.domElement.height;
+        const pixels = new Uint8Array(width * height * 4);
+        rawGl.readPixels(0, 0, width, height, rawGl.RGBA, rawGl.UNSIGNED_BYTE, pixels);
+
+        let totalLuminance = 0;
+        let nearBlackCount = 0;
+        let highlightCount = 0;
+        const step = 4;
+        let sampled = 0;
+        for (let i = 0; i < pixels.length; i += 4 * step) {
+          const r = pixels[i];
+          const g = pixels[i + 1];
+          const b = pixels[i + 2];
+          const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+          totalLuminance += lum;
+          if (lum < 12) nearBlackCount++;
+          if (lum > 245) highlightCount++;
+          sampled++;
+        }
+
+        return {
+          meanLuminance: Math.round((totalLuminance / sampled) * 10) / 10,
+          nearBlackPercent: Math.round((nearBlackCount / sampled) * 1000) / 10,
+          highlightPercent: Math.round((highlightCount / sampled) * 1000) / 10,
+          width,
+          height,
+        };
+      },
       getStore: () => useCinemaStore.getState(),
       getVisibleProxiesCount: () => {
         let count = 0;
@@ -226,6 +267,15 @@ function DevBridge() {
             }
           });
         }
+        return count;
+      },
+      getShadowCastersCount: () => {
+        let count = 0;
+        scene.traverse((obj: any) => {
+          if (obj && obj.isLight && obj.castShadow) {
+            count++;
+          }
+        });
         return count;
       },
     };

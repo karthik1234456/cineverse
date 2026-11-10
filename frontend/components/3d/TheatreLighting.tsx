@@ -8,6 +8,7 @@ import { getActiveLook } from '@/lib/theatreLooks';
 
 export function TheatreLighting() {
   const houseLights = useCinemaStore((s) => s.houseLights);
+  const lightIntensity = useCinemaStore((s) => s.lightIntensity);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
   const theatreLook = useCinemaStore((s) => s.theatreLook);
   const dimensions = useCinemaStore((s) => s.proceduralResult?.geometry.dimensions);
@@ -27,18 +28,24 @@ export function TheatreLighting() {
   const ceilingR1Ref = useRef<THREE.PointLight>(null);
   const wallWasherLeftRef = useRef<THREE.PointLight>(null);
   const wallWasherRightRef = useRef<THREE.PointLight>(null);
+  const rearFillRef = useRef<THREE.PointLight>(null);
+  const stepLightLRef = useRef<THREE.PointLight>(null);
+  const stepLightRRef = useRef<THREE.PointLight>(null);
 
   // Smooth animated transition between lighting modes (Lights Up vs Show)
   useFrame(({ invalidate }, delta) => {
     const isShow = houseLights === 'show';
     const isDim = houseLights === 'dim';
+    const isBrighter = lightIntensity === 'brighter';
 
-    // Target intensities tuned to eliminate black void (Finding F4 fixed)
-    const targetAmbient = isShow ? 0.18 : isDim ? 0.38 : 0.70;
-    const targetHemi = isShow ? 0.32 : isDim ? 0.55 : 0.90;
-    const targetScreenSpill = isShow ? 2.6 : isDim ? 1.6 : 0.8;
-    const targetCeiling = isShow ? 0.08 : isDim ? 0.35 : 1.10;
-    const targetWallWash = isShow ? 0.14 : isDim ? 0.40 : 0.85;
+    // Target intensities calibrated to achieve 65-95 mean luminance in Lights On
+    const targetAmbient = isShow ? 0.22 : isDim ? 0.65 : isBrighter ? 2.40 : 1.85;
+    const targetHemi = isShow ? 0.30 : isDim ? 0.85 : isBrighter ? 2.85 : 2.20;
+    const targetScreenSpill = isShow ? 2.80 : isDim ? 1.60 : 0.40;
+    const targetCeiling = isShow ? 0.05 : isDim ? 0.60 : isBrighter ? 3.40 : 2.60;
+    const targetWallWash = isShow ? 0.10 : isDim ? 0.55 : isBrighter ? 2.20 : 1.65;
+    const targetRearFill = isShow ? 0.12 : isDim ? 0.50 : isBrighter ? 2.20 : 1.65;
+    const targetStepLight = isShow ? 0.40 : isDim ? 0.65 : isBrighter ? 1.40 : 1.05;
 
     const curAmbient = ambientRef.current?.intensity ?? targetAmbient;
     const needsTransition = Math.abs(curAmbient - targetAmbient) > 0.005;
@@ -103,19 +110,51 @@ export function TheatreLighting() {
         lerpSpeed
       );
     }
+
+    if (rearFillRef.current) {
+      rearFillRef.current.intensity = THREE.MathUtils.lerp(
+        rearFillRef.current.intensity,
+        targetRearFill,
+        lerpSpeed
+      );
+    }
+
+    if (stepLightLRef.current) {
+      stepLightLRef.current.intensity = THREE.MathUtils.lerp(
+        stepLightLRef.current.intensity,
+        targetStepLight,
+        lerpSpeed
+      );
+    }
+
+    if (stepLightRRef.current) {
+      stepLightRRef.current.intensity = THREE.MathUtils.lerp(
+        stepLightRRef.current.intensity,
+        targetStepLight,
+        lerpSpeed
+      );
+    }
   });
 
   return (
     <group name="TheatreLightingRig">
       {/* Soft atmospheric ambient fill */}
-      <ambientLight ref={ambientRef} color="#fff6ed" intensity={0.70} />
+      <ambientLight ref={ambientRef} color="#fff8ee" intensity={lightIntensity === 'brighter' ? 2.40 : 1.85} />
 
       {/* Natural hemisphere ambient fill: warm ceiling bounce, rich floor reflection */}
       <hemisphereLight
         ref={hemiRef}
         color="#ffedd5"
         groundColor={look.floorColor}
-        intensity={0.90}
+        intensity={lightIntensity === 'brighter' ? 2.85 : 2.20}
+      />
+
+      {/* Overhead warm house key wash across tiers */}
+      <directionalLight
+        position={[0, topY + 8.0, midZ]}
+        color="#fff6ed"
+        intensity={houseLights === 'show' ? 0.05 : lightIntensity === 'brighter' ? 1.60 : 1.15}
+        castShadow={false}
       />
 
       {/* Screen illumination spill projecting back onto audience */}
@@ -124,21 +163,21 @@ export function TheatreLighting() {
         position={[0, 5.55, -1.0]}
         target-position={[0, 2.0, -14.0]}
         color="#8ab4f8"
-        intensity={0.8}
+        intensity={houseLights === 'show' ? 2.80 : 0.40}
         angle={Math.PI / 2.4}
         penumbra={0.85}
-        distance={32}
-        decay={1.6}
+        distance={45}
+        decay={1.4}
       />
 
-      {/* Warm downlights over audience rows (2800K warm house lighting) */}
+      {/* Warm downlights over audience rows (2800K warm house lighting) - at most two shadow-casting lights */}
       <pointLight
         ref={ceilingL1Ref}
         position={[-halfWidth * 0.42, topY - 1.4, ceilingZ]}
         color="#ffecd1"
-        intensity={1.10}
-        distance={Math.max(24, halfWidth * 1.5)}
-        decay={1.8}
+        intensity={lightIntensity === 'brighter' ? 3.40 : 2.60}
+        distance={0}
+        decay={1.2}
         castShadow={qualityMode === 'beautiful'}
         shadow-mapSize-width={512}
         shadow-mapSize-height={512}
@@ -147,21 +186,22 @@ export function TheatreLighting() {
         ref={ceilingR1Ref}
         position={[halfWidth * 0.42, topY - 1.4, ceilingZ]}
         color="#ffecd1"
-        intensity={1.10}
-        distance={Math.max(24, halfWidth * 1.5)}
-        decay={1.8}
+        intensity={lightIntensity === 'brighter' ? 3.40 : 2.60}
+        distance={0}
+        decay={1.2}
         castShadow={qualityMode === 'beautiful'}
         shadow-mapSize-width={512}
         shadow-mapSize-height={512}
       />
 
-      {/* Rear audience fill to ensure back rows are clearly lit */}
+      {/* Rear audience fill to ensure back rows and projection booth are clearly lit */}
       <pointLight
-        position={[0, topY - 2.7, zBack + 3.0]}
+        ref={rearFillRef}
+        position={[0, topY - 2.5, zBack + 3.0]}
         color="#fef3c7"
-        intensity={houseLights === 'show' ? 0.12 : 0.60}
-        distance={Math.max(20, halfWidth * 1.4)}
-        decay={1.8}
+        intensity={houseLights === 'show' ? 0.12 : lightIntensity === 'brighter' ? 2.20 : 1.65}
+        distance={0}
+        decay={1.2}
       />
 
       {/* Architectural Wall Washers creating rich side gradients */}
@@ -169,31 +209,35 @@ export function TheatreLighting() {
         ref={wallWasherLeftRef}
         position={[-halfWidth + 1.2, 5.0, midZ]}
         color={look.sconceGlowColor}
-        intensity={0.85}
-        distance={Math.max(14, halfWidth * 0.8)}
-        decay={1.8}
+        intensity={houseLights === 'show' ? 0.10 : lightIntensity === 'brighter' ? 2.20 : 1.65}
+        distance={0}
+        decay={1.2}
       />
       <pointLight
         ref={wallWasherRightRef}
         position={[halfWidth - 1.2, 5.0, midZ]}
         color={look.sconceGlowColor}
-        intensity={0.85}
-        distance={Math.max(14, halfWidth * 0.8)}
-        decay={1.8}
+        intensity={houseLights === 'show' ? 0.10 : lightIntensity === 'brighter' ? 2.20 : 1.65}
+        distance={0}
+        decay={1.2}
       />
 
       {/* Floor aisle step path guides matching active aesthetic look */}
       <pointLight
+        ref={stepLightLRef}
         position={[-4.2, 0.4, -9.0]}
         color={look.stepLightColor}
-        intensity={0.45}
-        distance={8}
+        intensity={houseLights === 'show' ? 0.40 : lightIntensity === 'brighter' ? 1.40 : 1.05}
+        distance={15}
+        decay={1.2}
       />
       <pointLight
+        ref={stepLightRRef}
         position={[4.2, 0.4, -9.0]}
         color={look.stepLightColor}
-        intensity={0.45}
-        distance={8}
+        intensity={houseLights === 'show' ? 0.40 : lightIntensity === 'brighter' ? 1.40 : 1.05}
+        distance={15}
+        decay={1.2}
       />
     </group>
   );

@@ -1,0 +1,370 @@
+{
+  "version": "2.0.0",
+  "generator": "tools/generate_seats.py",
+  "coordinate_system": "glTF Y-up, audience facing +Z",
+  "families": {
+    "standard": {
+      "name": "Standard Cinema Seat",
+      "description": "High-back push-back chair with separate padded headrest, stitch seams, curved cushion, armrest cup holders, stanchion feet",
+      "footprint": [
+        1.24,
+        0.96,
+        1.98
+      ],
+      "real_world_meters": {
+        "width": 0.62,
+        "depth": 0.72,
+        "height": 0.99
+      },
+      "eye_height_offset": 1.32,
+      "armrest_sharing_rule": "shared_in_block",
+      "material": {
+        "type": "fabric",
+        "roughness": 0.85,
+        "metalness": 0.02,
+        "default_color": "#9f1239"
+      },
+      "lods": {
+        "lod0": {
+          "file": "standard_lod0.glb",
+          "triangles": 5744,
+          "vertices": 3644,
+          "size_kb": 205.9,
+          "bounds": {
+            "min": [
+              -0.62,
+              0.0,
+              -0.44
+            ],
+            "max": [
+              0.62,
+              2.0,
+              0.46
+            ],
+            "width": 1.24,
+            "height": 2.0,
+            "depth": 0.9
+          }
+        },
+        "lod1": {
+          "file": "standard_lod1.glb",
+          "triangles": 1544,
+          "vertices": 1222,
+          "size_kb": 67.7,
+          "bounds": {
+            "min": [
+              -0.62,
+              0.0,
+              -0.44
+            ],
+            "max": [
+              0.62,
+              1.999,
+              0.46
+            ],
+            "width": 1.24,
+            "height": 1.999,
+            "depth": 0.899
+          }
+        },
+        "lod2": {
+          "file": "standard_lod2.glb",
+          "triangles": 296,
+          "vertices": 382,
+          "size_kb": 21.0,
+          "bounds": {
+            "min": [
+              -0.62,
+              0.0,
+              -0.44
+            ],
+            "max": [
+              0.62,
+              1.98,
+              0.46
+            ],
+            "width": 1.24,
+            "height": 1.98,
+            "depth": 0.9
+          }
+        }
+      },
+      "tipped_variant": {
+        "file": "standard_tipped.glb",
+        "triangles": 5744,
+        "vertices": 3644,
+        "size_kb": 205.9,
+        "bounds": {
+          "min": [
+            -0.62,
+            0.0,
+            -0.44
+          ],
+          "max": [
+            0.62,
+            2.0,
+            0.42
+          ],
+          "width": 1.24,
+          "height": 2.0,
+          "depth": 0.86
+        }
+      }
+    },
+    "recliner": {
+      "name": "Recliner & Loveseat Premium",
+      "description": "Overstuffed leather armchair with rolled padded arms, high back quilted seams, recline controls, tucked footrest, recessed metal base",
+      "single": {
+        "footprint": [
+          1.04,
+          0.98,
+          2.08
+        ],
+        "real_world_meters": {
+          "width": 0.88,
+          "depth": 0.96,
+          "height": 1.08
+        },
+        "eye_height_offset": 1.36,
+        "armrest_sharing_rule": "individual_rolled",
+        "lods": {
+          "lod0": {
+            "file": "recliner_single_lod0.glb",
+            "triangles": 6608,
+            "vertices": 4140,
+            "size_kb": 234.2,
+            "bounds": {
+              "min": [
+                -0.54,
+                0.0,
+                -0.44
+              ],
+              "max": [
+                0.54,
+                2.11,
+                0.49
+              ],
+              "width": 1.08,
+              "height": 2.11,
+              "depth": 0.93
+            }
+          },
+          "lod1": {
+            "file": "recliner_single_lod1.glb",
+            "triangles": 1748,
+            "vertices": 1340,
+            "size_kb": 74.5,
+            "bounds": {
+              "min": [
+                -0.539,
+                0.0,
+                -0.44
+              ],
+              "max": [
+                0.539,
+                2.109,
+                0.489
+              ],
+              "width": 1.078,
+              "height": 2.109,
+              "depth": 0.929
+            }
+          },
+          "lod2": {
+            "file": "recliner_single_lod2.glb",
+            "triangles": 292,
+            "vertices": 344,
+            "size_kb": 19.2,
+            "bounds": {
+              "min": [
+                -0.54,
+                0.0,
+                -0.44
+              ],
+              "max": [
+                0.54,
+                2.08,
+                0.49
+              ],
+              "width": 1.08,
+              "height": 2.08,
+              "depth": 0.93
+            }
+          }
+        }
+      },
+      "pair": {
+        "footprint": [
+          1.84,
+          0.98,
+          2.08
+        ],
+        "real_world_meters": {
+          "width": 1.68,
+          "depth": 0.96,
+          "height": 1.08
+        },
+        "eye_height_offset": 1.36,
+        "armrest_sharing_rule": "center_console_table",
+        "lods": {
+          "lod0": {
+            "file": "recliner_pair_lod0.glb",
+            "triangles": 12040,
+            "vertices": 7492,
+            "size_kb": 423.1,
+            "bounds": {
+              "min": [
+                -0.94,
+                0.0,
+                -0.44
+              ],
+              "max": [
+                0.94,
+                2.11,
+                0.49
+              ],
+              "width": 1.88,
+              "height": 2.11,
+              "depth": 0.93
+            }
+          },
+          "lod1": {
+            "file": "recliner_pair_lod1.glb",
+            "triangles": 3120,
+            "vertices": 2352,
+            "size_kb": 129.9,
+            "bounds": {
+              "min": [
+                -0.939,
+                0.0,
+                -0.44
+              ],
+              "max": [
+                0.939,
+                2.109,
+                0.489
+              ],
+              "width": 1.878,
+              "height": 2.109,
+              "depth": 0.929
+            }
+          },
+          "lod2": {
+            "file": "recliner_pair_lod2.glb",
+            "triangles": 524,
+            "vertices": 610,
+            "size_kb": 33.1,
+            "bounds": {
+              "min": [
+                -0.94,
+                0.0,
+                -0.44
+              ],
+              "max": [
+                0.94,
+                2.08,
+                0.49
+              ],
+              "width": 1.88,
+              "height": 2.08,
+              "depth": 0.93
+            }
+          }
+        }
+      },
+      "material": {
+        "type": "leather",
+        "roughness": 0.5,
+        "metalness": 0.04,
+        "default_color": "#38241b"
+      }
+    },
+    "sofa": {
+      "name": "Boutique Sofa",
+      "description": "Plush boutique sofa with vertical channel fluted backrest, deep bench cushion, bolster arms, brass-capped spindle legs",
+      "footprint": [
+        1.24,
+        0.96,
+        1.78
+      ],
+      "real_world_meters": {
+        "width": 1.28,
+        "depth": 0.88,
+        "height": 0.89
+      },
+      "eye_height_offset": 1.28,
+      "armrest_sharing_rule": "bolster_ends",
+      "material": {
+        "type": "velvet",
+        "roughness": 0.82,
+        "metalness": 0.05,
+        "default_color": "#2e4858"
+      },
+      "lods": {
+        "lod0": {
+          "file": "sofa_lod0.glb",
+          "triangles": 4812,
+          "vertices": 3378,
+          "size_kb": 187.9,
+          "bounds": {
+            "min": [
+              -0.64,
+              0.0,
+              -0.46
+            ],
+            "max": [
+              0.64,
+              1.78,
+              0.465
+            ],
+            "width": 1.28,
+            "height": 1.78,
+            "depth": 0.925
+          }
+        },
+        "lod1": {
+          "file": "sofa_lod1.glb",
+          "triangles": 1516,
+          "vertices": 1234,
+          "size_kb": 68.1,
+          "bounds": {
+            "min": [
+              -0.64,
+              0.0,
+              -0.46
+            ],
+            "max": [
+              0.64,
+              1.78,
+              0.462
+            ],
+            "width": 1.28,
+            "height": 1.78,
+            "depth": 0.922
+          }
+        },
+        "lod2": {
+          "file": "sofa_lod2.glb",
+          "triangles": 400,
+          "vertices": 406,
+          "size_kb": 22.8,
+          "bounds": {
+            "min": [
+              -0.64,
+              0.0,
+              -0.46
+            ],
+            "max": [
+              0.64,
+              1.78,
+              0.44
+            ],
+            "width": 1.28,
+            "height": 1.78,
+            "depth": 0.9
+          }
+        }
+      }
+    }
+  }
+}

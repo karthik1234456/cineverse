@@ -88,22 +88,17 @@ export function useSeatData(showtimeId: string = '1') {
       if (audId !== '1' || isProceduralRequested) {
         if (data.layout_data && data.layout_data.rows) {
           const proceduralData = generateProceduralAuditorium({
-            rows: data.layout_data.rows,
-            seats_per_row: data.layout_data.seats_per_row,
-            aisles: data.layout_data.aisles || [],
-            accessible_seats: data.layout_data.accessible_seats,
-            companion_seats: data.layout_data.companion_seats,
-            category_bands: data.layout_data.category_bands as any,
+            ...data.layout_data,
             screen_type: data.screen_type,
-            total_seats: data.seats && data.seats.length > 0 ? data.seats.length : (data.layout_data.rows.length * data.layout_data.seats_per_row),
+            total_seats: data.seats && data.seats.length > 0 ? data.seats.length : (data.layout_data.rows.length * (data.layout_data.seats_per_row || 10)),
             base_price: data.seats && data.seats[0] ? data.seats[0].price : 280,
-            curve_radius: data.layout_data.curve_radius,
-            angle_span: data.layout_data.angle_span,
-            levels: data.layout_data.levels,
-            has_balcony: data.layout_data.has_balcony,
+            theatre_type: (data.layout_data as any).theatre_type,
+            arrangement_pattern: (data.layout_data as any).arrangement_pattern,
+            blocks_pattern: (data.layout_data as any).blocks_pattern,
+            sweet_spot: (data.layout_data as any).sweet_spot,
+            sofa_pairs: (data.layout_data as any).sofa_pairs,
             balcony_rows: data.layout_data.balcony_rows || data.layout_data.levels?.balcony?.rows,
             recliner_pairs: data.layout_data.recliner_pairs as [string, string][] | undefined,
-            features: data.layout_data.features,
           });
           setAuditoriumData(audId, proceduralData);
         }

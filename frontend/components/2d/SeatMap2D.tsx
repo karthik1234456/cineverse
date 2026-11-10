@@ -270,6 +270,19 @@ export function SeatMap2D({
   const handleZoomOut = () => setZoom((z) => Math.max(0.55, Math.round((z - 0.15) * 100) / 100));
   const handleZoomReset = () => setZoom(isBigHall ? 0.8 : 1);
 
+  // Mini-map & scroll ref for 2D Seat Map
+  const mapScrollContainerRef = useRef<HTMLDivElement>(null);
+  const [isMiniMapExpanded, setIsMiniMapExpanded] = useState<boolean>(true);
+
+  const handleMiniMapClick = useCallback((targetRow: string) => {
+    const el = mapScrollContainerRef.current;
+    if (!el) return;
+    const rowEl = el.querySelector(`[data-row-id="${targetRow}"]`);
+    if (rowEl) {
+      rowEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
+
   // Layout parsing: Dynamically build seatsList from showtimeDetails.seats or fallback
   const seatsList: ScoredSeatInput[] = useMemo(() => {
     if (showtimeDetails?.seats && showtimeDetails.seats.length > 0) {
@@ -1092,7 +1105,24 @@ export function SeatMap2D({
         )}
 
         {/* 2D Seat Matrix (Zoomable & Pannable for large halls) */}
-        <div className="relative w-full overflow-x-auto pb-6 pt-2">
+        <div ref={mapScrollContainerRef} className="relative w-full overflow-x-auto pb-6 pt-2">
+          {/* Multi-Block Header Bar for triple block / multi-aisle arrangements */}
+          {showtimeDetails?.layout_data?.blocks_pattern && showtimeDetails.layout_data.blocks_pattern.length > 1 && (
+            <div className="flex items-center justify-center gap-3 sm:gap-6 text-[11px] font-black uppercase tracking-wider text-slate-500 py-2 mb-2" data-testid="block-headers">
+              {showtimeDetails.layout_data.blocks_pattern.map((count: number, bIdx: number) => {
+                const totalBlocks = showtimeDetails.layout_data?.blocks_pattern?.length ?? 0;
+                const label = totalBlocks === 3
+                  ? (bIdx === 0 ? 'Left Wing' : bIdx === 1 ? 'Centre Stalls' : 'Right Wing')
+                  : `Section ${String.fromCharCode(65 + bIdx)}`;
+                return (
+                  <span key={bIdx} className="px-3 py-1 rounded-xl bg-slate-100 border border-slate-200 shadow-xs">
+                    {label} ({count} seats)
+                  </span>
+                );
+              })}
+            </div>
+          )}
+
           <div
             role="grid"
             data-testid="seatmap-grid"
@@ -1128,7 +1158,7 @@ export function SeatMap2D({
                     const isBalconyRow = balconyRowsSet.has(row);
                     const midIndex = (seatsInRow.length + 1) / 2;
                     return (
-                      <div key={row} role="row" className="flex items-center justify-center gap-2 sm:gap-3">
+                      <div key={row} role="row" data-row-id={row} className="flex items-center justify-center gap-2 sm:gap-3">
                         {/* Left Row Label */}
                         <span className="w-8 shrink-0 text-center text-sm font-black text-slate-500 flex items-center justify-center gap-1">
                           {row}
@@ -1297,6 +1327,75 @@ export function SeatMap2D({
               </div>
             ))}
           </div>
+        </div>
+
+        {/* Interactive Floating Mini-Map for rapid navigation across large halls */}
+        <div
+          data-testid="interactive-minimap"
+          className="fixed bottom-24 right-6 z-30 hidden lg:flex flex-col rounded-2xl border-2 border-[#E6DCD2] bg-white/95 p-3 shadow-xl backdrop-blur-md transition-all duration-200"
+          style={{ width: isMiniMapExpanded ? 200 : 48 }}
+        >
+          <div className="flex items-center justify-between gap-2 border-b border-[#E6DCD2] pb-1.5 mb-1.5">
+            {isMiniMapExpanded && (
+              <span className="text-[11px] font-black uppercase tracking-wider text-slate-700">Hall Mini-Map</span>
+            )}
+            <button
+              onClick={() => setIsMiniMapExpanded((prev) => !prev)}
+              className="ml-auto text-slate-500 hover:text-slate-800 text-xs font-bold p-1 rounded-lg hover:bg-slate-100"
+              title={isMiniMapExpanded ? 'Minimize Mini-Map' : 'Expand Mini-Map'}
+              data-testid="toggle-minimap-btn"
+            >
+              {isMiniMapExpanded ? '−' : '🗺️'}
+            </button>
+          </div>
+
+          {isMiniMapExpanded && (
+            <div className="space-y-1.5">
+              {/* Screen arc representation */}
+              <div className="h-1.5 w-full rounded-full bg-slate-300 mx-auto" title="Screen" />
+              <span className="block text-center text-[9px] font-bold text-slate-400 uppercase tracking-widest">Screen</span>
+
+              {/* Rows thumbnail */}
+              <div className="relative py-1 flex flex-col gap-1 items-center max-h-52 overflow-y-auto">
+                {allRowsOrdered.map((rowName) => {
+                  const seats = rowSeats[rowName] || [];
+                  const isBalcony = balconyRowsSet.has(rowName);
+                  return (
+                    <div
+                      key={rowName}
+                      onClick={() => handleMiniMapClick(rowName)}
+                      className={`flex items-center justify-center gap-0.5 cursor-pointer hover:bg-rose-50 px-1 py-0.5 rounded transition w-full ${
+                        isBalcony ? 'border-t border-amber-200' : ''
+                      }`}
+                      title={`Jump to Row ${rowName}${isBalcony ? ' (Balcony)' : ''}`}
+                    >
+                      <span className="text-[8px] font-mono font-bold text-slate-400 w-3 text-right mr-1">
+                        {rowName}
+                      </span>
+                      <div className="flex items-center gap-0.5 flex-wrap justify-center max-w-[130px]">
+                        {seats.map((st) => {
+                          const isSel = selectedSeats.includes(st.seat_id);
+                          const inv = seatInventoryMap.get(st.seat_id);
+                          const isBk = (seatStatuses[st.seat_id] || inv?.status || '').toString().toLowerCase() === 'booked';
+                          return (
+                            <div
+                              key={st.seat_id}
+                              className={`h-1.5 w-1.5 rounded-full ${
+                                isSel ? 'bg-[#C8102E]' : isBk ? 'bg-slate-400' : 'bg-slate-200'
+                              }`}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="text-[9px] text-center text-slate-400 font-medium pt-1 border-t border-[#E6DCD2]">
+                Click row to pan
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Compact Non-Interactive Hover Tooltip */}

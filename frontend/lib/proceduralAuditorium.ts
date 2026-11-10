@@ -30,11 +30,50 @@ import type {
   SeatCategory,
   CategoryInfo,
 } from './types';
+import {
+  THEATRE_TYPE_REGISTRY,
+  getTheatreTypeDefinition,
+  METERS_TO_SCENE,
+  SCENE_TO_METERS,
+  type TheatreTypeId,
+} from './theatreTypeRegistry';
+
+export interface RowDefinition {
+  row: string;
+  seats_count: number;
+  blocks?: number[];
+  seat_types?: Record<number, string>;
+}
 
 export interface AuditoriumLayoutInput {
   rows: string[];
   seats_per_row: number;
   aisles: number[];
+  theatre_type?: TheatreTypeId;
+  arrangement_pattern?: string;
+  blocks_pattern?: number[];
+  sweet_spot?: {
+    rows: string[];
+    seat_numbers: number[];
+    label?: string;
+    price_multiplier?: number;
+  };
+  row_definitions?: RowDefinition[];
+  documented_scale?: {
+    meters_to_scene: number;
+    seat_width_m: number;
+    row_pitch_m: number;
+    rake_step_m: number;
+    aisle_width_m: number;
+    ceiling_height_m: number;
+  };
+  seat_pitch?: number;
+  row_pitch?: number;
+  tier_rise?: number;
+  aisle_gap?: number;
+  ceiling_height?: number;
+  screen_width?: number;
+  screen_height?: number;
   accessible_seats?: string[];
   companion_seats?: string[];
   category_bands?: Array<{
@@ -54,6 +93,7 @@ export interface AuditoriumLayoutInput {
   has_balcony?: boolean;
   balcony_rows?: string[];
   recliner_pairs?: Array<[string, string]>;
+  sofa_pairs?: Array<[string, string]>;
   motion_rows?: string[];
   features?: {
     motion_seats?: boolean;
@@ -131,6 +171,50 @@ export interface ProceduralGeometryData {
   atmosSpeakers: Array<{ id: string; position: [number, number, number]; channel: string }>;
   exitSigns: Array<{ id: string; position: [number, number, number]; label: string }>;
   carpetRunners: Array<{ name: string; bounds: BoundingBox3D }>;
+  ceilingClouds: Array<{
+    id: string;
+    bounds: BoundingBox3D;
+    style?: string;
+  }>;
+  roofTrusses: Array<{
+    id: string;
+    bounds: BoundingBox3D;
+  }>;
+  ventilationDucts: Array<{
+    id: string;
+    bounds: BoundingBox3D;
+  }>;
+  coveLightStrips: Array<{
+    id: string;
+    bounds: BoundingBox3D;
+    color?: string;
+  }>;
+  skirtingLights: Array<{
+    id: string;
+    bounds: BoundingBox3D;
+  }>;
+  doorFrames: Array<{
+    id: string;
+    frameBounds: BoundingBox3D;
+    doorBounds: BoundingBox3D;
+  }>;
+  projectionBooth: {
+    housing: BoundingBox3D;
+    centerWindow: BoundingBox3D;
+    sideWindows: Array<BoundingBox3D>;
+    projectorAperture: [number, number, number];
+    screenTarget: [number, number, number];
+  };
+  effectRigs?: Array<{
+    id: string;
+    trussBounds: BoundingBox3D;
+    nozzles: Array<[number, number, number]>;
+    fans: Array<[number, number, number]>;
+  }>;
+  acousticBaffles?: Array<{
+    id: string;
+    bounds: BoundingBox3D;
+  }>;
   balconyStructure?: {
     platform: BoundingBox3D;
     fascia: BoundingBox3D;
@@ -182,6 +266,9 @@ export function computeRowXPositions(
   seatPitch: number = SEAT_PITCH,
   extraAisleGap: number = EXTRA_AISLE_GAP
 ): number[] {
+  if (seatsPerRow <= 0) return [];
+  if (seatsPerRow === 1) return [0.0];
+
   const xRel: number[] = new Array(seatsPerRow).fill(0);
   for (let i = 1; i < seatsPerRow; i++) {
     const prevSeatNum = i; // 1-based seat number of the previous seat
@@ -192,7 +279,7 @@ export function computeRowXPositions(
   const span = xRel[seatsPerRow - 1];
   const halfSpan = span / 2.0;
 
-  // Seat 01 is at +halfSpan, Seat N is at -halfSpan
+  // Seat 01 is at +halfSpan (Audience Left), Seat N is at -halfSpan (Audience Right)
   return xRel.map((xr) => Math.round((halfSpan - xr) * 1000) / 1000);
 }
 
@@ -203,60 +290,112 @@ export function generateProceduralAuditorium(
   input: AuditoriumLayoutInput
 ): ProceduralAuditoriumResult {
   const rows = input.rows && input.rows.length > 0 ? input.rows : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-  const seatsPerRow = input.seats_per_row || 10;
+  const defaultSeatsPerRow = input.seats_per_row || 10;
+  const totalSeatsEstimate = input.total_seats || (rows.length * defaultSeatsPerRow);
   
-  // For the standard 100-seat hall, ensure single central aisle if not specified
-  let aisles = input.aisles || [];
-  if (aisles.length === 0) {
-    aisles = [Math.floor(seatsPerRow / 2)];
+  // Resolve theatre type definition from registry
+  const hasExplicitType = !!input.theatre_type;
+  const theatreDef = getTheatreTypeDefinition(input.theatre_type || (totalSeatsEstimate === 100 ? 'compact' : input.screen_type), totalSeatsEstimate);
+
+  // If no explicit theatre_type was passed and total_seats is not 100, preserve the legacy unit tests' defaults (SEAT_PITCH=1.2, EXTRA_AISLE_GAP=1.2, etc.)
+  const isLegacyMode = !hasExplicitType && totalSeatsEstimate !== 100 && !input.documented_scale;
+
+  // Scene scaling: use input overrides if provided, otherwise legacy defaults or registry scene dimensions
+  const seatPitch = input.seat_pitch ?? (isLegacyMode ? SEAT_PITCH : theatreDef.sceneDimensions.seatPitch);
+  const rowPitch = input.row_pitch ?? (isLegacyMode ? ROW_PITCH : theatreDef.sceneDimensions.rowPitch);
+  const tierRise = input.tier_rise ?? (isLegacyMode ? TIER_RISE : theatreDef.sceneDimensions.tierRise);
+  const aisleGap = input.aisle_gap ?? (isLegacyMode ? EXTRA_AISLE_GAP : theatreDef.sceneDimensions.aisleGap);
+
+  // Resolve aisles from blocks_pattern if not explicitly provided
+  let aisles = input.aisles;
+  if (!aisles && input.blocks_pattern && input.blocks_pattern.length > 1) {
+    let accum = 0;
+    aisles = [];
+    for (let b = 0; b < input.blocks_pattern.length - 1; b++) {
+      accum += input.blocks_pattern[b];
+      aisles.push(accum);
+    }
+  } else if (!aisles) {
+    if (defaultSeatsPerRow <= 10) {
+      aisles = [Math.floor(defaultSeatsPerRow / 2)];
+    } else if (theatreDef.arrangementPattern === 'continental') {
+      aisles = [];
+    } else {
+      aisles = [Math.floor(defaultSeatsPerRow * 0.25), Math.floor(defaultSeatsPerRow * 0.75)];
+    }
   }
 
-  const _accessibleSeats = new Set(input.accessible_seats || ['A01', `A${String(seatsPerRow).padStart(2, '0')}`]);
+  const _accessibleSeats = new Set(input.accessible_seats || ['A01', `A${String(defaultSeatsPerRow).padStart(2, '0')}`]);
   const basePrice = input.base_price || 280;
-  const screenType = input.screen_type || 'IMAX 3D';
-  const isFlagship = (input.total_seats || rows.length * seatsPerRow) >= 350;
-  const isCurved = screenType.includes('IMAX') || isFlagship;
+  const screenType = input.screen_type || theatreDef.name;
+  const isFlagship = theatreDef.id === 'flagship' || totalSeatsEstimate >= 400;
+  const isCurved = theatreDef.features.curved_screen || input.curve_radius !== undefined || isFlagship;
 
-  // 1. Calculate Row X Coordinates
-  const xPositions = computeRowXPositions(seatsPerRow, aisles);
-  const maxSeatAbsX = Math.abs(xPositions[0]);
+  // Build row definitions map if variable row widths are provided
+  const rowDefMap = new Map<string, RowDefinition>();
+  if (input.row_definitions) {
+    for (const rd of input.row_definitions) {
+      rowDefMap.set(rd.row, rd);
+    }
+  }
 
-  // 2. Hall Dimensions
+  // Pre-calculate maximum seat X span across all rows to size the hall
+  let maxSeatAbsX = 0;
+  for (const r of rows) {
+    const rd = rowDefMap.get(r);
+    const count = rd ? rd.seats_count : defaultSeatsPerRow;
+    const rAisles = rd?.blocks && rd.blocks.length > 1
+      ? rd.blocks.slice(0, -1).reduce((acc: number[], len, idx) => [...acc, (acc[idx - 1] || 0) + len], [])
+      : aisles;
+    const xs = computeRowXPositions(count, rAisles, seatPitch, aisleGap);
+    if (xs.length > 0) {
+      const rowMaxAbs = Math.max(Math.abs(xs[0]), Math.abs(xs[xs.length - 1]));
+      if (rowMaxAbs > maxSeatAbsX) maxSeatAbsX = rowMaxAbs;
+    }
+  }
+
+  // Hall Dimensions in Scene Units
   const halfWidth = Math.max(11.11, maxSeatAbsX + 4.2);
   const totalRows = rows.length;
-  const zBack = ROW_A_Z - (totalRows - 1) * ROW_PITCH - 4.5;
-  const topTierY = totalRows * TIER_RISE;
-  const ceilingHeight = Math.max(11.2, topTierY + 8.2);
+  const zBack = ROW_A_Z - (totalRows - 1) * rowPitch - 4.5;
+  const topTierY = totalRows * tierRise;
+  const ceilingHeight = Math.max(input.ceiling_height ?? (isLegacyMode ? 11.2 : theatreDef.sceneDimensions.ceilingHeight), topTierY + 7.5);
 
-  // 3. Screen Scaling
-  let screenWidth = 15.6;
-  let screenHeight = 7.25;
+  let screenWidth = input.screen_width;
+  let screenHeight = input.screen_height;
   let screenCenterY = 5.55;
 
-  if (seatsPerRow <= 12 && totalRows <= 8) {
-    // Small luxury hall (60-90 seats)
-    screenWidth = 13.5;
-    screenHeight = 6.28;
-    screenCenterY = 5.0;
-  } else if (seatsPerRow >= 24 || totalRows >= 14) {
-    // Flagship Big Hall (380-450 seats)
-    screenWidth = Math.min(27.0, Math.max(18.0, halfWidth * 1.35));
-    screenHeight = screenWidth / 2.15;
-    screenCenterY = 5.55 + (screenWidth - 15.6) * 0.22;
-  } else if (seatsPerRow >= 16) {
-    // Large hall (240-320 seats)
-    screenWidth = 21.0;
-    screenHeight = 9.77;
-    screenCenterY = 6.6;
+  if (isLegacyMode || totalSeatsEstimate === 100) {
+    if (defaultSeatsPerRow <= 12 && rows.length <= 8) {
+      screenWidth = screenWidth ?? 13.5;
+      screenHeight = screenHeight ?? 6.28;
+      screenCenterY = 5.0;
+    } else if (defaultSeatsPerRow >= 24 || rows.length >= 14) {
+      screenWidth = screenWidth ?? Math.min(27.0, Math.max(18.0, halfWidth * 1.35));
+      screenHeight = screenHeight ?? (screenWidth / 2.15);
+      screenCenterY = 5.55 + (screenWidth - 15.6) * 0.22;
+    } else if (defaultSeatsPerRow >= 16) {
+      screenWidth = screenWidth ?? 21.0;
+      screenHeight = screenHeight ?? 9.77;
+      screenCenterY = 6.6;
+    } else {
+      screenWidth = screenWidth ?? 15.6;
+      screenHeight = screenHeight ?? 7.25;
+      screenCenterY = 5.55;
+    }
+  } else {
+    screenWidth = screenWidth ?? theatreDef.sceneDimensions.screenWidth;
+    screenHeight = screenHeight ?? theatreDef.sceneDimensions.screenHeight;
+    screenCenterY = Math.max(5.55, screenHeight / 2 + 1.2);
   }
 
   const screenCenter: [number, number, number] = [0.0, screenCenterY, SCREEN_Z];
 
-  // 4. Generate Category Lookup
+  // Category bands
   const categoryBands = input.category_bands || [
-    { category: 'Front', rows: rows.slice(0, Math.max(2, Math.floor(totalRows * 0.3))), price_multiplier: 0.8 },
-    { category: 'Prime', rows: rows.slice(Math.max(2, Math.floor(totalRows * 0.3)), Math.max(4, Math.floor(totalRows * 0.7))), price_multiplier: 1.0 },
-    { category: 'Premier', rows: rows.slice(Math.max(4, Math.floor(totalRows * 0.7))), price_multiplier: 1.35 },
+    { category: 'Front', rows: rows.slice(0, Math.max(2, Math.floor(totalRows * 0.25))), price_multiplier: 0.75 },
+    { category: 'Prime', rows: rows.slice(Math.max(2, Math.floor(totalRows * 0.25)), Math.max(4, Math.floor(totalRows * 0.7))), price_multiplier: 1.0 },
+    { category: 'Premier', rows: rows.slice(Math.max(4, Math.floor(totalRows * 0.7))), price_multiplier: 1.45 },
   ];
 
   function getSeatCategory(rowLetter: string): { cat: SeatCategory; mult: number } {
@@ -272,15 +411,20 @@ export function generateProceduralAuditorium(
     return { cat: 'prime', mult: 1.0 };
   }
 
-  // 5. Balcony & Curve configuration
-  const hasBalcony = !!(input.has_balcony || (input.balcony_rows && input.balcony_rows.length > 0) || (input.levels?.balcony && input.levels.balcony.rows.length > 0));
-  const balconyRowsList: string[] = input.balcony_rows || (input.levels?.balcony?.rows) || (hasBalcony ? rows.slice(Math.max(rows.length - 3, 8)) : []);
+  // Sweet spot configuration
+  const sweetSpotRows = new Set(input.sweet_spot?.rows || []);
+  const sweetSpotSeats = new Set(input.sweet_spot?.seat_numbers || []);
+  const sweetSpotMultiplier = input.sweet_spot?.price_multiplier || 1.45;
+
+  // Balcony configuration
+  const hasBalcony = !!(theatreDef.features.has_balcony || input.has_balcony || (input.balcony_rows && input.balcony_rows.length > 0) || (input.levels?.balcony && input.levels.balcony.rows.length > 0));
+  const balconyRowsList: string[] = input.balcony_rows || (input.levels?.balcony?.rows) || (hasBalcony ? rows.slice(Math.max(rows.length - 4, 10)) : []);
   const balconyRowSet = new Set(balconyRowsList);
   const stallsRowsList = rows.filter((r) => !balconyRowSet.has(r));
   const stallsCount = stallsRowsList.length;
-  const curveRadius = input.curve_radius;
+  const curveRadius = input.curve_radius ?? (isCurved ? 28.0 : undefined);
 
-  // 6. Build Seat Records
+  // Seat Records & Colliders
   const seatRecords: SeatRecord[] = [];
   const colliders: ColliderAABB[] = [];
   const reclinerPairMap = new Map<string, string>();
@@ -293,15 +437,34 @@ export function generateProceduralAuditorium(
     }
   }
 
-  // Pre-calculate pairs for premier rows if not explicitly provided
+  // Pre-calculate pairs for premier rows or luxury recliner halls if not explicitly provided
   const premierRows = categoryBands.find((b) => b.category.toLowerCase() === 'premier')?.rows || [];
-  if (!input.recliner_pairs) {
+  const shouldAutoPair = theatreDef.features.recliner_pairs || theatreDef.id === 'luxury_recliner';
+
+  if (!input.recliner_pairs && shouldAutoPair) {
+    for (const r of rows) {
+      const rd = rowDefMap.get(r);
+      const count = rd ? rd.seats_count : defaultSeatsPerRow;
+      for (let s = 1; s <= count; s += 2) {
+        if (s + 1 <= count) {
+          const s1 = `${r}${String(s).padStart(2, '0')}`;
+          const s2 = `${r}${String(s + 1).padStart(2, '0')}`;
+          if (!_accessibleSeats.has(s1) && !_accessibleSeats.has(s2)) {
+            reclinerPairMap.set(s1, s2);
+            reclinerPairMap.set(s2, s1);
+          }
+        }
+      }
+    }
+  } else if (!input.recliner_pairs) {
+    // Pair back rows in premier band
     for (const pRow of premierRows) {
-      for (let s = 1; s <= seatsPerRow; s += 2) {
-        if (s + 1 <= seatsPerRow) {
+      const rd = rowDefMap.get(pRow);
+      const count = rd ? rd.seats_count : defaultSeatsPerRow;
+      for (let s = 1; s <= count; s += 2) {
+        if (s + 1 <= count) {
           const s1 = `${pRow}${String(s).padStart(2, '0')}`;
           const s2 = `${pRow}${String(s + 1).padStart(2, '0')}`;
-          // Don't pair if accessible
           if (!_accessibleSeats.has(s1) && !_accessibleSeats.has(s2)) {
             reclinerPairMap.set(s1, s2);
             reclinerPairMap.set(s2, s1);
@@ -311,7 +474,7 @@ export function generateProceduralAuditorium(
     }
   }
 
-  const motionRows = new Set(input.motion_rows || (screenType.includes('4DX') || input.features?.is_4dx ? ['D', 'E', 'F', 'G'] : []));
+  const motionRows = new Set(input.motion_rows || (theatreDef.features.is_4dx || input.features?.is_4dx ? ['D', 'E', 'F', 'G'] : []));
 
   for (let rIdx = 0; rIdx < rows.length; rIdx++) {
     const row = rows[rIdx];
@@ -321,18 +484,23 @@ export function generateProceduralAuditorium(
 
     if (isBalcony) {
       const bIdx = balconyRowsList.indexOf(row);
-      const balconyElevationJump = 2.4;
-      rowY = Math.round((ROW_A_Y + stallsCount * TIER_RISE + balconyElevationJump + bIdx * 0.35) * 1000) / 1000;
-      rowZ = Math.round((ROW_A_Z - (stallsCount + bIdx) * ROW_PITCH - 0.5) * 1000) / 1000;
+      const balconyElevationJump = 3.6;
+      rowY = Math.round((ROW_A_Y + stallsCount * tierRise + balconyElevationJump + bIdx * (tierRise + 0.12)) * 1000) / 1000;
+      rowZ = Math.round((ROW_A_Z - (stallsCount + bIdx) * rowPitch - 0.5) * 1000) / 1000;
     } else {
-      rowY = Math.round((ROW_A_Y + rIdx * TIER_RISE) * 1000) / 1000;
-      rowZ = Math.round((ROW_A_Z - rIdx * ROW_PITCH) * 1000) / 1000;
+      rowY = Math.round((ROW_A_Y + rIdx * tierRise) * 1000) / 1000;
+      rowZ = Math.round((ROW_A_Z - rIdx * rowPitch) * 1000) / 1000;
     }
 
     const { cat, mult } = getSeatCategory(row);
-    const price = Math.round(basePrice * mult);
+    const rd = rowDefMap.get(row);
+    const rowSeatsCount = rd ? rd.seats_count : defaultSeatsPerRow;
+    const rAisles = rd?.blocks && rd.blocks.length > 1
+      ? rd.blocks.slice(0, -1).reduce((acc: number[], len, idx) => [...acc, (acc[idx - 1] || 0) + len], [])
+      : aisles;
+    const xPositions = computeRowXPositions(rowSeatsCount, rAisles, seatPitch, aisleGap);
 
-    for (let sIdx = 0; sIdx < seatsPerRow; sIdx++) {
+    for (let sIdx = 0; sIdx < rowSeatsCount; sIdx++) {
       const num = sIdx + 1;
       const seatId = `${row}${String(num).padStart(2, '0')}`;
       const posX = xPositions[sIdx];
@@ -340,21 +508,26 @@ export function generateProceduralAuditorium(
       const sagZ = curveRadius ? Math.round(((posX * posX) / (2 * curveRadius)) * 1000) / 1000 : 0.0;
       const posZ = Math.round((rowZ + sagZ) * 1000) / 1000;
 
+      // Check if sweet spot
+      const isSweetSpot = sweetSpotRows.has(row) && sweetSpotSeats.has(num);
+      const effectiveMultiplier = isSweetSpot ? sweetSpotMultiplier : mult;
+      const effectiveCategory: SeatCategory = isSweetSpot ? 'premier' : cat;
+      const price = Math.round(basePrice * effectiveMultiplier);
+
       const bounds: BoundingBox3D = {
         min: [
-          Math.round((posX - 0.64) * 1000) / 1000,
+          Math.round((posX - seatPitch * 0.48) * 1000) / 1000,
           Math.round((posY - 0.995) * 1000) / 1000,
           Math.round((posZ - 0.492) * 1000) / 1000,
         ],
         max: [
-          Math.round((posX + 0.64) * 1000) / 1000,
+          Math.round((posX + seatPitch * 0.48) * 1000) / 1000,
           Math.round((posY + 0.995) * 1000) / 1000,
           Math.round((posZ + 0.491) * 1000) / 1000,
         ],
       };
 
       const eye = eyePosition(bounds.min, bounds.max);
-      // Round eye coordinates to 3 decimals to match reference GLB precision
       const eyePos: [number, number, number] = [
         Math.round(eye[0] * 1000) / 1000,
         Math.round(eye[1] * 1000) / 1000,
@@ -370,14 +543,28 @@ export function generateProceduralAuditorium(
       const isCompanion = (input.companion_seats && input.companion_seats.includes(seatId)) ||
         (isAccessible === false && _accessibleSeats.has(`${row}${String(num - 1).padStart(2, '0')}`));
       const pairPartner = reclinerPairMap.get(seatId);
-      const seatType = isAccessible ? 'accessible' : (isCompanion ? 'companion' : (pairPartner ? 'recliner_pair' : 'standard'));
+
+      let seatType = isAccessible
+        ? 'accessible'
+        : (isCompanion
+          ? 'companion'
+          : (theatreDef.id === 'boutique'
+            ? 'sofa'
+            : (pairPartner
+              ? 'recliner_pair'
+              : (theatreDef.id === 'luxury_recliner' ? 'recliner' : 'standard'))));
+
+      // Override if row definition explicitly specifies seat type
+      if (rd?.seat_types && rd.seat_types[num]) {
+        seatType = rd.seat_types[num];
+      }
 
       const seatRec: SeatRecord = {
         seat_id: seatId,
         node_name: `seat_${row}_${String(num).padStart(2, '0')}`,
         row,
         number: num,
-        category: cat,
+        category: effectiveCategory,
         price,
         position_gltf_y_up: [posX, posY, posZ],
         bounds_gltf_y_up: bounds,
@@ -388,7 +575,7 @@ export function generateProceduralAuditorium(
         vertical_angle_deg: Math.round(vAngle * 100) / 100,
         screen_h_fov_deg: Math.round(fov.hFov * 10) / 10,
         screen_v_fov_deg: Math.round(fov.vFov * 10) / 10,
-        seat_type: seatType,
+        seat_type: seatType as any,
         pair_partner_id: pairPartner,
         level: isBalcony ? 'balcony' : 'stalls',
         section: isBalcony ? 'Balcony' : 'Stalls',
@@ -425,24 +612,24 @@ export function generateProceduralAuditorium(
   for (let rIdx = 0; rIdx < rows.length; rIdx++) {
     const row = rows[rIdx];
     const isBalcony = balconyRowSet.has(row);
-    let rowZ = ROW_A_Z - rIdx * ROW_PITCH;
+    let rowZ = ROW_A_Z - rIdx * rowPitch;
     let tierTopY: number;
     let tierBottomY: number;
 
     if (isBalcony) {
       const bIdx = balconyRowsList.indexOf(row);
-      const balconyElevationJump = 2.4;
-      tierTopY = Math.round((ROW_A_Y + stallsCount * TIER_RISE + balconyElevationJump + (bIdx + 1) * 0.35) * 1000) / 1000;
-      tierBottomY = Math.round((ROW_A_Y + stallsCount * TIER_RISE + balconyElevationJump + bIdx * 0.35) * 1000) / 1000;
-      rowZ = ROW_A_Z - (stallsCount + bIdx) * ROW_PITCH - 0.5;
+      const balconyElevationJump = 3.6;
+      tierTopY = Math.round((ROW_A_Y + stallsCount * tierRise + balconyElevationJump + (bIdx + 1) * (tierRise + 0.12)) * 1000) / 1000;
+      tierBottomY = Math.round((ROW_A_Y + stallsCount * tierRise + balconyElevationJump + bIdx * (tierRise + 0.12)) * 1000) / 1000;
+      rowZ = ROW_A_Z - (stallsCount + bIdx) * rowPitch - 0.5;
     } else {
-      tierTopY = Math.round((rIdx + 1) * TIER_RISE * 1000) / 1000;
-      tierBottomY = Math.round(rIdx * TIER_RISE * 1000) / 1000;
+      tierTopY = Math.round((rIdx + 1) * tierRise * 1000) / 1000;
+      tierBottomY = Math.round(rIdx * tierRise * 1000) / 1000;
     }
 
     const tierBounds: BoundingBox3D = {
-      min: [-halfWidth + 2.0, tierBottomY, Math.round((rowZ - 0.818) * 1000) / 1000],
-      max: [halfWidth - 2.0, tierTopY, Math.round((rowZ + 0.682) * 1000) / 1000],
+      min: [-halfWidth + 2.0, tierBottomY, Math.round((rowZ - rowPitch * 0.54) * 1000) / 1000],
+      max: [halfWidth - 2.0, tierTopY, Math.round((rowZ + rowPitch * 0.46) * 1000) / 1000],
     };
 
     const tierObj = {
@@ -467,38 +654,39 @@ export function generateProceduralAuditorium(
   const aisleSteps: Array<{ name: string; bounds: BoundingBox3D; topY: number }> = [];
   const aisleCenters: number[] = [];
 
+  const defaultRowXPositions = computeRowXPositions(defaultSeatsPerRow, aisles, seatPitch, aisleGap);
   for (const aIdx of aisles) {
-    if (aIdx >= 1 && aIdx < seatsPerRow) {
-      const leftSeatX = xPositions[aIdx - 1];
-      const rightSeatX = xPositions[aIdx];
+    if (aIdx >= 1 && aIdx < defaultSeatsPerRow) {
+      const leftSeatX = defaultRowXPositions[aIdx - 1];
+      const rightSeatX = defaultRowXPositions[aIdx];
       const aisleCenterX = (leftSeatX + rightSeatX) / 2.0;
       aisleCenters.push(aisleCenterX);
 
       for (let rIdx = 0; rIdx < rows.length; rIdx++) {
         const row = rows[rIdx];
         const isBalcony = balconyRowSet.has(row);
-        let rowZ = ROW_A_Z - rIdx * ROW_PITCH;
+        let rowZ = ROW_A_Z - rIdx * rowPitch;
         let treadY: number;
 
         if (isBalcony) {
           const bIdx = balconyRowsList.indexOf(row);
-          const balconyElevationJump = 2.4;
-          treadY = Math.round((ROW_A_Y + stallsCount * TIER_RISE + balconyElevationJump + (bIdx + 1) * 0.35) * 1000) / 1000;
-          rowZ = ROW_A_Z - (stallsCount + bIdx) * ROW_PITCH - 0.5;
+          const balconyElevationJump = 3.6;
+          treadY = Math.round((ROW_A_Y + stallsCount * tierRise + balconyElevationJump + (bIdx + 1) * (tierRise + 0.12)) * 1000) / 1000;
+          rowZ = ROW_A_Z - (stallsCount + bIdx) * rowPitch - 0.5;
         } else {
-          treadY = Math.round((rIdx + 1) * TIER_RISE * 1000) / 1000;
+          treadY = Math.round((rIdx + 1) * tierRise * 1000) / 1000;
         }
 
         const stepBounds: BoundingBox3D = {
           min: [
-            Math.round((aisleCenterX - 0.6) * 1000) / 1000,
+            Math.round((aisleCenterX - aisleGap * 0.45) * 1000) / 1000,
             treadY - 0.05,
-            Math.round((rowZ - 0.75) * 1000) / 1000,
+            Math.round((rowZ - rowPitch * 0.5) * 1000) / 1000,
           ],
           max: [
-            Math.round((aisleCenterX + 0.6) * 1000) / 1000,
+            Math.round((aisleCenterX + aisleGap * 0.45) * 1000) / 1000,
             treadY,
-            Math.round((rowZ + 0.75) * 1000) / 1000,
+            Math.round((rowZ + rowPitch * 0.5) * 1000) / 1000,
           ],
         };
 
@@ -623,8 +811,8 @@ export function generateProceduralAuditorium(
   // Step illumination accents on each aisle
   for (const acX of aisleCenters) {
     for (let rIdx = 0; rIdx < rows.length; rIdx++) {
-      const rowZ = ROW_A_Z - rIdx * ROW_PITCH;
-      const stepY = (rIdx + 1) * TIER_RISE;
+      const rowZ = ROW_A_Z - rIdx * rowPitch;
+      const stepY = (rIdx + 1) * tierRise;
       stepLights.push({
         id: `steplight_${acX.toFixed(1)}_${rIdx}`,
         position: [acX - 0.55, stepY + 0.02, rowZ],
@@ -701,8 +889,8 @@ export function generateProceduralAuditorium(
   // Balcony cantilevered structure if hall has balcony
   let balconyStructure: ProceduralGeometryData['balconyStructure'];
   if (hasBalcony && balconyRowsList.length > 0) {
-    const balconyFrontZ = ROW_A_Z - stallsCount * ROW_PITCH - 0.2;
-    const bBaseY = ROW_A_Y + stallsCount * TIER_RISE + 2.4;
+    const balconyFrontZ = ROW_A_Z - stallsCount * rowPitch - 0.2;
+    const bBaseY = ROW_A_Y + stallsCount * tierRise + 3.6;
     balconyStructure = {
       platform: {
         min: [-halfWidth + 1.2, bBaseY - 0.65, zBack],
@@ -723,6 +911,279 @@ export function generateProceduralAuditorium(
     };
   }
 
+  // 8c. Suspended Acoustic Ceiling Clouds & Roof Structural Trusses
+  const ceilingClouds: ProceduralGeometryData['ceilingClouds'] = [];
+  const roofTrusses: ProceduralGeometryData['roofTrusses'] = [];
+  const ventilationDucts: ProceduralGeometryData['ventilationDucts'] = [];
+  const coveLightStrips: ProceduralGeometryData['coveLightStrips'] = [];
+  const skirtingLights: ProceduralGeometryData['skirtingLights'] = [];
+  const doorFrames: ProceduralGeometryData['doorFrames'] = [];
+
+  // 1. Suspended Acoustic Clouds
+  const cloudCount = theatreDef.ceilingDesign.cloudsCount || 6;
+  const cloudRows = Math.max(2, Math.min(5, Math.ceil(cloudCount / 3)));
+  const cloudCols = Math.max(2, Math.min(3, Math.ceil(cloudCount / cloudRows)));
+  const cloudZSpan = Math.abs(zBack) - 6.0;
+  const cloudZStep = cloudZSpan / (cloudRows + 1);
+  const cloudWidth = (halfWidth * 1.5) / cloudCols;
+  const cloudDepth = Math.max(2.5, cloudZStep * 0.75);
+
+  let cIdx = 0;
+  for (let cr = 1; cr <= cloudRows; cr++) {
+    const cZ = -4.0 - cr * cloudZStep;
+    for (let cc = 0; cc < cloudCols; cc++) {
+      if (cIdx >= cloudCount) break;
+      const cX = -halfWidth * 0.7 + (cc + 0.5) * ((halfWidth * 1.4) / cloudCols);
+      ceilingClouds.push({
+        id: `cloud_${cr}_${cc}`,
+        bounds: {
+          min: [
+            Math.round((cX - cloudWidth * 0.45) * 1000) / 1000,
+            Math.round((ceilingHeight - 0.75) * 1000) / 1000,
+            Math.round((cZ - cloudDepth * 0.5) * 1000) / 1000,
+          ],
+          max: [
+            Math.round((cX + cloudWidth * 0.45) * 1000) / 1000,
+            Math.round((ceilingHeight - 0.50) * 1000) / 1000,
+            Math.round((cZ + cloudDepth * 0.5) * 1000) / 1000,
+          ],
+        },
+        style: theatreDef.ceilingDesign.structure,
+      });
+      cIdx++;
+    }
+  }
+
+  // Under-balcony clouds if balcony exists
+  if (hasBalcony && balconyRowsList.length > 0) {
+    const bBaseY = ROW_A_Y + stallsCount * tierRise + 3.6;
+    const balconyFrontZ = ROW_A_Z - stallsCount * rowPitch - 0.2;
+    ceilingClouds.push({
+      id: 'under_balcony_cloud_l',
+      bounds: {
+        min: [-halfWidth + 2.0, bBaseY - 0.65, zBack + 1.0],
+        max: [-0.5, bBaseY - 0.55, balconyFrontZ + 1.0],
+      },
+      style: 'under_balcony',
+    });
+    ceilingClouds.push({
+      id: 'under_balcony_cloud_r',
+      bounds: {
+        min: [0.5, bBaseY - 0.65, zBack + 1.0],
+        max: [halfWidth - 2.0, bBaseY - 0.55, balconyFrontZ + 1.0],
+      },
+      style: 'under_balcony',
+    });
+  }
+
+  // 2. Transverse Roof Trusses / Beams
+  const trussCount = theatreDef.ceilingDesign.trussesCount || 4;
+  const trussZSpan = Math.abs(zBack) - 4.5;
+  const trussZStep = trussZSpan / (trussCount + 1);
+  for (let t = 1; t <= trussCount; t++) {
+    const tZ = Math.round((-2.5 - t * trussZStep) * 1000) / 1000;
+    roofTrusses.push({
+      id: `truss_${t}`,
+      bounds: {
+        min: [-halfWidth + 0.1, Math.round((ceilingHeight - 0.85) * 1000) / 1000, tZ - 0.2],
+        max: [halfWidth - 0.1, Math.round((ceilingHeight - 0.15) * 1000) / 1000, tZ + 0.2],
+      },
+    });
+  }
+
+  // 3. Ventilation Ducts (HVAC)
+  if (theatreDef.ceilingDesign.hasDucts) {
+    const ductYMin = Math.round((ceilingHeight - 1.25) * 1000) / 1000;
+    const ductYMax = Math.round((ceilingHeight - 0.65) * 1000) / 1000;
+    // Left duct (+X)
+    ventilationDucts.push({
+      id: 'duct_left',
+      bounds: {
+        min: [Math.round((halfWidth * 0.65 - 0.45) * 1000) / 1000, ductYMin, zBack + 1.0],
+        max: [Math.round((halfWidth * 0.65 + 0.45) * 1000) / 1000, ductYMax, -1.8],
+      },
+    });
+    // Right duct (-X)
+    ventilationDucts.push({
+      id: 'duct_right',
+      bounds: {
+        min: [Math.round((-halfWidth * 0.65 - 0.45) * 1000) / 1000, ductYMin, zBack + 1.0],
+        max: [Math.round((-halfWidth * 0.65 + 0.45) * 1000) / 1000, ductYMax, -1.8],
+      },
+    });
+  }
+
+  // 4. Continuous Cove Light Channels
+  // Left wall cove (+X)
+  coveLightStrips.push({
+    id: 'cove_left_wall',
+    bounds: {
+      min: [halfWidth - 0.35, Math.round((ceilingHeight - 0.40) * 1000) / 1000, zBack + 0.5],
+      max: [halfWidth - 0.15, Math.round((ceilingHeight - 0.20) * 1000) / 1000, -1.2],
+    },
+    color: theatreDef.palette.coveColor,
+  });
+  // Right wall cove (-X)
+  coveLightStrips.push({
+    id: 'cove_right_wall',
+    bounds: {
+      min: [-halfWidth + 0.15, Math.round((ceilingHeight - 0.40) * 1000) / 1000, zBack + 0.5],
+      max: [-halfWidth + 0.35, Math.round((ceilingHeight - 0.20) * 1000) / 1000, -1.2],
+    },
+    color: theatreDef.palette.coveColor,
+  });
+  // Screen proscenium top cove
+  coveLightStrips.push({
+    id: 'cove_screen_header',
+    bounds: {
+      min: [-screenWidth / 2 - 0.8, Math.round((screenCenterY + screenHeight / 2 + 0.75) * 1000) / 1000, SCREEN_Z - 0.22],
+      max: [screenWidth / 2 + 0.8, Math.round((screenCenterY + screenHeight / 2 + 0.95) * 1000) / 1000, SCREEN_Z - 0.05],
+    },
+    color: theatreDef.palette.coveColor,
+  });
+  // Rear wall cove
+  coveLightStrips.push({
+    id: 'cove_rear_wall',
+    bounds: {
+      min: [-halfWidth + 0.8, Math.round((ceilingHeight - 0.40) * 1000) / 1000, zBack + 0.12],
+      max: [halfWidth - 0.8, Math.round((ceilingHeight - 0.20) * 1000) / 1000, zBack + 0.32],
+    },
+    color: theatreDef.palette.coveColor,
+  });
+
+  // 5. Continuous Skirting Baseboard Lights
+  skirtingLights.push({
+    id: 'skirting_left',
+    bounds: {
+      min: [halfWidth - 0.15, 0.02, zBack + 0.5],
+      max: [halfWidth - 0.05, 0.14, -1.2],
+    },
+  });
+  skirtingLights.push({
+    id: 'skirting_right',
+    bounds: {
+      min: [-halfWidth + 0.05, 0.02, zBack + 0.5],
+      max: [-halfWidth + 0.15, 0.14, -1.2],
+    },
+  });
+
+  // 6. Emergency Exit Door Portals & Frames
+  doorFrames.push({
+    id: 'door_front_left',
+    frameBounds: {
+      min: [halfWidth - 0.22, 0.0, SCREEN_Z + 0.8],
+      max: [halfWidth + 0.05, 3.2, SCREEN_Z + 2.5],
+    },
+    doorBounds: {
+      min: [halfWidth - 0.12, 0.05, SCREEN_Z + 0.95],
+      max: [halfWidth + 0.02, 3.1, SCREEN_Z + 2.35],
+    },
+  });
+  doorFrames.push({
+    id: 'door_rear_right',
+    frameBounds: {
+      min: [-halfWidth - 0.05, topTierY, zBack + 0.8],
+      max: [-halfWidth + 0.22, topTierY + 3.2, zBack + 2.5],
+    },
+    doorBounds: {
+      min: [-halfWidth - 0.02, topTierY + 0.05, zBack + 0.95],
+      max: [-halfWidth + 0.12, topTierY + 3.1, zBack + 2.35],
+    },
+  });
+
+  // 7. Rear Wall Projection Booth & Apertures
+  const boothBaseY = Math.round(Math.max(topTierY + 1.2, ceilingHeight * 0.52) * 1000) / 1000;
+  const boothTopY = Math.round(Math.min(boothBaseY + 3.4, ceilingHeight - 0.4) * 1000) / 1000;
+  const boothCenterY = Math.round(((boothBaseY + boothTopY) / 2.0) * 1000) / 1000;
+  const projectionBooth: ProceduralGeometryData['projectionBooth'] = {
+    housing: {
+      min: [-3.8, boothBaseY, zBack - 0.3],
+      max: [3.8, boothTopY, zBack + 0.75],
+    },
+    centerWindow: {
+      min: [-1.4, boothCenterY - 0.55, zBack + 0.72],
+      max: [1.4, boothCenterY + 0.55, zBack + 0.80],
+    },
+    sideWindows: [
+      {
+        min: [1.8, boothCenterY - 0.4, zBack + 0.72],
+        max: [3.2, boothCenterY + 0.4, zBack + 0.80],
+      },
+      {
+        min: [-3.2, boothCenterY - 0.4, zBack + 0.72],
+        max: [-1.8, boothCenterY + 0.4, zBack + 0.80],
+      },
+    ],
+    projectorAperture: [0.0, boothCenterY, zBack + 0.85],
+    screenTarget: [0.0, screenCenterY + screenHeight * 0.15, SCREEN_Z],
+  };
+
+  // 8. 4DX Effect Rigs (when applicable)
+  let effectRigs: ProceduralGeometryData['effectRigs'];
+  if (theatreDef.features.is_4dx || input.features?.is_4dx) {
+    effectRigs = [
+      {
+        id: 'effect_rig_front',
+        trussBounds: {
+          min: [-halfWidth * 0.65, ceilingHeight - 1.8, -6.2],
+          max: [halfWidth * 0.65, ceilingHeight - 1.5, -5.8],
+        },
+        nozzles: [
+          [-halfWidth * 0.5, ceilingHeight - 1.85, -6.0],
+          [-halfWidth * 0.2, ceilingHeight - 1.85, -6.0],
+          [halfWidth * 0.2, ceilingHeight - 1.85, -6.0],
+          [halfWidth * 0.5, ceilingHeight - 1.85, -6.0],
+        ],
+        fans: [
+          [-halfWidth * 0.35, ceilingHeight - 1.9, -6.0],
+          [0.0, ceilingHeight - 1.9, -6.0],
+          [halfWidth * 0.35, ceilingHeight - 1.9, -6.0],
+        ],
+      },
+      {
+        id: 'effect_rig_mid',
+        trussBounds: {
+          min: [-halfWidth * 0.65, ceilingHeight - 1.8, -13.2],
+          max: [halfWidth * 0.65, ceilingHeight - 1.5, -12.8],
+        },
+        nozzles: [
+          [-halfWidth * 0.5, ceilingHeight - 1.85, -13.0],
+          [-halfWidth * 0.2, ceilingHeight - 1.85, -13.0],
+          [halfWidth * 0.2, ceilingHeight - 1.85, -13.0],
+          [halfWidth * 0.5, ceilingHeight - 1.85, -13.0],
+        ],
+        fans: [
+          [-halfWidth * 0.35, ceilingHeight - 1.9, -13.0],
+          [0.0, ceilingHeight - 1.9, -13.0],
+          [halfWidth * 0.35, ceilingHeight - 1.9, -13.0],
+        ],
+      },
+    ];
+  }
+
+  // 9. Acoustic Baffles (Flagship & Large halls)
+  let acousticBaffles: ProceduralGeometryData['acousticBaffles'];
+  if (theatreDef.ceilingDesign.hasBaffles) {
+    acousticBaffles = [];
+    for (let b = 0; b < 6; b++) {
+      const bZ = -5.0 - b * ((Math.abs(zBack) - 8.0) / 5.0);
+      acousticBaffles.push({
+        id: `baffle_l_${b}`,
+        bounds: {
+          min: [halfWidth * 0.45, ceilingHeight - 1.4, bZ - 0.08],
+          max: [halfWidth * 0.47, ceilingHeight - 0.5, bZ + 0.08],
+        },
+      });
+      acousticBaffles.push({
+        id: `baffle_r_${b}`,
+        bounds: {
+          min: [-halfWidth * 0.47, ceilingHeight - 1.4, bZ - 0.08],
+          max: [-halfWidth * 0.45, ceilingHeight - 0.5, bZ + 0.08],
+        },
+      });
+    }
+  }
+
   // 9. Camera Boundaries and Safe Limits
   const cameraBounds = {
     minX: -halfWidth + 1.8,
@@ -738,19 +1199,19 @@ export function generateProceduralAuditorium(
     maxX: maxSeatAbsX * 0.8,
     minY: 1.5,
     maxY: Math.min(8.0, ceilingHeight - 3.0),
-    minZ: ROW_A_Z - (totalRows - 1) * ROW_PITCH + 2.0,
+    minZ: ROW_A_Z - (totalRows - 1) * rowPitch + 2.0,
     maxZ: -3.0,
   };
 
   const defaultCameraPos: [number, number, number] = [
     0.0,
-    Math.min(9.5, topTierY + 6.2),
+    Math.min(ceilingHeight - 1.8, topTierY + 7.5),
     zBack + 3.8,
   ];
   const defaultCameraTarget: [number, number, number] = [
     0.0,
-    screenCenterY * 0.68,
-    -8.0,
+    screenCenterY * 0.72,
+    SCREEN_Z,
   ];
 
   // Camera Presets (§ Product Polish)
@@ -761,7 +1222,7 @@ export function generateProceduralAuditorium(
       caption: 'Auditorium Overview',
     },
     front: {
-      position: [0.0, 3.2, -6.8],
+      position: [0.0, 3.2, ROW_A_Z + 1.5],
       target: [0.0, screenCenterY, SCREEN_Z],
       caption: 'Front Stalls View',
     },
@@ -786,31 +1247,48 @@ export function generateProceduralAuditorium(
       caption: 'Top-down Plan View',
     },
     picker: {
-      position: [0.0, 6.8, -14.5],
-      target: [0.0, 2.5, -11.5],
+      position: [0.0, Math.min(topTierY + 5.0, ceilingHeight - 2.5), (ROW_A_Z + zBack) / 2 - 2.0],
+      target: [0.0, 2.5, (ROW_A_Z + zBack) / 2],
       caption: 'Seat Picker View',
     },
   };
 
   // 10. Assemble Output Data Structures
   const categoriesRecord: Record<SeatCategory, CategoryInfo> = {
-    front: { label: 'Front', rows: 'A-C', price: Math.round(basePrice * 0.8), color: '#7c2d12' },
+    front: { label: 'Front', rows: 'A-C', price: Math.round(basePrice * 0.75), color: '#7c2d12' },
     prime: { label: 'Prime', rows: 'D-G', price: basePrice, color: '#881337' },
-    premier: { label: 'Premier', rows: 'H-J', price: Math.round(basePrice * 1.35), color: '#9f1239' },
+    premier: { label: 'Premier', rows: 'H-J', price: Math.round(basePrice * 1.45), color: '#9f1239' },
   };
 
   const seatLayout: SeatLayoutFile = {
     version: 2,
-    generated_from: `procedural_generator_${input.screen_type || 'default'}`,
+    generated_from: `procedural_generator_${input.screen_type || theatreDef.name}`,
+    theatre_type: theatreDef.id,
+    theatre_type_name: theatreDef.name,
+    theatre_type_label: theatreDef.label,
+    arrangement_pattern: input.arrangement_pattern || theatreDef.arrangementPattern,
+    blocks_pattern: input.blocks_pattern,
+    sweet_spot: input.sweet_spot,
+    documented_scale: {
+      meters_to_scene: METERS_TO_SCENE,
+      scene_to_meters: SCENE_TO_METERS,
+      seat_width_m: theatreDef.realWorldDimensions.seatWidthM,
+      row_pitch_m: theatreDef.realWorldDimensions.rowPitchM,
+      rake_step_m: theatreDef.realWorldDimensions.rakeStepM,
+      aisle_width_m: theatreDef.realWorldDimensions.aisleWidthM,
+      ceiling_height_m: theatreDef.realWorldDimensions.ceilingHeightM,
+      screen_width_m: theatreDef.realWorldDimensions.screenWidthM,
+      screen_height_m: theatreDef.realWorldDimensions.screenHeightM,
+    },
     coordinate_system: 'glTF Y-up (+Y up, +X audience left, -X audience right, +Z screenward)',
     units: {
       scene_unit: 'procedural model unit',
-      unit_to_meters_estimate: DEFAULT_UNIT_TO_METERS,
-      note: '1.28 model units ≈ 0.55m seat width',
+      unit_to_meters_estimate: SCENE_TO_METERS,
+      note: '1.0m = 2.0 scene units (documented scale)',
     },
     auditorium: {
       bounds_min: [-halfWidth, -0.57, zBack],
-      note: `Procedural ${input.screen_type || 'Cinema'} Hall with ${seatRecords.length} seats`,
+      note: `Procedural ${theatreDef.name} (${theatreDef.label}) with ${seatRecords.length} seats`,
     },
     screen: {
       center_gltf_y_up: screenCenter,
@@ -828,19 +1306,21 @@ export function generateProceduralAuditorium(
     categories: categoriesRecord,
     levels: {
       stalls: { label: 'Stalls', height: 0.0, rows: stallsRowsList },
-      ...(hasBalcony ? { balcony: { label: 'Balcony', height: 2.4, rows: balconyRowsList } } : {}),
+      ...(hasBalcony ? { balcony: { label: 'Balcony', height: 3.6, rows: balconyRowsList } } : {}),
     },
     has_balcony: hasBalcony,
+    recliner_pairs: input.recliner_pairs,
+    sofa_pairs: input.sofa_pairs,
     features: {
-      is_4dx: screenType.includes('4DX') || !!input.features?.is_4dx,
-      motion_seats: screenType.includes('4DX') || !!input.features?.motion_seats || !!input.features?.is_4dx,
-      wind: screenType.includes('4DX') || !!input.features?.wind || !!input.features?.is_4dx,
-      water: screenType.includes('4DX') || !!input.features?.water || !!input.features?.is_4dx,
-      fog: screenType.includes('4DX') || !!input.features?.fog || !!input.features?.is_4dx,
-      scent: screenType.includes('4DX') || !!input.features?.scent || !!input.features?.is_4dx,
-      strobe: screenType.includes('4DX') || !!input.features?.strobe || !!input.features?.is_4dx,
-      ticklers: screenType.includes('4DX') || !!input.features?.ticklers || !!input.features?.is_4dx,
-      dolby_atmos: screenType.includes('Atmos') || screenType.includes('4DX') || !!input.features?.dolby_atmos,
+      is_4dx: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.is_4dx,
+      motion_seats: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.motion_seats || !!input.features?.is_4dx,
+      wind: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.wind || !!input.features?.is_4dx,
+      water: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.water || !!input.features?.is_4dx,
+      fog: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.fog || !!input.features?.is_4dx,
+      scent: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.scent || !!input.features?.is_4dx,
+      strobe: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.strobe || !!input.features?.is_4dx,
+      ticklers: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.ticklers || !!input.features?.is_4dx,
+      dolby_atmos: theatreDef.features.dolby_atmos || screenType.includes('Atmos') || screenType.includes('4DX') || !!input.features?.dolby_atmos,
     },
     seats: seatRecords,
   };
@@ -866,15 +1346,16 @@ export function generateProceduralAuditorium(
     coordinate_system: 'glTF Y-up',
     units: {
       scene_unit: 'procedural model unit',
-      unit_to_meters_estimate: DEFAULT_UNIT_TO_METERS,
+      unit_to_meters_estimate: SCENE_TO_METERS,
     },
     player: playerConfig,
     aisles: {
       central: {
-        x_min: primaryAisleX - 0.6,
-        x_max: primaryAisleX + 0.6,
-        width: 1.2,
+        x_min: primaryAisleX - aisleGap * 0.45,
+        x_max: primaryAisleX + aisleGap * 0.45,
+        width: aisleGap,
       },
+      aisle_centers: aisleCenters,
       side_left: { x_min: halfWidth - 3.8, x_max: halfWidth - 0.5 },
       side_right: { x_min: -halfWidth + 0.5, x_max: -halfWidth + 3.8 },
     },
@@ -923,6 +1404,15 @@ export function generateProceduralAuditorium(
     atmosSpeakers,
     exitSigns,
     carpetRunners,
+    ceilingClouds,
+    roofTrusses,
+    ventilationDucts,
+    coveLightStrips,
+    skirtingLights,
+    doorFrames,
+    projectionBooth,
+    effectRigs,
+    acousticBaffles,
     balconyStructure,
     cameraBounds,
     targetBounds,

@@ -55,6 +55,8 @@ export function ViewModeToggle() {
   const setTheatreLook = useCinemaStore((s) => s.setTheatreLook);
   const houseLights = useCinemaStore((s) => s.houseLights);
   const setHouseLights = useCinemaStore((s) => s.setHouseLights);
+  const lightIntensity = useCinemaStore((s) => s.lightIntensity);
+  const setLightIntensity = useCinemaStore((s) => s.setLightIntensity);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
   const setQualityMode = useCinemaStore((s) => s.setQualityMode);
 
@@ -657,6 +659,42 @@ export function ViewModeToggle() {
                 >
                   <Moon className="h-4 w-4 text-indigo-300" />
                   <span>{t.showMode}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* 2b. Light Intensity: Normal vs Brighter */}
+            <div className="space-y-1.5" data-testid="light-intensity-selector">
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                <span>Light Intensity</span>
+                <span className="text-[10px] font-mono uppercase bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-bold">
+                  {lightIntensity === 'brighter' ? 'Brighter (+35%)' : 'Normal (Warm)'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setLightIntensity('normal')}
+                  data-testid="light-intensity-normal"
+                  className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition ${
+                    lightIntensity === 'normal'
+                      ? 'bg-amber-600 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <Sun className="h-3.5 w-3.5" />
+                  <span>Normal</span>
+                </button>
+                <button
+                  onClick={() => setLightIntensity('brighter')}
+                  data-testid="light-intensity-brighter"
+                  className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition ${
+                    lightIntensity === 'brighter'
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  }`}
+                >
+                  <Sparkles className="h-3.5 w-3.5" />
+                  <span>Brighter</span>
                 </button>
               </div>
             </div>
