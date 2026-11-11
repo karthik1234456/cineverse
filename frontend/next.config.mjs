@@ -1,5 +1,19 @@
+import { execSync } from 'child_process';
+
+let commitHash = 'dev';
+try {
+  commitHash = execSync('git rev-parse --short HEAD').toString().trim();
+} catch (e) {
+  commitHash = process.env.NEXT_PUBLIC_GIT_COMMIT_SHA || 'unknown';
+}
+const buildTime = new Date().toISOString();
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: {
+    NEXT_PUBLIC_GIT_COMMIT_SHA: commitHash,
+    NEXT_PUBLIC_BUILD_TIME: buildTime,
+  },
   eslint: {
     ignoreDuringBuilds: true,
   },

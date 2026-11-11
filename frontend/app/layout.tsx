@@ -10,6 +10,8 @@ import { MovieBackdrop } from '@/components/backdrop/MovieBackdrop';
 import { ComfortInitializer } from '@/components/ComfortInitializer';
 import { TmdbAttribution } from '@/components/TmdbAttribution';
 import { TmdbReadinessBanner } from '@/components/TmdbReadinessBanner';
+import { PwaUpdatePrompt } from '@/components/PwaUpdatePrompt';
+import { BuildStamp } from '@/components/BuildStamp';
 
 export const metadata: Metadata = {
   title: 'CineVerse — Experience The Theatre Before Booking Your Movie',
@@ -63,11 +65,15 @@ export default function RootLayout({
                   <span>© 2026 CineVerse Cinemas India</span>
                 </div>
               </div>
+              <div className="mt-2 flex justify-center">
+                <BuildStamp />
+              </div>
               <TmdbAttribution />
             </footer>
             <VoiceAgentFloatingButton />
             <TrailerPlayer />
             <MiniPlayerDock />
+            <PwaUpdatePrompt />
           </MovieBackdropProvider>
         </QueryProvider>
         <script
@@ -75,8 +81,35 @@ export default function RootLayout({
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                    console.debug('ServiceWorker registration omitted:', err);
+                  var isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                  if (isDev) {
+                    navigator.serviceWorker.getRegistrations().then(function(regs) {
+                      for (var i = 0; i < regs.length; i++) {
+                        regs[i].unregister();
+                      }
+                    });
+                    if ('caches' in window) {
+                      caches.keys().then(function(keys) {
+                        for (var i = 0; i < keys.length; i++) {
+                          caches.delete(keys[i]);
+                        }
+                      });
+                    }
+                    return;
+                  }
+                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    reg.addEventListener('updatefound', function() {
+                      var installing = reg.installing;
+                      if (installing) {
+                        installing.addEventListener('statechange', function() {
+                          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                            window.dispatchEvent(new CustomEvent('cineverse-pwa-update-available'));
+                          }
+                        });
+                      }
+                    });
+                  }).catch(function(err) {
+                    console.debug('SW registration skipped:', err);
                   });
                 });
               }
