@@ -36,6 +36,8 @@ class Movie(Base):
     tmdb_vote_average = Column(Float, nullable=True)
     tmdb_popularity = Column(Float, nullable=True)
     is_tmdb = Column(Boolean, default=False)
+    is_showcase = Column(Boolean, default=False)
+    source = Column(String(50), default="tmdb")
     youtube_trailer_id = Column(String(50), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 

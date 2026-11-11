@@ -71,15 +71,15 @@ async def list_movies(
             )
         )
 
-    # Sorting
+    # Sorting (prioritize real TMDB movies first)
     if sort == "release_date":
-        stmt = stmt.order_by(Movie.release_date.desc(), Movie.rating_avg.desc())
+        stmt = stmt.order_by(Movie.is_tmdb.desc(), Movie.release_date.desc(), Movie.rating_avg.desc())
     elif sort == "title":
-        stmt = stmt.order_by(Movie.title.asc())
+        stmt = stmt.order_by(Movie.is_tmdb.desc(), Movie.title.asc())
     elif sort == "rating":
-        stmt = stmt.order_by(Movie.rating_avg.desc(), Movie.rating_count.desc())
+        stmt = stmt.order_by(Movie.is_tmdb.desc(), Movie.rating_avg.desc(), Movie.rating_count.desc())
     else:  # popularity (default)
-        stmt = stmt.order_by(Movie.rating_count.desc(), Movie.rating_avg.desc(), Movie.release_date.desc())
+        stmt = stmt.order_by(Movie.is_tmdb.desc(), Movie.rating_count.desc(), Movie.rating_avg.desc(), Movie.release_date.desc())
 
     result = await db.execute(stmt)
     movies = result.scalars().all()
@@ -95,8 +95,30 @@ async def list_movies(
             continue
         if language and language.lower() != "all" and language not in (m.languages or []):
             continue
-        if format and format.lower() != "all" and format not in (m.formats or []):
-            continue
+        if format and format.lower() != "all":
+            fmt_low = format.lower()
+            m_fmts = [f.lower() for f in (m.formats or [])]
+            matched = False
+            if fmt_low == "large screen":
+                matched = any("large" in f or "imax" in f for f in m_fmts)
+            elif fmt_low == "overhead sound":
+                matched = any("overhead" in f or "atmos" in f for f in m_fmts)
+            elif fmt_low == "motion seats":
+                matched = any("motion" in f or "4dx" in f for f in m_fmts)
+            elif fmt_low == "laser projection":
+                matched = any("laser" in f for f in m_fmts)
+            elif fmt_low == "recliner":
+                matched = any("recliner" in f or "gold" in f for f in m_fmts)
+            elif fmt_low == "balcony":
+                matched = any("balcony" in f for f in m_fmts)
+            elif fmt_low == "boutique":
+                matched = any("boutique" in f for f in m_fmts)
+            elif fmt_low == "3d":
+                matched = any("3d" in f for f in m_fmts)
+            else:
+                matched = any(fmt_low in f for f in m_fmts)
+            if not matched:
+                continue
         filtered.append(m)
 
     total_count = len(filtered)
@@ -189,6 +211,13 @@ async def get_movie(id_or_slug: str, db: AsyncSession = Depends(get_db)):
         languages=movie.languages or [],
         genres=movie.genres or [],
         formats=movie.formats or [],
+        tmdb_id=movie.tmdb_id,
+        tmdb_vote_average=movie.tmdb_vote_average,
+        tmdb_popularity=movie.tmdb_popularity,
+        is_tmdb=movie.is_tmdb,
+        is_showcase=movie.is_showcase,
+        source=movie.source,
+        youtube_trailer_id=movie.youtube_trailer_id,
         cast_members=movie.cast_members or [],
         reviews=review_responses
     )
@@ -225,14 +254,17 @@ async def get_movie_showtimes(
             Showtime.start_time >= start_of_day,
             Showtime.start_time <= end_of_day
         )
-        .options(
-            selectinload(Showtime.cinema),
-            selectinload(Showtime.auditorium),
-            selectinload(Showtime.price_rules),
-            selectinload(Showtime.seat_inventory)
-        )
-        .order_by(Showtime.start_time)
     )
+
+    if city_id:
+        stmt = stmt.join(Cinema, Cinema.id == Showtime.cinema_id).where(Cinema.city_id == city_id)
+
+    stmt = stmt.options(
+        selectinload(Showtime.cinema),
+        selectinload(Showtime.auditorium),
+        selectinload(Showtime.price_rules),
+        selectinload(Showtime.seat_inventory)
+    ).order_by(Showtime.start_time)
 
     result = await db.execute(stmt)
     all_showtimes = result.scalars().all()
@@ -247,8 +279,30 @@ async def get_movie_showtimes(
     for st in all_showtimes:
         if city_id and st.cinema.city_id != city_id:
             continue
-        if format and format != st.format:
-            continue
+        if format and format.lower() != "all":
+            fmt_low = format.lower()
+            st_fmt = (st.format or "").lower()
+            matched = False
+            if fmt_low == "large screen":
+                matched = "large" in st_fmt or "imax" in st_fmt
+            elif fmt_low == "overhead sound":
+                matched = "overhead" in st_fmt or "atmos" in st_fmt
+            elif fmt_low == "motion seats":
+                matched = "motion" in st_fmt or "4dx" in st_fmt
+            elif fmt_low == "laser projection":
+                matched = "laser" in st_fmt
+            elif fmt_low == "recliner":
+                matched = "recliner" in st_fmt or "gold" in st_fmt
+            elif fmt_low == "balcony":
+                matched = "balcony" in st_fmt
+            elif fmt_low == "boutique":
+                matched = "boutique" in st_fmt
+            elif fmt_low == "3d":
+                matched = "3d" in st_fmt
+            else:
+                matched = fmt_low in st_fmt
+            if not matched:
+                continue
         if language and language != st.language:
             continue
 

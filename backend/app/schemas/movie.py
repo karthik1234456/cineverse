@@ -67,6 +67,8 @@ class MovieResponse(BaseModel):
     tmdb_vote_average: Optional[float] = None
     tmdb_popularity: Optional[float] = None
     is_tmdb: Optional[bool] = False
+    is_showcase: Optional[bool] = False
+    source: Optional[str] = "tmdb"
     youtube_trailer_id: Optional[str] = None
 
     class Config:

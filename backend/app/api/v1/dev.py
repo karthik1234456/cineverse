@@ -1,4 +1,5 @@
 import os
+import asyncio
 from typing import Dict, Any, List, Optional
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -42,7 +43,7 @@ def _check_local_file(relative_url: Optional[str], subfolder: str) -> Dict[str, 
     return {"exists": False, "http_status": 404, "size_bytes": 0, "size_formatted": "0 B"}
 
 
-async def _check_remote_or_local(url: Optional[str], subfolder: str) -> Dict[str, Any]:
+async def _check_remote_or_local(url: Optional[str], subfolder: str, client: Optional[httpx.AsyncClient] = None) -> Dict[str, Any]:
     if not url:
         return {
             "source": "none",
@@ -69,9 +70,13 @@ async def _check_remote_or_local(url: Optional[str], subfolder: str) -> Dict[str
             }
 
         try:
-            async with httpx.AsyncClient(timeout=6.0, follow_redirects=True) as client:
+            should_close = False
+            if client is None:
+                client = httpx.AsyncClient(timeout=10.0, follow_redirects=True)
+                should_close = True
+            try:
                 resp = await client.head(url)
-                if resp.status_code == 200:
+                if resp.status_code in (200, 304):
                     cl = int(resp.headers.get("content-length") or 100000)
                     formatted = f"{round(cl / 1024, 1)} KB"
                     res = {
@@ -83,6 +88,18 @@ async def _check_remote_or_local(url: Optional[str], subfolder: str) -> Dict[str
                         "status_ok": True,
                         "reason": f"Valid {source.upper()} image CDN response (HTTP 200)",
                     }
+                    _REMOTE_URL_CACHE[url] = res
+                elif resp.status_code == 404:
+                    res = {
+                        "source": source,
+                        "url": url,
+                        "http_status": 404,
+                        "size": "0 B",
+                        "size_bytes": 0,
+                        "status_ok": False,
+                        "reason": f"Remote server returned HTTP 404",
+                    }
+                    _REMOTE_URL_CACHE[url] = res
                 else:
                     res = {
                         "source": source,
@@ -93,6 +110,9 @@ async def _check_remote_or_local(url: Optional[str], subfolder: str) -> Dict[str
                         "status_ok": False,
                         "reason": f"Remote server returned HTTP {resp.status_code}",
                     }
+            finally:
+                if should_close:
+                    await client.aclose()
         except Exception as ex:
             res = {
                 "source": source,
@@ -103,7 +123,6 @@ async def _check_remote_or_local(url: Optional[str], subfolder: str) -> Dict[str
                 "status_ok": False,
                 "reason": f"Failed to connect to remote server: {str(ex)[:80]}",
             }
-        _REMOTE_URL_CACHE[url] = res
         return res
 
     # Local file check
@@ -166,107 +185,144 @@ async def get_developer_readiness(
         "reason": tmdb_validation_reason if tmdb_key_valid else (banner_message or tmdb_validation_reason),
     }
 
-    # 2. Movie Assets Diagnostic
+    # 2. Movie Assets Diagnostic (Concurrent checks with shared client for sub-second response)
     movies_res = await db.execute(select(Movie).order_by(Movie.id))
     all_movies = movies_res.scalars().all()
 
-    movie_reports: List[Dict[str, Any]] = []
-    for m in all_movies:
-        is_showcase = not bool(m.is_tmdb)
-        
-        # Check poster
-        poster_info = await _check_remote_or_local(m.poster_url, "posters")
-        # Enforce rule: Real titles must NOT silently use generated art
-        if not is_showcase and poster_info["source"] == "generated":
-            poster_info["status_ok"] = False
-            poster_info["reason"] = "Violation: Real title is using generated showcase artwork instead of authentic TMDB poster"
+    sem = asyncio.Semaphore(10)
 
-        # Check backdrop
-        backdrop_info = await _check_remote_or_local(m.banner_url, "backdrops")
+    async with httpx.AsyncClient(timeout=10.0, follow_redirects=True, limits=httpx.Limits(max_keepalive_connections=20, max_connections=25)) as shared_client:
+        async def _audit_movie(m: Movie) -> Dict[str, Any]:
+            async with sem:
+                is_showcase = bool(getattr(m, "is_showcase", False)) or (not bool(m.is_tmdb))
+                
+                # Check poster
+                poster_info = await _check_remote_or_local(m.poster_url, "posters", client=shared_client)
+                # Enforce rule: Real titles must NOT silently use generated art
+                if not is_showcase and poster_info["source"] == "generated":
+                    poster_info["status_ok"] = False
+                    poster_info["reason"] = "Violation: Real title is using generated showcase artwork instead of authentic TMDB poster"
 
-        # Check trailer
-        trailer_url = m.trailer_url
-        if trailer_url and trailer_url.startswith("/trailers/"):
-            t_file = _check_local_file(trailer_url, "trailers")
-            trailer_type = "hosted"
-            trailer_ok = t_file["exists"] and t_file["size_bytes"] > 1000
-            trailer_status = "available" if trailer_ok else "missing"
-            trailer_reason = f"Hosted MP4 with fast-start 206 streaming ({t_file['size_formatted']})" if trailer_ok else "Trailer MP4 file missing on disk"
-        elif trailer_url and "youtube" in trailer_url:
-            trailer_type = "youtube"
-            trailer_ok = True
-            trailer_status = "youtube_embed"
-            trailer_reason = "Official YouTube player fallback embed"
-        else:
-            trailer_type = "none"
-            trailer_ok = False
-            trailer_status = "none"
-            trailer_reason = "No trailer URL configured"
+                # Check backdrop
+                backdrop_info = await _check_remote_or_local(m.banner_url, "backdrops", client=shared_client)
 
-        trailer_info = {
-            "type": trailer_type,
-            "url": trailer_url,
-            "file_status": trailer_status,
-            "status_ok": trailer_ok,
-            "reason": trailer_reason,
-        }
+                # Check trailer
+                trailer_url = m.trailer_url
+                if trailer_url and trailer_url.startswith("/trailers/"):
+                    t_file = _check_local_file(trailer_url, "trailers")
+                    trailer_type = "hosted"
+                    trailer_ok = t_file["exists"] and t_file["size_bytes"] > 1000
+                    trailer_status = "available" if trailer_ok else "missing"
+                    trailer_reason = f"Hosted MP4 with fast-start 206 streaming ({t_file['size_formatted']})" if trailer_ok else "Trailer MP4 file missing on disk"
+                elif trailer_url and "youtube" in trailer_url:
+                    trailer_type = "youtube"
+                    trailer_ok = True
+                    trailer_status = "youtube_embed"
+                    trailer_reason = "Official YouTube player fallback embed"
+                else:
+                    trailer_type = "none"
+                    trailer_ok = False
+                    trailer_status = "none"
+                    trailer_reason = "No trailer URL configured"
 
-        # Check ambient clip (glimpse)
-        glimpse_url = m.glimpse_url
-        if glimpse_url and glimpse_url.startswith("/trailers/"):
-            g_file = _check_local_file(glimpse_url, "trailers")
-            g_ok = g_file["exists"] and g_file["size_bytes"] > 1000
-            g_reason = f"Seamless 12s looping glimpse MP4 ({g_file['size_formatted']})" if g_ok else "Glimpse MP4 missing on disk"
-        elif glimpse_url:
-            g_ok = True
-            g_reason = "Remote ambient video stream"
-        else:
-            g_ok = False
-            g_reason = "No ambient clip configured"
+                trailer_info = {
+                    "type": trailer_type,
+                    "url": trailer_url,
+                    "file_status": trailer_status,
+                    "status_ok": trailer_ok,
+                    "reason": trailer_reason,
+                }
 
-        ambient_info = {
-            "url": glimpse_url,
-            "status_ok": g_ok,
-            "reason": g_reason,
-        }
+                # Check ambient clip (glimpse)
+                glimpse_url = m.glimpse_url
+                if glimpse_url and glimpse_url.startswith("/trailers/"):
+                    g_file = _check_local_file(glimpse_url, "trailers")
+                    g_ok = g_file["exists"] and g_file["size_bytes"] > 1000
+                    g_reason = f"Seamless 12s looping glimpse MP4 ({g_file['size_formatted']})" if g_ok else "Glimpse MP4 missing on disk"
+                elif glimpse_url:
+                    g_ok = True
+                    g_reason = "Remote ambient video stream"
+                else:
+                    g_ok = False
+                    g_reason = "No ambient clip configured"
 
-        # Check effects track
-        # Movies 1-3 have hand-reviewed 4DX tracks; others with trailers have auto analyser
-        if m.id in [1, 2, 3]:
-            effects_status = "reviewed"
-            effects_ok = True
-            effects_reason = "Hand-reviewed 4DX motion seat timeline with haptic & sub-bass vibration"
-        elif trailer_url:
-            effects_status = "auto"
-            effects_ok = True
-            effects_reason = "Auto audio-analyser derived motion & sensory cues"
-        else:
-            effects_status = "none"
-            effects_ok = False
-            effects_reason = "No audio or effects track available"
+                ambient_info = {
+                    "url": glimpse_url,
+                    "status_ok": g_ok,
+                    "reason": g_reason,
+                }
 
-        effects_info = {
-            "status": effects_status,
-            "status_ok": effects_ok,
-            "reason": effects_reason,
-        }
+                # Check effects track
+                if m.id in [1, 2, 3]:
+                    effects_status = "reviewed"
+                    effects_ok = True
+                    effects_reason = "Hand-reviewed 4DX motion seat timeline with haptic & sub-bass vibration"
+                elif trailer_url:
+                    effects_status = "auto"
+                    effects_ok = True
+                    effects_reason = "Auto audio-analyser derived motion & sensory cues"
+                else:
+                    effects_status = "none"
+                    effects_ok = False
+                    effects_reason = "No audio or effects track available"
 
-        all_ok = poster_info["status_ok"] and (trailer_info["status_ok"] or not is_showcase)
-        movie_reports.append({
-            "id": m.id,
-            "title": m.title,
-            "slug": m.slug,
-            "is_showcase": is_showcase,
-            "is_tmdb": bool(m.is_tmdb),
-            "tmdb_id": m.tmdb_id,
-            "poster": poster_info,
-            "backdrop": backdrop_info,
-            "trailer": trailer_info,
-            "ambient_clip": ambient_info,
-            "effects_track": effects_info,
-            "status_ok": all_ok,
-            "reason": "All media assets and metadata healthy" if all_ok else f"Incomplete assets: poster {poster_info['http_status']}, trailer {trailer_status}",
-        })
+                effects_info = {
+                    "status": effects_status,
+                    "status_ok": effects_ok,
+                    "reason": effects_reason,
+                }
+
+                # Source chain determination (Phase 3 requirements)
+                is_youtube = bool(trailer_url and ("youtube" in trailer_url.lower() or "youtu.be" in trailer_url.lower()))
+                has_hosted_trailer = bool(trailer_url and trailer_url.startswith("/trailers/"))
+                has_hosted_glimpse = bool(glimpse_url and glimpse_url.startswith("/trailers/"))
+
+                if has_hosted_trailer:
+                    screen_3d_source = "Hosted Video Texture"
+                    screen_3d_desc = "Direct WebGL video texture streaming hosted MP4 clip with audio-reactive room spill"
+                elif is_youtube:
+                    screen_3d_source = "CSS 3D Official Player / Animated Backdrop"
+                    screen_3d_desc = "CSS 3D embedded official player (flag: OFFICIAL_PLAYER_ON_SCREEN) with canvas cut-out; falls back to slow-motion animated backdrop"
+                else:
+                    screen_3d_source = "Animated Backdrop Slow Motion"
+                    screen_3d_desc = "Slow-motion Ken Burns pan/zoom on authentic movie backdrop"
+
+                if has_hosted_glimpse:
+                    booking_bg_source = "Hosted Ambient Clip"
+                    booking_bg_desc = "Seamless looping 12s hosted glimpse MP4 behind movie and checkout pages"
+                else:
+                    booking_bg_source = "Animated Backdrop"
+                    booking_bg_desc = "Hardware-accelerated Ken Burns pan/zoom animation on backdrop (zero hidden YouTube embeds)"
+
+                source_chain_info = {
+                    "screen_3d_source": screen_3d_source,
+                    "screen_3d_desc": screen_3d_desc,
+                    "booking_bg_source": booking_bg_source,
+                    "booking_bg_desc": booking_bg_desc,
+                    "has_hosted_clip": has_hosted_trailer or has_hosted_glimpse,
+                    "is_youtube_only": is_youtube and not has_hosted_trailer,
+                    "official_player_supported": is_youtube,
+                }
+
+                all_ok = poster_info["status_ok"] and (trailer_info["status_ok"] or not is_showcase)
+                return {
+                    "id": m.id,
+                    "title": m.title,
+                    "slug": m.slug,
+                    "is_showcase": is_showcase,
+                    "is_tmdb": bool(m.is_tmdb),
+                    "tmdb_id": m.tmdb_id,
+                    "poster": poster_info,
+                    "backdrop": backdrop_info,
+                    "trailer": trailer_info,
+                    "ambient_clip": ambient_info,
+                    "effects_track": effects_info,
+                    "source_chain": source_chain_info,
+                    "status_ok": all_ok,
+                    "reason": "All media assets and metadata healthy" if all_ok else f"Incomplete assets: poster {poster_info['http_status']}, trailer {trailer_status}",
+                }
+
+        movie_reports = await asyncio.gather(*[_audit_movie(m) for m in all_movies])
 
     # 3. Halls (Auditoriums) Diagnostic
     aud_res = await db.execute(
@@ -361,6 +417,63 @@ async def get_developer_readiness(
             "reason": f"Active live city with {shows_count} shows across {cinemas_count} cinemas" if is_live else "Inactive city (0 shows)",
         })
 
+    # 4b. City Hall Types Matrix (Readiness row for each hall type and city)
+    GENERIC_HALL_TYPES = [
+        "Large screen",
+        "Overhead sound",
+        "Motion seats",
+        "Recliner",
+        "Balcony",
+        "Boutique",
+        "Standard",
+    ]
+
+    def _classify_generic_type(screen_type: str, name: str) -> str:
+        st = screen_type.lower()
+        nm = name.lower()
+        if "imax" in st or "large" in st or "flagship" in nm:
+            return "Large screen"
+        if "4dx" in st or "motion" in nm:
+            return "Motion seats"
+        if "atmos" in st or "overhead" in nm:
+            return "Overhead sound"
+        if "recliner" in st or "luxe" in nm or "gold" in nm:
+            return "Recliner"
+        if "balcony" in st or "balcony" in nm:
+            return "Balcony"
+        if "boutique" in st or "velvet" in nm:
+            return "Boutique"
+        return "Standard"
+
+    city_hall_type_reports: List[Dict[str, Any]] = []
+    for c in all_cities:
+        # Find all auditoriums in this city
+        city_halls = [h for h in hall_reports if h["city_name"] == c.name]
+        for g_type in GENERIC_HALL_TYPES:
+            matching = [h for h in city_halls if _classify_generic_type(h["theatre_type"], h["name"]) == g_type]
+            count = len(matching)
+            is_ok = count > 0
+            sample_hall = matching[0]["name"] if matching else "N/A"
+            sample_cinema = matching[0]["cinema_name"] if matching else "N/A"
+            seat_counts = [h["total_seats"] for h in matching]
+            min_s = min(seat_counts) if seat_counts else 0
+            max_s = max(seat_counts) if seat_counts else 0
+
+            city_hall_type_reports.append({
+                "city_id": c.id,
+                "city_name": c.name,
+                "city_slug": c.slug,
+                "hall_type": g_type,
+                "hall_count": count,
+                "sample_hall_name": sample_hall,
+                "sample_cinema_name": sample_cinema,
+                "min_seats": min_s,
+                "max_seats": max_s,
+                "different_layouts": len(set(seat_counts)) > 1 or count <= 1,
+                "status_ok": is_ok,
+                "reason": f"Active {count} live '{g_type}' halls ({min_s}–{max_s} seats) across {c.name}" if is_ok else f"Missing '{g_type}' hall in {c.name}",
+            })
+
     # Summary metrics
     non_showcase = [m for m in movie_reports if not m["is_showcase"]]
     non_showcase_tmdb_200 = [
@@ -389,8 +502,24 @@ async def get_developer_readiness(
             "non_showcase_tmdb_ratio": tmdb_poster_ratio,
             "total_halls": len(hall_reports),
             "total_cities": len(city_reports),
+            "total_city_hall_type_combinations": len(city_hall_type_reports),
+            "city_hall_types_covered": len([r for r in city_hall_type_reports if r["status_ok"]]),
         },
         "movies": movie_reports,
         "halls": hall_reports,
         "cities": city_reports,
+        "city_hall_types": city_hall_type_reports,
     }
+
+
+@router.post("/sync-tmdb")
+@router.get("/sync-tmdb")
+async def trigger_tmdb_sync(db: AsyncSession = Depends(get_db)):
+    """
+    Triggers TMDB live catalog sync on demand.
+    Updates movies table and programs realistic showtimes for all cities.
+    """
+    from app.services.catalog.tmdb import TMDBCatalogProvider
+    provider = TMDBCatalogProvider()
+    result = await provider.sync_catalog(db)
+    return result

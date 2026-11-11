@@ -21,16 +21,21 @@ import { useMovieBackdrop } from '@/context/MovieBackdropContext';
 import { useComfortStore } from '@/store/useComfortStore';
 
 function getYoutubeEmbedUrl(url: string): string {
+  if (!url) return '';
+  const trimmed = url.trim();
+  if (/^[\w-]{11}$/.test(trimmed)) {
+    return `https://www.youtube-nocookie.com/embed/${trimmed}?autoplay=1&modestbranding=1&rel=0`;
+  }
   let videoId = '';
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  const match = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
   if (match) {
     videoId = match[1];
-  } else if (url.includes('embed/')) {
-    videoId = url.split('embed/')[1]?.split('?')[0] || '';
+  } else if (trimmed.includes('embed/')) {
+    videoId = trimmed.split('embed/')[1]?.split('?')[0] || '';
   }
   return videoId
     ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&modestbranding=1&rel=0`
-    : url;
+    : trimmed;
 }
 
 export function TrailerPlayer() {
@@ -256,7 +261,7 @@ export function TrailerPlayer() {
                   </div>
                 )}
               </>
-            ) : activeTrailer.trailerUrl?.includes('youtube') || activeTrailer.trailerUrl?.includes('youtu.be') ? (
+            ) : (activeTrailer.trailerUrl && (activeTrailer.trailerUrl.includes('youtube') || activeTrailer.trailerUrl.includes('youtu.be') || /^[\w-]{11}$/.test(activeTrailer.trailerUrl.trim()))) ? (
               <iframe
                 src={getYoutubeEmbedUrl(activeTrailer.trailerUrl)}
                 title={`${activeTrailer.title} Official Trailer`}

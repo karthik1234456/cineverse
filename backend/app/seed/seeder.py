@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import random
 import math
@@ -1418,13 +1419,45 @@ def generate_auditorium_layout(
         balcony_rows = []
         stalls_rows = rows
     elif tid == "dolby_atmos_4dx":
-        row_count = 12
+        if total_seats == 280:
+            row_count = 14
+        elif total_seats == 200:
+            row_count = 10
+        elif total_seats == 220:
+            row_count = 11
+        elif total_seats == 264:
+            row_count = 12
+        elif total_seats == 216:
+            row_count = 12
+        elif total_seats == 192:
+            row_count = 12
+        elif total_seats == 168:
+            row_count = 12
+        else:
+            row_count = 12
         seats_per_row = total_seats // row_count
         rows = [alphabet[i] for i in range(row_count)]
-        if not blocks_pattern:
-            blocks_pattern = [5, 10, 5]
-        aisles = [blocks_pattern[0], blocks_pattern[0] + blocks_pattern[1]]
-        curve_rad = None
+        if seats_per_row == 22:
+            pod_sizes = [4, 2, 4, 2, 4, 2, 4]
+            aisles = [6, 16]
+            blocks_pattern = [6, 10, 6]
+        elif seats_per_row == 18:
+            pod_sizes = [4, 4, 2, 4, 4]
+            aisles = [4, 14]
+            blocks_pattern = [4, 10, 4]
+        elif seats_per_row == 16:
+            pod_sizes = [4, 4, 4, 4]
+            aisles = [4, 12]
+            blocks_pattern = [4, 8, 4]
+        elif seats_per_row == 14:
+            pod_sizes = [2, 2, 2, 2, 2, 2, 2]
+            aisles = [4, 10]
+            blocks_pattern = [4, 6, 4]
+        else:
+            pod_sizes = [4, 4, 4, 4, 4]
+            aisles = [4, 16]
+            blocks_pattern = [4, 12, 4]
+        curve_rad = 28.0  # Gently curved row arc per spec
         has_balcony = False
         balcony_rows = []
         stalls_rows = rows
@@ -1501,8 +1534,105 @@ def generate_auditorium_layout(
     accessible = [f"A01", f"A{str(seats_per_row).zfill(2)}"]
 
     # 4DX Features & Motion Rows
-    is_4dx = tid == "dolby_atmos_4dx" or "4DX" in screen_type or "4dx" in screen_type.lower()
-    motion_rows = ["D", "E", "F", "G"] if is_4dx else []
+    is_4dx = tid == "dolby_atmos_4dx" or "4DX" in screen_type or "4dx" in screen_type.lower() or "motion" in screen_type.lower()
+    is_motion_hall = tid == "dolby_atmos_4dx" or is_4dx
+    motion_rows = rows if is_motion_hall else (["D", "E", "F", "G"] if is_4dx else [])
+
+    # Pod structure for motion hall
+    seat_to_pod = {}
+    all_pods = []
+    if is_motion_hall:
+        if 'pod_sizes' not in locals():
+            if seats_per_row == 22:
+                pod_sizes = [4, 2, 4, 2, 4, 2, 4]
+            elif seats_per_row == 18:
+                pod_sizes = [4, 4, 2, 4, 4]
+            elif seats_per_row == 16:
+                pod_sizes = [4, 4, 4, 4]
+            elif seats_per_row == 14:
+                pod_sizes = [2, 2, 2, 2, 2, 2, 2]
+            else:
+                pod_sizes = [4] * (seats_per_row // 4)
+                if seats_per_row % 4 > 0:
+                    pod_sizes.append(seats_per_row % 4)
+
+        for r in rows:
+            curr_num = 1
+            for p_idx, p_size in enumerate(pod_sizes):
+                p_id = f"POD-{r}{p_idx + 1}"
+                p_seats = []
+                for _ in range(p_size):
+                    if curr_num <= seats_per_row:
+                        s_id = f"{r}{str(curr_num).zfill(2)}"
+                        seat_to_pod[s_id] = p_id
+                        p_seats.append(s_id)
+                        curr_num += 1
+                all_pods.append({
+                    "pod_id": p_id,
+                    "row": r,
+                    "capacity": len(p_seats),
+                    "seat_ids": p_seats,
+                    "type": "motion_pod"
+                })
+
+    ROW_A_Z = -8.032
+    ROW_A_Y = 1.365
+    SCREEN_Z = -1.255
+    screen_center_y = max(5.5, screen_h / 2.0 + 1.2)
+
+    # Effect props in 3D (every prop tagged wind, fog, water, strobe, scent, poke)
+    effect_props = []
+    if is_motion_hall:
+        ceiling_y = theatre_def["scene_units"]["ceiling_height"]
+        # Wind: 6 fan units
+        for f_idx, (fx, fz) in enumerate([(-6.0, -10.0), (0.0, -10.0), (6.0, -10.0), (-6.0, -20.0), (0.0, -20.0), (6.0, -20.0)]):
+            effect_props.append({
+                "id": f"prop_wind_fan_{f_idx+1}",
+                "type": "wind",
+                "position": [fx, round(ceiling_y - 1.2, 2), fz],
+                "label": f"Ceiling Wind Turbine {f_idx+1}"
+            })
+        # Fog: 4 side-wall smoke/fog machines
+        wall_x = 12.0
+        for m_idx, (mx, mz) in enumerate([(-wall_x + 0.4, -12.0), (wall_x - 0.4, -12.0), (-wall_x + 0.4, -22.0), (wall_x - 0.4, -22.0)]):
+            effect_props.append({
+                "id": f"prop_fog_machine_{m_idx+1}",
+                "type": "fog",
+                "position": [mx, 4.5, mz],
+                "label": f"Wall Fog Machine {m_idx+1}"
+            })
+        # Water: 6 ceiling mist nozzles
+        for w_idx, (wx, wz) in enumerate([(-4.0, -8.0), (4.0, -8.0), (-4.0, -16.0), (4.0, -16.0), (-4.0, -24.0), (4.0, -24.0)]):
+            effect_props.append({
+                "id": f"prop_water_mist_{w_idx+1}",
+                "type": "water",
+                "position": [wx, round(ceiling_y - 0.9, 2), wz],
+                "label": f"Ceiling Rain/Mist Nozzle {w_idx+1}"
+            })
+        # Strobe: 4 ceiling strobe light bars
+        for st_idx, st_z in enumerate([-8.0, -14.0, -20.0, -26.0]):
+            effect_props.append({
+                "id": f"prop_strobe_bar_{st_idx+1}",
+                "type": "strobe",
+                "position": [0.0, round(ceiling_y - 0.8, 2), st_z],
+                "label": f"Ceiling Strobe Bar {st_idx+1}"
+            })
+        # Scent: 4 scent dispenser unit boxes
+        for sc_idx, (scx, scz) in enumerate([(-5.0, -11.0), (5.0, -11.0), (-5.0, -21.0), (5.0, -21.0)]):
+            effect_props.append({
+                "id": f"prop_scent_unit_{sc_idx+1}",
+                "type": "scent",
+                "position": [scx, round(ceiling_y - 1.4, 2), scz],
+                "label": f"Scent Dispenser {sc_idx+1}"
+            })
+        # Poke: Seat back pokers / ticklers
+        for pk_idx, r in enumerate(rows[:6]):
+            effect_props.append({
+                "id": f"prop_poke_row_{r}",
+                "type": "poke",
+                "position": [0.0, round(ROW_A_Y + pk_idx * tier_rise, 2), round(ROW_A_Z - pk_idx * row_pitch, 2)],
+                "label": f"Row {r} Seat Back Pokers"
+            })
 
     layout_data = {
         "theatre_type": tid,
@@ -1514,6 +1644,11 @@ def generate_auditorium_layout(
         "seats_per_row": seats_per_row,
         "aisles": aisles,
         "accessible_seats": accessible,
+        "is_motion_hall": is_motion_hall,
+        "motion_zone": "all" if is_motion_hall else None,
+        "pods": all_pods,
+        "effect_props": effect_props,
+        "screen_definition": theatre_def.get("screen_type"),
         "category_bands": [
             {"category": "Front", "rows": front_rows, "price_multiplier": 0.75},
             {"category": "Prime", "rows": prime_rows, "price_multiplier": 1.0},
@@ -1539,14 +1674,15 @@ def generate_auditorium_layout(
         },
         "features": {
             "is_4dx": is_4dx,
-            "motion_seats": is_4dx,
-            "wind": is_4dx,
-            "water": is_4dx,
-            "fog": is_4dx,
-            "scent": is_4dx,
-            "strobe": is_4dx,
-            "ticklers": is_4dx,
-            "dolby_atmos": "Atmos" in screen_type or is_4dx or "atmos" in tid
+            "motion_seats": is_motion_hall,
+            "wind": is_motion_hall,
+            "water": is_motion_hall,
+            "fog": is_motion_hall,
+            "scent": is_motion_hall,
+            "strobe": is_motion_hall,
+            "ticklers": is_motion_hall,
+            "dolby_atmos": "Atmos" in screen_type or is_4dx or "atmos" in tid,
+            "panoramic_wrap": is_motion_hall,
         }
     }
 
@@ -1605,6 +1741,8 @@ def generate_auditorium_layout(
                 seat_type_val = "accessible"
             elif is_comp:
                 seat_type_val = "companion"
+            elif is_motion_hall:
+                seat_type_val = "motion"
             elif tid == "boutique":
                 seat_type_val = "sofa"
             elif is_pair:
@@ -1613,6 +1751,8 @@ def generate_auditorium_layout(
                 seat_type_val = "recliner"
             else:
                 seat_type_val = "standard"
+
+            pod_id_val = seat_to_pod.get(seat_id) if is_motion_hall else None
 
             seat_records.append({
                 "seat_id": seat_id,
@@ -1629,12 +1769,15 @@ def generate_auditorium_layout(
                 "is_accessible": is_acc,
                 "is_companion": is_comp,
                 "seat_type": seat_type_val,
+                "pod_id": pod_id_val,
+                "motion_zone": "all" if is_motion_hall else None,
                 "pair_partner_id": pair_map.get(seat_id),
                 "level": "balcony" if is_balc else "stalls",
                 "section": "Balcony" if is_balc else "Stalls",
-                "in_motion_zone": r in motion_rows
+                "in_motion_zone": True if is_motion_hall else (r in motion_rows)
             })
 
+    layout_data["seats"] = seat_records
     return layout_data, seat_records
 
     return layout_data, seat_records
@@ -1799,7 +1942,7 @@ async def seed_database():
         show_count_res = await db.execute(select(func.count(Showtime.id)))
         existing_shows = show_count_res.scalar() or 0
 
-        force_seed = os.environ.get("FORCE_SEED", "0") == "1"
+        force_seed = os.environ.get("FORCE_SEED", "0") == "1" or "--force" in sys.argv
 
         if not force_seed and existing_movies >= 48 and existing_auds >= 70 and existing_shows >= 2000:
             # Sync Phase 6 Map and Transit metadata for existing cinemas if missing
@@ -1900,6 +2043,18 @@ async def seed_database():
             await db.flush()
             cinema_entities.append(cinema)
 
+            # Determine motion-seat capacity & pod arrangement per city (160 to 300 seats)
+            motion_seats_by_city = {
+                "bengaluru": 240,
+                "mumbai": 216,
+                "delhi-ncr": 264,
+                "hyderabad": 192,
+                "chennai": 168,
+                "pune": 200,
+                "kolkata": 280,
+            }
+            city_motion_seats = motion_seats_by_city.get(c_info["city_slug"], 240)
+
             # Determine auditoriums for this cinema
             # Flagship cinema has 4 screens including 1 Flagship Big Hall (420 seats)
             # Normal cinema has 2 to 3 screens
@@ -1914,13 +2069,13 @@ async def seed_database():
                 screens_config = [
                     {"name": "Screen 1 — Flagship Big Hall", "theatre_type": "flagship", "type": "IMAX with Laser", "seats": 520, "is_3d": False},
                     {"name": "Screen 2 — Grand Balcony Hall", "theatre_type": "balcony", "type": "Dolby Atmos 2D", "seats": 640, "is_3d": False},
-                    {"name": "Screen 3 — Dolby Atmos 4DX", "theatre_type": "dolby_atmos_4dx", "type": "4DX", "seats": 240, "is_3d": False},
+                    {"name": "Screen 3 — Motion-seat Hall", "theatre_type": "dolby_atmos_4dx", "type": "Motion-seat Hall", "seats": city_motion_seats, "is_3d": False, "is_licensed": False},
                     {"name": "Screen 4 — Boutique Velvet Salon", "theatre_type": "boutique", "type": "Boutique", "seats": 48, "is_3d": False},
                 ]
             elif c_info["slug"] == "cineverse-orion-dome-rajajinagar":
                 screens_config = [
                     {"name": "Screen 1 — Large Format Screen", "theatre_type": "large", "type": "Large Format", "seats": 420, "is_3d": False},
-                    {"name": "Screen 2 — Standard Central Aisle", "theatre_type": "standard", "type": "Standard", "seats": 224, "is_3d": False, "arrangement": "single_aisle"},
+                    {"name": "Screen 2 — Motion-seat Hall", "theatre_type": "dolby_atmos_4dx", "type": "Motion-seat Hall", "seats": city_motion_seats, "is_3d": False, "is_licensed": False},
                     {"name": "Screen 3 — Continental Stadium", "theatre_type": "standard", "type": "Standard", "seats": 216, "is_3d": False, "arrangement": "continental"},
                 ]
             elif c_info.get("is_flagship"):
@@ -1929,14 +2084,14 @@ async def seed_database():
                     screens_config = [
                         {"name": "Screen 1 — Flagship Big Hall", "theatre_type": "flagship", "type": "IMAX with Laser", "seats": 560, "is_3d": False},
                         {"name": "Screen 2 — Grand Balcony Hall", "theatre_type": "balcony", "type": "Dolby Atmos 2D", "seats": 640, "is_3d": False},
-                        {"name": "Screen 3 — Dolby Atmos 4DX", "theatre_type": "dolby_atmos_4dx", "type": "4DX", "seats": 240, "is_3d": False},
+                        {"name": "Screen 3 — Motion-seat Hall", "theatre_type": "dolby_atmos_4dx", "type": "Motion-seat Hall", "seats": city_motion_seats, "is_3d": False, "is_licensed": False},
                         {"name": "Screen 4 — Luxe Recliner Lounge", "theatre_type": "luxury_recliner", "type": "Recliner Gold", "seats": 84, "is_3d": False},
                     ]
                 else:
                     screens_config = [
                         {"name": "Screen 1 — Flagship Big Hall", "theatre_type": "flagship", "type": "IMAX with Laser", "seats": 520, "is_3d": False},
                         {"name": "Screen 2 — Large Format Screen", "theatre_type": "large", "type": "Large Format", "seats": 420, "is_3d": False},
-                        {"name": "Screen 3 — Dolby Atmos 4DX", "theatre_type": "dolby_atmos_4dx", "type": "4DX", "seats": 240, "is_3d": False},
+                        {"name": "Screen 3 — Motion-seat Hall", "theatre_type": "dolby_atmos_4dx", "type": "Motion-seat Hall", "seats": city_motion_seats, "is_3d": False, "is_licensed": False},
                         {"name": "Screen 4 — Boutique Velvet Salon", "theatre_type": "boutique", "type": "Boutique", "seats": 48, "is_3d": False},
                     ]
             else:
@@ -1951,12 +2106,12 @@ async def seed_database():
                 elif mod == 1:
                     screens_config = [
                         {"name": "Screen 1 — Grand Balcony Auditorium", "theatre_type": "balcony", "type": "Dolby Atmos 2D", "seats": 560, "is_3d": False},
-                        {"name": "Screen 2 — Dolby Atmos 4DX", "theatre_type": "dolby_atmos_4dx", "type": "4DX", "seats": 240, "is_3d": False},
+                        {"name": "Screen 2 — Motion-seat Hall", "theatre_type": "dolby_atmos_4dx", "type": "Motion-seat Hall", "seats": city_motion_seats, "is_3d": False, "is_licensed": False},
                         {"name": "Screen 3 — Boutique Velvet Salon", "theatre_type": "boutique", "type": "Boutique", "seats": 48, "is_3d": False},
                     ]
                 elif mod == 2:
                     screens_config = [
-                        {"name": "Screen 1 — Dolby Atmos 4DX", "theatre_type": "dolby_atmos_4dx", "type": "4DX", "seats": 240, "is_3d": False},
+                        {"name": "Screen 1 — Motion-seat Hall", "theatre_type": "dolby_atmos_4dx", "type": "Motion-seat Hall", "seats": city_motion_seats, "is_3d": False, "is_licensed": False},
                         {"name": "Screen 2 — Continental Stadium", "theatre_type": "standard", "type": "Standard", "seats": 216, "is_3d": False, "arrangement": "continental"},
                         {"name": "Screen 3 — Luxe Recliner Lounge", "theatre_type": "luxury_recliner", "type": "Recliner Gold", "seats": 84, "is_3d": False},
                     ]
@@ -2048,7 +2203,10 @@ async def seed_database():
                 interested_count=m_data["interested_count"],
                 languages=m_data["languages"],
                 genres=m_data["genres"],
-                formats=m_data["formats"]
+                formats=m_data["formats"],
+                is_showcase=True,
+                is_tmdb=False,
+                source="showcase",
             )
             db.add(m)
             await db.flush()
@@ -2078,6 +2236,21 @@ async def seed_database():
                 role_name="Commander Elena Rostova",
                 category="Cast"
             ))
+
+        # 4b. Sync & Seed Authentic TMDB Catalogue
+        print("Syncing / Seeding authentic TMDB catalogue...")
+        from app.services.catalog.tmdb import TMDBCatalogProvider
+        tmdb_provider = TMDBCatalogProvider()
+        tmdb_sync_res = await tmdb_provider.sync_catalog(db, skip_showtimes=True)
+        print(f"TMDB sync result: {tmdb_sync_res}")
+
+        # Refresh all movie entities from DB to include real TMDB releases
+        all_movies_res = await db.execute(select(Movie))
+        all_movies = all_movies_res.scalars().all()
+        for mov in all_movies:
+            movie_entities[mov.slug] = mov
+        tmdb_movie_list = [mov for mov in all_movies if mov.is_tmdb and mov.is_now_showing]
+        print(f"Total Movies in registry: {len(movie_entities)} ({len(tmdb_movie_list)} live TMDB releases)")
 
         # 5. Seed F&B and Coupons
         print("Seeding F&B Items and Coupons...")
@@ -2122,17 +2295,33 @@ async def seed_database():
 
             for aud in auditorium_entities:
                 city_slug = cinema_city_slugs[aud.cinema_id]
-                city_movie_slugs = get_city_movies(city_slug)
+                from app.services.catalog.tmdb import CITY_LANGUAGES
+                city_langs = CITY_LANGUAGES.get(city_slug, ["Hindi", "English"])
+
+                matching_tmdb = [
+                    m.slug for m in tmdb_movie_list
+                    if any(lang in city_langs for lang in (m.languages or []))
+                ]
+                if len(matching_tmdb) < 14:
+                    for m in tmdb_movie_list:
+                        if m.slug not in matching_tmdb:
+                            matching_tmdb.append(m.slug)
+                        if len(matching_tmdb) >= 16:
+                            break
+
+                city_movie_slugs = matching_tmdb if matching_tmdb else get_city_movies(city_slug)
 
                 # Filter movies matching screen type
                 compatible_slugs = []
                 for s in city_movie_slugs:
-                    m = movie_entities[s]
+                    m = movie_entities.get(s)
+                    if not m:
+                        continue
                     if "IMAX" in aud.screen_type:
-                        if any("IMAX" in f for f in m.formats):
+                        if any("IMAX" in f for f in (m.formats or [])):
                             compatible_slugs.append(s)
                     elif "4DX" in aud.screen_type:
-                        if any("4DX" in f for f in m.formats):
+                        if any("4DX" in f for f in (m.formats or [])):
                             compatible_slugs.append(s)
                     else:
                         compatible_slugs.append(s)
@@ -2196,45 +2385,43 @@ async def seed_database():
 
         # Now generate and batch-insert SeatInventory
         print("Generating and inserting SeatInventory records...")
-        st_idx = 0
-        for day_offset in range(14):
-            cur_date = today + timedelta(days=day_offset)
-            is_weekend = cur_date.weekday() in [4, 5, 6]
+        for st_item in showtimes_to_insert:
+            st_id = st_item["id"]
+            aud_id = st_item["auditorium_id"]
+            start_dt = st_item["start_time"]
+            is_weekend = start_dt.weekday() in [4, 5, 6]
+            is_morning = start_dt.hour < 12
+            is_evening = start_dt.hour >= 17
 
-            for aud in auditorium_entities:
-                for slot_idx, start_t in enumerate(daily_time_slots):
-                    st_idx += 1
-                    st_id = st_idx
+            base_factor = 0.8 if is_morning else (1.2 if is_evening else 1.0)
+            if is_weekend:
+                base_factor *= 1.25
 
-                    is_morning = start_t.hour < 12
-                    is_evening = start_t.hour >= 17
+            aud = next((a for a in auditorium_entities if a.id == aud_id), None)
+            if aud:
+                if "IMAX" in aud.screen_type or "4DX" in aud.screen_type:
+                    base_factor *= 1.3
+                if aud.total_seats >= 380:
+                    base_factor *= 1.15
 
-                    base_factor = 0.8 if is_morning else (1.2 if is_evening else 1.0)
-                    if is_weekend:
-                        base_factor *= 1.25
-                    if "IMAX" in aud.screen_type or "4DX" in aud.screen_type:
-                        base_factor *= 1.3
-                    if aud.total_seats >= 380:
-                        base_factor *= 1.15
+            front_price = round(220.0 * base_factor)
+            prime_price = round(320.0 * base_factor)
+            premier_price = round(460.0 * base_factor)
 
-                    front_price = round(220.0 * base_factor)
-                    prime_price = round(320.0 * base_factor)
-                    premier_price = round(460.0 * base_factor)
+            # Occupancy distribution
+            if is_morning and not is_weekend:
+                target_booked_pct = random.uniform(0.05, 0.15)
+            elif is_evening and is_weekend:
+                target_booked_pct = random.uniform(0.30, 0.55)
+                if random.random() < 0.08:
+                    target_booked_pct = 0.85
+            else:
+                target_booked_pct = random.uniform(0.15, 0.30)
 
-                    # Occupancy distribution
-                    if is_morning and not is_weekend:
-                        target_booked_pct = random.uniform(0.05, 0.15)
-                    elif is_evening and is_weekend:
-                        target_booked_pct = random.uniform(0.30, 0.55)
-                        if random.random() < 0.08:
-                            target_booked_pct = 0.85
-                    else:
-                        target_booked_pct = random.uniform(0.15, 0.30)
+            aud_seats = aud_seat_map.get(aud_id, [])
+            held_count = random.randint(0, 3)
 
-                    aud_seats = aud_seat_map.get(aud.id, [])
-                    held_count = random.randint(0, 3)
-
-                    for s_obj in aud_seats:
+            for s_obj in aud_seats:
                         if st_id == 1 and s_obj.seat_id == "C01":
                             status = SeatStatusEnum.BOOKED
                             booking_id = 1
@@ -2278,14 +2465,15 @@ async def seed_database():
                             "held_by_user_id": None
                         })
 
-                        # Batch flush at 2,500 records
-                        if len(inventory_records_batch) >= 2500:
-                            await db.execute(insert(SeatInventory).values(inventory_records_batch))
+                        # Batch flush to avoid SQLite variable limit (max 999 variables, 10 fields per row -> chunk <= 80)
+                        if len(inventory_records_batch) >= 2000:
+                            for chunk_start in range(0, len(inventory_records_batch), 80):
+                                await db.execute(insert(SeatInventory).values(inventory_records_batch[chunk_start:chunk_start + 80]))
                             inventory_records_batch.clear()
 
         if inventory_records_batch:
-            for i in range(0, len(inventory_records_batch), 2500):
-                await db.execute(insert(SeatInventory).values(inventory_records_batch[i:i + 2500]))
+            for chunk_start in range(0, len(inventory_records_batch), 80):
+                await db.execute(insert(SeatInventory).values(inventory_records_batch[chunk_start:chunk_start + 80]))
             inventory_records_batch.clear()
 
         await db.commit()
