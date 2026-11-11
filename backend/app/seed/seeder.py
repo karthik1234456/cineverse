@@ -1280,6 +1280,13 @@ def compute_row_x_positions(seats_per_row: int, aisles: List[int], seat_pitch: f
     return [round(half_span - xr, 3) for xr in x_rel]
 
 
+def calculate_screen_distance(screen_w: float, screen_h: float, max_front_fov_deg: float = 75.0) -> float:
+    min_dist_h = 1.2 * screen_h
+    half_fov_rad = math.radians(max_front_fov_deg / 2.0)
+    min_dist_fov = (screen_w / 2.0) / math.tan(half_fov_rad)
+    return max(min_dist_h, min_dist_fov)
+
+
 def generate_auditorium_layout(
     theatre_type: str = "standard",
     total_seats: int = 224,
@@ -1575,9 +1582,10 @@ def generate_auditorium_layout(
                     "type": "motion_pod"
                 })
 
-    ROW_A_Z = -8.032
-    ROW_A_Y = 1.365
     SCREEN_Z = -1.255
+    req_screen_dist = calculate_screen_distance(screen_w, screen_h, 75.0)
+    ROW_A_Z = round(SCREEN_Z - req_screen_dist, 3)
+    ROW_A_Y = 1.365
     screen_center_y = max(5.5, screen_h / 2.0 + 1.2)
 
     # Effect props in 3D (every prop tagged wind, fog, water, strobe, scent, poke)
@@ -1625,12 +1633,12 @@ def generate_auditorium_layout(
                 "position": [scx, round(ceiling_y - 1.4, 2), scz],
                 "label": f"Scent Dispenser {sc_idx+1}"
             })
-        # Poke: Seat back pokers / ticklers
+        # Poke: Seat back pokers / ticklers mounted under seats
         for pk_idx, r in enumerate(rows[:6]):
             effect_props.append({
                 "id": f"prop_poke_row_{r}",
                 "type": "poke",
-                "position": [0.0, round(ROW_A_Y + pk_idx * tier_rise, 2), round(ROW_A_Z - pk_idx * row_pitch, 2)],
+                "position": [2.5, round(ROW_A_Y + pk_idx * tier_rise - 0.15, 2), round(ROW_A_Z - pk_idx * row_pitch - 0.35, 2)],
                 "label": f"Row {r} Seat Back Pokers"
             })
 
@@ -1689,7 +1697,8 @@ def generate_auditorium_layout(
     # Pre-calculate row X coordinates
     x_positions = compute_row_x_positions(seats_per_row, aisles, seat_pitch, aisle_gap)
 
-    ROW_A_Z = -8.032
+    req_screen_dist = calculate_screen_distance(screen_w, screen_h, 75.0)
+    ROW_A_Z = round(SCREEN_Z - req_screen_dist, 3)
     ROW_A_Y = 1.365
     SCREEN_Z = -1.255
     screen_center_y = max(5.5, screen_h / 2.0 + 1.2)

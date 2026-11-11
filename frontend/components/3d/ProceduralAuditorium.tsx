@@ -411,12 +411,13 @@ export function ProceduralAuditorium({
   const downlightMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: '#fffbf0',
-        emissive: '#fff0d0',
-        emissiveIntensity: 1.8,
-        roughness: 0.2,
+        color: '#ffffff',
+        emissive: new THREE.Color('#fff4e0'),
+        emissiveIntensity: lightIntensity === 'brighter' ? 4.2 : 3.2,
+        roughness: 0.15,
+        metalness: 0.1,
       }),
-    []
+    [lightIntensity]
   );
 
   const speakerMaterial = useMemo(
@@ -1133,16 +1134,66 @@ export function ProceduralAuditorium({
         <boxGeometry args={stageLipBox.size} />
       </mesh>
 
-      {/* 6b. Subtle Proscenium Arch & Crimson Side Curtains */}
-      {geometry.proscenium && (
-        <mesh
-          name="proscenium_arch"
-          position={boxHelper(geometry.proscenium).center}
-          material={prosceniumMaterial}
-        >
-          <boxGeometry args={boxHelper(geometry.proscenium).size} />
-        </mesh>
-      )}
+      {/* 6b. Proscenium Arch (Open Perimeter Frame: Left Column, Right Column, Top Header) & Side Curtains */}
+      {geometry.proscenium && (() => {
+        const pBox = geometry.proscenium;
+        const beamThickness = 0.45;
+        const frameDepth = Math.max(0.12, pBox.max[2] - pBox.min[2]);
+        const centerZ = (pBox.min[2] + pBox.max[2]) / 2;
+
+        const leftColWidth = beamThickness;
+        const leftColHeight = pBox.max[1] - pBox.min[1];
+        const leftColCenter: [number, number, number] = [
+          pBox.min[0] + leftColWidth / 2,
+          pBox.min[1] + leftColHeight / 2,
+          centerZ,
+        ];
+
+        const rightColWidth = beamThickness;
+        const rightColHeight = pBox.max[1] - pBox.min[1];
+        const rightColCenter: [number, number, number] = [
+          pBox.max[0] - rightColWidth / 2,
+          pBox.min[1] + rightColHeight / 2,
+          centerZ,
+        ];
+
+        const topHeaderWidth = pBox.max[0] - pBox.min[0];
+        const topHeaderHeight = beamThickness;
+        const topHeaderCenter: [number, number, number] = [
+          (pBox.min[0] + pBox.max[0]) / 2,
+          pBox.max[1] - topHeaderHeight / 2,
+          centerZ,
+        ];
+
+        return (
+          <group name="proscenium_arch_frame">
+            {/* Left Column */}
+            <mesh
+              name="proscenium_arch_left"
+              position={leftColCenter}
+              material={prosceniumMaterial}
+            >
+              <boxGeometry args={[leftColWidth, leftColHeight, frameDepth]} />
+            </mesh>
+            {/* Right Column */}
+            <mesh
+              name="proscenium_arch_right"
+              position={rightColCenter}
+              material={prosceniumMaterial}
+            >
+              <boxGeometry args={[rightColWidth, rightColHeight, frameDepth]} />
+            </mesh>
+            {/* Top Lintel Beam */}
+            <mesh
+              name="proscenium_arch_header"
+              position={topHeaderCenter}
+              material={prosceniumMaterial}
+            >
+              <boxGeometry args={[topHeaderWidth, topHeaderHeight, frameDepth]} />
+            </mesh>
+          </group>
+        );
+      })()}
 
       {geometry.sideCurtains && (
         <group name="SideCurtains">
