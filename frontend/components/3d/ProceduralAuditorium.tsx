@@ -55,6 +55,8 @@ export function ProceduralAuditorium({
 }: ProceduralAuditoriumProps) {
   const theatreLook = useCinemaStore((s) => s.theatreLook);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
+  const mode = useCinemaStore((s) => s.mode);
+  const isOverview = mode === 'overview';
   const cameraMode = useCinemaStore((s) => s.cameraMode);
   const activeSeatId = useCinemaStore((s) => s.activeSeatId);
   const setHoveredSeat = useCinemaStore((s) => s.setHoveredSeat);
@@ -150,34 +152,98 @@ export function ProceduralAuditorium({
     [qualityMode]
   );
 
+  // Shared texture loaders for seat families
+  const seatTextures = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const loader = new THREE.TextureLoader();
+
+    const stdDiff = loader.load('/models/seats/textures/atlas_standard_diffuse.png', () => {
+      if (typeof window !== 'undefined') (window as any).__cineverse_std_diff_loaded = true;
+    });
+    stdDiff.colorSpace = THREE.SRGBColorSpace;
+    stdDiff.wrapS = THREE.RepeatWrapping;
+    stdDiff.wrapT = THREE.RepeatWrapping;
+
+    const stdNorm = loader.load('/models/seats/textures/atlas_standard_normal.png', () => {
+      if (typeof window !== 'undefined') (window as any).__cineverse_std_norm_loaded = true;
+    });
+    stdNorm.wrapS = THREE.RepeatWrapping;
+    stdNorm.wrapT = THREE.RepeatWrapping;
+
+    const recDiff = loader.load('/models/seats/textures/atlas_recliner_diffuse.png', () => {
+      if (typeof window !== 'undefined') (window as any).__cineverse_rec_diff_loaded = true;
+    });
+    recDiff.colorSpace = THREE.SRGBColorSpace;
+    recDiff.wrapS = THREE.RepeatWrapping;
+    recDiff.wrapT = THREE.RepeatWrapping;
+
+    const recNorm = loader.load('/models/seats/textures/atlas_recliner_normal.png', () => {
+      if (typeof window !== 'undefined') (window as any).__cineverse_rec_norm_loaded = true;
+    });
+    recNorm.wrapS = THREE.RepeatWrapping;
+    recNorm.wrapT = THREE.RepeatWrapping;
+
+    const sofaDiff = loader.load('/models/seats/textures/atlas_sofa_diffuse.png');
+    sofaDiff.colorSpace = THREE.SRGBColorSpace;
+    sofaDiff.wrapS = THREE.RepeatWrapping;
+    sofaDiff.wrapT = THREE.RepeatWrapping;
+
+    const sofaNorm = loader.load('/models/seats/textures/atlas_sofa_normal.png');
+    sofaNorm.wrapS = THREE.RepeatWrapping;
+    sofaNorm.wrapT = THREE.RepeatWrapping;
+
+    return { stdDiff, stdNorm, recDiff, recNorm, sofaDiff, sofaNorm };
+  }, []);
+
   const standardMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
+    () => {
+      const mat = new THREE.MeshStandardMaterial({
         roughness: 0.85,
         metalness: 0.02,
         vertexColors: true,
-      }),
-    []
+        map: seatTextures?.stdDiff || null,
+        normalMap: seatTextures?.stdNorm || null,
+      });
+      if (seatTextures?.stdNorm) {
+        mat.normalScale.set(1.2, 1.2);
+      }
+      return mat;
+    },
+    [seatTextures]
   );
 
   const reclinerMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        roughness: 0.50,
-        metalness: 0.04,
+    () => {
+      const mat = new THREE.MeshStandardMaterial({
+        roughness: 0.45,
+        metalness: 0.08,
         vertexColors: true,
-      }),
-    []
+        map: seatTextures?.recDiff || null,
+        normalMap: seatTextures?.recNorm || null,
+      });
+      if (seatTextures?.recNorm) {
+        mat.normalScale.set(1.4, 1.4);
+      }
+      return mat;
+    },
+    [seatTextures]
   );
 
   const sofaMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
+    () => {
+      const mat = new THREE.MeshStandardMaterial({
         roughness: 0.82,
         metalness: 0.05,
         vertexColors: true,
-      }),
-    []
+        map: seatTextures?.sofaDiff || null,
+        normalMap: seatTextures?.sofaNorm || null,
+      });
+      if (seatTextures?.sofaNorm) {
+        mat.normalScale.set(1.0, 1.0);
+      }
+      return mat;
+    },
+    [seatTextures]
   );
 
   // Instanced Meshes for ultra-low draw calls
@@ -231,9 +297,9 @@ export function ProceduralAuditorium({
         color: new THREE.Color(look.wallColor),
         roughness: 0.90,
         metalness: 0.02,
-        side: THREE.DoubleSide,
+        side: isOverview ? THREE.BackSide : THREE.DoubleSide,
       }),
-    [look.wallColor]
+    [look.wallColor, isOverview]
   );
 
   const acousticPanelMaterial = useMemo(
@@ -242,9 +308,9 @@ export function ProceduralAuditorium({
         color: new THREE.Color(look.acousticPanelColor),
         roughness: 0.82,
         metalness: 0.04,
-        side: THREE.DoubleSide,
+        side: isOverview ? THREE.BackSide : THREE.DoubleSide,
       }),
-    [look.acousticPanelColor]
+    [look.acousticPanelColor, isOverview]
   );
 
   const panelTrimMaterial = useMemo(
@@ -263,9 +329,9 @@ export function ProceduralAuditorium({
         color: new THREE.Color(look.ceilingColor),
         roughness: 0.95,
         metalness: 0.00,
-        side: THREE.DoubleSide,
+        side: isOverview ? THREE.BackSide : THREE.DoubleSide,
       }),
-    [look.ceilingColor]
+    [look.ceilingColor, isOverview]
   );
 
   const screenFrameMaterial = useMemo(
@@ -501,6 +567,70 @@ export function ProceduralAuditorium({
         metalness: 0.50,
       }),
     []
+  );
+
+  const podBaseMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#111318',
+        roughness: 0.55,
+        metalness: 0.65,
+      }),
+    []
+  );
+
+  const podPistonMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#94a3b8',
+        roughness: 0.25,
+        metalness: 0.90,
+      }),
+    []
+  );
+
+  const podGrilleMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#1e293b',
+        roughness: 0.85,
+        metalness: 0.40,
+      }),
+    []
+  );
+
+  const effectPropMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#1e222b',
+        roughness: 0.50,
+        metalness: 0.60,
+      }),
+    []
+  );
+
+  const effectPropLedMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: houseLights === 'show' ? '#06b6d4' : '#0891b2',
+        emissive: new THREE.Color('#06b6d4'),
+        emissiveIntensity: houseLights === 'show' ? 1.8 : 0.45,
+        roughness: 0.3,
+        metalness: 0.2,
+      }),
+    [houseLights]
+  );
+
+  const floorTrimMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#06b6d4',
+        emissive: new THREE.Color('#06b6d4'),
+        emissiveIntensity: houseLights === 'show' ? 1.2 : 0.6,
+        roughness: 0.4,
+        metalness: 0.3,
+      }),
+    [houseLights]
   );
 
   const acousticBaffleMaterial = useMemo(
@@ -976,11 +1106,12 @@ export function ProceduralAuditorium({
         })}
       </group>
 
-      {/* 5. Ceiling */}
+      {/* 5. Ceiling (hidden in Look around / dollhouse cutaway mode) */}
       <mesh
         name="ceiling"
         position={ceilingBox.center}
         material={ceilingMaterial}
+        visible={!isOverview}
       >
         <boxGeometry args={ceilingBox.size} />
       </mesh>
@@ -1067,8 +1198,8 @@ export function ProceduralAuditorium({
         </group>
       )}
 
-      {/* 6d. Suspended Acoustic Ceiling Clouds */}
-      {geometry.ceilingClouds && geometry.ceilingClouds.length > 0 && (
+      {/* 6d. Suspended Acoustic Ceiling Clouds (hidden in Look around / dollhouse cutaway mode) */}
+      {!isOverview && geometry.ceilingClouds && geometry.ceilingClouds.length > 0 && (
         <group name="CeilingCloudsContainer">
           {geometry.ceilingClouds.map((cloud) => {
             const { size, center } = boxHelper(cloud.bounds);
@@ -1258,6 +1389,124 @@ export function ProceduralAuditorium({
         </group>
       )}
 
+      {/* 6m. Motion Pod Platform Bases & Actuator Pistons */}
+      {geometry.motionPodBases && geometry.motionPodBases.length > 0 && (
+        <group name="MotionPodBasesContainer">
+          {geometry.motionPodBases.map((pod) => (
+            <group key={pod.id} name={pod.id}>
+              {/* Pod Platform Base */}
+              <mesh position={pod.center} material={podBaseMaterial} receiveShadow castShadow>
+                <boxGeometry args={pod.size} />
+              </mesh>
+              {/* 4 Pneumatic Actuator Pistons */}
+              {pod.pistons.map((pistPos, pIdx) => (
+                <mesh key={`${pod.id}_piston_${pIdx}`} position={pistPos} material={podPistonMaterial}>
+                  <cylinderGeometry args={[0.045, 0.055, 0.18, 12]} />
+                </mesh>
+              ))}
+              {/* Under-seat Vent Grilles */}
+              {pod.grilles.map((grillePos, gIdx) => (
+                <mesh key={`${pod.id}_grille_${gIdx}`} position={grillePos} material={podGrilleMaterial}>
+                  <boxGeometry args={[0.42, 0.015, 0.28]} />
+                </mesh>
+              ))}
+            </group>
+          ))}
+        </group>
+      )}
+
+      {/* 6n. Environmental Effect Props Rig (Wind, Fog, Water, Strobe, Scent, Poke) */}
+      {geometry.effectProps && geometry.effectProps.length > 0 && (
+        <group name="EffectPropsRigContainer">
+          {geometry.effectProps.map((prop) => {
+            const isWind = prop.type === 'wind';
+            const isFog = prop.type === 'fog';
+            const isWater = prop.type === 'water';
+            const isStrobe = prop.type === 'strobe';
+            const isScent = prop.type === 'scent';
+            const isPoke = prop.type === 'poke';
+
+            return (
+              <group key={prop.id} name={prop.id} position={prop.position}>
+                {/* Wind turbine / fan casing */}
+                {isWind && (
+                  <group>
+                    <mesh material={effectPropMaterial}>
+                      <cylinderGeometry args={[0.55, 0.55, 0.25, 16]} />
+                    </mesh>
+                    <mesh position={[0, -0.13, 0]} material={effectPropLedMaterial}>
+                      <cylinderGeometry args={[0.12, 0.12, 0.02, 12]} />
+                    </mesh>
+                  </group>
+                )}
+                {/* Fog / smoke machine */}
+                {isFog && (
+                  <group>
+                    <mesh material={effectPropMaterial}>
+                      <boxGeometry args={[0.65, 0.55, 0.75]} />
+                    </mesh>
+                    <mesh position={[0, -0.15, 0.38]} rotation={[Math.PI / 2, 0, 0]} material={effectPropLedMaterial}>
+                      <cylinderGeometry args={[0.08, 0.08, 0.04, 12]} />
+                    </mesh>
+                  </group>
+                )}
+                {/* Water mist / rain nozzle */}
+                {isWater && (
+                  <group>
+                    <mesh material={effectPropMaterial}>
+                      <cylinderGeometry args={[0.09, 0.14, 0.18, 10]} />
+                    </mesh>
+                    <mesh position={[0, -0.1, 0]} material={effectPropLedMaterial}>
+                      <sphereGeometry args={[0.045, 8, 8]} />
+                    </mesh>
+                  </group>
+                )}
+                {/* Strobe light bar */}
+                {isStrobe && (
+                  <group>
+                    <mesh material={effectPropMaterial}>
+                      <boxGeometry args={[1.6, 0.14, 0.22]} />
+                    </mesh>
+                    <mesh position={[0, -0.075, 0]} material={effectPropLedMaterial}>
+                      <boxGeometry args={[1.4, 0.03, 0.15]} />
+                    </mesh>
+                  </group>
+                )}
+                {/* Scent unit dispenser */}
+                {isScent && (
+                  <group>
+                    <mesh material={effectPropMaterial}>
+                      <boxGeometry args={[0.45, 0.38, 0.35]} />
+                    </mesh>
+                    <mesh position={[0, -0.12, 0.18]} material={effectPropLedMaterial}>
+                      <boxGeometry args={[0.22, 0.04, 0.02]} />
+                    </mesh>
+                  </group>
+                )}
+                {/* Seat pokers / ticklers */}
+                {isPoke && (
+                  <mesh material={effectPropMaterial} rotation={[Math.PI / 2, 0, 0]}>
+                    <cylinderGeometry args={[0.02, 0.02, 0.25, 8]} />
+                  </mesh>
+                )}
+              </group>
+            );
+          })}
+        </group>
+      )}
+
+      {/* 6o. Front Floor Trim Light */}
+      {geometry.frontFloorTrim && (
+        <group name="FrontFloorTrimContainer">
+          <mesh
+            position={boxHelper(geometry.frontFloorTrim.bounds).center}
+            material={floorTrimMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.frontFloorTrim.bounds).size} />
+          </mesh>
+        </group>
+      )}
+
       {/* 7. Instanced Acoustic Panels, Trims & Sconces (Ultra-low Draw Calls) */}
       {geometry.acousticPanels.length > 0 && (
         <group name="InstancedAcousticPanelsContainer">
@@ -1299,7 +1548,7 @@ export function ProceduralAuditorium({
         />
       )}
 
-      {geometry.ceilingDownlights && geometry.ceilingDownlights.length > 0 && (
+      {!isOverview && geometry.ceilingDownlights && geometry.ceilingDownlights.length > 0 && (
         <instancedMesh
           ref={downlightsMeshRef}
           args={[downlightGeom, downlightMaterial, geometry.ceilingDownlights.length]}

@@ -38,6 +38,8 @@ export function AuditoriumModel() {
   const theatreLook = useCinemaStore((s) => s.theatreLook);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
   const cameraMode = useCinemaStore((s) => s.cameraMode);
+  const mode = useCinemaStore((s) => s.mode);
+  const isOverview = mode === 'overview';
   const activeSeatId = useCinemaStore((s) => s.activeSeatId);
 
   const modelUrl = useHqModel ? HQ_MODEL_PATH : WEB_MODEL_PATH;
@@ -125,24 +127,64 @@ export function AuditoriumModel() {
     [qualityMode]
   );
 
+  // Shared texture loaders for seat families
+  const seatTextures = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const loader = new THREE.TextureLoader();
+
+    const stdDiff = loader.load('/models/seats/textures/atlas_standard_diffuse.png');
+    stdDiff.colorSpace = THREE.SRGBColorSpace;
+    stdDiff.wrapS = THREE.RepeatWrapping;
+    stdDiff.wrapT = THREE.RepeatWrapping;
+
+    const stdNorm = loader.load('/models/seats/textures/atlas_standard_normal.png');
+    stdNorm.wrapS = THREE.RepeatWrapping;
+    stdNorm.wrapT = THREE.RepeatWrapping;
+
+    const recDiff = loader.load('/models/seats/textures/atlas_recliner_diffuse.png');
+    recDiff.colorSpace = THREE.SRGBColorSpace;
+    recDiff.wrapS = THREE.RepeatWrapping;
+    recDiff.wrapT = THREE.RepeatWrapping;
+
+    const recNorm = loader.load('/models/seats/textures/atlas_recliner_normal.png');
+    recNorm.wrapS = THREE.RepeatWrapping;
+    recNorm.wrapT = THREE.RepeatWrapping;
+
+    return { stdDiff, stdNorm, recDiff, recNorm };
+  }, []);
+
   const standardMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
+    () => {
+      const mat = new THREE.MeshStandardMaterial({
         roughness: 0.85,
         metalness: 0.02,
         vertexColors: true, // Multiplies instanceColor by baked AO vertex colors (COLOR_0)
-      }),
-    []
+        map: seatTextures?.stdDiff || null,
+        normalMap: seatTextures?.stdNorm || null,
+      });
+      if (seatTextures?.stdNorm) {
+        mat.normalScale.set(1.2, 1.2);
+      }
+      return mat;
+    },
+    [seatTextures]
   );
 
   const reclinerMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
+    () => {
+      const mat = new THREE.MeshStandardMaterial({
         roughness: 0.50,
         metalness: 0.04,
         vertexColors: true, // Multiplies instanceColor by baked AO vertex colors (COLOR_0)
-      }),
-    []
+        map: seatTextures?.recDiff || null,
+        normalMap: seatTextures?.recNorm || null,
+      });
+      if (seatTextures?.recNorm) {
+        mat.normalScale.set(1.4, 1.4);
+      }
+      return mat;
+    },
+    [seatTextures]
   );
 
   const shadowMeshRef = useRef<THREE.InstancedMesh>(null);
@@ -239,13 +281,13 @@ export function AuditoriumModel() {
       color: new THREE.Color(look.wallColor),
       roughness: 0.90,
       metalness: 0.02,
-      side: THREE.DoubleSide,
+      side: isOverview ? THREE.BackSide : THREE.DoubleSide,
     });
     const acousticPanelMaterial = new THREE.MeshStandardMaterial({
       color: new THREE.Color(look.acousticPanelColor),
       roughness: 0.82,
       metalness: 0.04,
-      side: THREE.DoubleSide,
+      side: isOverview ? THREE.BackSide : THREE.DoubleSide,
     });
     const panelTrimMaterial = new THREE.MeshStandardMaterial({
       color: new THREE.Color(look.panelTrimColor),
@@ -349,6 +391,7 @@ export function AuditoriumModel() {
       } else if (name.startsWith('panel_trim_')) {
         obj.material = panelTrimMaterial;
       } else if (name === 'ceiling') {
+        obj.visible = !isOverview;
         obj.material = ceilingMaterial;
       } else if (name === 'screen_outer_frame') {
         obj.material = screenFrameMaterial;
