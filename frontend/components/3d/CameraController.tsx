@@ -9,7 +9,6 @@ import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import layoutData from '@/public/models/seat_layout_v2.json';
 import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
 import { WalkController } from './WalkController';
-import { DroneController } from './DroneController';
 
 // Safe boundary box inside auditorium interior to prevent clipping through geometry
 export const AUDITORIUM_BOUNDS = {
@@ -385,58 +384,40 @@ export function CameraController() {
       persCam.quaternion.premultiply(yawQuat);
       persCam.quaternion.multiply(pitchQuat);
     } else if (isOverview) {
-      const curBounds = cameraBounds || AUDITORIUM_BOUNDS;
       const curTarget = targetBounds || TARGET_BOUNDS;
 
       if (controlsRef.current) {
-        // Clamp orbit target to interior
+        // Clamp orbit target to interior hall center
         const tgt = controlsRef.current.target;
         tgt.x = THREE.MathUtils.clamp(tgt.x, curTarget.minX, curTarget.maxX);
         tgt.y = THREE.MathUtils.clamp(tgt.y, curTarget.minY, curTarget.maxY);
         tgt.z = THREE.MathUtils.clamp(tgt.z, curTarget.minZ, curTarget.maxZ);
       }
-
-      const pos = persCam.position;
-      let hitEdge = false;
-
-      // Soft spring & wall gliding when pushing past bounds
-      if (pos.x < curBounds.minX) {
-        pos.x = THREE.MathUtils.lerp(pos.x, curBounds.minX, 0.35);
-        hitEdge = true;
-      } else if (pos.x > curBounds.maxX) {
-        pos.x = THREE.MathUtils.lerp(pos.x, curBounds.maxX, 0.35);
-        hitEdge = true;
-      }
-
-      if (pos.y < curBounds.minY) {
-        pos.y = THREE.MathUtils.lerp(pos.y, curBounds.minY, 0.35);
-        hitEdge = true;
-      } else if (pos.y > curBounds.maxY) {
-        pos.y = THREE.MathUtils.lerp(pos.y, curBounds.maxY, 0.35);
-        hitEdge = true;
-      }
-
-      if (pos.z < curBounds.minZ) {
-        pos.z = THREE.MathUtils.lerp(pos.z, curBounds.minZ, 0.35);
-        hitEdge = true;
-      } else if (pos.z > curBounds.maxZ) {
-        pos.z = THREE.MathUtils.lerp(pos.z, curBounds.maxZ, 0.35);
-        hitEdge = true;
-      }
-
-      // Hard clamp as invariant backstop
-      clampToAuditorium(pos);
-
-      if (hitEdge) {
-        useCinemaStore.getState().triggerBoundaryNotice();
-      }
+      // Note: In Look around / Overview mode, camera position is NOT clamped to room boundaries.
+      // Free 360-degree orbit around the target with zoom bounded between 3.5m and 1.6x hall radius.
+      // Outside walls and ceiling use BackSide or fade to maintain full visibility of seats.
     }
   });
 
   return (
     <>
       {isWalk && <WalkController />}
-      {isOverview && <DroneController />}
+      {isOverview && (
+        <OrbitControls
+          ref={controlsRef}
+          makeDefault
+          enableDamping
+          dampingFactor={0.08}
+          rotateSpeed={0.8}
+          panSpeed={0.8}
+          zoomSpeed={0.9}
+          minDistance={3.5}
+          maxDistance={42.0}
+          maxPolarAngle={Math.PI / 2.05}
+          minPolarAngle={0.05}
+          target={cameraTarget ? new THREE.Vector3(...cameraTarget) : new THREE.Vector3(0, 2.5, -12)}
+        />
+      )}
     </>
   );
 }
