@@ -61,21 +61,21 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
           preserveDrawingBuffer: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 0.98,
+          toneMappingExposure: houseLights === 'show' ? 0.98 : 2.35,
         }}
         dpr={qualityMode === 'smooth' ? 1.0 : [1, 1.5]}
         frameloop="always" // Dynamically managed by AdaptiveFrameloopController
         onCreated={({ gl, scene }) => {
-          gl.setClearColor(houseLights === 'show' ? '#07080a' : '#14171d', 1.0);
-          scene.background = new THREE.Color(houseLights === 'show' ? '#07080a' : '#14171d');
+          gl.setClearColor(houseLights === 'show' ? '#07080a' : '#222630', 1.0);
+          scene.background = new THREE.Color(houseLights === 'show' ? '#07080a' : '#222630');
         }}
       >
         <fog
           attach="fog"
           args={[
-            houseLights === 'show' ? '#07080a' : '#14171d',
-            houseLights === 'show' ? 25 : 100,
-            houseLights === 'show' ? 90 : 300,
+            houseLights === 'show' ? '#07080a' : '#222630',
+            houseLights === 'show' ? 25 : 150,
+            houseLights === 'show' ? 90 : 400,
           ]}
         />
         <Suspense fallback={null}>
@@ -228,6 +228,7 @@ function DevBridge() {
 
         let totalLuminance = 0;
         let nearBlackCount = 0;
+        let above15Count = 0;
         let highlightCount = 0;
         const step = 4;
         let sampled = 0;
@@ -235,16 +236,22 @@ function DevBridge() {
           const r = pixels[i];
           const g = pixels[i + 1];
           const b = pixels[i + 2];
-          const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-          totalLuminance += lum;
-          if (lum < 12) nearBlackCount++;
-          if (lum > 245) highlightCount++;
+          // Normalized luminance (0.0 to 1.0)
+          const normLum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0;
+          totalLuminance += normLum;
+          if (normLum < 0.02) nearBlackCount++;
+          if (normLum > 0.15) above15Count++;
+          if (normLum > 0.96) highlightCount++;
           sampled++;
         }
 
+        const meanNorm = sampled > 0 ? totalLuminance / sampled : 0;
+
         return {
-          meanLuminance: Math.round((totalLuminance / sampled) * 10) / 10,
+          meanLuminance: Math.round(meanNorm * 1000) / 1000,
+          meanLuminance255: Math.round(meanNorm * 255 * 10) / 10,
           nearBlackPercent: Math.round((nearBlackCount / sampled) * 1000) / 10,
+          above15Percent: Math.round((above15Count / sampled) * 1000) / 10,
           highlightPercent: Math.round((highlightCount / sampled) * 1000) / 10,
           width,
           height,

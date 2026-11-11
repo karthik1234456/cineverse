@@ -38,14 +38,14 @@ export function TheatreLighting() {
     const isDim = houseLights === 'dim';
     const isBrighter = lightIntensity === 'brighter';
 
-    // Target intensities calibrated to achieve 65-95 mean luminance in Lights On
-    const targetAmbient = isShow ? 0.22 : isDim ? 0.65 : isBrighter ? 2.40 : 1.85;
-    const targetHemi = isShow ? 0.30 : isDim ? 0.85 : isBrighter ? 2.85 : 2.20;
+    // Target intensities calibrated to achieve 0.35 - 0.55 normalized luminance in Lights On
+    const targetAmbient = isShow ? 0.22 : isDim ? 0.75 : isBrighter ? 6.20 : 5.00;
+    const targetHemi = isShow ? 0.30 : isDim ? 0.95 : isBrighter ? 6.80 : 5.60;
     const targetScreenSpill = isShow ? 2.80 : isDim ? 1.60 : 0.40;
-    const targetCeiling = isShow ? 0.05 : isDim ? 0.60 : isBrighter ? 3.40 : 2.60;
-    const targetWallWash = isShow ? 0.10 : isDim ? 0.55 : isBrighter ? 2.20 : 1.65;
-    const targetRearFill = isShow ? 0.12 : isDim ? 0.50 : isBrighter ? 2.20 : 1.65;
-    const targetStepLight = isShow ? 0.40 : isDim ? 0.65 : isBrighter ? 1.40 : 1.05;
+    const targetCeiling = isShow ? 0.05 : isDim ? 0.70 : isBrighter ? 8.50 : 6.80;
+    const targetWallWash = isShow ? 0.10 : isDim ? 0.65 : isBrighter ? 6.20 : 5.00;
+    const targetRearFill = isShow ? 0.12 : isDim ? 0.60 : isBrighter ? 5.80 : 4.60;
+    const targetStepLight = isShow ? 0.40 : isDim ? 0.75 : isBrighter ? 3.40 : 2.60;
 
     const curAmbient = ambientRef.current?.intensity ?? targetAmbient;
     const needsTransition = Math.abs(curAmbient - targetAmbient) > 0.005;
@@ -153,7 +153,7 @@ export function TheatreLighting() {
       <directionalLight
         position={[0, topY + 8.0, midZ]}
         color="#fff6ed"
-        intensity={houseLights === 'show' ? 0.05 : lightIntensity === 'brighter' ? 1.60 : 1.15}
+        intensity={houseLights === 'show' ? 0.05 : lightIntensity === 'brighter' ? 3.20 : 2.50}
         castShadow={false}
       />
 

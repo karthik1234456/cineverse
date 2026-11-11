@@ -85,6 +85,12 @@ export function ViewModeToggle() {
     Boolean(auditoriumLayout?.has_balcony) ||
     Boolean(proceduralResult?.geometry?.balconyStructure) ||
     Boolean(auditoriumLayout?.seats?.some((s) => s.level === 'balcony'));
+  const isMotionHall =
+    Boolean(auditoriumLayout?.is_motion_hall) ||
+    Boolean(auditoriumLayout?.features?.motion_seats) ||
+    Boolean(auditoriumLayout?.theatre_type === 'dolby_atmos_4dx') ||
+    Boolean(auditoriumLayout?.theatre_type_label?.toLowerCase().includes('motion')) ||
+    Boolean(proceduralResult?.geometry?.motionPodBases && proceduralResult.geometry.motionPodBases.length > 0);
 
   // UI state
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
@@ -204,6 +210,12 @@ export function ViewModeToggle() {
     } else if (preset === 'picker') {
       setCameraPose([0.0, 12.0, -21.0], [0.0, 3.5, -8.0]);
       setCameraPreset('picker');
+    } else if (preset === 'effects_rig') {
+      setCameraPose([0.0, 8.5, -12.0], [0.0, 9.5, -18.0]);
+      setCameraPreset('effects_rig');
+    } else if (preset === 'wrap_screen') {
+      setCameraPose([0.0, 3.2, -6.5], [0.0, 5.5, -1.255]);
+      setCameraPreset('wrap_screen');
     } else {
       setCameraPreset(preset);
     }
@@ -215,22 +227,23 @@ export function ViewModeToggle() {
       <div className="pointer-events-none fixed top-16 left-1/2 z-30 -translate-x-1/2 flex flex-col items-center gap-2 max-w-full px-2">
         {/* Primary Unified Control Bar */}
         <div className="pointer-events-auto flex items-center gap-1 sm:gap-1.5 rounded-full border border-[#E6DCD2] bg-white/95 p-1.5 shadow-2xl backdrop-blur-md text-[#1B1320]">
-          {/* 1. Drone View */}
+          {/* 1. Look around View (Dollhouse Cutaway) */}
           <button
             onClick={() => {
               setTourActive(false);
               setMode('overview');
             }}
-            data-testid="mode-drone-btn"
+            data-testid="mode-look-around-btn"
+            data-legacy-testid="mode-drone-btn"
             className={`flex min-h-[40px] items-center gap-1.5 rounded-full px-3 sm:px-4 py-1.5 text-xs sm:text-sm font-bold transition-all ${
               currentMode === 'overview' && !tourActive
                 ? 'bg-[#C8102E] text-white shadow'
                 : 'text-slate-700 hover:bg-slate-100 hover:text-[#1B1320]'
             }`}
-            title="Drone view: Free orbital camera"
+            title="Look around view: Orbital dollhouse perspective"
           >
             <Compass className="h-4 w-4" />
-            <span>Drone</span>
+            <span>Look around</span>
           </button>
 
           {/* 2. Walk View */}
@@ -312,6 +325,26 @@ export function ViewModeToggle() {
                     <span>Balcony View</span>
                     <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-1 rounded">Tier</span>
                   </button>
+                )}
+                {isMotionHall && (
+                  <>
+                    <button
+                      onClick={() => handleSelectPreset('effects_rig')}
+                      data-testid="preset-effects-rig-btn"
+                      className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left"
+                    >
+                      <span>Effects Rig</span>
+                      <span className="text-[10px] text-cyan-600 font-bold bg-cyan-50 px-1 rounded">4DX</span>
+                    </button>
+                    <button
+                      onClick={() => handleSelectPreset('wrap_screen')}
+                      data-testid="preset-wrap-screen-btn"
+                      className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left"
+                    >
+                      <span>Wrap Screen</span>
+                      <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-1 rounded">3-Panel</span>
+                    </button>
+                  </>
                 )}
                 <button
                   onClick={() => handleSelectPreset('top')}
@@ -535,7 +568,7 @@ export function ViewModeToggle() {
               <div className="rounded-xl bg-slate-50 p-3 border border-slate-200">
                 <div className="font-bold text-slate-900 flex items-center gap-2 mb-1">
                   <Compass className="h-4 w-4 text-[#C8102E]" />
-                  <span>Drone Camera</span>
+                  <span>Look around Camera</span>
                 </div>
                 <p className="text-xs text-slate-600">
                   Left click & drag to rotate. Right click & drag to pan. Scroll mouse wheel to zoom in and out.
