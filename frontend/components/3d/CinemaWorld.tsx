@@ -61,7 +61,7 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
           preserveDrawingBuffer: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: houseLights === 'show' ? 0.98 : 2.35,
+          toneMappingExposure: houseLights === 'show' ? 0.98 : 3.20,
         }}
         dpr={qualityMode === 'smooth' ? 1.0 : [1, 1.5]}
         frameloop="always" // Dynamically managed by AdaptiveFrameloopController
@@ -230,6 +230,7 @@ function DevBridge() {
         let nearBlackCount = 0;
         let above15Count = 0;
         let highlightCount = 0;
+        let redDominantCount = 0;
         const step = 4;
         let sampled = 0;
         for (let i = 0; i < pixels.length; i += 4 * step) {
@@ -242,6 +243,7 @@ function DevBridge() {
           if (normLum < 0.02) nearBlackCount++;
           if (normLum > 0.15) above15Count++;
           if (normLum > 0.96) highlightCount++;
+          if (r > g * 1.25 && r > b * 1.25 && r > 40) redDominantCount++;
           sampled++;
         }
 
@@ -253,6 +255,7 @@ function DevBridge() {
           nearBlackPercent: Math.round((nearBlackCount / sampled) * 1000) / 10,
           above15Percent: Math.round((above15Count / sampled) * 1000) / 10,
           highlightPercent: Math.round((highlightCount / sampled) * 1000) / 10,
+          redDominantPercent: Math.round((redDominantCount / sampled) * 1000) / 10,
           width,
           height,
         };

@@ -33,7 +33,38 @@ export type ArrangementPattern =
   | 'curved_flagship'   // Curved stadium rows with sweet-spot block and wide screen arc
   | 'luxury_pairs'      // Loveseat pairs with center cocktail tables
   | 'boutique_salon'    // Plush velvet sofas with wide social spacing
-  | 'balcony_two_tier'; // Stalls level + elevated Balcony tier
+  | 'balcony_two_tier'  // Stalls level + elevated Balcony tier
+  | 'motion_pods';      // Motion-seat pods of 2 or 4 on actuator platform bases
+
+export type ScreenGeometryType =
+  | 'standard_flat'
+  | 'large_curved'
+  | 'premium_direct_view'
+  | 'boutique_small_flat'
+  | 'panoramic_wrap';
+
+export interface ScreenTypeDefinition {
+  type: ScreenGeometryType;
+  name: string;
+  brandName?: string;
+  aspectRatio: number;
+  isCurved: boolean;
+  curveRadiusM?: number;
+  hasProjectorBeam: boolean;
+  finish: 'matte_white' | 'glossy_led';
+  bezel: {
+    width: number;
+    color: string;
+    hasFrame: boolean;
+    thinBlack?: boolean;
+    clearFrame?: boolean;
+  };
+  wrapPanels?: {
+    sideAngleDeg: number;
+    sideWidthRatio: number;
+    sideHeightRatio: number;
+  };
+}
 
 export interface CeilingDesign {
   structure: 'coffered_grid' | 'steel_trusses' | 'industrial_rig' | 'coffered_walnut' | 'floating_clouds' | 'deep_coffers_balcony';
@@ -63,11 +94,14 @@ export interface TheatreTypeDefinition {
   id: TheatreTypeId;
   name: string;
   label: string;
+  licensedName?: string;
+  licensedLabel?: string;
   targetSeats: [number, number]; // [min, max]
   typicalSeats: number;
   arrangementPattern: ArrangementPattern;
   ceilingDesign: CeilingDesign;
   palette: TheatrePalette;
+  screenType: ScreenTypeDefinition;
   realWorldDimensions: {
     seatWidthM: number;
     rowPitchM: number;
@@ -89,6 +123,8 @@ export interface TheatreTypeDefinition {
   features: {
     is_4dx?: boolean;
     dolby_atmos?: boolean;
+    motion_seats?: boolean;
+    panoramic_wrap?: boolean;
     has_balcony?: boolean;
     curved_screen?: boolean;
     sweet_spot?: boolean;
@@ -115,18 +151,27 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       hasEffectRigs: false,
     },
     palette: {
-      fabricPrimary: '#881337',
-      fabricSecondary: '#9f1239',
-      wallColor: '#2b121a',
-      panelColor: '#3f1d26',
-      slatColor: '#2e1c14',
-      ceilingColor: '#14171d',
+      fabricPrimary: '#6b1828',
+      fabricSecondary: '#7a1b2e',
+      wallColor: '#2a2c33',
+      panelColor: '#363942',
+      slatColor: '#25272e',
+      ceilingColor: '#141518',
       coveColor: '#ffe4a0',
       skirtingColor: '#ffb74d',
-      carpetColor: '#22161b',
-      runnerColor: '#4a111a',
+      carpetColor: '#1e2025',
+      runnerColor: '#2b2e36',
       trimColor: '#d4af37',
-      boothColor: '#1c1519',
+      boothColor: '#181a1f',
+    },
+    screenType: {
+      type: 'standard_flat',
+      name: 'Standard flat screen',
+      aspectRatio: 2.15,
+      isCurved: false,
+      hasProjectorBeam: true,
+      finish: 'matte_white',
+      bezel: { width: 0.25, color: '#111115', hasFrame: true },
     },
     realWorldDimensions: {
       seatWidthM: 0.55,
@@ -168,18 +213,27 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       hasEffectRigs: false,
     },
     palette: {
-      fabricPrimary: '#881337',
-      fabricSecondary: '#9f1239',
-      wallColor: '#2b121a',
-      panelColor: '#3f1d26',
-      slatColor: '#2e1c14',
-      ceilingColor: '#14171d',
+      fabricPrimary: '#6b1828',
+      fabricSecondary: '#7a1b2e',
+      wallColor: '#2a2c33',
+      panelColor: '#363942',
+      slatColor: '#25272e',
+      ceilingColor: '#141518',
       coveColor: '#ffe4a0',
       skirtingColor: '#ffb74d',
-      carpetColor: '#22161b',
-      runnerColor: '#4a111a',
+      carpetColor: '#1e2025',
+      runnerColor: '#2b2e36',
       trimColor: '#d4af37',
-      boothColor: '#1c1519',
+      boothColor: '#181a1f',
+    },
+    screenType: {
+      type: 'standard_flat',
+      name: 'Standard flat screen',
+      aspectRatio: 2.16,
+      isCurved: false,
+      hasProjectorBeam: true,
+      finish: 'matte_white',
+      bezel: { width: 0.30, color: '#111115', hasFrame: true },
     },
     realWorldDimensions: {
       seatWidthM: 0.55,
@@ -233,6 +287,16 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       runnerColor: '#3730a3',
       trimColor: '#a5b4fc',
       boothColor: '#13121f',
+    },
+    screenType: {
+      type: 'large_curved',
+      name: 'Large curved screen',
+      aspectRatio: 2.15,
+      isCurved: true,
+      curveRadiusM: 32.0,
+      hasProjectorBeam: true,
+      finish: 'matte_white',
+      bezel: { width: 0.20, color: '#090a0f', hasFrame: true },
     },
     realWorldDimensions: {
       seatWidthM: 0.56,
@@ -288,6 +352,17 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       trimColor: '#94a3b8',
       boothColor: '#0f172a',
     },
+    screenType: {
+      type: 'large_curved',
+      name: 'Large curved screen',
+      brandName: 'IMAX',
+      aspectRatio: 1.85,
+      isCurved: true,
+      curveRadiusM: 28.0,
+      hasProjectorBeam: true,
+      finish: 'matte_white',
+      bezel: { width: 0.15, color: '#05070a', hasFrame: true },
+    },
     realWorldDimensions: {
       seatWidthM: 0.58,
       rowPitchM: 1.10,
@@ -316,11 +391,13 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
 
   dolby_atmos_4dx: {
     id: 'dolby_atmos_4dx',
-    name: 'Dolby Atmos & 4DX Experience',
-    label: '4DX Motion Theatre',
+    name: 'Motion-seat Hall',
+    label: 'Motion-seat Experience',
+    licensedName: 'Dolby Atmos & 4DX Experience',
+    licensedLabel: '4DX Motion Theatre',
     targetSeats: [160, 300],
     typicalSeats: 240,
-    arrangementPattern: 'triple_block',
+    arrangementPattern: 'motion_pods',
     ceilingDesign: {
       structure: 'industrial_rig',
       cloudsCount: 8,
@@ -337,36 +414,52 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       slatColor: '#282e36',
       ceilingColor: '#0e1013',
       coveColor: '#06b6d4',
-      skirtingColor: '#ef4444',
+      skirtingColor: '#0284c7',
       carpetColor: '#15171b',
       runnerColor: '#083344',
       trimColor: '#38bdf8',
       boothColor: '#12151a',
     },
+    screenType: {
+      type: 'panoramic_wrap',
+      name: 'Panoramic wrap screen',
+      brandName: 'ScreenX',
+      aspectRatio: 1.90,
+      isCurved: false,
+      hasProjectorBeam: true,
+      finish: 'matte_white',
+      bezel: { width: 0.25, color: '#0a0d14', hasFrame: true, clearFrame: true },
+      wrapPanels: {
+        sideAngleDeg: 25.0,
+        sideWidthRatio: 0.42,
+        sideHeightRatio: 0.82,
+      },
+    },
     realWorldDimensions: {
       seatWidthM: 0.56,
-      rowPitchM: 1.10,
-      rakeStepM: 0.18,
+      rowPitchM: 1.25,
+      rakeStepM: 0.24,
       aisleWidthM: 1.25,
       ceilingHeightM: 11.5,
-      screenWidthM: 17.5,
-      screenHeightM: 8.2,
+      screenWidthM: 18.0,
+      screenHeightM: 9.5,
     },
     sceneDimensions: {
-      seatPitch: 0.56 * METERS_TO_SCENE,
-      rowPitch: 1.10 * METERS_TO_SCENE,
-      tierRise: 0.18 * METERS_TO_SCENE,
-      aisleGap: 1.25 * METERS_TO_SCENE,
+      seatPitch: 0.56 * METERS_TO_SCENE, // 1.12
+      rowPitch: 1.25 * METERS_TO_SCENE,  // 2.50
+      tierRise: 0.24 * METERS_TO_SCENE,  // 0.48
+      aisleGap: 1.25 * METERS_TO_SCENE,  // 2.50
       ceilingHeight: 11.5 * METERS_TO_SCENE,
-      screenWidth: 17.5 * METERS_TO_SCENE,
-      screenHeight: 8.2 * METERS_TO_SCENE,
+      screenWidth: 18.0 * METERS_TO_SCENE,
+      screenHeight: 9.5 * METERS_TO_SCENE,
     },
     features: {
       is_4dx: true,
       dolby_atmos: true,
-      curved_screen: false,
+      motion_seats: true,
+      panoramic_wrap: true,
     },
-    description: 'Sensory motion-seat theatre with atmospheric effects and Dolby Atmos sound.',
+    description: 'Sensory motion-seat theatre with synchronized motion pods, panoramic wrap screen, and atmospheric effect rig.',
   },
 
   luxury_recliner: {
@@ -397,6 +490,15 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       runnerColor: '#451a03',
       trimColor: '#d97706',
       boothColor: '#261812',
+    },
+    screenType: {
+      type: 'premium_direct_view',
+      name: 'Premium direct-view screen',
+      aspectRatio: 2.15,
+      isCurved: false,
+      hasProjectorBeam: false,
+      finish: 'glossy_led',
+      bezel: { width: 0.08, color: '#050505', thinBlack: true, hasFrame: true },
     },
     realWorldDimensions: {
       seatWidthM: 0.95, // 0.9 to 1.0 m wide seats
@@ -452,6 +554,15 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       trimColor: '#fbbf24',
       boothColor: '#262021',
     },
+    screenType: {
+      type: 'boutique_small_flat',
+      name: 'Boutique small flat screen',
+      aspectRatio: 2.14,
+      isCurved: false,
+      hasProjectorBeam: true,
+      finish: 'matte_white',
+      bezel: { width: 0.35, color: '#2a1a12', hasFrame: true },
+    },
     realWorldDimensions: {
       seatWidthM: 0.90,
       rowPitchM: 1.35,
@@ -506,6 +617,16 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       trimColor: '#eab308',
       boothColor: '#240c12',
     },
+    screenType: {
+      type: 'large_curved',
+      name: 'Large curved screen',
+      aspectRatio: 2.14,
+      isCurved: true,
+      curveRadiusM: 36.0,
+      hasProjectorBeam: true,
+      finish: 'matte_white',
+      bezel: { width: 0.25, color: '#15101a', hasFrame: true },
+    },
     realWorldDimensions: {
       seatWidthM: 0.55,
       rowPitchM: 1.05,
@@ -554,7 +675,7 @@ export function getTheatreTypeDefinition(
   if (norm.includes('flagship') || (norm.includes('imax') && totalSeats && totalSeats >= 420)) {
     return THEATRE_TYPE_REGISTRY.flagship;
   }
-  if (norm.includes('4dx') || norm.includes('atmos')) {
+  if (norm.includes('4dx') || norm.includes('atmos') || norm.includes('motion')) {
     return THEATRE_TYPE_REGISTRY.dolby_atmos_4dx;
   }
   if (norm.includes('recliner') || norm.includes('gold') || norm.includes('luxe')) {

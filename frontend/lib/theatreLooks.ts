@@ -28,27 +28,27 @@ export interface TheatreLookPalette {
 }
 
 export const THEATRE_LOOKS: Record<TheatreLookId, TheatreLookPalette> = {
-  // Look A: Royal Burgundy and Gold (Default)
+  // Look A: Modern Architectural Charcoal & Burgundy Accent (Balanced, elegant)
   a: {
     id: 'a',
-    name: 'Royal Burgundy & Gold',
-    subtitle: 'Velvet burgundy seats, warm cream walls & gold trim',
-    floorColor: '#25151c',
-    tierColor: '#2b1b22',
-    treadColor: '#34212a',
-    wallColor: '#5c2230',
-    acousticPanelColor: '#7a1f33',
+    name: 'Modern Charcoal & Burgundy',
+    subtitle: 'Charcoal walls, deep burgundy seats & warm brass trim',
+    floorColor: '#1e2025',
+    tierColor: '#25272e',
+    treadColor: '#2b2e36',
+    wallColor: '#2a2c33',
+    acousticPanelColor: '#363942',
     panelTrimColor: '#d4af37',
-    ceilingColor: '#1d1419',
-    screenFrameColor: '#120d10',
-    stageLipColor: '#2e1823',
+    ceilingColor: '#141518',
+    screenFrameColor: '#0a0a0c',
+    stageLipColor: '#25272e',
     railColor: '#d4af37', // Satin Brass
     sconceGlowColor: '#fef08a', // Warm Gold 2800K
     stepLightColor: '#fbbf24', // Amber/gold aisle
     seats: {
-      premier: '#9f1239', // Ruby Burgundy
-      prime: '#881337', // Deep Rose
-      front: '#7c2d12', // Warm Cognac Amber
+      premier: '#7a1b2e', // Deep Burgundy Accent
+      prime: '#6b1828', // Rich Wine
+      front: '#3f434e', // Charcoal/Slate
       selected: '#dc2626', // Vivid Crimson Highlight
       held: '#b45309', // Warm Amber
       booked: '#374151', // Neutral Slate
@@ -56,20 +56,20 @@ export const THEATRE_LOOKS: Record<TheatreLookId, TheatreLookPalette> = {
     },
   },
 
-  // Look B: Warm Walnut and Cream
+  // Look B: Warm Grey, Walnut & Cream (Welcoming natural acoustic look)
   b: {
     id: 'b',
-    name: 'Warm Walnut & Cream',
-    subtitle: 'Walnut panelling, cream fabric panels & rust-red seats',
-    floorColor: '#2c1e19',
-    tierColor: '#36251e',
-    treadColor: '#422e25',
-    wallColor: '#4d3326',
-    acousticPanelColor: '#d6c8b4', // Cream fabric
+    name: 'Warm Grey & Cream',
+    subtitle: 'Warm grey panelling, cream fabric panels & terracotta seats',
+    floorColor: '#222326',
+    tierColor: '#2b2c30',
+    treadColor: '#35363b',
+    wallColor: '#3a3836',
+    acousticPanelColor: '#e8e2d8', // Cream fabric
     panelTrimColor: '#8c5e3c', // Warm Walnut
-    ceilingColor: '#1f1612',
-    screenFrameColor: '#140f0c',
-    stageLipColor: '#38251e',
+    ceilingColor: '#18181a',
+    screenFrameColor: '#0e0e10',
+    stageLipColor: '#2b2c30',
     railColor: '#b48a60', // Antique Bronze
     sconceGlowColor: '#fed7aa', // Warm Amber
     stepLightColor: '#f97316', // Warm Orange
@@ -84,20 +84,20 @@ export const THEATRE_LOOKS: Record<TheatreLookId, TheatreLookPalette> = {
     },
   },
 
-  // Look C: Midnight Indigo and Teal
+  // Look C: Midnight Navy & Deep Teal (High-contrast flagship aesthetic)
   c: {
     id: 'c',
-    name: 'Midnight Indigo & Teal',
-    subtitle: 'Indigo walls, vibrant teal accents & deep blue seats',
-    floorColor: '#151b28',
-    tierColor: '#1b2234',
-    treadColor: '#222b40',
-    wallColor: '#1e293b',
+    name: 'Midnight Navy & Teal',
+    subtitle: 'Deep navy carpet, charcoal walls & deep blue/teal seats',
+    floorColor: '#181f2c',
+    tierColor: '#1e2638',
+    treadColor: '#263045',
+    wallColor: '#222733',
     acousticPanelColor: '#0f766e', // Vibrant Teal
     panelTrimColor: '#94a3b8', // Silver Trim
-    ceilingColor: '#0f172a',
-    screenFrameColor: '#0b1120',
-    stageLipColor: '#1e293b',
+    ceilingColor: '#0f131a',
+    screenFrameColor: '#090c10',
+    stageLipColor: '#1e2638',
     railColor: '#cbd5e1', // Brushed Steel
     sconceGlowColor: '#bae6fd', // Cool Cyan/Ice
     stepLightColor: '#38bdf8', // Sky Blue
@@ -118,4 +118,3 @@ export function getActiveLook(lookParam?: string | null): TheatreLookPalette {
   if (lookParam === 'c') return THEATRE_LOOKS.c;
   return THEATRE_LOOKS.a;
 }
-

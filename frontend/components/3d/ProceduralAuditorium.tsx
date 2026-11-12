@@ -274,47 +274,47 @@ export function ProceduralAuditorium({
   const tierMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(look.tierColor),
+        color: new THREE.Color(theatreDef.palette?.wallColor ? '#25272e' : look.tierColor),
         roughness: 0.85,
         metalness: 0.02,
       }),
-    [look.tierColor]
+    [theatreDef.palette, look.tierColor]
   );
 
   const treadMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(look.treadColor),
+        color: new THREE.Color(theatreDef.palette?.runnerColor || look.treadColor),
         roughness: 0.70,
         metalness: 0.08,
       }),
-    [look.treadColor]
+    [theatreDef.palette, look.treadColor]
   );
 
   const wallMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(look.wallColor),
+        color: new THREE.Color(theatreDef.palette?.wallColor || look.wallColor),
         roughness: 0.90,
         metalness: 0.02,
         transparent: true,
         opacity: 1.0,
         side: isOverview ? THREE.BackSide : THREE.DoubleSide,
       }),
-    [look.wallColor, isOverview]
+    [theatreDef.palette, look.wallColor, isOverview]
   );
 
   const acousticPanelMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(look.acousticPanelColor),
+        color: new THREE.Color(theatreDef.palette?.panelColor || look.acousticPanelColor),
         roughness: 0.82,
         metalness: 0.04,
         transparent: true,
         opacity: 1.0,
         side: isOverview ? THREE.BackSide : THREE.DoubleSide,
       }),
-    [look.acousticPanelColor, isOverview]
+    [theatreDef.palette, look.acousticPanelColor, isOverview]
   );
 
   const panelTrimMaterial = useMemo(
@@ -379,7 +379,7 @@ export function ProceduralAuditorium({
       new THREE.MeshStandardMaterial({
         color: new THREE.Color(look.stepLightColor),
         emissive: new THREE.Color(look.stepLightColor),
-        emissiveIntensity: 1.4,
+        emissiveIntensity: 0.8,
         roughness: 0.30,
         metalness: 0.00,
       }),
@@ -912,14 +912,17 @@ export function ProceduralAuditorium({
             hexColor = '#2e4858'; // Slate Teal Velvet
           } else if (familyType === 'recliner') {
             hexColor = '#38241b'; // Espresso Brown Leather
+          } else if (isMotionHall || theatreDef.id === 'dolby_atmos_4dx') {
+            // Motion hall seats are charcoal/graphite with technical accents
+            hexColor = seat.category === 'premier' ? '#252932' : seat.category === 'front' ? '#1a1c22' : '#1f2229';
           } else {
             const cat = (seat.category || 'prime').toLowerCase();
             hexColor =
               cat === 'premier'
-                ? currentLook.seats.premier
+                ? (theatreDef.palette?.fabricSecondary || currentLook.seats.premier)
                 : cat === 'front'
                 ? currentLook.seats.front
-                : currentLook.seats.prime;
+                : (theatreDef.palette?.fabricPrimary || currentLook.seats.prime);
           }
         }
 

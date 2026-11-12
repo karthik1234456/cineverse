@@ -39,13 +39,13 @@ export function TheatreLighting() {
     const isBrighter = lightIntensity === 'brighter';
 
     // Target intensities calibrated to achieve 0.35 - 0.55 normalized luminance in Lights On
-    const targetAmbient = isShow ? 0.22 : isDim ? 0.75 : isBrighter ? 6.20 : 5.00;
-    const targetHemi = isShow ? 0.30 : isDim ? 0.95 : isBrighter ? 6.80 : 5.60;
-    const targetScreenSpill = isShow ? 2.80 : isDim ? 1.60 : 0.40;
-    const targetCeiling = isShow ? 0.05 : isDim ? 0.70 : isBrighter ? 8.50 : 6.80;
-    const targetWallWash = isShow ? 0.10 : isDim ? 0.65 : isBrighter ? 6.20 : 5.00;
-    const targetRearFill = isShow ? 0.12 : isDim ? 0.60 : isBrighter ? 5.80 : 4.60;
-    const targetStepLight = isShow ? 0.40 : isDim ? 0.75 : isBrighter ? 3.40 : 2.60;
+    const targetAmbient = isShow ? 0.22 : isDim ? 0.75 : isBrighter ? 9.80 : 8.20;
+    const targetHemi = isShow ? 0.30 : isDim ? 0.95 : isBrighter ? 10.50 : 8.80;
+    const targetScreenSpill = isShow ? 2.80 : isDim ? 1.60 : 0.60;
+    const targetCeiling = isShow ? 0.05 : isDim ? 0.70 : isBrighter ? 14.50 : 12.00;
+    const targetWallWash = isShow ? 0.10 : isDim ? 0.65 : isBrighter ? 9.80 : 8.20;
+    const targetRearFill = isShow ? 0.12 : isDim ? 0.60 : isBrighter ? 8.60 : 7.20;
+    const targetStepLight = isShow ? 0.40 : isDim ? 0.75 : isBrighter ? 4.80 : 3.80;
 
     const curAmbient = ambientRef.current?.intensity ?? targetAmbient;
     const needsTransition = Math.abs(curAmbient - targetAmbient) > 0.005;
