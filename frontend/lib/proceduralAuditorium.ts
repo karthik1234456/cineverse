@@ -1570,16 +1570,18 @@ export function generateProceduralAuditorium(
   };
 
   const primaryAisleX = aisleCenters.length > 0 ? aisleCenters[0] : 0.0;
+  // Define all player parameters in metres and convert with hall's unit scale (§ Part C)
+  const playerScale = isLegacyMode ? 1.0 : METERS_TO_SCENE;
   const playerConfig: PlayerConfig = {
-    radius: 0.3,
-    standing_eye_height: 3.77,
-    crouch_eye_height: 2.5,
-    seated_eye_height: 1.9,
-    max_step_up: 0.3,
-    max_step_down: 0.4,
-    walk_speed: 3.0,
+    radius: Math.round(0.25 * playerScale * 100) / 100,
+    standing_eye_height: Math.round(1.6 * playerScale * 100) / 100,
+    crouch_eye_height: Math.round(1.1 * playerScale * 100) / 100,
+    seated_eye_height: Math.round(0.85 * playerScale * 100) / 100,
+    max_step_up: Math.round(0.35 * playerScale * 100) / 100,
+    max_step_down: Math.round(0.40 * playerScale * 100) / 100,
+    walk_speed: 3.2,
     run_speed: 6.0,
-    spawn_position: [primaryAisleX, 0.22, -6.5],
+    spawn_position: [primaryAisleX, 0.05, rowAZ + 1.5],
     spawn_yaw: 0.0, // Facing +Z screenward
     fov: 70.0,
   };

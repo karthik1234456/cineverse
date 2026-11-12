@@ -147,8 +147,20 @@ export function WalkHUD() {
           </div>
 
           <button
+            onClick={() => {
+              const spawnPos = auditoriumWalkNav?.player?.spawn_position || [0.0, 0.05, -6.5];
+              teleportWalkPlayer(spawnPos);
+            }}
+            data-testid="walk-reset-position-btn"
+            className="ml-3 min-h-[40px] rounded-lg border border-red-500/30 bg-red-500/15 px-3 py-1.5 text-sm font-semibold text-rose-200 hover:bg-red-500/30 hover:text-white transition"
+            title="Reset player position to spawn point in aisle"
+          >
+            Reset position
+          </button>
+
+          <button
             onClick={() => setMode('overview')}
-            className="ml-3 min-h-[40px] rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/20"
+            className="ml-2 min-h-[40px] rounded-lg bg-white/10 px-3 py-1.5 text-sm font-semibold text-white hover:bg-white/20"
           >
             Overview (O)
           </button>
