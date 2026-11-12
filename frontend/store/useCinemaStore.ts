@@ -52,14 +52,23 @@ export interface WalkSettings {
   headBob: boolean;
 }
 
+export type TrailerPlaybackStatus = 'loading' | 'playing' | 'paused' | 'blocked' | 'unavailable';
+export type ScreenStrategy = 'video_texture' | 'youtube_css3d' | 'backdrop_motion' | 'title_card' | 'solid_color';
+
 export interface TrailerState {
   isPlaying: boolean;
   isMuted: boolean;
   volume: number;
   trailerUrl: string;
   posterUrl?: string;
+  bannerUrl?: string;
   movieTitle?: string;
   hasSpill: boolean;
+  playbackStatus?: TrailerPlaybackStatus;
+  activeStrategy?: ScreenStrategy;
+  youtubeErrorCode?: number | null;
+  currentTime?: number;
+  duration?: number;
 }
 
 export interface CinemaState {
@@ -199,6 +208,8 @@ export interface CinemaState {
 
   // Trailer controls (§5c)
   setTrailerState: (state: Partial<TrailerState>) => void;
+  setTrailerPlaybackStatus: (status: TrailerPlaybackStatus) => void;
+  setTrailerStrategy: (strategy: ScreenStrategy) => void;
   toggleTrailerPlay: () => void;
   toggleTrailerMute: () => void;
 
@@ -296,6 +307,8 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     volume: 0.75,
     trailerUrl: '',
     hasSpill: true,
+    playbackStatus: 'loading',
+    activeStrategy: 'title_card',
   },
 
   houseLights: 'full',
@@ -738,6 +751,16 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
         ...s.trailer,
         ...state,
       },
+    })),
+
+  setTrailerPlaybackStatus: (status) =>
+    set((s) => ({
+      trailer: { ...s.trailer, playbackStatus: status },
+    })),
+
+  setTrailerStrategy: (strategy) =>
+    set((s) => ({
+      trailer: { ...s.trailer, activeStrategy: strategy },
     })),
 
   toggleTrailerPlay: () =>

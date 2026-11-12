@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Play, Pause, Volume2, VolumeX, Film, ChevronDown, Sparkles, ExternalLink, X, Settings2 } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Film, ChevronDown, Sparkles, ExternalLink, X, AlertCircle, Loader2 } from 'lucide-react';
 import { useCinemaStore } from '@/store/useCinemaStore';
+import { useTrailerStore } from '@/store/useTrailerStore';
 
 export interface MovieClipOption {
   id: string;
@@ -22,14 +23,19 @@ export function ScreenMediaCluster() {
   const setTrailer = useCinemaStore((s) => s.setTrailerState);
   const toggleTrailerPlay = useCinemaStore((s) => s.toggleTrailerPlay);
   const toggleTrailerMute = useCinemaStore((s) => s.toggleTrailerMute);
+  const openTrailer = useTrailerStore((s) => s.openTrailer);
 
   const [isMinimized, setIsMinimized] = useState(false);
   const [showClipMenu, setShowClipMenu] = useState(false);
   const [qualityMode, setQualityMode] = useState<'HD' | 'Auto'>('Auto');
   const [volumeLevel, setVolumeLevel] = useState(80);
 
-  const isYouTubeTrailer = Boolean(trailer.trailerUrl && (trailer.trailerUrl.includes('youtube.com') || trailer.trailerUrl.includes('youtu.be')));
-  const hasVideoSource = Boolean(trailer.trailerUrl);
+  const activeStrategy = trailer.activeStrategy || 'title_card';
+  const playbackStatus = trailer.playbackStatus || 'loading';
+
+  const isVideoTexture = activeStrategy === 'video_texture';
+  const isYouTubeCSS3D = activeStrategy === 'youtube_css3d';
+  const isTitleCard = activeStrategy === 'title_card' || activeStrategy === 'backdrop_motion';
 
   const handleSelectClip = (clip: MovieClipOption) => {
     setShowClipMenu(false);
@@ -37,6 +43,8 @@ export function ScreenMediaCluster() {
       trailerUrl: clip.url,
       isPlaying: true,
       isMuted: trailer.isMuted,
+      activeStrategy: 'video_texture',
+      playbackStatus: 'loading',
     });
   };
 
@@ -50,6 +58,15 @@ export function ScreenMediaCluster() {
         toggleTrailerMute();
       }
     }
+  };
+
+  const handleOpenPopup = () => {
+    openTrailer({
+      movieId: 1,
+      title: trailer.movieTitle || 'Movie Trailer',
+      posterUrl: trailer.posterUrl || '',
+      trailerUrl: trailer.trailerUrl || '',
+    });
   };
 
   if (isMinimized) {
@@ -66,6 +83,47 @@ export function ScreenMediaCluster() {
     );
   }
 
+  // Determine true status indicator
+  const getStatusBadge = () => {
+    if (playbackStatus === 'loading') {
+      return (
+        <span className="flex items-center gap-1 text-[11px] font-semibold text-sky-400">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          <span>Loading...</span>
+        </span>
+      );
+    }
+    if (playbackStatus === 'playing') {
+      return (
+        <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Playing on Screen</span>
+        </span>
+      );
+    }
+    if (playbackStatus === 'paused') {
+      return (
+        <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-400">
+          <span className="h-2 w-2 rounded-full bg-amber-500" />
+          <span>Paused</span>
+        </span>
+      );
+    }
+    if (playbackStatus === 'blocked') {
+      return (
+        <span className="flex items-center gap-1 text-[11px] font-semibold text-rose-400">
+          <AlertCircle className="h-3 w-3 text-rose-400" />
+          <span>Autoplay Blocked</span>
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-400">
+        <span>Title Card Motion</span>
+      </span>
+    );
+  };
+
   return (
     <div
       data-testid="trailer-controls-hud"
@@ -75,20 +133,13 @@ export function ScreenMediaCluster() {
       <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2">
         <div className="flex items-center gap-2 text-xs font-bold text-slate-200 truncate">
           <Film className="h-4 w-4 text-rose-500 shrink-0" />
-          <span className="truncate">{trailer.movieTitle || 'Movie Trailer'}</span>
+          <span className="truncate">{trailer.movieTitle || 'Screen Experience'}</span>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          {/* Quality toggle: HD / Auto */}
-          <button
-            onClick={() => setQualityMode((q) => (q === 'Auto' ? 'HD' : 'Auto'))}
-            data-testid="quality-hd-toggle"
-            className="rounded-lg bg-white/10 px-2 py-0.5 text-[10px] font-black uppercase text-amber-300 hover:bg-white/20 transition"
-            title="Toggle between HD and Auto streaming resolution"
-          >
-            {qualityMode}
-          </button>
+        <div className="flex items-center gap-1.5 shrink-0" data-testid="screen-playback-status-badge">
+          {/* True Status Pill */}
+          {getStatusBadge()}
 
-          {/* Minimize cluster button */}
+          {/* Minimize button */}
           <button
             onClick={() => setIsMinimized(true)}
             data-testid="close-media-cluster-btn"
@@ -102,21 +153,7 @@ export function ScreenMediaCluster() {
       </div>
 
       {/* Main control row */}
-      {isYouTubeTrailer ? (
-        <div className="flex items-center justify-between gap-3 py-1">
-          <span className="text-xs text-slate-400">YouTube video on file (screen shows backdrop).</span>
-          <a
-            href={trailer.trailerUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-testid="watch-trailer-youtube-btn"
-            className="flex items-center gap-1.5 rounded-xl bg-rose-600 px-3 py-1.5 text-xs font-bold text-white shadow hover:bg-rose-500 transition"
-          >
-            <span>Watch trailer</span>
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
-        </div>
-      ) : hasVideoSource ? (
+      {isVideoTexture ? (
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {/* Play/Pause */}
           <button
@@ -125,7 +162,7 @@ export function ScreenMediaCluster() {
             className="flex min-h-[38px] items-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-bold transition"
             aria-label={trailer.isPlaying ? 'Pause trailer' : 'Play trailer'}
           >
-            {trailer.isPlaying ? (
+            {trailer.isPlaying && playbackStatus === 'playing' ? (
               <>
                 <Pause className="h-3.5 w-3.5 text-rose-400" />
                 <span>Pause</span>
@@ -212,9 +249,32 @@ export function ScreenMediaCluster() {
           </div>
         </div>
       ) : (
-        <div className="text-xs text-slate-400 py-1">No video trailer available for this feature.</div>
+        /* Title Card / Backdrop Mode / YouTube Fallback (Prompt Item 4) */
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex flex-col">
+            <span className="text-xs text-slate-300 font-medium">
+              {isTitleCard
+                ? 'Dynamic Title Card & Light Sweep Active'
+                : '3D Screen Active'}
+            </span>
+            <span className="text-[11px] text-slate-400">
+              {trailer.trailerUrl ? 'High-definition theatrical trailer available.' : 'Now showing in selected theatres.'}
+            </span>
+          </div>
+
+          {trailer.trailerUrl && (
+            <button
+              type="button"
+              onClick={handleOpenPopup}
+              data-testid="watch-trailer-popup-btn"
+              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-3.5 py-2 text-xs font-bold text-white shadow-lg shadow-red-600/30 hover:from-red-500 hover:to-rose-500 transition cursor-pointer"
+            >
+              <Play className="h-3.5 w-3.5 fill-current" />
+              <span>Watch trailer</span>
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
 }
-

@@ -87,3 +87,4 @@ describe('CanvasErrorBoundary', () => {
     expect(fallbackSpy).toHaveBeenCalledTimes(1);
   });
 });
+

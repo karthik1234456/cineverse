@@ -14,12 +14,21 @@ import { WayfindingLabels } from './WayfindingLabels';
 import { GroupSeatMarkers } from './GroupSeatMarkers';
 import { MotionVFXScene } from './MotionVFXScene';
 import { LoadingOverlay, WebGLFallback } from './LoadingOverlay';
+import type { ScreenStrategy } from '@/store/useCinemaStore';
 
 interface CinemaWorldProps {
   onSeatSelect?: (seatId: string) => void;
+  overrideScreenMode?: ScreenStrategy;
+  screenSolidColor?: string;
+  onScreenTelemetryUpdate?: (telemetry: any) => void;
 }
 
-export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
+export function CinemaWorld({
+  onSeatSelect,
+  overrideScreenMode,
+  screenSolidColor,
+  onScreenTelemetryUpdate,
+}: CinemaWorldProps) {
   const [hasWebGL, setHasWebGL] = useState(true);
   const [canvasError, setCanvasError] = useState<string | null>(null);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
@@ -57,7 +66,7 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
         }}
         gl={{
           antialias: true,
-          alpha: false,
+          alpha: overrideScreenMode === 'youtube_css3d',
           preserveDrawingBuffer: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
@@ -66,18 +75,25 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
         dpr={qualityMode === 'smooth' ? 1.0 : [1, 1.5]}
         frameloop="always" // Dynamically managed by AdaptiveFrameloopController
         onCreated={({ gl, scene }) => {
-          gl.setClearColor(houseLights === 'show' ? '#07080a' : '#222630', 1.0);
-          scene.background = new THREE.Color(houseLights === 'show' ? '#07080a' : '#222630');
+          if (overrideScreenMode === 'youtube_css3d') {
+            gl.setClearColor('#000000', 0.0);
+            scene.background = null;
+          } else {
+            gl.setClearColor(houseLights === 'show' ? '#07080a' : '#222630', 1.0);
+            scene.background = new THREE.Color(houseLights === 'show' ? '#07080a' : '#222630');
+          }
         }}
       >
-        <fog
-          attach="fog"
-          args={[
-            houseLights === 'show' ? '#07080a' : '#222630',
-            houseLights === 'show' ? 25 : 150,
-            houseLights === 'show' ? 90 : 400,
-          ]}
-        />
+        {overrideScreenMode !== 'youtube_css3d' && (
+          <fog
+            attach="fog"
+            args={[
+              houseLights === 'show' ? '#07080a' : '#222630',
+              houseLights === 'show' ? 25 : 150,
+              houseLights === 'show' ? 90 : 400,
+            ]}
+          />
+        )}
         <Suspense fallback={null}>
           <AdaptiveFrameloopController />
           {proceduralResult ? (
@@ -92,7 +108,11 @@ export function CinemaWorld({ onSeatSelect }: CinemaWorldProps) {
               <SeatInteraction onSeatClick={onSeatSelect} />
             </>
           )}
-          <CinemaScreen />
+          <CinemaScreen
+            overrideMode={overrideScreenMode}
+            solidColor={screenSolidColor}
+            onTelemetryUpdate={onScreenTelemetryUpdate}
+          />
           <TheatreLighting />
           <MotionVFXScene />
           <WayfindingLabels />

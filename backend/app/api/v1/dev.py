@@ -279,13 +279,19 @@ async def get_developer_readiness(
 
                 if has_hosted_trailer:
                     screen_3d_source = "Hosted Video Texture"
+                    screen_3d_strategy = "hosted_video_texture"
                     screen_3d_desc = "Direct WebGL video texture streaming hosted MP4 clip with audio-reactive room spill"
+                    screen_guarantee = "Guaranteed Local Video Stream"
                 elif is_youtube:
-                    screen_3d_source = "CSS 3D Official Player / Animated Backdrop"
-                    screen_3d_desc = "CSS 3D embedded official player (flag: OFFICIAL_PLAYER_ON_SCREEN) with canvas cut-out; falls back to slow-motion animated backdrop"
+                    screen_3d_source = "YouTube CSS 3D -> Title Card Fallback"
+                    screen_3d_strategy = "youtube_css3d"
+                    screen_3d_desc = "CSS 3D official player with canvas cut-out; auto-falls back to animated Title Card if embed restricted (Error 150/101)"
+                    screen_guarantee = "Guaranteed Motion — Never Empty"
                 else:
-                    screen_3d_source = "Animated Backdrop Slow Motion"
-                    screen_3d_desc = "Slow-motion Ken Burns pan/zoom on authentic movie backdrop"
+                    screen_3d_source = "Generated Title Card Motion"
+                    screen_3d_strategy = "title_card"
+                    screen_3d_desc = "Procedural canvas title card with authentic poster, typography and continuous specular light sweep"
+                    screen_guarantee = "Guaranteed Motion — Never Empty"
 
                 if has_hosted_glimpse:
                     booking_bg_source = "Hosted Ambient Clip"
@@ -296,12 +302,15 @@ async def get_developer_readiness(
 
                 source_chain_info = {
                     "screen_3d_source": screen_3d_source,
+                    "screen_3d_strategy": screen_3d_strategy,
                     "screen_3d_desc": screen_3d_desc,
+                    "screen_guarantee": screen_guarantee,
                     "booking_bg_source": booking_bg_source,
                     "booking_bg_desc": booking_bg_desc,
                     "has_hosted_clip": has_hosted_trailer or has_hosted_glimpse,
                     "is_youtube_only": is_youtube and not has_hosted_trailer,
                     "official_player_supported": is_youtube,
+                    "popup_modal_available": True,
                 }
 
                 all_ok = poster_info["status_ok"] and (trailer_info["status_ok"] or not is_showcase)

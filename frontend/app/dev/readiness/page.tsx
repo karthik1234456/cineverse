@@ -29,12 +29,15 @@ interface MediaCheck {
 
 interface SourceChainInfo {
   screen_3d_source: string;
+  screen_3d_strategy?: string;
   screen_3d_desc: string;
+  screen_guarantee?: string;
   booking_bg_source: string;
   booking_bg_desc: string;
   has_hosted_clip: boolean;
   is_youtube_only: boolean;
   official_player_supported: boolean;
+  popup_modal_available?: boolean;
 }
 
 interface MovieReport {
@@ -255,13 +258,22 @@ export default function DeveloperReadinessPage() {
           </p>
         </div>
 
-        <button
-          onClick={fetchReadiness}
-          className="flex items-center gap-2 rounded-xl border border-[#E6DCD2] bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50"
-        >
-          <RefreshCw className="h-4 w-4" />
-          <span>Re-scan System</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          <a
+            href="/dev/screen-test"
+            data-testid="nav-screen-test-bench"
+            className="flex items-center gap-2 rounded-xl bg-purple-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-purple-700 transition"
+          >
+            <span>📺 3D Screen Test Bench</span>
+          </a>
+          <button
+            onClick={fetchReadiness}
+            className="flex items-center gap-2 rounded-xl border border-[#E6DCD2] bg-white px-4 py-2 text-sm font-bold text-slate-800 shadow-sm hover:bg-slate-50"
+          >
+            <RefreshCw className="h-4 w-4" />
+            <span>Re-scan System</span>
+          </button>
+        </div>
       </div>
 
       {/* 2. Mandatory Red Environment Banner when TMDB key missing/rejected */}
@@ -563,13 +575,19 @@ export default function DeveloperReadinessPage() {
                         </div>
                       </td>
 
-                      {/* 8. Source Chain */}
+                      {/* 8. Source Chain & 3D Screen Strategy */}
                       <td className="p-3">
                         <div className="space-y-1">
                           <div className="text-[11px] font-semibold text-slate-800">
                             <span className="text-slate-400 font-normal">3D Screen: </span>
-                            <span className="text-indigo-900 font-bold">{m.source_chain?.screen_3d_source || (m.is_showcase ? 'Hosted Video Texture' : 'Animated Backdrop')}</span>
+                            <span className="text-indigo-900 font-bold">{m.source_chain?.screen_3d_source || (m.is_showcase ? 'Hosted Video Texture' : 'Generated Title Card')}</span>
                           </div>
+                          {m.source_chain?.screen_guarantee && (
+                            <div className="inline-flex items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700 border border-emerald-200">
+                              <span>✓</span>
+                              <span>{m.source_chain.screen_guarantee}</span>
+                            </div>
+                          )}
                           <div className="text-[11px] font-semibold text-slate-800">
                             <span className="text-slate-400 font-normal">Booking BG: </span>
                             <span className="text-emerald-900 font-bold">{m.source_chain?.booking_bg_source || (m.is_showcase ? 'Hosted Ambient Clip' : 'Animated Backdrop')}</span>
