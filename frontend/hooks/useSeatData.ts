@@ -100,10 +100,16 @@ export function useSeatData(showtimeId: string = '1') {
             balcony_rows: data.layout_data.balcony_rows || data.layout_data.levels?.balcony?.rows,
             recliner_pairs: data.layout_data.recliner_pairs as [string, string][] | undefined,
           });
-          setAuditoriumData(audId, proceduralData);
+          setAuditoriumData(audId, proceduralData, {
+            name: data.auditorium_name,
+            screenType: data.screen_type,
+          });
         }
       } else {
-        setAuditoriumData('1', null);
+        setAuditoriumData('1', null, {
+          name: data.auditorium_name,
+          screenType: data.screen_type,
+        });
       }
 
       // Configure screen trailer from showtime movie data

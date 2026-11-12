@@ -26,6 +26,9 @@ export function AuditoriumInfoPanel() {
   const mode = useCinemaStore((s) => s.mode);
   const storeTiers = useCinemaStore((s) => s.tiers);
   const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
+  const auditoriumName = useCinemaStore((s) => s.auditoriumName);
+  const storeScreenType = useCinemaStore((s) => s.screenType);
+  const proceduralResult = useCinemaStore((s) => s.proceduralResult);
 
   const displayTiers = React.useMemo(() => {
     if (storeTiers && storeTiers.length > 0) {
@@ -58,6 +61,22 @@ export function AuditoriumInfoPanel() {
   }, []);
 
   const layout = auditoriumLayout || (layoutData as unknown as SeatLayoutFile);
+
+  const totalSeatsCount = layout.seats ? layout.seats.length : 100;
+  const rowsList = React.useMemo(() => {
+    if (!layout.seats || layout.seats.length === 0) return ['A', 'J'];
+    const rSet = new Set(layout.seats.map((s) => s.row));
+    const sorted = Array.from(rSet).sort();
+    return [sorted[0], sorted[sorted.length - 1]];
+  }, [layout.seats]);
+
+  const rowRangeText = `${totalSeatsCount} Seats • ${rowsList[0]}–${rowsList[1]}`;
+  const displayHallTitle = auditoriumName || 'Auditorium';
+  const displayScreenType = storeScreenType || layout.theatre_type_label || 'Standard Screen';
+
+  // Screen realistic dimensions: SCENE_TO_METERS = 0.5
+  const screenMetersWidth = Math.round((layout.screen.width * 0.5) * 10) / 10;
+  const screenMetersHeight = Math.round((layout.screen.height * 0.5) * 10) / 10;
 
   // Compute status counts strictly partitioning into exactly all seats in this auditorium
   const counts = React.useMemo(() => {
@@ -112,12 +131,12 @@ export function AuditoriumInfoPanel() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="h-2.5 w-2.5 rounded-full bg-[#C8102E] shadow-[0_0_8px_#C8102E]" />
-                <h1 className="text-base font-bold tracking-tight text-[#1B1320]">
-                  Auditorium 1 — 3D Laser IMAX
+                <h1 className="text-base font-bold tracking-tight text-[#1B1320]" data-testid="auditorium-panel-title">
+                  {displayHallTitle} — {displayScreenType}
                 </h1>
               </div>
-              <p className="mt-1 text-sm text-slate-500">
-                100 Luxury Recliners • 10 Rows (A–J)
+              <p className="mt-1 text-sm text-slate-500" data-testid="auditorium-panel-subtitle">
+                {rowRangeText}
               </p>
             </div>
 
@@ -141,8 +160,8 @@ export function AuditoriumInfoPanel() {
 
           <div className="mt-3 flex items-center justify-between rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] px-3 py-2 text-sm">
             <span className="text-slate-600 font-medium">Screen Format</span>
-            <span className="font-bold text-[#1B1320]">
-              {layout.screen.aspect}:1 Aspect ({layout.screen.width}m × {layout.screen.height}m)
+            <span className="font-bold text-[#1B1320]" data-testid="auditorium-panel-screen-dims">
+              {layout.screen.aspect}:1 Aspect ({screenMetersWidth}m × {screenMetersHeight}m)
             </span>
           </div>
 

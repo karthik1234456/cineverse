@@ -165,7 +165,9 @@ export function AuditoriumViewRouter({
           <div className="flex items-center gap-2 text-sm font-bold text-[#1B1320]">
             <span className="text-[#C8102E] font-black">CINEVERSE 3D</span>
             <span className="text-[#E6DCD2]">|</span>
-            <span>Auditorium {auditoriumId}</span>
+            <span data-testid="auditorium-header-title">
+              {showtimeDetails?.auditorium_name || `Auditorium ${auditoriumId}`} — {showtimeDetails?.screen_type || 'Standard Flat'}
+            </span>
           </div>
 
           {/* Right: Fullscreen Toggle Button */}

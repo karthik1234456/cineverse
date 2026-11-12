@@ -1978,48 +1978,48 @@ async def seed_database():
 
             if existing_movies >= 48 and existing_auds >= 70 and existing_shows >= 2000:
                 # Sync Phase 6 Map and Transit metadata for existing cinemas if missing
-            cin_stmt = select(Cinema)
-            cin_res = await db.execute(cin_stmt)
-            cinemas_to_sync = cin_res.scalars().all()
-            synced_count = 0
-            for cin in cinemas_to_sync:
-                meta = CINEMAS_METADATA.get(cin.slug)
-                if meta:
-                    if not cin.pincode or not cin.transit_stop or cin.is_demo_data is None:
-                        cin.pincode = meta["pincode"]
-                        cin.landmark = meta["landmark"]
-                        cin.parking = meta["parking"]
-                        cin.transit_stop = meta["transit_stop"]
-                        cin.phone = meta["phone"]
-                        cin.opening_hours = meta["opening_hours"]
-                        cin.is_demo_data = meta["is_demo_data"]
-                        synced_count += 1
-            if synced_count > 0:
-                await db.commit()
-                print(f"Phase 6 map metadata updated for {synced_count} existing cinemas.")
+                cin_stmt = select(Cinema)
+                cin_res = await db.execute(cin_stmt)
+                cinemas_to_sync = cin_res.scalars().all()
+                synced_count = 0
+                for cin in cinemas_to_sync:
+                    meta = CINEMAS_METADATA.get(cin.slug)
+                    if meta:
+                        if not cin.pincode or not cin.transit_stop or cin.is_demo_data is None:
+                            cin.pincode = meta["pincode"]
+                            cin.landmark = meta["landmark"]
+                            cin.parking = meta["parking"]
+                            cin.transit_stop = meta["transit_stop"]
+                            cin.phone = meta["phone"]
+                            cin.opening_hours = meta["opening_hours"]
+                            cin.is_demo_data = meta["is_demo_data"]
+                            synced_count += 1
+                if synced_count > 0:
+                    await db.commit()
+                    print(f"Phase 6 map metadata updated for {synced_count} existing cinemas.")
 
-            # Phase Movie Backdrop & Glimpse metadata sync for existing movies
-            mov_stmt = select(Movie)
-            mov_res = await db.execute(mov_stmt)
-            movies_to_sync = mov_res.scalars().all()
-            mov_synced_count = 0
-            for mov in movies_to_sync:
-                if not mov.dominant_color or not mov.glimpse_url:
-                    mov.dominant_color = MOVIE_DOMINANT_COLORS.get(mov.slug, "#0b1b3b")
-                    mov.glimpse_url = f"/trailers/glimpses/{mov.slug}-480p.mp4"
-                    mov.glimpse_webm_url = f"/trailers/glimpses/{mov.slug}-480p.webm"
-                    mov.glimpse_720p_url = f"/trailers/glimpses/{mov.slug}-720p.mp4"
-                    mov_synced_count += 1
-            if mov_synced_count > 0:
-                await db.commit()
-                print(f"Movie backdrop and glimpse metadata updated for {mov_synced_count} existing movies.")
+                # Phase Movie Backdrop & Glimpse metadata sync for existing movies
+                mov_stmt = select(Movie)
+                mov_res = await db.execute(mov_stmt)
+                movies_to_sync = mov_res.scalars().all()
+                mov_synced_count = 0
+                for mov in movies_to_sync:
+                    if not mov.dominant_color or not mov.glimpse_url:
+                        mov.dominant_color = MOVIE_DOMINANT_COLORS.get(mov.slug, "#0b1b3b")
+                        mov.glimpse_url = f"/trailers/glimpses/{mov.slug}-480p.mp4"
+                        mov.glimpse_webm_url = f"/trailers/glimpses/{mov.slug}-480p.webm"
+                        mov.glimpse_720p_url = f"/trailers/glimpses/{mov.slug}-720p.mp4"
+                        mov_synced_count += 1
+                if mov_synced_count > 0:
+                    await db.commit()
+                    print(f"Movie backdrop and glimpse metadata updated for {mov_synced_count} existing movies.")
 
-            # Ensure TMDB non-showcase movies are seeded if not present
-            from app.seed.seed_tmdb_movies import seed_tmdb_movies_data
-            await seed_tmdb_movies_data(db)
+                # Ensure TMDB non-showcase movies are seeded if not present
+                from app.seed.seed_tmdb_movies import seed_tmdb_movies_data
+                await seed_tmdb_movies_data(db)
 
-            print(f"Database already contains {existing_movies} movies, {existing_auds} auditoriums, and {existing_shows} showtimes. Seed verified.")
-            return
+                print(f"Database already contains {existing_movies} movies, {existing_auds} auditoriums, and {existing_shows} showtimes. Seed verified.")
+                return
 
         print("Wiping existing data and applying latest schema...")
         await reset_db()

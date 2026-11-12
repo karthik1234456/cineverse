@@ -156,12 +156,18 @@ export interface CinemaState {
 
   // Dynamic Auditorium Layout & Procedural 3D
   auditoriumId: string;
+  auditoriumName?: string;
+  screenType?: string;
   auditoriumLayout: SeatLayoutFile;
   auditoriumWalkNav: WalkNavFile;
   cameraBounds: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number };
   targetBounds: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number };
   proceduralResult: ProceduralAuditoriumResult | null;
-  setAuditoriumData: (auditoriumId: string, result: ProceduralAuditoriumResult | null) => void;
+  setAuditoriumData: (
+    auditoriumId: string,
+    result: ProceduralAuditoriumResult | null,
+    meta?: { name?: string; screenType?: string }
+  ) => void;
 
   // Actions
   setSeatStatuses: (statuses: Record<string, SeatStatus>) => void;
@@ -396,16 +402,20 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
   // Dynamic Auditorium Layout
   auditoriumId: '1',
+  auditoriumName: 'Auditorium 1',
+  screenType: 'Standard Flat',
   auditoriumLayout: layoutData as unknown as SeatLayoutFile,
   auditoriumWalkNav: walkNavData as unknown as WalkNavFile,
   cameraBounds: DEFAULT_AUDITORIUM_BOUNDS,
   targetBounds: DEFAULT_TARGET_BOUNDS,
   proceduralResult: null,
 
-  setAuditoriumData: (auditoriumId, result) => {
+  setAuditoriumData: (auditoriumId, result, meta) => {
     if (!result) {
       set({
         auditoriumId,
+        auditoriumName: meta?.name || `Auditorium ${auditoriumId}`,
+        screenType: meta?.screenType || 'Standard Flat',
         proceduralResult: null,
         auditoriumLayout: layoutData as unknown as SeatLayoutFile,
         auditoriumWalkNav: walkNavData as unknown as WalkNavFile,
@@ -417,6 +427,8 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
     set({
       auditoriumId,
+      auditoriumName: meta?.name || result.seatLayout.theatre_type_label || `Auditorium ${auditoriumId}`,
+      screenType: meta?.screenType || result.seatLayout.screen?.name || 'Standard Flat',
       proceduralResult: result,
       auditoriumLayout: result.seatLayout,
       auditoriumWalkNav: result.walkNav,

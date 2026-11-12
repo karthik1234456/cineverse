@@ -19,6 +19,16 @@ export function MotionEffectsOverlay() {
   const setIntensity = useCinemaStore((s) => s.setExperience4dxIntensity);
   const houseLights = useCinemaStore((s) => s.houseLights);
   const setHouseLights = useCinemaStore((s) => s.setHouseLights);
+  const proceduralResult = useCinemaStore((s) => s.proceduralResult);
+  const screenType = useCinemaStore((s) => s.screenType);
+
+  // Exclusive to motion-seat halls (§ Part G)
+  const isMotionHall = Boolean(
+    proceduralResult?.seatLayout.theatre_type === 'dolby_atmos_4dx' ||
+    proceduralResult?.seatLayout.theatre_type === 'motion_seat' ||
+    proceduralResult?.seatLayout.layout_signature === 'motion_pods' ||
+    (screenType && (screenType.toLowerCase().includes('motion') || screenType.toLowerCase().includes('4dx')))
+  );
 
   const [warningDismissed, setWarningDismissed] = useState(false);
   const [showWarningModal, setShowWarningModal] = useState(false);
@@ -125,6 +135,11 @@ export function MotionEffectsOverlay() {
   // Find active scent event for floating pill
   const activeScent = activeEvents.find((e) => e.type === 'scent');
   const activeHaptic = activeEvents.find((e) => e.type === 'poke' || e.type === 'tickler');
+
+  // If not a motion hall and no active effects, hide preview button entirely (§ Part G)
+  if (!isMotionHall && !is4dxActive) {
+    return null;
+  }
 
   return (
     <>
