@@ -189,7 +189,7 @@ export interface ProceduralGeometryData {
   ceilingDownlights: Array<{ id: string; position: [number, number, number] }>;
   atmosSpeakers: Array<{ id: string; position: [number, number, number]; channel: string }>;
   exitSigns: Array<{ id: string; position: [number, number, number]; label: string }>;
-  carpetRunners: Array<{ name: string; bounds: BoundingBox3D }>;
+  carpetRunners?: Array<{ name: string; bounds: BoundingBox3D }>;
   ceilingClouds: Array<{
     id: string;
     bounds: BoundingBox3D;
@@ -992,14 +992,8 @@ export function generateProceduralAuditorium(
     { id: 'exit_rear_right', position: [-halfWidth + 1.2, topTierY + 3.5, zBack + 1.4], label: 'EXIT' },
   ];
 
-  // Carpet runners along aisles
-  const carpetRunners: Array<{ name: string; bounds: BoundingBox3D }> = aisleCenters.map((acX, idx) => ({
-    name: `carpet_runner_${idx}`,
-    bounds: {
-      min: [acX - 0.5, -0.02, zBack + 0.5],
-      max: [acX + 0.5, topTierY + 0.02, -5.0],
-    },
-  }));
+  // Aisles are open floor with low step lights (<0.5m), no tall partition walls or solid blocks
+  const carpetRunners: Array<{ name: string; bounds: BoundingBox3D }> = [];
 
   // Balcony cantilevered structure if hall has balcony
   let balconyStructure: ProceduralGeometryData['balconyStructure'];

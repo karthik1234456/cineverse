@@ -227,6 +227,7 @@ describe('Procedural Auditorium Generator — Faithfulness & Geometry Tests', ()
       aisles: [5, 15],
       accessible_seats: ['A01', 'A20'],
       companion_seats: ['A02', 'A19'],
+      theatre_type: 'balcony',
       screen_type: 'Dolby Atmos 4DX',
       total_seats: 260,
       base_price: 380,
@@ -309,7 +310,8 @@ describe('Procedural Auditorium Generator — Faithfulness & Geometry Tests', ()
       expect(res.geometry.exitSigns.length).toBe(2);
       expect(res.geometry.ceilingDownlights.length).toBeGreaterThan(0);
       expect(res.geometry.atmosSpeakers.length).toBe(12);
-      expect(res.geometry.carpetRunners.length).toBe(2);
+      expect(res.geometry.stepLights.length).toBeGreaterThan(0);
+      expect(res.geometry.carpetRunners?.length ?? 0).toBe(0);
       expect(res.geometry.cameraPresets?.balcony).toBeDefined();
       expect(res.geometry.cameraPresets?.screen).toBeDefined();
     });

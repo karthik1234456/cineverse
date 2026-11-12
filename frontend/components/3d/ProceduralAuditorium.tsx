@@ -1615,7 +1615,7 @@ export function ProceduralAuditorium({
         />
       )}
 
-      {/* 8b. Illuminated EXIT signs & Carpet Runners */}
+      {/* 8b. Illuminated EXIT signs */}
       {geometry.exitSigns && (
         <group name="ExitSigns">
           {geometry.exitSigns.map((es) => (
@@ -1623,19 +1623,6 @@ export function ProceduralAuditorium({
               <boxGeometry args={[0.65, 0.3, 0.08]} />
             </mesh>
           ))}
-        </group>
-      )}
-
-      {geometry.carpetRunners && (
-        <group name="CarpetRunners">
-          {geometry.carpetRunners.map((cr) => {
-            const { size, center } = boxHelper(cr.bounds);
-            return (
-              <mesh key={cr.name} position={center} material={carpetRunnerMaterial}>
-                <boxGeometry args={size} />
-              </mesh>
-            );
-          })}
         </group>
       )}
 
