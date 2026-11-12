@@ -385,6 +385,7 @@ export function CameraController() {
       persCam.quaternion.multiply(pitchQuat);
     } else if (isOverview) {
       const curTarget = targetBounds || TARGET_BOUNDS;
+      const bounds = cameraBounds || AUDITORIUM_BOUNDS;
 
       if (controlsRef.current) {
         // Clamp orbit target to interior hall center
@@ -392,10 +393,48 @@ export function CameraController() {
         tgt.x = THREE.MathUtils.clamp(tgt.x, curTarget.minX, curTarget.maxX);
         tgt.y = THREE.MathUtils.clamp(tgt.y, curTarget.minY, curTarget.maxY);
         tgt.z = THREE.MathUtils.clamp(tgt.z, curTarget.minZ, curTarget.maxZ);
+
+        // Spring-Arm Raycast Collision against hall shell:
+        // Cast ray from target to desired camera position against hall walls/ceiling/floor.
+        // Near a wall, pull camera closer to target along the ray without clamping azimuth.
+        const camPos = persCam.position;
+        const dir = new THREE.Vector3().subVectors(camPos, tgt);
+        const dist = dir.length();
+        if (dist > 1e-4) {
+          const u = dir.clone().multiplyScalar(1 / dist);
+          const margin = 0.35;
+          let hitDist = Infinity;
+
+          if (u.x > 1e-5) {
+            hitDist = Math.min(hitDist, (bounds.maxX - margin - tgt.x) / u.x);
+          } else if (u.x < -1e-5) {
+            hitDist = Math.min(hitDist, (bounds.minX + margin - tgt.x) / u.x);
+          }
+
+          if (u.y > 1e-5) {
+            hitDist = Math.min(hitDist, (bounds.maxY - margin - tgt.y) / u.y);
+          } else if (u.y < -1e-5) {
+            hitDist = Math.min(hitDist, (bounds.minY + margin - tgt.y) / u.y);
+          }
+
+          if (u.z > 1e-5) {
+            hitDist = Math.min(hitDist, (bounds.maxZ - margin - tgt.z) / u.z);
+          } else if (u.z < -1e-5) {
+            hitDist = Math.min(hitDist, (bounds.minZ + margin - tgt.z) / u.z);
+          }
+
+          const maxAllowed = Math.max(2.2, Math.max(0, hitDist));
+          if (dist > maxAllowed) {
+            persCam.position.copy(tgt).addScaledVector(u, maxAllowed);
+          }
+        }
+
+        // Hard boundary safety clamp: camera NEVER leaves the interior volume
+        const margin = 0.25;
+        persCam.position.x = THREE.MathUtils.clamp(persCam.position.x, bounds.minX + margin, bounds.maxX - margin);
+        persCam.position.y = THREE.MathUtils.clamp(persCam.position.y, bounds.minY + margin, bounds.maxY - margin);
+        persCam.position.z = THREE.MathUtils.clamp(persCam.position.z, bounds.minZ + margin, bounds.maxZ - margin);
       }
-      // Note: In Look around / Overview mode, camera position is NOT clamped to room boundaries.
-      // Free 360-degree orbit around the target with zoom bounded between 3.5m and 1.6x hall radius.
-      // Outside walls and ceiling use BackSide or fade to maintain full visibility of seats.
     }
   });
 

@@ -297,6 +297,8 @@ export function ProceduralAuditorium({
         color: new THREE.Color(look.wallColor),
         roughness: 0.90,
         metalness: 0.02,
+        transparent: true,
+        opacity: 1.0,
         side: isOverview ? THREE.BackSide : THREE.DoubleSide,
       }),
     [look.wallColor, isOverview]
@@ -308,6 +310,8 @@ export function ProceduralAuditorium({
         color: new THREE.Color(look.acousticPanelColor),
         roughness: 0.82,
         metalness: 0.04,
+        transparent: true,
+        opacity: 1.0,
         side: isOverview ? THREE.BackSide : THREE.DoubleSide,
       }),
     [look.acousticPanelColor, isOverview]
@@ -319,6 +323,8 @@ export function ProceduralAuditorium({
         color: new THREE.Color(look.panelTrimColor),
         roughness: 0.35,
         metalness: 0.80,
+        transparent: true,
+        opacity: 1.0,
       }),
     [look.panelTrimColor]
   );
@@ -329,6 +335,8 @@ export function ProceduralAuditorium({
         color: new THREE.Color(look.ceilingColor),
         roughness: 0.95,
         metalness: 0.00,
+        transparent: true,
+        opacity: 1.0,
         side: isOverview ? THREE.BackSide : THREE.DoubleSide,
       }),
     [look.ceilingColor, isOverview]
@@ -825,8 +833,36 @@ export function ProceduralAuditorium({
     }
   }, [seats, geometry]);
 
-  // Per-frame color & state updates for instanced seats
-  useFrame(() => {
+  // Per-frame color & state updates for instanced seats and dynamic surface fading
+  useFrame(({ camera }) => {
+    // Dynamic near-camera surface fading: surfaces within ~1.5m fade out smoothly so view stays clear
+    if (geometry.dimensions) {
+      const camY = camera.position.y;
+      const camZ = camera.position.z;
+      const camX = camera.position.x;
+
+      const ceilDist = Math.abs(camY - geometry.dimensions.height);
+      if (ceilDist < 1.8) {
+        ceilingMaterial.opacity = THREE.MathUtils.clamp((ceilDist - 0.25) / 1.5, 0.0, 1.0);
+      } else {
+        ceilingMaterial.opacity = 1.0;
+      }
+
+      const backWallDist = Math.abs(camZ - geometry.dimensions.zBack);
+      const sideWallDist = Math.abs(Math.abs(camX) - geometry.dimensions.halfWidth);
+      const wallDist = Math.min(backWallDist, sideWallDist);
+      if (wallDist < 1.8) {
+        const wallFade = THREE.MathUtils.clamp((wallDist - 0.25) / 1.5, 0.0, 1.0);
+        wallMaterial.opacity = wallFade;
+        acousticPanelMaterial.opacity = wallFade;
+        panelTrimMaterial.opacity = wallFade;
+      } else {
+        wallMaterial.opacity = 1.0;
+        acousticPanelMaterial.opacity = 1.0;
+        panelTrimMaterial.opacity = 1.0;
+      }
+    }
+
     const activeStatuses = useCinemaStore.getState().seatStatuses;
     const activeSelected = useCinemaStore.getState().selectedSeats;
     const currentHovered = useCinemaStore.getState().hoveredSeatId;
