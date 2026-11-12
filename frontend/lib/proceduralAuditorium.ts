@@ -82,6 +82,7 @@ export interface AuditoriumLayoutInput {
     price_multiplier?: number;
   }>;
   screen_type?: string;
+  layout_signature?: string;
   total_seats?: number;
   base_price?: number;
   curve_radius?: number;
@@ -612,10 +613,10 @@ export function generateProceduralAuditorium(
       const sagZ = curveRadius ? Math.round(((posX * posX) / (2 * curveRadius)) * 1000) / 1000 : 0.0;
       const posZ = Math.round((rowZ + sagZ) * 1000) / 1000;
 
-      // Check if sweet spot
+      // Seat category strictly follows tier rows (§ Part G: non-overlapping price bands)
       const isSweetSpot = sweetSpotRows.has(row) && sweetSpotSeats.has(num);
       const effectiveMultiplier = isSweetSpot ? sweetSpotMultiplier : mult;
-      const effectiveCategory: SeatCategory = isSweetSpot ? 'premier' : cat;
+      const effectiveCategory: SeatCategory = cat;
       const price = Math.round(basePrice * effectiveMultiplier);
 
       const bounds: BoundingBox3D = {
@@ -1506,6 +1507,7 @@ export function generateProceduralAuditorium(
     theatre_type: theatreDef.id,
     theatre_type_name: theatreDef.name,
     theatre_type_label: theatreDef.label,
+    layout_signature: input.layout_signature || (isMotionHall ? 'motion_pods' : (theatreDef.id === 'flagship' ? 'curved_rows' : (theatreDef.id === 'luxury_recliner' ? 'back_pairs_lounge' : (theatreDef.id === 'balcony' ? 'premium_middle_block' : (theatreDef.id === 'boutique' ? 'split_blocks_asymmetric' : 'centre_side_blocks'))))),
     arrangement_pattern: input.arrangement_pattern || theatreDef.arrangementPattern,
     blocks_pattern: input.blocks_pattern,
     sweet_spot: input.sweet_spot,

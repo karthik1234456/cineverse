@@ -59,6 +59,14 @@ async def get_showtime_seats(
     # Map auditorium seats by seat_id
     aud_seats = {s.seat_id: s for s in showtime.auditorium.seats} if showtime.auditorium else {}
 
+    layout_data = showtime.auditorium.layout_data if showtime.auditorium and showtime.auditorium.layout_data else {}
+    is_motion = bool(layout_data.get("is_motion_hall") or "dolby_atmos_4dx" in str(layout_data.get("theatre_type", "")))
+    seat_to_pod = {}
+    if layout_data.get("pods"):
+        for p in layout_data["pods"]:
+            for s_id in p.get("seat_ids", []):
+                seat_to_pod[s_id] = p.get("pod_id")
+
     seat_items = []
     current_user_id = current_user.id if current_user else None
 
@@ -78,6 +86,11 @@ async def get_showtime_seats(
 
         quote_id = f"cv-quote-{showtime.id}-{int(datetime.utcnow().timestamp())}"
 
+        is_acc = aud_seat.is_accessible if aud_seat else False
+        is_comp = aud_seat.is_companion if aud_seat else False
+        pod_id_val = seat_to_pod.get(inv.seat_id)
+        s_type = "accessible" if is_acc else ("companion" if is_comp else ("motion" if is_motion else "standard"))
+
         seat_items.append(SeatInventoryItem(
             seat_id=inv.seat_id,
             category=inv.category,
@@ -92,7 +105,11 @@ async def get_showtime_seats(
             distance_to_screen=aud_seat.distance_to_screen if aud_seat else 10.0,
             vertical_angle_deg=aud_seat.vertical_angle_deg if aud_seat else 0.0,
             horizontal_angle_deg=aud_seat.horizontal_angle_deg if aud_seat else 0.0,
-            is_accessible=aud_seat.is_accessible if aud_seat else False
+            is_accessible=is_acc,
+            is_companion=is_comp,
+            seat_type=s_type,
+            pod_id=pod_id_val,
+            motion_zone="all" if is_motion else None,
         ))
 
     # Sort seats alphabetically A01...J10
@@ -156,6 +173,7 @@ async def get_showtime_seats(
         screen_type=showtime.auditorium.screen_type if showtime.auditorium else "IMAX 3D",
         has_3d_preview=showtime.auditorium.has_3d_preview if showtime.auditorium else True,
         layout_data=showtime.auditorium.layout_data if showtime.auditorium else None,
+        layout_signature=showtime.auditorium.layout_data.get("layout_signature") if showtime.auditorium and showtime.auditorium.layout_data else None,
         format=showtime.format,
         language=showtime.language,
         start_time=showtime.start_time,

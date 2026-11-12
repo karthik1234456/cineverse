@@ -125,6 +125,11 @@ export function getSeatFamilyForSeat(
   const normType = (seatType || '').toLowerCase();
   const normScreen = (screenType || '').toLowerCase();
 
+  // Motion seats always use high-back standard family with headrest & nozzles (never recliners)
+  if (normType === 'motion' || normScreen.includes('motion') || normScreen.includes('4dx')) {
+    return 'standard';
+  }
+
   // Boutique VIP screen or boutique sofa seat type
   if (normScreen.includes('boutique') || normScreen.includes('vip') || normType === 'sofa') {
     return 'sofa';

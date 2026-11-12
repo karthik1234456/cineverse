@@ -56,6 +56,10 @@ class SeatInventoryItem(BaseModel):
     vertical_angle_deg: float
     horizontal_angle_deg: float
     is_accessible: bool = False
+    is_companion: bool = False
+    seat_type: Optional[str] = None
+    pod_id: Optional[str] = None
+    motion_zone: Optional[str] = None
 
 
 class ShowtimeSeatsResponse(BaseModel):
@@ -69,6 +73,7 @@ class ShowtimeSeatsResponse(BaseModel):
     screen_type: str
     has_3d_preview: bool
     layout_data: Optional[dict] = None
+    layout_signature: Optional[str] = None
     format: str
     language: str
     start_time: datetime

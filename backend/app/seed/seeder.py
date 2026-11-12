@@ -1642,9 +1642,28 @@ def generate_auditorium_layout(
                 "label": f"Row {r} Seat Back Pokers"
             })
 
+    # Determine unique layout signature per hall (§ Part D)
+    if is_motion_hall or tid == "dolby_atmos_4dx":
+        layout_sig = "motion_pods"
+    elif tid == "flagship" or arrangement == "curved_flagship":
+        layout_sig = "curved_rows"
+    elif tid == "luxury_recliner":
+        layout_sig = "back_pairs_lounge"
+    elif tid == "balcony":
+        layout_sig = "premium_middle_block"
+    elif tid == "boutique":
+        layout_sig = "split_blocks_asymmetric"
+    elif arrangement == "continental":
+        layout_sig = "continental"
+    elif arrangement == "single_aisle":
+        layout_sig = "single_center_aisle"
+    else:
+        layout_sig = "centre_side_blocks"
+
     layout_data = {
         "theatre_type": tid,
         "theatre_type_label": theatre_def["label"],
+        "layout_signature": layout_sig,
         "arrangement_pattern": arrangement or theatre_def["arrangement"],
         "blocks_pattern": blocks_pattern,
         "sweet_spot": sweet_spot,
@@ -1730,9 +1749,9 @@ def generate_auditorium_layout(
             sag_z = round((pos_x * pos_x) / (2.0 * curve_rad), 3) if curve_rad else 0.0
             pos_z = round(row_z + sag_z, 3)
 
-            # Sweet spot override
+            # Seat category strictly follows tier rows (§ Part G: non-overlapping price bands)
             is_sw = r in sweet_spot_rows and num in sweet_spot_nums
-            cat = "Premier" if is_sw else base_cat
+            cat = base_cat
 
             eye_x = pos_x
             eye_y = round(row_y + 0.65, 3)
@@ -1942,19 +1961,23 @@ async def seed_database():
     print("Starting deterministic CineVerse multi-city seeding...")
     start_time = datetime.now()
 
+    force_seed = os.environ.get("FORCE_SEED", "0") == "1" or "--force" in sys.argv
+    if force_seed:
+        print("Force seed requested: resetting database schema before opening session...")
+        await reset_db()
+
     async with AsyncSessionLocal() as db:
-        # Check if already seeded with new catalogue
-        movie_count_res = await db.execute(select(func.count(Movie.id)))
-        existing_movies = movie_count_res.scalar() or 0
-        aud_count_res = await db.execute(select(func.count(Auditorium.id)))
-        existing_auds = aud_count_res.scalar() or 0
-        show_count_res = await db.execute(select(func.count(Showtime.id)))
-        existing_shows = show_count_res.scalar() or 0
+        if not force_seed:
+            # Check if already seeded with new catalogue
+            movie_count_res = await db.execute(select(func.count(Movie.id)))
+            existing_movies = movie_count_res.scalar() or 0
+            aud_count_res = await db.execute(select(func.count(Auditorium.id)))
+            existing_auds = aud_count_res.scalar() or 0
+            show_count_res = await db.execute(select(func.count(Showtime.id)))
+            existing_shows = show_count_res.scalar() or 0
 
-        force_seed = os.environ.get("FORCE_SEED", "0") == "1" or "--force" in sys.argv
-
-        if not force_seed and existing_movies >= 48 and existing_auds >= 70 and existing_shows >= 2000:
-            # Sync Phase 6 Map and Transit metadata for existing cinemas if missing
+            if existing_movies >= 48 and existing_auds >= 70 and existing_shows >= 2000:
+                # Sync Phase 6 Map and Transit metadata for existing cinemas if missing
             cin_stmt = select(Cinema)
             cin_res = await db.execute(cin_stmt)
             cinemas_to_sync = cin_res.scalars().all()
