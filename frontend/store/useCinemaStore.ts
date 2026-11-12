@@ -193,6 +193,7 @@ export interface CinemaState {
   standUp: () => void;
   walkToSeat: (seatId: string) => void;
   teleportToRow: (row: string) => void;
+  teleportWalkPlayer: (pos: [number, number, number]) => void;
   updateWalkPose: (pos: [number, number, number], eyeHeight: number, yaw: number, pitch: number) => void;
   setWalkSettings: (settings: Partial<WalkSettings>) => void;
 
@@ -428,7 +429,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     set({
       auditoriumId,
       auditoriumName: meta?.name || result.seatLayout.theatre_type_label || `Auditorium ${auditoriumId}`,
-      screenType: meta?.screenType || result.seatLayout.screen?.name || 'Standard Flat',
+      screenType: meta?.screenType || (result.seatLayout.screen as any)?.name || 'Standard Flat',
       proceduralResult: result,
       auditoriumLayout: result.seatLayout,
       auditoriumWalkNav: result.walkNav,
@@ -695,6 +696,19 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
         position: [0.0, groundY, rowZ],
         eyeHeight: 3.77,
         yaw: 0.0, // facing +Z toward screen
+      },
+    });
+  },
+
+  teleportWalkPlayer: (pos) => {
+    set({
+      mode: 'walk',
+      cameraMode: 'walk',
+      walkPlayer: {
+        ...get().walkPlayer,
+        position: pos,
+        yaw: 0.0,
+        pitch: 0.0,
       },
     });
   },

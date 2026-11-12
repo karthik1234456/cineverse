@@ -12,12 +12,12 @@ import { CompareView } from './CompareView';
 import { MobileControls } from './MobileControls';
 import { useMovieBackdrop } from '@/context/MovieBackdropContext';
 import { WalkHUD } from './WalkHUD';
-import { DroneHUD } from './DroneHUD';
 import { ScreenMediaCluster } from './ScreenMediaCluster';
 import { MotionEffectsOverlay } from './MotionEffectsOverlay';
 import { BoundaryNotice } from './BoundaryNotice';
 import { ToastNotification } from '../ui/ToastNotification';
 import { useCinemaStore } from '@/store/useCinemaStore';
+import { CanvasErrorBoundary } from './CanvasErrorBoundary';
 
 // Lazy-load 3D Canvas with ssr: false as required in § 6
 const CinemaWorld = dynamic(
@@ -41,12 +41,14 @@ interface AuditoriumExperienceProps {
   cinemaId?: string;
   auditoriumId?: string;
   showtimeId?: string;
+  onSwitchTo2D?: () => void;
 }
 
 export function AuditoriumExperience({
   cinemaId = 'cineverse-imax',
   auditoriumId = 'auditorium-1',
   showtimeId = '1',
+  onSwitchTo2D,
 }: AuditoriumExperienceProps) {
   // TanStack Query seat status sync
   useSeatData(showtimeId);
@@ -75,8 +77,10 @@ export function AuditoriumExperience({
       data-auditorium-id={auditoriumId}
       className="relative h-[100dvh] w-full overflow-hidden bg-[#07080a]"
     >
-      {/* Full-viewport Canvas */}
-      <CinemaWorld />
+      {/* Full-viewport Canvas protected with Error Boundary */}
+      <CanvasErrorBoundary onFallbackTo2D={onSwitchTo2D}>
+        <CinemaWorld />
+      </CanvasErrorBoundary>
 
       {/* Overlaid UI elements */}
       <AuditoriumInfoPanel />
@@ -87,7 +91,6 @@ export function AuditoriumExperience({
       <ScreenMediaCluster />
       <MotionEffectsOverlay />
       <WalkHUD />
-      <DroneHUD />
       <CompareView />
       <MobileControls />
       <BoundaryNotice />

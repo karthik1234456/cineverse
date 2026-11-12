@@ -152,7 +152,7 @@ export default function HomePage() {
                       title={heroMovie.title}
                       certificate={heroMovie.certificate}
                       className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                      containerClassName="h-full w-full"
+                      containerClassName="h-full w-full bg-[#181124]"
                       priority
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition duration-300 flex items-end p-4">
@@ -167,14 +167,17 @@ export default function HomePage() {
             </div>
           </>
         ) : (
-          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 animate-pulse">
-            <div className="h-8 w-40 bg-white/20 rounded-full mb-4" />
-            <div className="h-12 w-96 bg-white/20 rounded-xl mb-4" />
-            <div className="h-20 max-w-2xl bg-white/10 rounded-xl mb-6" />
-            <div className="flex gap-4">
-              <div className="h-12 w-36 bg-white/30 rounded-xl" />
-              <div className="h-12 w-36 bg-white/20 rounded-xl" />
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 flex justify-between items-center animate-pulse">
+            <div className="space-y-4 max-w-2xl w-full">
+              <div className="h-8 w-40 bg-white/20 rounded-full" />
+              <div className="h-12 w-96 max-w-full bg-white/20 rounded-xl" />
+              <div className="h-20 max-w-2xl bg-white/10 rounded-xl" />
+              <div className="flex gap-4 pt-2">
+                <div className="h-12 w-36 bg-white/30 rounded-xl" />
+                <div className="h-12 w-36 bg-white/20 rounded-xl" />
+              </div>
             </div>
+            <div className="hidden lg:block w-64 xl:w-72 aspect-[2/3] bg-white/10 rounded-2xl border border-white/20 shrink-0" />
           </div>
         )}
       </section>

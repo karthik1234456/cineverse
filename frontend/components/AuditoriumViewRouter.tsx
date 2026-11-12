@@ -199,6 +199,7 @@ export function AuditoriumViewRouter({
           cinemaId={cinemaId}
           auditoriumId={auditoriumId}
           showtimeId={showtimeId}
+          onSwitchTo2D={handleSwitchTo2D}
         />
       </div>
     );

@@ -2,7 +2,7 @@ export type SeatStatus = 'available' | 'booked' | 'held' | 'selected';
 
 export type SeatCategory = 'front' | 'prime' | 'premier';
 
-export type SeatType = 'standard' | 'recliner' | 'recliner_pair' | 'sofa' | 'accessible' | 'companion';
+export type SeatType = 'standard' | 'recliner' | 'recliner_pair' | 'sofa' | 'accessible' | 'companion' | 'motion';
 
 export type HallLevel = 'stalls' | 'balcony';
 
@@ -14,7 +14,7 @@ export type QualityTier = 'high' | 'medium' | 'low';
 
 export type QualityMode = 'smooth' | 'beautiful';
 
-export type CameraPreset = 'overview' | 'front' | 'back' | 'aerial' | 'screen' | 'balcony' | 'top' | 'picker';
+export type CameraPreset = 'overview' | 'front' | 'back' | 'aerial' | 'screen' | 'balcony' | 'top' | 'picker' | 'effects_rig' | 'wrap_screen';
 
 export interface BoundingBox3D {
   min: [number, number, number];
@@ -42,6 +42,18 @@ export interface SeatRecord {
   level?: HallLevel;
   section?: string;
   in_motion_zone?: boolean;
+  pod_id?: string;
+  motion_zone?: string;
+}
+
+export type EffectPropType = 'wind' | 'fog' | 'water' | 'strobe' | 'scent' | 'poke';
+
+export interface EffectProp {
+  id: string;
+  type: EffectPropType;
+  position: [number, number, number];
+  orientation?: [number, number, number];
+  label: string;
 }
 
 export interface CategoryInfo {
@@ -57,6 +69,15 @@ export interface ScreenConfig {
   height: number;
   aspect: number;
   mesh: string;
+  screen_type_id?: string;
+  screen_type_name?: string;
+  is_curved?: boolean;
+  has_projector_beam?: boolean;
+  panoramic_wrap?: {
+    sideAngleDeg: number;
+    sideWidthRatio: number;
+    sideHeightRatio: number;
+  };
 }
 
 export interface SeatLayoutFile {
@@ -65,6 +86,8 @@ export interface SeatLayoutFile {
   theatre_type?: string;
   theatre_type_name?: string;
   theatre_type_label?: string;
+  layout_signature?: string;
+  is_motion_hall?: boolean;
   arrangement_pattern?: string;
   blocks_pattern?: number[];
   sweet_spot?: {
@@ -109,6 +132,14 @@ export interface SeatLayoutFile {
   has_balcony?: boolean;
   recliner_pairs?: Array<[string, string]>;
   sofa_pairs?: Array<[string, string]>;
+  motion_zone?: string;
+  pods?: Array<{
+    pod_id: string;
+    row: string;
+    capacity: number;
+    seat_ids: string[];
+    type?: string;
+  }>;
   features?: {
     motion_seats?: boolean;
     wind?: boolean;
@@ -120,6 +151,7 @@ export interface SeatLayoutFile {
     is_4dx?: boolean;
     dolby_atmos?: boolean;
   };
+  effect_props?: EffectProp[];
   seats: SeatRecord[];
 }
 

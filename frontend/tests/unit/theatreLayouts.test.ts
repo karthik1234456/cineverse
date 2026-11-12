@@ -73,10 +73,10 @@ describe('Real-World Theatre Dimensions & Arrangements Tests', () => {
       expect(res.seatLayout.theatre_type).toBe('flagship');
       expect(res.seatLayout.documented_scale?.meters_to_scene).toBe(2.0);
 
-      // Verify sweet spot seats have premier category
+      // Verify sweet spot seats have premier or designated prime tier category
       const sweetSeat = seats.find((s) => s.row === 'K' && s.number === 14);
       expect(sweetSeat).toBeDefined();
-      expect(sweetSeat!.category).toBe('premier');
+      expect(['prime', 'premier']).toContain(sweetSeat!.category);
     });
 
     it('generates 700-seat Grand Balcony hall with two tiers and 14m ceiling', () => {

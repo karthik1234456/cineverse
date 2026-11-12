@@ -123,7 +123,8 @@ export async function getMovies(params: {
   page_size?: number;
 } = {}): Promise<Movie[]> {
   const query = new URLSearchParams();
-  if (params.city_id) query.set('city_id', params.city_id.toString());
+  const cId = params.city_id || (typeof window !== 'undefined' ? parseInt(localStorage.getItem('cineverse_city_id') || '1', 10) : 1);
+  if (cId) query.set('city_id', cId.toString());
   if (params.genre) query.set('genre', params.genre);
   if (params.language) query.set('language', params.language);
   if (params.format) query.set('format', params.format);
@@ -189,7 +190,8 @@ export async function getMovieShowtimes(
   maxDistanceKm?: number
 ): Promise<CinemaShowtimesGroup[]> {
   const query = new URLSearchParams();
-  if (cityId) query.set('city_id', cityId.toString());
+  const cId = cityId || (typeof window !== 'undefined' ? parseInt(localStorage.getItem('cineverse_city_id') || '1', 10) : 1);
+  if (cId) query.set('city_id', cId.toString());
   if (targetDate) query.set('target_date', targetDate);
   if (format) query.set('format', format);
   if (language) query.set('language', language);
@@ -235,7 +237,8 @@ export async function getCinemas(params: {
   if (typeof params === 'number') {
     query.set('city_id', params.toString());
   } else {
-    if (params.cityId) query.set('city_id', params.cityId.toString());
+    const cId = params.cityId || (typeof window !== 'undefined' ? parseInt(localStorage.getItem('cineverse_city_id') || '1', 10) : 1);
+    if (cId) query.set('city_id', cId.toString());
     if (params.search) query.set('search', params.search);
     if (params.userLat != null) query.set('user_lat', params.userLat.toString());
     if (params.userLng != null) query.set('user_lng', params.userLng.toString());

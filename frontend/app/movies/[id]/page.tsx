@@ -24,7 +24,17 @@ export default function MovieDetailPage() {
   const [movie, setMovie] = useState<MovieDetail | null>(null);
   const [showtimesGroups, setShowtimesGroups] = useState<CinemaShowtimesGroup[]>([]);
   const [selectedDateIdx, setSelectedDateIdx] = useState<number>(0);
-  const [currentCityId, setCurrentCityId] = useState<number | undefined>(undefined);
+  const [currentCityId, setCurrentCityId] = useState<number | undefined>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('cineverse_city_id');
+      if (stored) return parseInt(stored, 10);
+      const citySlug = localStorage.getItem('cineverse_city');
+      if (citySlug === 'delhi-ncr') return 3;
+      if (citySlug === 'mumbai') return 2;
+      if (citySlug === 'bengaluru') return 1;
+    }
+    return undefined;
+  });
   const [loading, setLoading] = useState(true);
   const [radiusFilter, setRadiusFilter] = useState<number | null>(null);
   const [activeModalCinema, setActiveModalCinema] = useState<CinemaShowtimesGroup | null>(null);
@@ -83,9 +93,14 @@ export default function MovieDetailPage() {
           glimpse_webm_url: (m as any).glimpse_webm_url ?? null,
           glimpse_720p_url: (m as any).glimpse_720p_url ?? null,
         });
+        const targetCityId = currentCityId ?? (
+          typeof window !== 'undefined'
+            ? (parseInt(localStorage.getItem('cineverse_city_id') || '0', 10) || undefined)
+            : undefined
+        );
         const groups = await getMovieShowtimes(
           m.id,
-          currentCityId,
+          targetCityId,
           selectedDate.iso,
           undefined,
           undefined,
@@ -96,11 +111,11 @@ export default function MovieDetailPage() {
         if (groups && groups.length > 0) {
           setShowtimesGroups(groups);
         } else if (selectedDateIdx === 0 && !radiusFilter) {
-          // Check subsequent days to show the first available showtime
+          // Check subsequent days to show the first available showtime in this city
           for (let i = 1; i < dates.length; i++) {
             const nextGroups = await getMovieShowtimes(
               m.id,
-              currentCityId,
+              targetCityId,
               dates[i].iso,
               undefined,
               undefined,

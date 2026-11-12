@@ -32,7 +32,7 @@ describe('Procedural Auditorium Generator — Faithfulness & Geometry Tests', ()
     });
 
     it('satisfies numbering rule: Seat 01 on Audience Left (+X) for every row', () => {
-      for (const row of input100.rows) {
+      for (const row of (input100.rows as string[])) {
         const rowSeats = genSeats.filter((s) => s.row === row);
         expect(rowSeats.length).toBe(10);
         // Seat 1 should have largest positive X

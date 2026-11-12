@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Wind, Droplets, CloudFog, Zap, Flame, ShieldAlert, X, Volume2, Sparkles } from 'lucide-react';
 import { useCinemaStore } from '@/store/useCinemaStore';
+import { getTheatreTypeDefinition } from '@/lib/theatreTypeRegistry';
 import {
   DEFAULT_4DX_TRACK,
   validateWcagFlashSafety,
@@ -22,11 +23,10 @@ export function MotionEffectsOverlay() {
   const proceduralResult = useCinemaStore((s) => s.proceduralResult);
   const screenType = useCinemaStore((s) => s.screenType);
 
-  // Exclusive to motion-seat halls (§ Part G)
+  // Exclusive to motion-seat halls (§ Part G): inspect registry features and layout signature
   const isMotionHall = Boolean(
-    proceduralResult?.seatLayout.theatre_type === 'dolby_atmos_4dx' ||
-    proceduralResult?.seatLayout.theatre_type === 'motion_seat' ||
     proceduralResult?.seatLayout.layout_signature === 'motion_pods' ||
+    (proceduralResult?.seatLayout.theatre_type && getTheatreTypeDefinition(proceduralResult.seatLayout.theatre_type).features.motion_seats) ||
     (screenType && (screenType.toLowerCase().includes('motion') || screenType.toLowerCase().includes('4dx')))
   );
 

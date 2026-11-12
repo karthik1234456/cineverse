@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { generateProceduralAuditorium } from '../../lib/proceduralAuditorium';
-import { THEATRE_TYPES } from '../../lib/theatreTypeRegistry';
+import type { TheatreTypeId } from '../../lib/theatreTypeRegistry';
 
 describe('PART F: Screen Distance Rules & FOV Verification', () => {
   const theatreTypes = [
@@ -53,3 +53,4 @@ describe('PART F: Screen Distance Rules & FOV Verification', () => {
     });
   });
 });
+

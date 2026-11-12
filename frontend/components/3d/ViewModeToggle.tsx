@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useCinemaStore, DEFAULT_CAMERA_POS, DEFAULT_CAMERA_TARGET } from '@/store/useCinemaStore';
+import { getTheatreTypeDefinition } from '@/lib/theatreTypeRegistry';
 import {
   Compass,
   Footprints,
@@ -88,7 +89,8 @@ export function ViewModeToggle() {
   const isMotionHall =
     Boolean(auditoriumLayout?.is_motion_hall) ||
     Boolean(auditoriumLayout?.features?.motion_seats) ||
-    Boolean(auditoriumLayout?.theatre_type === 'dolby_atmos_4dx') ||
+    Boolean(auditoriumLayout?.theatre_type && getTheatreTypeDefinition(auditoriumLayout.theatre_type).features.motion_seats) ||
+    Boolean(auditoriumLayout?.layout_signature === 'motion_pods') ||
     Boolean(auditoriumLayout?.theatre_type_label?.toLowerCase().includes('motion')) ||
     Boolean(proceduralResult?.geometry?.motionPodBases && proceduralResult.geometry.motionPodBases.length > 0);
 

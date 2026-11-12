@@ -11,6 +11,7 @@ import {
   MapPin,
   RefreshCw,
   Search,
+  Building2,
 } from 'lucide-react';
 
 interface MediaCheck {
@@ -26,6 +27,16 @@ interface MediaCheck {
   reason: string;
 }
 
+interface SourceChainInfo {
+  screen_3d_source: string;
+  screen_3d_desc: string;
+  booking_bg_source: string;
+  booking_bg_desc: string;
+  has_hosted_clip: boolean;
+  is_youtube_only: boolean;
+  official_player_supported: boolean;
+}
+
 interface MovieReport {
   id: number;
   title: string;
@@ -38,6 +49,7 @@ interface MovieReport {
   trailer: MediaCheck;
   ambient_clip: MediaCheck;
   effects_track: MediaCheck;
+  source_chain?: SourceChainInfo;
   status_ok: boolean;
   reason: string;
 }
@@ -70,6 +82,21 @@ interface CityReport {
   reason: string;
 }
 
+interface CityHallTypeReport {
+  city_id: number;
+  city_name: string;
+  city_slug: string;
+  hall_type: string;
+  hall_count: number;
+  sample_hall_name: string;
+  sample_cinema_name: string;
+  min_seats: number;
+  max_seats: number;
+  different_layouts: boolean;
+  status_ok: boolean;
+  reason: string;
+}
+
 interface ReadinessData {
   status: string;
   environment: {
@@ -95,13 +122,14 @@ interface ReadinessData {
   movies: MovieReport[];
   halls: HallReport[];
   cities: CityReport[];
+  city_hall_types?: CityHallTypeReport[];
 }
 
 export default function DeveloperReadinessPage() {
   const [data, setData] = useState<ReadinessData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'movies' | 'halls' | 'cities'>('movies');
+  const [activeTab, setActiveTab] = useState<'movies' | 'halls' | 'cities' | 'hall_types'>('movies');
   const [movieFilter, setMovieFilter] = useState<'all' | 'showcase' | 'tmdb' | 'errors'>('all');
   const [hallFilter, setHallFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -352,6 +380,18 @@ export default function DeveloperReadinessPage() {
           <MapPin className="h-4 w-4" />
           <span>Cities ({data.cities.length})</span>
         </button>
+
+        <button
+          onClick={() => setActiveTab('hall_types')}
+          data-testid="tab-hall-types-btn"
+          className={`flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition ${activeTab === 'hall_types'
+              ? 'bg-[#C8102E] text-white shadow-sm'
+              : 'text-slate-600 hover:bg-slate-100'
+            }`}
+        >
+          <Building2 className="h-4 w-4" />
+          <span>Hall Types by City ({data.city_hall_types?.length || 0})</span>
+        </button>
       </div>
 
       {/* 5. TAB CONTENT: MOVIES */}
@@ -398,6 +438,7 @@ export default function DeveloperReadinessPage() {
                   <th className="p-3">Trailer Video</th>
                   <th className="p-3">Ambient Glimpse</th>
                   <th className="p-3">4DX Effects Track</th>
+                  <th className="p-3">Source Chain</th>
                   <th className="p-3">Status & Reason</th>
                 </tr>
               </thead>
@@ -519,6 +560,20 @@ export default function DeveloperReadinessPage() {
                         </span>
                         <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
                           {m.effects_track.reason}
+                        </div>
+                      </td>
+
+                      {/* 8. Source Chain */}
+                      <td className="p-3">
+                        <div className="space-y-1">
+                          <div className="text-[11px] font-semibold text-slate-800">
+                            <span className="text-slate-400 font-normal">3D Screen: </span>
+                            <span className="text-indigo-900 font-bold">{m.source_chain?.screen_3d_source || (m.is_showcase ? 'Hosted Video Texture' : 'Animated Backdrop')}</span>
+                          </div>
+                          <div className="text-[11px] font-semibold text-slate-800">
+                            <span className="text-slate-400 font-normal">Booking BG: </span>
+                            <span className="text-emerald-900 font-bold">{m.source_chain?.booking_bg_source || (m.is_showcase ? 'Hosted Ambient Clip' : 'Animated Backdrop')}</span>
+                          </div>
                         </div>
                       </td>
 
@@ -715,6 +770,68 @@ export default function DeveloperReadinessPage() {
                       )}
                     </td>
                     <td className="p-3 text-slate-600 text-[11px]">{c.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* 8. TAB CONTENT: HALL TYPES BY CITY */}
+      {activeTab === 'hall_types' && (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-[#E6DCD2] bg-white p-4 shadow-sm text-xs text-slate-600">
+            <span className="font-bold text-[#1B1320]">Hall Diversity Verification:</span> Every seeded city must feature at least one auditorium of every architectural category (Large screen, Overhead sound, Motion seats, Recliner, Balcony, Boutique, Standard) with real-world dimensions and varied layouts.
+          </div>
+
+          <div className="overflow-x-auto rounded-2xl border border-[#E6DCD2] bg-white shadow-sm">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-[#E6DCD2] bg-slate-50 font-bold text-slate-600">
+                  <th className="p-3">City</th>
+                  <th className="p-3">Hall Type (Generic Category)</th>
+                  <th className="p-3">Halls Count</th>
+                  <th className="p-3">Sample Auditorium</th>
+                  <th className="p-3">Cinema Destination</th>
+                  <th className="p-3">Capacity Range</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3">Plain Reason</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {(data.city_hall_types || []).map((row, idx) => (
+                  <tr
+                    key={`${row.city_slug}-${row.hall_type}-${idx}`}
+                    data-testid={`readiness-hall-type-${row.city_slug}-${row.hall_type.toLowerCase().replace(/\s+/g, '-')}`}
+                    className="hover:bg-slate-50/70 transition"
+                  >
+                    <td className="p-3 font-bold text-sm text-[#1B1320]">{row.city_name}</td>
+                    <td className="p-3">
+                      <span className="inline-block rounded-md bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-900 border border-indigo-200">
+                        {row.hall_type}
+                      </span>
+                    </td>
+                    <td className="p-3 font-mono font-bold text-sm text-[#C8102E]">{row.hall_count}</td>
+                    <td className="p-3 font-semibold text-slate-800">{row.sample_hall_name}</td>
+                    <td className="p-3 text-slate-600">{row.sample_cinema_name}</td>
+                    <td className="p-3 font-mono text-slate-700">
+                      {row.min_seats} – {row.max_seats} seats
+                    </td>
+                    <td className="p-3">
+                      {row.status_ok ? (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800">
+                          <CheckCircle className="h-3.5 w-3.5 text-emerald-600" />
+                          <span>READY</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-bold text-red-800">
+                          <XCircle className="h-3.5 w-3.5 text-red-600" />
+                          <span>MISSING</span>
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-3 text-slate-600 text-[11px]">{row.reason}</td>
                   </tr>
                 ))}
               </tbody>

@@ -912,7 +912,7 @@ export function ProceduralAuditorium({
             hexColor = '#2e4858'; // Slate Teal Velvet
           } else if (familyType === 'recliner') {
             hexColor = '#38241b'; // Espresso Brown Leather
-          } else if (isMotionHall || theatreDef.id === 'dolby_atmos_4dx') {
+          } else if (theatreDef.features.motion_seats || theatreDef.features.is_4dx || auditoriumLayout?.layout_signature === 'motion_pods') {
             // Motion hall seats are charcoal/graphite with technical accents
             hexColor = seat.category === 'premier' ? '#252932' : seat.category === 'front' ? '#1a1c22' : '#1f2229';
           } else {

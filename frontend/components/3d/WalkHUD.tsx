@@ -16,6 +16,8 @@ export function WalkHUD() {
   const sitAt = useCinemaStore((s) => s.sitAt);
   const teleportToRow = useCinemaStore((s) => s.teleportToRow);
   const setMode = useCinemaStore((s) => s.setMode);
+  const auditoriumWalkNav = useCinemaStore((s) => s.auditoriumWalkNav);
+  const teleportWalkPlayer = useCinemaStore((s) => s.teleportWalkPlayer);
 
   const [hasDismissedHint, setHasDismissedHint] = useState(false);
   const [isLocked, setIsLocked] = useState(false);

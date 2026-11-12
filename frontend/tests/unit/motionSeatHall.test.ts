@@ -49,7 +49,7 @@ describe('Motion-Seat (4DX-Style) Hall Type — Structure, Screen & Seating Veri
     });
 
     it('orders seat numbering strictly from audience left (+X) to audience right (-X)', () => {
-      for (const rowLetter of motionInput240.rows) {
+      for (const rowLetter of (motionInput240.rows as string[])) {
         const rowSeats = seatLayout.seats.filter((s) => s.row === rowLetter);
         expect(rowSeats.length).toBe(20);
 

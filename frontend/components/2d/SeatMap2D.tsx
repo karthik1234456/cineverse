@@ -14,6 +14,7 @@ import { holdSeats, updateHoldAddons, getShowtimeSeats, apiFetch, type ShowtimeS
 import { FnbAddonModal } from '@/components/FnbAddonModal';
 import layoutDataFallback from '@/public/models/seat_layout_v2.json';
 import obstructionsData from '@/public/models/seat_obstructions.json';
+import { getTheatreTypeDefinition } from '@/lib/theatreTypeRegistry';
 import { viewScore, bestAvailable, type PreferenceType, type ScoredSeatInput } from '@/lib/seatScoring';
 import { GroupBookingModal } from '@/components/group/GroupBookingModal';
 import { GroupRoomBanner } from '@/components/group/GroupRoomBanner';
@@ -367,6 +368,38 @@ export function SeatMap2D({
     return !!(showtimeDetails?.layout_data?.curve_radius);
   }, [showtimeDetails?.layout_data]);
 
+  const isMotionHall = useMemo(() => {
+    return Boolean(
+      showtimeDetails?.layout_data?.is_motion_hall ||
+      showtimeDetails?.layout_data?.motion_zone === 'all' ||
+      showtimeDetails?.layout_data?.layout_signature === 'motion_pods' ||
+      (showtimeDetails?.layout_data?.theatre_type && getTheatreTypeDefinition(showtimeDetails.layout_data.theatre_type).features.motion_seats) ||
+      showtimeDetails?.layout_data?.theatre_type_label?.toLowerCase().includes('motion') ||
+      showtimeDetails?.auditorium_name?.toLowerCase().includes('motion') ||
+      showtimeDetails?.screen_type?.toLowerCase().includes('motion') ||
+      showtimeDetails?.screen_type?.toLowerCase().includes('4dx')
+    );
+  }, [showtimeDetails]);
+
+  const seatToPodMap = useMemo(() => {
+    const map = new Map<string, string>();
+    if (showtimeDetails?.layout_data?.pods) {
+      for (const p of showtimeDetails.layout_data.pods) {
+        for (const sId of p.seat_ids || []) {
+          map.set(sId, p.pod_id);
+        }
+      }
+    }
+    if (showtimeDetails?.seats) {
+      for (const s of showtimeDetails.seats) {
+        if ((s as any).pod_id) {
+          map.set(s.seat_id, (s as any).pod_id);
+        }
+      }
+    }
+    return map;
+  }, [showtimeDetails]);
+
   const accessibleSeatsList = useMemo(() => {
     if (showtimeDetails?.layout_data?.accessible_seats) {
       return showtimeDetails.layout_data.accessible_seats;
@@ -384,9 +417,9 @@ export function SeatMap2D({
       return [...bands].reverse().map((b) => {
         const catLower = b.category.toLowerCase();
         let name = b.category;
-        if (catLower === 'premier') name = 'Premier Recliner';
-        else if (catLower === 'prime') name = 'Prime Standard';
-        else if (catLower === 'front') name = 'Front Row';
+        if (catLower === 'premier') name = isMotionHall ? 'Premier Motion' : 'Premier Recliner';
+        else if (catLower === 'prime') name = isMotionHall ? 'Prime Motion' : 'Prime Standard';
+        else if (catLower === 'front') name = isMotionHall ? 'Front Motion' : 'Front Row';
 
         // Find price from first seat in this category
         let price = 380;
@@ -1007,6 +1040,23 @@ export function SeatMap2D({
         {/* Phase 10: Group Booking Active Session Room Banner */}
         <GroupRoomBanner showtimeId={Number(showtimeId)} />
 
+        {/* Motion-seat Hall Indicator & Features Banner */}
+        {isMotionHall && (
+          <div
+            data-testid="motion-seats-banner"
+            className="flex items-center justify-between gap-3 px-5 py-3 rounded-2xl bg-gradient-to-r from-cyan-950 via-slate-900 to-cyan-950 text-cyan-200 border border-cyan-800/60 shadow-lg text-xs md:text-sm font-semibold mb-2"
+          >
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-cyan-400 animate-ping" />
+              <span className="text-white font-black tracking-wide uppercase">Motion seats</span>
+              <span className="text-cyan-300 hidden sm:inline">— Synchronized motion pods &amp; environmental effects (wind, mist, scent)</span>
+            </div>
+            <span className="px-2.5 py-1 rounded-full bg-cyan-900/80 text-cyan-200 border border-cyan-700/50 text-[11px] font-bold uppercase tracking-wider">
+              {showtimeDetails?.auditorium_name || 'Motion-seat Hall'}
+            </span>
+          </div>
+        )}
+
         {/* Curved Screen Banner with ambient glow */}
         <div className="pt-2 pb-6 flex flex-col items-center">
           <div className="h-2.5 w-4/5 max-w-xl rounded-full bg-gradient-to-r from-transparent via-[#C8102E] to-transparent shadow-lg shadow-rose-200/60" />
@@ -1208,12 +1258,20 @@ export function SeatMap2D({
                             // Aisle gap margin
                             const hasAisleAfter = aisles.includes(s.number);
 
+                            // Motion pod grouping
+                            const podId = isMotionHall ? seatToPodMap.get(seatId) : null;
+                            const sIndexInRow = seatsInRow.indexOf(s);
+                            const nextSeat = sIndexInRow < seatsInRow.length - 1 ? seatsInRow[sIndexInRow + 1] : null;
+                            const nextPodId = nextSeat && isMotionHall ? seatToPodMap.get(nextSeat.seat_id) : null;
+                            const isPodEnd = Boolean(podId && nextPodId && podId !== nextPodId);
+
                             const groupMember = seatGroupMemberMap.get(seatId);
 
                             const statusWord = isSelected ? 'selected' : (isBooked ? 'booked' : (isHeld ? 'held' : 'available'));
                             const accessibleKind = isAccessible ? ', accessible wheelchair space' : (s.is_companion ? ', companion seat' : '');
                             const reclinerKind = isRecliner ? `, recliner pair with ${partnerId}` : '';
-                            const accessibleName = `Row ${s.row}, seat ${s.number}, ${tier.name}, ${Math.round(seatPrice)} rupees, ${statusWord}${accessibleKind}${reclinerKind}`;
+                            const motionKind = podId ? `, Motion pod ${podId}` : '';
+                            const accessibleName = `Row ${s.row}, seat ${s.number}, ${tier.name}, ${Math.round(seatPrice)} rupees, ${statusWord}${accessibleKind}${reclinerKind}${motionKind}`;
 
                             return (
                               <div
@@ -1222,8 +1280,12 @@ export function SeatMap2D({
                                 aria-selected={isSelected}
                                 style={arcOffset ? { transform: `translateY(${arcOffset}px)` } : undefined}
                                 className={`relative flex items-center justify-center p-1 ${
-                                  hasAisleAfter ? 'mr-5 sm:mr-8 md:mr-10' : ''
-                                }`}
+                                  hasAisleAfter
+                                    ? 'mr-5 sm:mr-8 md:mr-10'
+                                    : isPodEnd
+                                      ? 'mr-3.5 sm:mr-5 md:mr-6'
+                                      : ''
+                                } ${isMotionHall && podId ? 'rounded-lg bg-cyan-950/5' : ''}`}
                               >
                                 <button
                                   type="button"

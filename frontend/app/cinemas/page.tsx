@@ -99,14 +99,35 @@ export default function CinemasPage() {
   const activeCitySlug = CITY_NAMES[cityId] || 'bengaluru';
   const cityCenter: [number, number] = CITY_COORDINATES[activeCitySlug] || [12.9716, 77.5946];
 
-  // Filter cinemas by format and search query
+  // Filter cinemas by format and search query (Generic names in interface & filters)
   const filteredCinemas = useMemo(() => {
     return cinemas.filter((c) => {
       if (formatFilter !== 'ALL') {
-        const hasFormat = c.facilities?.some((f) =>
-          f.toLowerCase().includes(formatFilter.toLowerCase())
-        );
-        if (!hasFormat) return false;
+        const filterLow = formatFilter.toLowerCase();
+        const fLowers = (c.facilities || []).map((f) => f.toLowerCase());
+        let matches = false;
+
+        if (filterLow === 'large screen') {
+          matches = fLowers.some((f) => f.includes('large') || f.includes('imax') || f.includes('flagship'));
+        } else if (filterLow === 'laser projection') {
+          matches = fLowers.some((f) => f.includes('laser'));
+        } else if (filterLow === 'overhead sound') {
+          matches = fLowers.some((f) => f.includes('overhead') || f.includes('atmos') || f.includes('sound'));
+        } else if (filterLow === 'motion seats') {
+          matches = fLowers.some((f) => f.includes('motion') || f.includes('4dx'));
+        } else if (filterLow === 'recliner') {
+          matches = fLowers.some((f) => f.includes('recliner') || f.includes('gold') || f.includes('luxury'));
+        } else if (filterLow === 'balcony') {
+          matches = fLowers.some((f) => f.includes('balcony'));
+        } else if (filterLow === 'boutique') {
+          matches = fLowers.some((f) => f.includes('boutique') || f.includes('velvet'));
+        } else if (filterLow === '3d') {
+          matches = fLowers.some((f) => f.includes('3d'));
+        } else {
+          matches = fLowers.some((f) => f.includes(filterLow));
+        }
+
+        if (!matches) return false;
       }
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
@@ -226,14 +247,24 @@ export default function CinemasPage() {
 
       {/* Filter Chips & Search Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4 mb-6">
-        {/* Format Filters */}
+        {/* Format Filters (Generic names, 14px text) */}
         <div className="flex flex-wrap items-center gap-2">
-          {['ALL', 'IMAX', 'Dolby Atmos', '4DX', 'Laser', 'Recliner'].map((fmt) => (
+          {[
+            'ALL',
+            'Large screen',
+            'Laser projection',
+            'Overhead sound',
+            'Motion seats',
+            'Recliner',
+            'Balcony',
+            'Boutique',
+            '3D',
+          ].map((fmt) => (
             <button
               key={fmt}
               type="button"
               onClick={() => setFormatFilter(fmt)}
-              className={`h-11 px-4 rounded-xl text-sm font-bold transition border ${
+              className={`h-11 px-4 rounded-xl text-sm font-semibold transition border ${
                 formatFilter === fmt
                   ? 'bg-[#C8102E] text-white border-[#C8102E] shadow-sm'
                   : 'bg-white text-[#4A4056] border-[#E6DCD2] hover:border-[#C8102E] hover:text-[#C8102E]'

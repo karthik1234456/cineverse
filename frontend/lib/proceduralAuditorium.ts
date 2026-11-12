@@ -46,10 +46,10 @@ export interface RowDefinition {
 }
 
 export interface AuditoriumLayoutInput {
-  rows: string[];
-  seats_per_row: number;
-  aisles: number[];
-  theatre_type?: TheatreTypeId;
+  rows?: string[] | number;
+  seats_per_row?: number;
+  aisles?: number[];
+  theatre_type?: TheatreTypeId | string;
   arrangement_pattern?: string;
   blocks_pattern?: number[];
   sweet_spot?: {
@@ -341,7 +341,11 @@ export function computeRowXPositions(
 export function generateProceduralAuditorium(
   input: AuditoriumLayoutInput
 ): ProceduralAuditoriumResult {
-  const rows = input.rows && input.rows.length > 0 ? input.rows : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+  const rows: string[] = Array.isArray(input.rows)
+    ? (input.rows.length > 0 ? input.rows : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
+    : typeof input.rows === 'number'
+    ? Array.from({ length: input.rows }, (_, i) => String.fromCharCode(65 + i))
+    : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
   const defaultSeatsPerRow = input.seats_per_row || 10;
   const totalSeatsEstimate = input.total_seats || (rows.length * defaultSeatsPerRow);
   
@@ -439,6 +443,19 @@ export function generateProceduralAuditorium(
     screenCenterY = Math.max(5.55, screenHeight / 2 + 1.2);
   }
 
+  const curveRadius = input.curve_radius ?? (isCurved ? 28.0 : undefined);
+
+  // If rows are curved, outer seats curve forwards towards the screen by sagZ = (posX^2) / (2 * curveRadius).
+  // We offset rowAZ backwards by maxRowASagZ so that even the most forward-curved edge seats
+  // strictly satisfy distance >= 1.2 * screenHeight and horizontal FOV <= 75 degrees.
+  const rowASeatsCount = rowDefMap.get(rows[0])?.seats_count ?? defaultSeatsPerRow;
+  const rowAAisles = aisles;
+  const rowAXs = computeRowXPositions(rowASeatsCount, rowAAisles, seatPitch, aisleGap);
+  const maxRowAX = rowAXs.length > 0 ? Math.max(...rowAXs.map(Math.abs)) : 0;
+  const maxRowASagZ = (isCurved && curveRadius && maxRowAX > 0)
+    ? Math.round(((maxRowAX * maxRowAX) / (2 * curveRadius)) * 1000) / 1000
+    : 0;
+
   // Calculate dynamic Row A Z based on screen distance rule:
   // distance >= 1.2 * screenHeight and horizontal FOV <= 75 degrees.
   // In legacy reference mode (100 seats without explicit type), retain fixed ROW_A_Z (-8.032) for bitwise test fidelity.
@@ -447,7 +464,7 @@ export function generateProceduralAuditorium(
     : calculateScreenDistance(screenWidth, screenHeight, 75.0);
   const rowAZ = (isLegacyMode || totalSeatsEstimate === 100)
     ? ROW_A_Z
-    : Math.round((SCREEN_Z - reqScreenDist) * 1000) / 1000;
+    : Math.round((SCREEN_Z - (reqScreenDist + maxRowASagZ)) * 1000) / 1000;
 
   const totalRows = rows.length;
   const zBack = rowAZ - (totalRows - 1) * rowPitch - 4.5;
@@ -487,7 +504,6 @@ export function generateProceduralAuditorium(
   const balconyRowSet = new Set(balconyRowsList);
   const stallsRowsList = rows.filter((r) => !balconyRowSet.has(r));
   const stallsCount = stallsRowsList.length;
-  const curveRadius = input.curve_radius ?? (isCurved ? 28.0 : undefined);
 
   // Seat Records & Colliders
   const seatRecords: SeatRecord[] = [];

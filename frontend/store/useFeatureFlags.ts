@@ -7,6 +7,7 @@ export interface FeatureFlags {
   enableSoundPreview: boolean;
   enableVrPreview: boolean;
   enableTicketTransfer: boolean;
+  officialPlayerOnScreen: boolean;
 }
 
 interface FeatureFlagsState extends FeatureFlags {
@@ -24,6 +25,7 @@ const DEFAULT_FLAGS: FeatureFlags = {
   enableSoundPreview: false,
   enableVrPreview: false,
   enableTicketTransfer: false,
+  officialPlayerOnScreen: true,
 };
 
 export const useFeatureFlags = create<FeatureFlagsState>((set, get) => ({
@@ -51,6 +53,7 @@ export const useFeatureFlags = create<FeatureFlagsState>((set, get) => ({
         enableSoundPreview: get().enableSoundPreview,
         enableVrPreview: get().enableVrPreview,
         enableTicketTransfer: get().enableTicketTransfer,
+        officialPlayerOnScreen: get().officialPlayerOnScreen,
         [key]: value,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));

@@ -230,7 +230,7 @@ function MoviesListContent() {
           <option value="Comedy">Comedy</option>
         </select>
 
-        {/* Formats */}
+        {/* Formats (Generic names) */}
         <select
           value={selectedFormat}
           onChange={(e) => handleFormatChange(e.target.value)}
@@ -239,10 +239,14 @@ function MoviesListContent() {
           aria-label="Filter by Format"
         >
           <option value="All">All Formats</option>
-          <option value="IMAX 3D">IMAX 3D</option>
-          <option value="4DX">4DX</option>
-          <option value="2D Dolby Atmos">2D Dolby Atmos</option>
-          <option value="2D">Standard 2D</option>
+          <option value="Large screen">Large screen</option>
+          <option value="Laser projection">Laser projection</option>
+          <option value="Overhead sound">Overhead sound</option>
+          <option value="Motion seats">Motion seats</option>
+          <option value="Recliner">Recliner</option>
+          <option value="Balcony">Balcony</option>
+          <option value="Boutique">Boutique</option>
+          <option value="3D">3D</option>
         </select>
 
         {/* Certificate */}

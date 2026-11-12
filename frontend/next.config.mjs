@@ -14,9 +14,6 @@ const nextConfig = {
     NEXT_PUBLIC_GIT_COMMIT_SHA: commitHash,
     NEXT_PUBLIC_BUILD_TIME: buildTime,
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   images: {
     remotePatterns: [
       {
