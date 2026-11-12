@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, func, insert
 from sqlalchemy.orm import selectinload
 
-from app.config import settings
+from app.config import settings, get_tmdb_auth_details
 from app.models.movie import Movie, MovieCast
 from app.models.cinema import Cinema, Auditorium, City, Seat
 from app.models.showtime import Showtime, SeatInventory, SeatStatusEnum, PriceRule
@@ -66,18 +66,26 @@ def _execute_tmdb_curl(endpoint: str, params: Optional[Dict[str, Any]] = None, r
     """
     Executes TMDB API request using curl with TLS 1.3 and DNS-over-HTTPS.
     Bypasses local ISP SNI filtering and connection resets in India.
-    Never prints or logs the API key.
+    Accepts both:
+      - 32-character hex key via ?api_key=...
+      - Long JWT token via Authorization: Bearer ...
+    Never prints or logs the API key or token.
     """
-    api_key = (settings.TMDB_API_KEY or "").strip()
-    if not api_key:
+    auth = get_tmdb_auth_details()
+    if auth["mode"] == "missing":
         return None
 
-    query_parts = [f"api_key={api_key}"]
+    query_parts = []
+    if auth["mode"] == "v3 api_key":
+        query_parts.append(f"api_key={auth['token']}")
     if params:
         for k, v in params.items():
             query_parts.append(f"{k}={v}")
 
-    url = f"{settings.TMDB_BASE_URL}{endpoint}?" + "&".join(query_parts)
+    url = f"{settings.TMDB_BASE_URL}{endpoint}"
+    if query_parts:
+        url += "?" + "&".join(query_parts)
+
     cmd = [
         "curl.exe",
         "-4",
@@ -86,8 +94,10 @@ def _execute_tmdb_curl(endpoint: str, params: Optional[Dict[str, Any]] = None, r
         "--ssl-no-revoke",
         "--doh-url",
         "https://cloudflare-dns.com/dns-query",
-        url
     ]
+    if auth["mode"] == "v4 bearer token":
+        cmd.extend(["-H", f"Authorization: Bearer {auth['token']}"])
+    cmd.append(url)
 
     for attempt in range(retries):
         try:
@@ -100,58 +110,121 @@ def _execute_tmdb_curl(endpoint: str, params: Optional[Dict[str, Any]] = None, r
     return None
 
 
-async def check_tmdb_key_status() -> Dict[str, Any]:
+async def check_tmdb_key_status(force_fresh: bool = False) -> Dict[str, Any]:
     """
-    Validates TMDB API key against TMDB API without ever exposing the key string.
-    Cached for 5 minutes in memory.
+    Validates TMDB API key or Bearer token against TMDB configuration endpoint.
+    Categorizes the result precisely:
+      - "key_missing": Key or token not provided
+      - "key_rejected": TMDB returned HTTP 401 / 403 / 4xx with status code
+      - "network_error": DNS, timeout, or connection failure
+      - "ok": TMDB returned HTTP 200 OK (banner is None)
+    Never prints or logs the key or token.
     """
     import time as time_mod
     now = time_mod.time()
-    if _KEY_CHECK_CACHE["result"] is not None and now < _KEY_CHECK_CACHE["expires_at"]:
+    if not force_fresh and _KEY_CHECK_CACHE["result"] is not None and now < _KEY_CHECK_CACHE["expires_at"]:
         return _KEY_CHECK_CACHE["result"]
 
-    tmdb_key = settings.TMDB_API_KEY.strip() if settings.TMDB_API_KEY else ""
-    tmdb_key_set = bool(tmdb_key)
-    tmdb_key_valid = False
-    tmdb_validation_reason = "TMDB_API_KEY is not set in environment"
+    auth = get_tmdb_auth_details()
+    mode = auth["mode"]
+    token = auth["token"]
+    val_len = auth["value_length"]
 
-    if tmdb_key_set:
-        # First try DoH curl
-        resp_data = _execute_tmdb_curl("/authentication")
-        if resp_data and resp_data.get("success") is True:
-            tmdb_key_valid = True
-            tmdb_validation_reason = "TMDB API key verified and accepted (HTTP 200 OK)"
-        elif resp_data and "status_code" in resp_data:
-            tmdb_validation_reason = f"TMDB rejected API key ({resp_data.get('status_message', 'Invalid key')})"
+    if mode == "missing" or val_len == 0:
+        res = {
+            "is_set": False,
+            "is_valid": False,
+            "status": "key_missing",
+            "http_status": None,
+            "auth_mode": "missing",
+            "reason": "TMDB key or token is missing from environment",
+            "banner": "Real posters unavailable: TMDB key missing",
+            "env_file_loaded": auth.get("env_file_loaded"),
+            "working_dir": auth.get("working_dir"),
+            "value_length": 0,
+            "latency_ms": 0.0,
+        }
+        _KEY_CHECK_CACHE["expires_at"] = now + 5
+        _KEY_CHECK_CACHE["result"] = res
+        return res
+
+    # Perform real call to TMDB configuration endpoint
+    start_time = time_mod.time()
+    http_status: Optional[int] = None
+    is_valid = False
+    validation_reason = ""
+    status_label = "network_error"
+    banner_message = "Real posters unavailable: network error"
+
+    try:
+        headers = {}
+        params = {}
+        if mode == "v4 bearer token":
+            headers["Authorization"] = f"Bearer {token}"
+        elif mode == "v3 api_key":
+            params["api_key"] = token
+
+        async with httpx.AsyncClient(timeout=6.0) as client:
+            resp = await client.get(
+                f"{settings.TMDB_BASE_URL}/configuration",
+                headers=headers,
+                params=params
+            )
+            http_status = resp.status_code
+
+            if http_status == 200:
+                is_valid = True
+                status_label = "ok"
+                validation_reason = f"TMDB {mode} verified and accepted (HTTP 200 OK)"
+                banner_message = None
+            elif http_status in (401, 403, 404):
+                is_valid = False
+                status_label = "key_rejected"
+                validation_reason = f"TMDB rejected API key (HTTP {http_status})"
+                banner_message = f"Real posters unavailable: TMDB key rejected (HTTP {http_status})"
+            else:
+                is_valid = False
+                status_label = "key_rejected"
+                validation_reason = f"TMDB returned HTTP {http_status}"
+                banner_message = f"Real posters unavailable: TMDB key rejected (HTTP {http_status})"
+    except Exception as ex:
+        # Fallback to DoH cURL if local DNS / ISP is resetting connections
+        curl_res = _execute_tmdb_curl("/configuration")
+        if curl_res and "images" in curl_res:
+            is_valid = True
+            http_status = 200
+            status_label = "ok"
+            validation_reason = f"TMDB {mode} verified via DoH cURL (HTTP 200 OK)"
+            banner_message = None
+        elif curl_res and "status_code" in curl_res:
+            is_valid = False
+            http_status = 401
+            status_label = "key_rejected"
+            validation_reason = f"TMDB rejected API key ({curl_res.get('status_message', 'Invalid key')})"
+            banner_message = "Real posters unavailable: TMDB key rejected (HTTP 401)"
         else:
-            # Fallback to standard httpx client
-            try:
-                headers = {"Authorization": f"Bearer {tmdb_key}"} if len(tmdb_key) > 40 else {}
-                params = {"api_key": tmdb_key} if len(tmdb_key) <= 40 else {}
-                async with httpx.AsyncClient(timeout=4.0) as client:
-                    auth_resp = await client.get(
-                        f"{settings.TMDB_BASE_URL}/authentication",
-                        headers=headers,
-                        params=params
-                    )
-                    if auth_resp.status_code == 200:
-                        tmdb_key_valid = True
-                        tmdb_validation_reason = "TMDB API key verified and accepted (HTTP 200 OK)"
-                    else:
-                        tmdb_validation_reason = f"TMDB rejected API key (HTTP {auth_resp.status_code})"
-            except Exception as ex:
-                tmdb_validation_reason = f"Error validating TMDB key: {str(ex)[:80]}"
+            is_valid = False
+            status_label = "network_error"
+            validation_reason = f"Network error connecting to TMDB: {str(ex)[:80]}"
+            banner_message = "Real posters unavailable: network error"
 
-    has_banner = not (tmdb_key_set and tmdb_key_valid)
-    banner_message = "Real posters unavailable: TMDB key missing or rejected" if has_banner else None
+    latency_ms = round((time_mod.time() - start_time) * 1000, 2)
 
     res = {
-        "is_set": tmdb_key_set,
-        "is_valid": tmdb_key_valid,
-        "reason": tmdb_validation_reason,
+        "is_set": True,
+        "is_valid": is_valid,
+        "status": status_label,
+        "http_status": http_status,
+        "auth_mode": mode,
+        "reason": validation_reason,
         "banner": banner_message,
+        "env_file_loaded": auth.get("env_file_loaded"),
+        "working_dir": auth.get("working_dir"),
+        "value_length": val_len,
+        "latency_ms": latency_ms,
     }
-    cache_ttl = 3600 if tmdb_key_valid else 10
+
+    cache_ttl = 3600 if is_valid else 5
     _KEY_CHECK_CACHE["expires_at"] = now + cache_ttl
     _KEY_CHECK_CACHE["result"] = res
     return res
@@ -165,7 +238,8 @@ class TMDBCatalogProvider(CatalogProvider):
     """
 
     def __init__(self):
-        self.api_key = settings.TMDB_API_KEY
+        self.auth = get_tmdb_auth_details()
+        self.api_key = self.auth["token"]
         self.base_url = settings.TMDB_BASE_URL
         self.img_base = settings.TMDB_IMAGE_BASE_URL
         self._memory_cache: Dict[str, Any] = {}
@@ -242,8 +316,9 @@ class TMDBCatalogProvider(CatalogProvider):
             mock_mov.is_tmdb = False
         await db.flush()
 
-        if not self.api_key:
-            logger.warning("TMDB_API_KEY is not configured in environment. Checking local sync cache.")
+        auth = get_tmdb_auth_details()
+        if auth["mode"] == "missing":
+            logger.warning("TMDB key or token is not configured in environment. Checking local sync cache.")
             return await self._load_from_fallback_cache(db, skip_showtimes=skip_showtimes)
 
         target_langs = languages or INDIAN_DISCOVERY_LANGUAGES

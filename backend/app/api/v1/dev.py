@@ -1,5 +1,6 @@
 import os
 import asyncio
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -139,6 +140,47 @@ async def _check_remote_or_local(url: Optional[str], subfolder: str, client: Opt
     }
 
 
+@router.get("/test-tmdb", tags=["Developer Diagnostics"])
+@router.get("/test-tmdb.json", tags=["Developer Diagnostics"])
+@router.post("/test-tmdb", tags=["Developer Diagnostics"])
+async def dev_test_tmdb():
+    """
+    Developer diagnostic live test of TMDB connectivity and configuration endpoint.
+    Reports:
+    - auth_mode: 'v3 api_key' | 'v4 bearer token' | 'missing'
+    - env_file_loaded: absolute path
+    - working_dir: current server working directory
+    - value_length: length of value (characters are NEVER printed)
+    - source_var: 'TMDB_API_KEY' | 'TMDB_READ_TOKEN' | None
+    - http_status: HTTP status code from TMDB
+    - status: 'ok' | 'key_missing' | 'key_rejected' | 'network_error'
+    - banner: banner message or None
+    - reason: status reason
+    - latency_ms: duration in ms
+    """
+    from app.services.catalog.tmdb import check_tmdb_key_status
+    from app.config import get_tmdb_auth_details
+
+    auth = get_tmdb_auth_details()
+    key_status = await check_tmdb_key_status(force_fresh=True)
+
+    return {
+        "status": key_status["status"],
+        "is_valid": key_status["is_valid"],
+        "http_status": key_status.get("http_status"),
+        "auth_mode": key_status["auth_mode"],
+        "source_var": auth.get("source_var"),
+        "value_length": key_status["value_length"],
+        "env_file_loaded": key_status.get("env_file_loaded"),
+        "working_dir": key_status.get("working_dir"),
+        "endpoint": "https://api.themoviedb.org/3/configuration",
+        "banner": key_status.get("banner"),
+        "reason": key_status["reason"],
+        "latency_ms": key_status.get("latency_ms", 0.0),
+        "timestamp": datetime.now().isoformat(),
+    }
+
+
 @router.get("/readiness", tags=["Developer Diagnostics"])
 @router.get("/readiness.json", tags=["Developer Diagnostics"])
 async def get_developer_readiness(
@@ -165,14 +207,14 @@ async def get_developer_readiness(
     tmdb_key_set = key_status["is_set"]
     tmdb_key_valid = key_status["is_valid"]
     tmdb_validation_reason = key_status["reason"]
+    banner_message = key_status.get("banner")
 
     # Count TMDB vs local movies
     res_tmdb = await db.execute(select(func.count(Movie.id)).where(Movie.is_tmdb.is_(True)))
     tmdb_synced_count = res_tmdb.scalar() or 0
     sync_did_run = tmdb_synced_count > 0
 
-    has_banner = not (tmdb_key_set and tmdb_key_valid)
-    banner_message = "Real posters unavailable: TMDB key missing or rejected" if has_banner else None
+    has_banner = bool(banner_message)
 
     env_status = {
         "tmdb_api_key_set": tmdb_key_set,
@@ -181,6 +223,11 @@ async def get_developer_readiness(
         "tmdb_synced_movies_count": tmdb_synced_count,
         "catalog_source": settings.CATALOG_SOURCE,
         "banner": banner_message,
+        "auth_mode": key_status.get("auth_mode", "missing"),
+        "http_status": key_status.get("http_status"),
+        "env_file_loaded": key_status.get("env_file_loaded"),
+        "working_dir": key_status.get("working_dir"),
+        "value_length": key_status.get("value_length", 0),
         "status_ok": not has_banner,
         "reason": tmdb_validation_reason if tmdb_key_valid else (banner_message or tmdb_validation_reason),
     }

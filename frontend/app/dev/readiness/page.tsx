@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Search,
   Building2,
+  Zap,
 } from 'lucide-react';
 
 interface MediaCheck {
@@ -109,6 +110,11 @@ interface ReadinessData {
     tmdb_synced_movies_count: number;
     catalog_source: string;
     banner?: string | null;
+    auth_mode?: string;
+    http_status?: number;
+    env_file_loaded?: string;
+    working_dir?: string;
+    value_length?: number;
     status_ok: boolean;
     reason: string;
   };
@@ -136,6 +142,8 @@ export default function DeveloperReadinessPage() {
   const [movieFilter, setMovieFilter] = useState<'all' | 'showcase' | 'tmdb' | 'errors'>('all');
   const [hallFilter, setHallFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [testingTmdb, setTestingTmdb] = useState(false);
+  const [tmdbTestResult, setTmdbTestResult] = useState<any>(null);
 
   // Production disabling guard:
   // In production builds, this page must return 404 unless explicitly enabled via NEXT_PUBLIC_ENABLE_DEV_PAGES
@@ -168,6 +176,27 @@ export default function DeveloperReadinessPage() {
         setLoading(false);
       });
   }
+
+  const testTmdbConnection = async () => {
+    setTestingTmdb(true);
+    try {
+      const backendUrl =
+        process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://127.0.0.1:8000';
+      const res = await fetch(`${backendUrl}/api/v1/dev/test-tmdb`);
+      const json = await res.json();
+      setTmdbTestResult(json);
+      fetchReadiness();
+    } catch (e: any) {
+      setTmdbTestResult({
+        status: 'network_error',
+        is_valid: false,
+        reason: e.message,
+        banner: 'Real posters unavailable: network error',
+      });
+    } finally {
+      setTestingTmdb(false);
+    }
+  };
 
   useEffect(() => {
     fetchReadiness();
@@ -258,7 +287,16 @@ export default function DeveloperReadinessPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <button
+            onClick={testTmdbConnection}
+            disabled={testingTmdb}
+            data-testid="btn-test-tmdb"
+            className="flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-2 text-sm font-bold text-white shadow-sm hover:bg-blue-700 transition disabled:opacity-50"
+          >
+            <Zap className={`h-4 w-4 ${testingTmdb ? 'animate-bounce text-amber-300' : 'text-amber-300'}`} />
+            <span>{testingTmdb ? 'Testing TMDB...' : 'Test TMDB Connection'}</span>
+          </button>
           <a
             href="/dev/screen-test"
             data-testid="nav-screen-test-bench"
@@ -297,6 +335,66 @@ export default function DeveloperReadinessPage() {
           <span className="rounded-lg bg-black/30 px-3 py-1 text-xs font-mono font-bold uppercase text-white shrink-0">
             CATALOG_SOURCE: {data.environment.catalog_source}
           </span>
+        </div>
+      )}
+
+      {/* 2b. Live TMDB Connection Test Result Card */}
+      {tmdbTestResult && (
+        <div
+          data-testid="tmdb-test-result-card"
+          className={`rounded-2xl border p-4 shadow-md transition ${
+            tmdbTestResult.is_valid
+              ? 'border-emerald-300 bg-emerald-50/90 text-emerald-950'
+              : 'border-red-300 bg-red-50/90 text-red-950'
+          }`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/10 pb-2 mb-3">
+            <div className="flex items-center gap-2 font-bold text-sm">
+              <span className={`h-2.5 w-2.5 rounded-full ${tmdbTestResult.is_valid ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+              <span>TMDB Live Connection Test Result:</span>
+              <span className={`font-mono uppercase text-xs px-2 py-0.5 rounded font-black ${
+                tmdbTestResult.is_valid ? 'bg-emerald-200 text-emerald-900' : 'bg-red-200 text-red-900'
+              }`}>
+                {tmdbTestResult.status.toUpperCase()}
+              </span>
+            </div>
+            <div className="text-xs font-mono text-slate-500">
+              {tmdbTestResult.latency_ms} ms roundtrip
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+            <div>
+              <span className="text-slate-500 block">Auth Mode</span>
+              <span className="font-bold font-mono">{tmdbTestResult.auth_mode}</span>
+            </div>
+            <div>
+              <span className="text-slate-500 block">HTTP Status</span>
+              <span className="font-bold font-mono">{tmdbTestResult.http_status ? `HTTP ${tmdbTestResult.http_status}` : 'N/A'}</span>
+            </div>
+            <div>
+              <span className="text-slate-500 block">Key/Token Length</span>
+              <span className="font-bold font-mono">{tmdbTestResult.value_length} chars ({tmdbTestResult.source_var || 'None'})</span>
+            </div>
+            <div>
+              <span className="text-slate-500 block">Loaded .env Path</span>
+              <span className="font-mono text-[11px] truncate block" title={tmdbTestResult.env_file_loaded || 'None'}>
+                {tmdbTestResult.env_file_loaded || 'None detected'}
+              </span>
+            </div>
+          </div>
+
+          <div className="mt-3 pt-2 border-t border-black/5 text-xs flex flex-wrap items-center justify-between gap-2">
+            <div className="font-medium">
+              <span className="font-bold">Reason: </span>
+              <span>{tmdbTestResult.reason}</span>
+            </div>
+            {tmdbTestResult.banner && (
+              <span className="text-red-700 font-bold bg-red-100 px-2 py-0.5 rounded text-[11px]">
+                {tmdbTestResult.banner}
+              </span>
+            )}
+          </div>
         </div>
       )}
 

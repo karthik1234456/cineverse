@@ -19,7 +19,7 @@ export function TmdbReadinessBanner() {
       })
       .catch(() => {
         // Fallback banner when server verification fails
-        setBanner('Real posters unavailable: TMDB key missing or rejected');
+        setBanner('Real posters unavailable: network error');
       });
   }, []);
 
