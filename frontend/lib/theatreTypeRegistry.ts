@@ -21,6 +21,7 @@ export type TheatreTypeId =
   | 'standard'
   | 'large'
   | 'flagship'
+  | 'motion_seat'
   | 'dolby_atmos_4dx'
   | 'luxury_recliner'
   | 'boutique'
@@ -318,15 +319,14 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
     },
     features: {
       curved_screen: true,
-      dolby_atmos: true,
     },
     description: 'High-capacity 18-24 row auditorium with triple blocks (6-9-6) and steep rake.',
   },
 
   flagship: {
     id: 'flagship',
-    name: 'IMAX-Style Flagship',
-    label: 'IMAX Laser Flagship',
+    name: 'Flagship Large Format',
+    label: 'Flagship Large Format Auditorium',
     targetSeats: [420, 560],
     typicalSeats: 560,
     arrangementPattern: 'curved_flagship',
@@ -355,7 +355,7 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
     screenType: {
       type: 'large_curved',
       name: 'Large curved screen',
-      brandName: 'IMAX',
+      brandName: 'Large Format',
       aspectRatio: 1.85,
       isCurved: true,
       curveRadiusM: 28.0,
@@ -369,8 +369,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       rakeStepM: 0.20,
       aisleWidthM: 1.30,
       ceilingHeightM: 14.0,
-      screenWidthM: 25.0, // 20-26m IMAX specification
-      screenHeightM: 13.5, // 1.90 / 1.43 aspect ratio
+      screenWidthM: 25.0,
+      screenHeightM: 13.5,
     },
     sceneDimensions: {
       seatPitch: 0.58 * METERS_TO_SCENE,  // 1.16
@@ -384,15 +384,14 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
     features: {
       curved_screen: true,
       sweet_spot: true,
-      dolby_atmos: true,
     },
     description: 'Colossal 20-row flagship hall with 25m curved screen, curved seating arc, and sweet spot.',
   },
 
-  dolby_atmos_4dx: {
-    id: 'dolby_atmos_4dx',
+  motion_seat: {
+    id: 'motion_seat',
     name: 'Motion-seat Hall',
-    label: 'Motion-seat Experience',
+    label: 'Motion-seat Hall',
     licensedName: 'Motion-seat Hall',
     licensedLabel: 'Motion-seat Hall',
     targetSeats: [160, 280],
@@ -453,12 +452,15 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       screenHeight: 8.5 * METERS_TO_SCENE,
     },
     features: {
-      is_4dx: true,
-      dolby_atmos: true,
       motion_seats: true,
       panoramic_wrap: true,
     },
     description: 'Black walls and ceiling with radiating blue, red and white LED bars, black seats in pods of four on visible platform bases with red LED edges, and wrap screen.',
+  },
+
+  // Alias for backward compatibility
+  get dolby_atmos_4dx() {
+    return this.motion_seat;
   },
 
   luxury_recliner: {
@@ -647,7 +649,6 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
     features: {
       has_balcony: true,
       curved_screen: true,
-      dolby_atmos: true,
     },
     description: 'Curved stadium seating with real balcony level, deep burgundy-brown wall panels, dark ceiling with lighting trusses, black stage apron, and curved screen.',
   },
@@ -665,6 +666,9 @@ export function getTheatreTypeDefinition(
   if (norm === 'compact' || totalSeats === 100 || norm.includes('interactive')) {
     return THEATRE_TYPE_REGISTRY.compact;
   }
+  if (norm === 'dolby_atmos_4dx' || norm === 'motion_seat' || norm.includes('motion')) {
+    return THEATRE_TYPE_REGISTRY.motion_seat;
+  }
   if (norm in THEATRE_TYPE_REGISTRY) {
     return THEATRE_TYPE_REGISTRY[norm as TheatreTypeId];
   }
@@ -673,9 +677,6 @@ export function getTheatreTypeDefinition(
   }
   if (norm.includes('flagship') || (norm.includes('imax') && totalSeats && totalSeats >= 420)) {
     return THEATRE_TYPE_REGISTRY.flagship;
-  }
-  if (norm.includes('4dx') || norm.includes('atmos') || norm.includes('motion')) {
-    return THEATRE_TYPE_REGISTRY.dolby_atmos_4dx;
   }
   if (norm.includes('recliner') || norm.includes('gold') || norm.includes('luxe')) {
     return THEATRE_TYPE_REGISTRY.luxury_recliner;

@@ -90,7 +90,7 @@ interface TelemetryReport {
 export default function ScreenTestBenchPage() {
   const [activeMode, setActiveMode] = useState<ScreenStrategy>('solid_color');
   const [solidColor, setSolidColor] = useState('#00f0ff');
-  const [selectedHall, setSelectedHall] = useState<'standard' | 'flagship' | 'dolby_atmos_4dx' | 'balcony'>('flagship');
+  const [selectedHall, setSelectedHall] = useState<'standard' | 'flagship' | 'motion_seat' | 'dolby_atmos_4dx' | 'balcony'>('flagship');
   const [telemetry, setTelemetry] = useState<TelemetryReport | null>(null);
   const [consoleLogs, setConsoleLogs] = useState<Array<{ time: string; msg: string; type: 'log' | 'warn' | 'error' }>>([]);
   const [capturedScreenshots, setCapturedScreenshots] = useState<Record<string, string>>({});
@@ -135,7 +135,7 @@ export default function ScreenTestBenchPage() {
 
   // Initialize selected hall
   useEffect(() => {
-    const isMotion = selectedHall === 'dolby_atmos_4dx';
+    const isMotion = selectedHall === 'motion_seat' || selectedHall === 'dolby_atmos_4dx';
     const rowsCount = selectedHall === 'flagship' ? 14 : selectedHall === 'balcony' ? 16 : isMotion ? 10 : 12;
     const seatsPerRow = selectedHall === 'flagship' ? 18 : isMotion ? 14 : 14;
 
@@ -231,8 +231,8 @@ export default function ScreenTestBenchPage() {
             className="rounded-lg border border-slate-700 bg-slate-900 px-2.5 py-1 text-xs font-semibold text-slate-200 focus:outline-none"
           >
             <option value="standard">Standard Stadium Hall</option>
-            <option value="flagship">Flagship IMAX Curved</option>
-            <option value="dolby_atmos_4dx">Motion-seat 4DX Hall</option>
+            <option value="flagship">Flagship Large Format</option>
+            <option value="motion_seat">Motion-seat Hall</option>
             <option value="balcony">Grand Balcony Hall</option>
           </select>
 

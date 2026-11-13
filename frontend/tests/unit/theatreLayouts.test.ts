@@ -18,7 +18,7 @@ describe('Real-World Theatre Dimensions & Arrangements Tests', () => {
     'standard',
     'large',
     'flagship',
-    'dolby_atmos_4dx',
+    'motion_seat',
     'luxury_recliner',
     'boutique',
     'balcony',
@@ -41,6 +41,12 @@ describe('Real-World Theatre Dimensions & Arrangements Tests', () => {
         expect(def.realWorldDimensions.aisleWidthM).toBeGreaterThanOrEqual(1.1);
         expect(def.realWorldDimensions.ceilingHeightM).toBeGreaterThanOrEqual(8.0);
       }
+    });
+
+    it('verifies dolby_atmos_4dx acts as backward compatibility alias to motion_seat', () => {
+      const aliasDef = THEATRE_TYPE_REGISTRY['dolby_atmos_4dx'];
+      expect(aliasDef).toBeDefined();
+      expect(aliasDef.id).toBe('motion_seat');
     });
 
     it('verifies flagship screen has 20-26m width and balcony ceiling reaches 14m', () => {

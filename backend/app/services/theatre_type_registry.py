@@ -144,8 +144,8 @@ THEATRE_TYPES = {
     },
     "flagship": {
         "id": "flagship",
-        "name": "IMAX-Style Flagship",
-        "label": "IMAX Laser Flagship",
+        "name": "Flagship Large Format",
+        "label": "Flagship Large Format Auditorium",
         "target_seats": (420, 560),
         "typical_seats": 560,
         "arrangement": "curved_flagship",
@@ -170,7 +170,7 @@ THEATRE_TYPES = {
         "screen_type": {
             "type": "large_curved",
             "name": "Large curved screen",
-            "brand_name": "IMAX",
+            "brand_name": "Large Format",
             "aspect_ratio": 1.85,
             "is_curved": True,
             "curve_radius_m": 28.0,
@@ -180,10 +180,10 @@ THEATRE_TYPES = {
         },
         "description": "Colossal 20-row flagship hall with 25m curved screen, curved seating arc, and sweet spot."
     },
-    "dolby_atmos_4dx": {
-        "id": "dolby_atmos_4dx",
+    "motion_seat": {
+        "id": "motion_seat",
         "name": "Motion-seat Hall",
-        "label": "Motion-seat Experience",
+        "label": "Motion-seat Hall",
         "licensed_name": "Motion-seat Hall",
         "licensed_label": "Motion-seat Hall",
         "target_seats": (160, 280),
@@ -238,8 +238,6 @@ THEATRE_TYPES = {
         "features": {
             "motion_seats": True,
             "panoramic_wrap": True,
-            "is_4dx": True,
-            "dolby_atmos": True
         },
         "description": "Black walls and ceiling with radiating blue, red and white LED bars, black seats in pods of four on visible platform bases with red LED edges, and wrap screen."
     },
@@ -382,19 +380,22 @@ THEATRE_TYPES = {
     }
 }
 
+# Alias for backward compatibility
+THEATRE_TYPES["dolby_atmos_4dx"] = THEATRE_TYPES["motion_seat"]
+
 
 def get_theatre_type_definition(type_or_screen: str = "", total_seats: int = 0) -> dict:
     norm = (type_or_screen or "").lower()
     if norm == "compact" or total_seats == 100 or "interactive" in norm:
         return THEATRE_TYPES["compact"]
+    if norm in ("motion_seat", "dolby_atmos_4dx") or "motion" in norm:
+        return THEATRE_TYPES["motion_seat"]
     if norm in THEATRE_TYPES:
         return THEATRE_TYPES[norm]
     if "balcony" in norm or total_seats >= 600:
         return THEATRE_TYPES["balcony"]
     if "flagship" in norm or ("imax" in norm and total_seats >= 420):
         return THEATRE_TYPES["flagship"]
-    if "4dx" in norm or "atmos" in norm or "motion" in norm:
-        return THEATRE_TYPES["dolby_atmos_4dx"]
     if "recliner" in norm or "gold" in norm or "luxe" in norm:
         return THEATRE_TYPES["luxury_recliner"]
     if "boutique" in norm or "salon" in norm or "lounge" in norm:

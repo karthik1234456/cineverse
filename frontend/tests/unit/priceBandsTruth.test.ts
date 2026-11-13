@@ -3,14 +3,14 @@ import { generateProceduralAuditorium } from '../../lib/proceduralAuditorium';
 
 describe('PART G: Data Truth & Price Bands Non-Overlap', () => {
   it('ensures category price bands never overlap across rows', () => {
-    const types = ['compact', 'standard', 'large', 'flagship', 'dolby_atmos_4dx', 'luxury_recliner', 'boutique', 'balcony'];
+    const types = ['compact', 'standard', 'large', 'flagship', 'motion_seat', 'dolby_atmos_4dx', 'luxury_recliner', 'boutique', 'balcony'];
 
     types.forEach(tid => {
       const res = generateProceduralAuditorium({
         theatre_type: tid,
         rows: 10,
         seats_per_row: 14,
-        is_motion_hall: tid === 'dolby_atmos_4dx',
+        is_motion_hall: tid === 'motion_seat' || tid === 'dolby_atmos_4dx',
       });
 
       const rowCategories = new Map<string, Set<string>>();

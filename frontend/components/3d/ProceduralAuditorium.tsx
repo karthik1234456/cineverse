@@ -1163,6 +1163,52 @@ export function ProceduralAuditorium({
     return { size, center };
   };
 
+  const renderSeeThroughRail = (
+    bounds: { min: [number, number, number]; max: [number, number, number] },
+    material: THREE.Material,
+    keyName: string
+  ) => {
+    const width = Math.max(0.1, bounds.max[0] - bounds.min[0]);
+    const height = Math.max(0.1, bounds.max[1] - bounds.min[1]);
+    const depth = Math.max(0.04, bounds.max[2] - bounds.min[2]);
+    const centerX = (bounds.min[0] + bounds.max[0]) / 2;
+    const centerY = (bounds.min[1] + bounds.max[1]) / 2;
+    const centerZ = (bounds.min[2] + bounds.max[2]) / 2;
+
+    const topRailY = bounds.max[1] - 0.03;
+    const midRailY = bounds.min[1] + height * 0.5;
+
+    const numPosts = Math.max(2, Math.floor(width / 1.4) + 1);
+    const postStep = width / (numPosts - 1);
+    const postThickness = 0.04;
+
+    return (
+      <group key={keyName} name={keyName}>
+        {/* Top rail */}
+        <mesh position={[centerX, topRailY, centerZ]} material={material}>
+          <boxGeometry args={[width, 0.06, depth]} />
+        </mesh>
+        {/* Mid rail */}
+        <mesh position={[centerX, midRailY, centerZ]} material={material}>
+          <boxGeometry args={[width, 0.04, depth]} />
+        </mesh>
+        {/* Vertical baluster posts */}
+        {Array.from({ length: numPosts }).map((_, i) => {
+          const postX = bounds.min[0] + i * postStep;
+          return (
+            <mesh
+              key={`post_${i}`}
+              position={[postX, centerY, centerZ]}
+              material={material}
+            >
+              <boxGeometry args={[postThickness, height, depth]} />
+            </mesh>
+          );
+        })}
+      </group>
+    );
+  };
+
   const floorBox = boxHelper(geometry.roomFloor);
   const ceilingBox = boxHelper(geometry.ceiling);
   const stageLipBox = boxHelper(geometry.stageLip);
@@ -1376,13 +1422,7 @@ export function ProceduralAuditorium({
           >
             <boxGeometry args={boxHelper(geometry.balconyStructure.fascia).size} />
           </mesh>
-          <mesh
-            name="balcony_railing"
-            position={boxHelper(geometry.balconyStructure.railing).center}
-            material={balconyRailingMaterial}
-          >
-            <boxGeometry args={boxHelper(geometry.balconyStructure.railing).size} />
-          </mesh>
+          {renderSeeThroughRail(geometry.balconyStructure.railing, balconyRailingMaterial, "balcony_railing")}
           <mesh
             name="under_balcony_cove_light"
             position={boxHelper(geometry.balconyStructure.coveLightBounds).center}
@@ -1408,22 +1448,12 @@ export function ProceduralAuditorium({
         </group>
       )}
 
-      {/* Cross-Aisle Handrails */}
+      {/* Cross-Aisle Handrails (thin see-through posts and rails) */}
       {geometry.crossAisleHandrails && geometry.crossAisleHandrails.length > 0 && (
         <group name="CrossAisleHandrailsContainer">
-          {geometry.crossAisleHandrails.map((rail) => {
-            const { size, center } = boxHelper(rail.bounds);
-            return (
-              <mesh
-                key={rail.id}
-                name={rail.id}
-                position={center}
-                material={handrailMaterial}
-              >
-                <boxGeometry args={size} />
-              </mesh>
-            );
-          })}
+          {geometry.crossAisleHandrails.map((rail) =>
+            renderSeeThroughRail(rail.bounds, handrailMaterial, rail.id)
+          )}
         </group>
       )}
 

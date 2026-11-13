@@ -45,17 +45,26 @@ export function TheatreLighting() {
     const isDim = houseLights === 'dim';
     const isBrighter = lightIntensity === 'brighter';
 
-    // Target intensities calibrated to achieve 0.35 - 0.55 normalized luminance in Lights On
-    const isMotionHall = theatreDef.id === 'dolby_atmos_4dx';
-    const hallBoost = isMotionHall ? 1.30 : (theatreDef.id === 'balcony' ? 1.15 : 1.05);
+    // Calibrated per-type Lights On targets:
+    // standard: 0.35 - 0.50
+    // balcony: 0.30 - 0.45
+    // luxury_recliner: 0.22 - 0.35 (dark lounge with amber accents)
+    // motion_seat: 0.18 - 0.30 (dark room with LED bars & base strips)
+    const tid = theatreDef.id;
+    const isMotionHall = tid === 'motion_seat' || tid === 'dolby_atmos_4dx';
+    const isLuxuryRecliner = tid === 'luxury_recliner';
+    const isBalcony = tid === 'balcony';
 
-    const targetAmbient = isShow ? 0.22 : isDim ? 0.75 : (isBrighter ? 10.80 : 9.20) * hallBoost;
-    const targetHemi = isShow ? 0.30 : isDim ? 0.95 : (isBrighter ? 11.50 : 9.80) * hallBoost;
+    const typeFactor = isMotionHall ? 0.45 : isLuxuryRecliner ? 0.55 : isBalcony ? 0.88 : 1.0;
+    const intensityMultiplier = isBrighter ? 1.20 : 1.0;
+
+    const targetAmbient = isShow ? 0.10 : isDim ? 0.50 : 8.50 * typeFactor * intensityMultiplier;
+    const targetHemi = isShow ? 0.15 : isDim ? 0.65 : 9.00 * typeFactor * intensityMultiplier;
     const targetScreenSpill = isShow ? 2.80 : isDim ? 1.60 : 0.60;
-    const targetCeiling = isShow ? 0.05 : isDim ? 0.70 : (isBrighter ? 15.50 : 13.20) * hallBoost;
-    const targetWallWash = isShow ? 0.10 : isDim ? 0.65 : (isBrighter ? 10.50 : 9.00) * hallBoost;
-    const targetRearFill = isShow ? 0.12 : isDim ? 0.60 : (isBrighter ? 9.50 : 8.00) * hallBoost;
-    const targetStepLight = isShow ? 0.40 : isDim ? 0.75 : isBrighter ? 4.80 : 3.80;
+    const targetCeiling = isShow ? 0.02 : isDim ? 0.45 : 12.00 * typeFactor * intensityMultiplier;
+    const targetWallWash = isShow ? 0.05 : isDim ? 0.45 : 8.50 * typeFactor * intensityMultiplier;
+    const targetRearFill = isShow ? 0.06 : isDim ? 0.40 : 7.50 * typeFactor * intensityMultiplier;
+    const targetStepLight = isShow ? 0.30 : isDim ? 0.65 : 3.50 * (isMotionHall || isLuxuryRecliner ? 0.85 : 1.0) * intensityMultiplier;
 
     const curAmbient = ambientRef.current?.intensity ?? targetAmbient;
     const needsTransition = Math.abs(curAmbient - targetAmbient) > 0.005;

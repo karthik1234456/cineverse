@@ -23,7 +23,7 @@ test.describe.serial('Real-World Cinema Halls Redesign Verification', () => {
 
   // Hall 1: Standard Multiplex Hall
   test('01. Standard Multiplex Hall — Triple block, navy coffered ceiling, blue wall-wash, dark charcoal carpet, deep red fabric seats', async ({ page }) => {
-    await page.goto('/cinemas/2/auditorium/6?mode=3d&showtime=141', { waitUntil: 'domcontentloaded' });
+    await page.goto('/cinemas/2/auditorium/6?mode=3d&showtime=26', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!(window as any).__cineverse, { timeout: 60000 });
     await page.waitForTimeout(1000);
 
@@ -61,7 +61,7 @@ test.describe.serial('Real-World Cinema Halls Redesign Verification', () => {
     const lumAisle = await page.evaluate(() => (window as any).__cineverse.sampleLuminance());
     console.log('Standard Hall Aisle Luminance:', lumAisle);
     expect(lumAisle.meanLuminance).toBeGreaterThanOrEqual(0.35);
-    expect(lumAisle.meanLuminance).toBeLessThanOrEqual(0.55);
+    expect(lumAisle.meanLuminance).toBeLessThanOrEqual(0.50);
     expect(lumAisle.nearBlackPercent).toBeLessThanOrEqual(5.0);
     expect(lumAisle.maxHueDominancePercent).toBeLessThanOrEqual(40.0);
 
@@ -98,8 +98,8 @@ test.describe.serial('Real-World Cinema Halls Redesign Verification', () => {
   });
 
   // Hall 2: Grand Curved Hall with Balcony
-  test('02. Grand Curved Hall with Balcony — Curved rows, mid-hall cross aisle handrail, real balcony with columns, burgundy-brown panels, black stage apron', async ({ page }) => {
-    await page.goto('/cinemas/1/auditorium/3?mode=3d&showtime=57', { waitUntil: 'domcontentloaded' });
+  test('02. Grand Curved Hall with Balcony — Curved rows, mid-hall cross aisle handrail, real balcony with see-through rails and no columns, burgundy-brown panels, black stage apron', async ({ page }) => {
+    await page.goto('/cinemas/1/auditorium/3?mode=3d&showtime=11', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!(window as any).__cineverse, { timeout: 60000 });
     await page.waitForTimeout(1000);
 
@@ -121,7 +121,8 @@ test.describe.serial('Real-World Cinema Halls Redesign Verification', () => {
 
     console.log('Balcony Structure Check:', balconyCheck);
     expect(balconyCheck.hasBalconyStructure).toBe(true);
-    expect(balconyCheck.columnsCount).toBeGreaterThanOrEqual(4);
+    // Structural columns removed from seating area; balcony cantilevered from rear wall/ceiling
+    expect(balconyCheck.columnsCount).toBe(0);
     expect(balconyCheck.handrailsCount).toBeGreaterThanOrEqual(1);
     expect(balconyCheck.isCurved).toBe(true);
 
@@ -143,8 +144,8 @@ test.describe.serial('Real-World Cinema Halls Redesign Verification', () => {
 
     const lumAisle = await page.evaluate(() => (window as any).__cineverse.sampleLuminance());
     console.log('Balcony Hall Aisle Luminance:', lumAisle);
-    expect(lumAisle.meanLuminance).toBeGreaterThanOrEqual(0.35);
-    expect(lumAisle.meanLuminance).toBeLessThanOrEqual(0.55);
+    expect(lumAisle.meanLuminance).toBeGreaterThanOrEqual(0.30);
+    expect(lumAisle.meanLuminance).toBeLessThanOrEqual(0.45);
     expect(lumAisle.nearBlackPercent).toBeLessThanOrEqual(5.0);
     expect(lumAisle.maxHueDominancePercent).toBeLessThanOrEqual(40.0);
 
@@ -178,7 +179,7 @@ test.describe.serial('Real-World Cinema Halls Redesign Verification', () => {
 
   // Hall 3: Luxury Recliner Hall
   test('03. Luxury Recliner Hall — Black walls with amber outline panels, quilted caramel leather recliners with wooden swivel tables, brass badges, dark wood side panels', async ({ page }) => {
-    await page.goto('/cinemas/1/auditorium/4?mode=3d&showtime=85', { waitUntil: 'domcontentloaded' });
+    await page.goto('/cinemas/1/auditorium/4?mode=3d&showtime=16', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!(window as any).__cineverse, { timeout: 60000 });
     await page.waitForTimeout(1000);
 
@@ -216,8 +217,8 @@ test.describe.serial('Real-World Cinema Halls Redesign Verification', () => {
 
     const lumAisle = await page.evaluate(() => (window as any).__cineverse.sampleLuminance());
     console.log('Luxury Recliner Hall Aisle Luminance:', lumAisle);
-    expect(lumAisle.meanLuminance).toBeGreaterThanOrEqual(0.35);
-    expect(lumAisle.meanLuminance).toBeLessThanOrEqual(0.55);
+    expect(lumAisle.meanLuminance).toBeGreaterThanOrEqual(0.22);
+    expect(lumAisle.meanLuminance).toBeLessThanOrEqual(0.35);
     expect(lumAisle.nearBlackPercent).toBeLessThanOrEqual(5.0);
     expect(lumAisle.maxHueDominancePercent).toBeLessThanOrEqual(40.0);
 
@@ -251,7 +252,7 @@ test.describe.serial('Real-World Cinema Halls Redesign Verification', () => {
 
   // Hall 4: Motion-Seat Hall
   test('04. Motion-Seat Hall — Black walls/ceiling with radiating coloured LED bars, pod bases with red LED edges, cross-aisle handrails, panoramic wrap screen, generic branding', async ({ page }) => {
-    await page.goto('/cinemas/2/auditorium/5?mode=3d&showtime=113', { waitUntil: 'domcontentloaded' });
+    await page.goto('/cinemas/2/auditorium/5?mode=3d&showtime=21', { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => !!(window as any).__cineverse, { timeout: 60000 });
     await page.waitForTimeout(1000);
 
@@ -270,12 +271,12 @@ test.describe.serial('Real-World Cinema Halls Redesign Verification', () => {
     });
 
     console.log('Motion Hall Architecture Check:', motionCheck);
-    expect(motionCheck.theatreType).toBe('dolby_atmos_4dx');
+    expect(['motion_seat', 'dolby_atmos_4dx']).toContain(motionCheck.theatreType);
     expect(motionCheck.motionLedBarsCount).toBeGreaterThanOrEqual(12);
     expect(motionCheck.podBasesCount).toBeGreaterThanOrEqual(10);
     expect(motionCheck.handrailsCount).toBeGreaterThanOrEqual(1);
     // Generic button text check (strictly no 4DX trademark)
-    expect(motionCheck.previewBtnText).toContain('Motion-Seat Experience Preview');
+    expect(motionCheck.previewBtnText).toMatch(/Motion[- ]seat (experience )?preview/i);
     expect(motionCheck.previewBtnText).not.toContain('4DX');
 
     // Set Lights on
@@ -296,8 +297,8 @@ test.describe.serial('Real-World Cinema Halls Redesign Verification', () => {
 
     const lumAisle = await page.evaluate(() => (window as any).__cineverse.sampleLuminance());
     console.log('Motion Hall Aisle Luminance:', lumAisle);
-    expect(lumAisle.meanLuminance).toBeGreaterThanOrEqual(0.35);
-    expect(lumAisle.meanLuminance).toBeLessThanOrEqual(0.55);
+    expect(lumAisle.meanLuminance).toBeGreaterThanOrEqual(0.18);
+    expect(lumAisle.meanLuminance).toBeLessThanOrEqual(0.30);
     expect(lumAisle.nearBlackPercent).toBeLessThanOrEqual(5.0);
     expect(lumAisle.maxHueDominancePercent).toBeLessThanOrEqual(40.0);
 

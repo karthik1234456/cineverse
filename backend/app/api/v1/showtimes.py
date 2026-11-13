@@ -60,7 +60,7 @@ async def get_showtime_seats(
     aud_seats = {s.seat_id: s for s in showtime.auditorium.seats} if showtime.auditorium else {}
 
     layout_data = showtime.auditorium.layout_data if showtime.auditorium and showtime.auditorium.layout_data else {}
-    is_motion = bool(layout_data.get("is_motion_hall") or "dolby_atmos_4dx" in str(layout_data.get("theatre_type", "")))
+    is_motion = bool(layout_data.get("is_motion_hall") or layout_data.get("theatre_type") in ("motion_seat", "dolby_atmos_4dx") or "motion" in str(layout_data.get("theatre_type", "")))
     seat_to_pod = {}
     if layout_data.get("pods"):
         for p in layout_data["pods"]:

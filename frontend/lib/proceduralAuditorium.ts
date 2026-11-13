@@ -420,7 +420,7 @@ export function generateProceduralAuditorium(
   const _accessibleSeats = new Set(input.accessible_seats || ['A01', `A${String(defaultSeatsPerRow).padStart(2, '0')}`]);
   const basePrice = input.base_price || 280;
   const screenType = input.screen_type || theatreDef.name;
-  const isDedicatedMotionHall = theatreDef.id === 'dolby_atmos_4dx' || input.theatre_type === 'dolby_atmos_4dx' || input.arrangement_pattern === 'motion_pods';
+  const isDedicatedMotionHall = theatreDef.id === 'motion_seat' || theatreDef.id === 'dolby_atmos_4dx' || input.theatre_type === 'motion_seat' || input.theatre_type === 'dolby_atmos_4dx' || input.arrangement_pattern === 'motion_pods';
   const isMotionHall = isDedicatedMotionHall || !!input.is_motion_hall || (screenType && screenType.toLowerCase().includes('motion-seat')) || !!input.features?.motion_seats;
   const isFlagship = theatreDef.id === 'flagship' || totalSeatsEstimate >= 400;
   const isCurved = !isMotionHall && (theatreDef.features.curved_screen || input.curve_radius !== undefined || isFlagship);
@@ -875,6 +875,58 @@ export function generateProceduralAuditorium(
     }
   }
 
+  // Continental seating (no internal aisles): generate perimeter side aisle steps
+  if (aisles.length === 0) {
+    const sideAisleCenters = [-(maxSeatAbsX + 1.2), (maxSeatAbsX + 1.2)];
+    for (let sIdx = 0; sIdx < sideAisleCenters.length; sIdx++) {
+      const aisleCenterX = sideAisleCenters[sIdx];
+      aisleCenters.push(aisleCenterX);
+
+      for (let rIdx = 0; rIdx < rows.length; rIdx++) {
+        const row = rows[rIdx];
+        const isBalcony = balconyRowSet.has(row);
+        let rowZ = rowAZ - rIdx * rowPitch;
+        let treadY: number;
+
+        if (isBalcony) {
+          const bIdx = balconyRowsList.indexOf(row);
+          const balconyElevationJump = 3.6;
+          treadY = Math.round((ROW_A_Y + stallsCount * tierRise + balconyElevationJump + (bIdx + 1) * (tierRise + 0.12)) * 1000) / 1000;
+          rowZ = rowAZ - (stallsCount + bIdx) * rowPitch - 0.5;
+        } else {
+          treadY = Math.round((rIdx + 1) * tierRise * 1000) / 1000;
+        }
+
+        const stepBounds: BoundingBox3D = {
+          min: [
+            Math.round((aisleCenterX - aisleGap * 0.45) * 1000) / 1000,
+            treadY - 0.05,
+            Math.round((rowZ - rowPitch * 0.5) * 1000) / 1000,
+          ],
+          max: [
+            Math.round((aisleCenterX + aisleGap * 0.45) * 1000) / 1000,
+            treadY,
+            Math.round((rowZ + rowPitch * 0.5) * 1000) / 1000,
+          ],
+        };
+
+        const stepObj = {
+          name: `side_aisle_tread_${sIdx}_${row}`,
+          bounds: stepBounds,
+          topY: treadY,
+        };
+
+        aisleSteps.push(stepObj);
+        walkableSurfaces.push({
+          name: `side_aisle_tread_${sIdx}_${row}`,
+          type: 'tread',
+          bounds: stepBounds,
+          top_y: treadY,
+        });
+      }
+    }
+  }
+
   // 7. Wall Colliders & Enclosure
   const walls = {
     front: {
@@ -1060,12 +1112,8 @@ export function generateProceduralAuditorium(
   if (hasBalcony && balconyRowsList.length > 0) {
     const balconyFrontZ = rowAZ - stallsCount * rowPitch - 0.2;
     const bBaseY = ROW_A_Y + stallsCount * tierRise + 3.6;
-    const columns: Array<{ min: [number, number, number]; max: [number, number, number] }> = [
-      { min: [-halfWidth * 0.72 - 0.35, 0.0, balconyFrontZ + 1.05], max: [-halfWidth * 0.72 + 0.35, bBaseY - 0.65, balconyFrontZ + 1.45] },
-      { min: [-halfWidth * 0.24 - 0.35, 0.0, balconyFrontZ + 1.05], max: [-halfWidth * 0.24 + 0.35, bBaseY - 0.65, balconyFrontZ + 1.45] },
-      { min: [halfWidth * 0.24 - 0.35, 0.0, balconyFrontZ + 1.05], max: [halfWidth * 0.24 + 0.35, bBaseY - 0.65, balconyFrontZ + 1.45] },
-      { min: [halfWidth * 0.72 - 0.35, 0.0, balconyFrontZ + 1.05], max: [halfWidth * 0.72 + 0.35, bBaseY - 0.65, balconyFrontZ + 1.45] },
-    ];
+    // Balcony is cantilevered and anchored to rear wall & ceiling structure: zero columns in seating area
+    const columns: Array<{ min: [number, number, number]; max: [number, number, number] }> = [];
     balconyStructure = {
       platform: {
         min: [-halfWidth + 1.2, bBaseY - 0.65, zBack],
@@ -1077,7 +1125,7 @@ export function generateProceduralAuditorium(
       },
       railing: {
         min: [-halfWidth + 1.2, bBaseY, balconyFrontZ + 1.38],
-        max: [halfWidth - 1.2, bBaseY + 0.88, balconyFrontZ + 1.45],
+        max: [halfWidth - 1.2, bBaseY + 2.0, balconyFrontZ + 1.45], // ~1.0m height = 2.0 scene units
       },
       columns,
       coveLightBounds: {
@@ -1087,7 +1135,7 @@ export function generateProceduralAuditorium(
     };
   }
 
-  // Cross aisle handrails: mid-hall in balcony hall, every few rows in motion hall
+  // Cross aisle handrails: mid-hall in balcony hall, every few rows in motion hall (thin posts, see-through, ~0.9m = 1.8 scene units)
   const crossAisleHandrails: ProceduralGeometryData['crossAisleHandrails'] = [];
   if (hasBalcony) {
     const midRowIdx = Math.floor(stallsCount / 2);
@@ -1097,7 +1145,7 @@ export function generateProceduralAuditorium(
       id: 'handrail_mid_cross_aisle',
       bounds: {
         min: [-halfWidth + 2.2, midY, midZ - 0.06],
-        max: [halfWidth - 2.2, midY + 0.85, midZ + 0.06],
+        max: [halfWidth - 2.2, midY + 1.8, midZ + 0.06], // 0.9m height = 1.8 scene units
       },
       railColor: '#d4af37',
     });
@@ -1109,7 +1157,7 @@ export function generateProceduralAuditorium(
         id: `handrail_cross_aisle_${r}`,
         bounds: {
           min: [-halfWidth + 2.0, crY, crZ - 0.05],
-          max: [halfWidth - 2.0, crY + 0.82, crZ + 0.05],
+          max: [halfWidth - 2.0, crY + 1.8, crZ + 0.05], // 0.9m height = 1.8 scene units
         },
         railColor: '#38bdf8',
       });
@@ -1664,15 +1712,15 @@ export function generateProceduralAuditorium(
     pods: input.pods || (isMotionHall ? Array.from(podSeatLists.entries()).map(([pId, sList]) => ({ pod_id: pId, row: sList[0].row, capacity: sList.length, seat_ids: sList.map(s => s.seat_id), type: 'motion_pod' })) : undefined),
     effect_props: effectProps,
     features: {
-      is_4dx: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.is_4dx,
-      motion_seats: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.motion_seats || !!input.features?.is_4dx,
-      wind: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.wind || !!input.features?.is_4dx,
-      water: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.water || !!input.features?.is_4dx,
-      fog: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.fog || !!input.features?.is_4dx,
-      scent: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.scent || !!input.features?.is_4dx,
-      strobe: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.strobe || !!input.features?.is_4dx,
-      ticklers: theatreDef.features.is_4dx || screenType.includes('4DX') || !!input.features?.ticklers || !!input.features?.is_4dx,
-      dolby_atmos: theatreDef.features.dolby_atmos || screenType.includes('Atmos') || screenType.includes('4DX') || !!input.features?.dolby_atmos,
+      is_4dx: !!input.features?.is_4dx,
+      motion_seats: isMotionHall || !!theatreDef.features.motion_seats || !!input.features?.motion_seats || !!input.features?.is_4dx,
+      wind: !!input.features?.wind,
+      water: !!input.features?.water,
+      fog: !!input.features?.fog,
+      scent: !!input.features?.scent,
+      strobe: !!input.features?.strobe,
+      ticklers: !!input.features?.ticklers,
+      dolby_atmos: !!input.features?.dolby_atmos,
     },
     seats: seatRecords,
   };

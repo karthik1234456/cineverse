@@ -1318,7 +1318,9 @@ def generate_auditorium_layout(
         layout_data = {
             "theatre_type": "compact",
             "theatre_type_label": "Compact 3D Hall (Reference)",
+            "layout_signature": "compact_reference",
             "arrangement_pattern": "triple_block",
+            "blocks_pattern": [3, 4, 3],
             "rows": rows,
             "seats_per_row": seats_per_row,
             "aisles": aisles,
@@ -1362,6 +1364,7 @@ def generate_auditorium_layout(
                     "level": "stalls",
                     "section": "Stalls",
                 })
+        layout_data["seats"] = seat_records
         return layout_data, seat_records
 
     # Lookup definition in theatre type registry
@@ -1378,7 +1381,18 @@ def generate_auditorium_layout(
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
     # Specific real-world hall templates based on type
-    if tid == "flagship":
+    if tid == "compact" or is_3d_hall:
+        row_count = 10
+        seats_per_row = 10
+        rows = [alphabet[i] for i in range(10)]
+        blocks_pattern = [3, 4, 3]
+        aisles = [3, 7]
+        curve_rad = None
+        has_balcony = False
+        balcony_rows = []
+        stalls_rows = rows
+        layout_sig = "compact_reference"
+    elif tid == "flagship":
         row_count = 20
         seats_per_row = total_seats // row_count if total_seats % row_count == 0 else 28
         rows = [alphabet[i] for i in range(row_count)]
@@ -1393,116 +1407,155 @@ def generate_auditorium_layout(
         sweet_spot = sweet_spot or {
             "rows": ["J", "K", "L", "M"],
             "seat_numbers": list(range(blocks_pattern[0] + 2, blocks_pattern[0] + blocks_pattern[1])),
-            "label": "IMAX Optimal Center",
+            "label": "Optimal Center",
             "price_multiplier": 1.45,
         }
+        layout_sig = "curved_flagship"
     elif tid == "balcony":
         has_balcony = True
-        curve_rad = 30.0
-        if total_seats >= 680:
+        if total_seats >= 660 or arrangement == "balcony_wide_promenade":
             stalls_count = 16
             balcony_count = 8
             seats_per_row = 28
+            blocks_pattern = [6, 16, 6]
+            aisles = [6, 22]
+            curve_rad = 32.0
+            layout_sig = "balcony_wide_promenade"
+        elif total_seats <= 450 or arrangement == "balcony_compact_dual":
+            stalls_count = 12
+            balcony_count = 6
+            seats_per_row = 24
+            blocks_pattern = [6, 12, 6]
+            aisles = [6, 18]
+            curve_rad = 28.0
+            layout_sig = "balcony_compact_dual"
         else:
             stalls_count = 14
             balcony_count = 7
             seats_per_row = 28
+            blocks_pattern = [7, 14, 7]
+            aisles = [7, 21]
+            curve_rad = 30.0
+            layout_sig = "balcony_classical_triple"
         row_count = stalls_count + balcony_count
         rows = [alphabet[i] for i in range(row_count)]
         stalls_rows = rows[:stalls_count]
         balcony_rows = rows[stalls_count:]
-        if not blocks_pattern:
-            blocks_pattern = [7, 14, 7]
-        aisles = [7, 21]
     elif tid == "large":
-        row_count = 18 if total_seats >= 400 else 16
-        seats_per_row = total_seats // row_count
+        row_count = 15
+        seats_per_row = 28
         rows = [alphabet[i] for i in range(row_count)]
-        if not blocks_pattern:
-            blocks_pattern = [6, 12, 6] if seats_per_row >= 24 else [5, 12, 5]
-        aisles = [blocks_pattern[0], blocks_pattern[0] + blocks_pattern[1]]
+        blocks_pattern = [7, 14, 7]
+        aisles = [7, 21]
         curve_rad = 28.0
         has_balcony = False
         balcony_rows = []
         stalls_rows = rows
-    elif tid == "dolby_atmos_4dx":
-        if total_seats == 280:
-            row_count = 14
-        elif total_seats == 200:
-            row_count = 10
-        elif total_seats == 220:
-            row_count = 11
-        elif total_seats == 264:
+        layout_sig = "large_format_triple"
+    elif tid in ("motion_seat", "dolby_atmos_4dx"):
+        if total_seats >= 260 or arrangement == "motion_arena_pods":
             row_count = 12
-        elif total_seats == 216:
-            row_count = 12
-        elif total_seats == 192:
-            row_count = 12
-        elif total_seats == 168:
-            row_count = 12
-        else:
-            row_count = 12
-        seats_per_row = total_seats // row_count
-        rows = [alphabet[i] for i in range(row_count)]
-        if seats_per_row == 22:
+            seats_per_row = 22
             pod_sizes = [4, 2, 4, 2, 4, 2, 4]
             aisles = [6, 16]
             blocks_pattern = [6, 10, 6]
-        elif seats_per_row == 18:
-            pod_sizes = [4, 4, 2, 4, 4]
-            aisles = [4, 14]
-            blocks_pattern = [4, 10, 4]
-        elif seats_per_row == 16:
-            pod_sizes = [4, 4, 4, 4]
-            aisles = [4, 12]
-            blocks_pattern = [4, 8, 4]
-        elif seats_per_row == 14:
+            layout_sig = "motion_arena_pods"
+        elif total_seats <= 180 or arrangement == "motion_compact_pods":
+            row_count = 12
+            seats_per_row = 14
             pod_sizes = [2, 2, 2, 2, 2, 2, 2]
             aisles = [4, 10]
             blocks_pattern = [4, 6, 4]
+            layout_sig = "motion_compact_pods"
+        elif total_seats == 192 or arrangement == "motion_dual_pods":
+            row_count = 12
+            seats_per_row = 16
+            pod_sizes = [2, 2, 2, 2, 2, 2, 2, 2]
+            aisles = [4, 12]
+            blocks_pattern = [4, 8, 4]
+            layout_sig = "motion_dual_pods"
         else:
-            pod_sizes = [4, 4, 4, 4, 4]
-            aisles = [4, 16]
-            blocks_pattern = [4, 12, 4]
-        curve_rad = 28.0  # Gently curved row arc per spec
+            row_count = 12
+            if total_seats == 216:
+                seats_per_row = 18
+                pod_sizes = [4, 4, 2, 4, 4]
+                aisles = [4, 14]
+                blocks_pattern = [4, 10, 4]
+            else:
+                seats_per_row = 20
+                pod_sizes = [4, 4, 4, 4, 4]
+                aisles = [4, 16]
+                blocks_pattern = [4, 12, 4]
+            layout_sig = "motion_quad_pods"
+        rows = [alphabet[i] for i in range(row_count)]
+        curve_rad = 28.0
         has_balcony = False
         balcony_rows = []
         stalls_rows = rows
     elif tid == "luxury_recliner":
-        row_count = 7
-        seats_per_row = total_seats // row_count
+        if total_seats == 80 or arrangement == "recliner_executive_343":
+            row_count = 8
+            blocks_pattern = [3, 4, 3]
+            seats_per_row = 10
+            aisles = [3, 7]
+            layout_sig = "recliner_executive_343"
+        elif total_seats == 48 or arrangement == "recliner_private_suite":
+            row_count = 6
+            blocks_pattern = [2, 4, 2]
+            seats_per_row = 8
+            aisles = [2, 6]
+            layout_sig = "recliner_private_suite"
+        else:
+            row_count = 8
+            blocks_pattern = [2, 4, 2]
+            seats_per_row = 8
+            aisles = [2, 6]
+            layout_sig = "recliner_intimate_242"
         rows = [alphabet[i] for i in range(row_count)]
-        if not blocks_pattern:
-            blocks_pattern = [4, 4, 4] if seats_per_row >= 12 else [seats_per_row // 2, seats_per_row // 2]
-        aisles = [blocks_pattern[0], blocks_pattern[0] + blocks_pattern[1]] if len(blocks_pattern) == 3 else [blocks_pattern[0]]
         curve_rad = None
         has_balcony = False
         balcony_rows = []
         stalls_rows = rows
     elif tid == "boutique":
         row_count = 6
-        seats_per_row = total_seats // row_count
+        seats_per_row = 8
         rows = [alphabet[i] for i in range(row_count)]
-        if not blocks_pattern:
-            blocks_pattern = [seats_per_row // 2, seats_per_row // 2]
-        aisles = [blocks_pattern[0]]
+        blocks_pattern = [4, 4]
+        aisles = [4]
         curve_rad = None
         has_balcony = False
         balcony_rows = []
         stalls_rows = rows
+        layout_sig = "boutique_salon"
     else:  # standard
-        if arrangement == "continental":
+        if arrangement in ("continental", "standard_continental"):
             row_count = 12
-            seats_per_row = total_seats // row_count
+            seats_per_row = 18
             rows = [alphabet[i] for i in range(row_count)]
-            blocks_pattern = [seats_per_row]
+            blocks_pattern = [18]
             aisles = []
-        else:
+            layout_sig = "standard_continental"
+        elif arrangement in ("single_aisle", "standard_single_aisle"):
             row_count = 14
-            seats_per_row = total_seats // row_count
+            seats_per_row = 16
             rows = [alphabet[i] for i in range(row_count)]
-            blocks_pattern = [seats_per_row // 2, seats_per_row // 2]
-            aisles = [seats_per_row // 2]
+            blocks_pattern = [8, 8]
+            aisles = [8]
+            layout_sig = "standard_single_aisle"
+        elif arrangement in ("compact_triple", "standard_compact_triple") or total_seats <= 150:
+            row_count = 10
+            seats_per_row = 14
+            rows = [alphabet[i] for i in range(row_count)]
+            blocks_pattern = [3, 8, 3]
+            aisles = [3, 11]
+            layout_sig = "standard_compact_triple"
+        else:
+            row_count = 12
+            seats_per_row = 18
+            rows = [alphabet[i] for i in range(row_count)]
+            blocks_pattern = [4, 10, 4]
+            aisles = [4, 14]
+            layout_sig = "standard_wide_triple"
         curve_rad = None
         has_balcony = False
         balcony_rows = []
@@ -1541,8 +1594,8 @@ def generate_auditorium_layout(
     accessible = [f"A01", f"A{str(seats_per_row).zfill(2)}"]
 
     # 4DX Features & Motion Rows
-    is_4dx = tid == "dolby_atmos_4dx" or "4DX" in screen_type or "4dx" in screen_type.lower() or "motion" in screen_type.lower()
-    is_motion_hall = tid == "dolby_atmos_4dx" or is_4dx
+    is_motion_hall = tid in ("motion_seat", "dolby_atmos_4dx") or "motion" in screen_type.lower()
+    is_4dx = is_motion_hall
     motion_rows = rows if is_motion_hall else (["D", "E", "F", "G"] if is_4dx else [])
 
     # Pod structure for motion hall
@@ -1588,80 +1641,11 @@ def generate_auditorium_layout(
     ROW_A_Y = 1.365
     screen_center_y = max(5.5, screen_h / 2.0 + 1.2)
 
-    # Effect props in 3D (every prop tagged wind, fog, water, strobe, scent, poke)
+    # Effect props in 3D: Motion-seat halls use seat actuator motion only; environmental props removed per spec
     effect_props = []
-    if is_motion_hall:
-        ceiling_y = theatre_def["scene_units"]["ceiling_height"]
-        # Wind: 6 fan units
-        for f_idx, (fx, fz) in enumerate([(-6.0, -10.0), (0.0, -10.0), (6.0, -10.0), (-6.0, -20.0), (0.0, -20.0), (6.0, -20.0)]):
-            effect_props.append({
-                "id": f"prop_wind_fan_{f_idx+1}",
-                "type": "wind",
-                "position": [fx, round(ceiling_y - 1.2, 2), fz],
-                "label": f"Ceiling Wind Turbine {f_idx+1}"
-            })
-        # Fog: 4 side-wall smoke/fog machines
-        wall_x = 12.0
-        for m_idx, (mx, mz) in enumerate([(-wall_x + 0.4, -12.0), (wall_x - 0.4, -12.0), (-wall_x + 0.4, -22.0), (wall_x - 0.4, -22.0)]):
-            effect_props.append({
-                "id": f"prop_fog_machine_{m_idx+1}",
-                "type": "fog",
-                "position": [mx, 4.5, mz],
-                "label": f"Wall Fog Machine {m_idx+1}"
-            })
-        # Water: 6 ceiling mist nozzles
-        for w_idx, (wx, wz) in enumerate([(-4.0, -8.0), (4.0, -8.0), (-4.0, -16.0), (4.0, -16.0), (-4.0, -24.0), (4.0, -24.0)]):
-            effect_props.append({
-                "id": f"prop_water_mist_{w_idx+1}",
-                "type": "water",
-                "position": [wx, round(ceiling_y - 0.9, 2), wz],
-                "label": f"Ceiling Rain/Mist Nozzle {w_idx+1}"
-            })
-        # Strobe: 4 ceiling strobe light bars
-        for st_idx, st_z in enumerate([-8.0, -14.0, -20.0, -26.0]):
-            effect_props.append({
-                "id": f"prop_strobe_bar_{st_idx+1}",
-                "type": "strobe",
-                "position": [0.0, round(ceiling_y - 0.8, 2), st_z],
-                "label": f"Ceiling Strobe Bar {st_idx+1}"
-            })
-        # Scent: 4 scent dispenser unit boxes
-        for sc_idx, (scx, scz) in enumerate([(-5.0, -11.0), (5.0, -11.0), (-5.0, -21.0), (5.0, -21.0)]):
-            effect_props.append({
-                "id": f"prop_scent_unit_{sc_idx+1}",
-                "type": "scent",
-                "position": [scx, round(ceiling_y - 1.4, 2), scz],
-                "label": f"Scent Dispenser {sc_idx+1}"
-            })
-        # Poke: Seat back pokers / ticklers mounted under seats
-        for pk_idx, r in enumerate(rows[:6]):
-            effect_props.append({
-                "id": f"prop_poke_row_{r}",
-                "type": "poke",
-                "position": [2.5, round(ROW_A_Y + pk_idx * tier_rise - 0.15, 2), round(ROW_A_Z - pk_idx * row_pitch - 0.35, 2)],
-                "label": f"Row {r} Seat Back Pokers"
-            })
-
-    # Determine unique layout signature per hall (§ Part D)
-    if is_motion_hall or tid == "dolby_atmos_4dx":
-        layout_sig = "motion_pods"
-    elif tid == "flagship" or arrangement == "curved_flagship":
-        layout_sig = "curved_rows"
-    elif tid == "luxury_recliner":
-        layout_sig = "back_pairs_lounge"
-    elif tid == "balcony":
-        layout_sig = "premium_middle_block"
-    elif tid == "boutique":
-        layout_sig = "split_blocks_asymmetric"
-    elif arrangement == "continental":
-        layout_sig = "continental"
-    elif arrangement == "single_aisle":
-        layout_sig = "single_center_aisle"
-    else:
-        layout_sig = "centre_side_blocks"
 
     layout_data = {
-        "theatre_type": tid,
+        "theatre_type": "motion_seat" if tid == "dolby_atmos_4dx" else tid,
         "theatre_type_label": theatre_def["label"],
         "layout_signature": layout_sig,
         "arrangement_pattern": arrangement or theatre_def["arrangement"],
@@ -1950,12 +1934,12 @@ MOVIE_DOMINANT_COLORS = {
 
 import math
 
-async def seed_database():
+async def seed_database(force: bool = False):
     """Deterministic, idempotent seeder executing in < 60 seconds with bulk insertions."""
     print("Starting deterministic CineVerse multi-city seeding...")
     start_time = datetime.now()
 
-    force_seed = os.environ.get("FORCE_SEED", "0") == "1" or "--force" in sys.argv
+    force_seed = force or os.environ.get("FORCE_SEED", "0") == "1" or "--force" in sys.argv
     if force_seed:
         print("Force seed requested: resetting database schema before opening session...")
         await reset_db()
@@ -2086,66 +2070,66 @@ async def seed_database():
             # Normal cinema has 2 to 3 screens
             if c_info["slug"] == "cineverse-astral-koramangala":
                 screens_config = [
-                    {"name": "Screen 1 — Compact Hall", "theatre_type": "compact", "type": "IMAX 3D", "seats": 100, "is_3d": True},
-                    {"name": "Screen 2 — Big Hall Flagship", "theatre_type": "flagship", "type": "IMAX with Laser", "seats": 560, "is_3d": False},
-                    {"name": "Screen 3 — Grand Balcony Auditorium", "theatre_type": "balcony", "type": "Dolby Atmos 2D", "seats": 700, "is_3d": False},
-                    {"name": "Screen 4 — Luxe Recliner Lounge", "theatre_type": "luxury_recliner", "type": "Recliner Gold", "seats": 84, "is_3d": False},
+                    {"name": "Screen 1 — Compact Hall", "theatre_type": "compact", "type": "Standard 3D", "seats": 100, "is_3d": True},
+                    {"name": "Screen 2 — Big Hall Flagship", "theatre_type": "flagship", "type": "Large Format 2D", "seats": 560, "is_3d": False},
+                    {"name": "Screen 3 — Grand Balcony Auditorium", "theatre_type": "balcony", "type": "Balcony 2D", "seats": 588, "is_3d": False, "arrangement": "balcony_classical_triple"},
+                    {"name": "Screen 4 — Luxe Recliner Lounge", "theatre_type": "luxury_recliner", "type": "Recliner Gold", "seats": 64, "is_3d": False, "arrangement": "recliner_intimate_242"},
                 ]
             elif c_info["slug"] == "cineverse-horizon-lower-parel":
                 screens_config = [
-                    {"name": "Screen 1 — Flagship Big Hall", "theatre_type": "flagship", "type": "IMAX with Laser", "seats": 520, "is_3d": False},
-                    {"name": "Screen 2 — Grand Balcony Hall", "theatre_type": "balcony", "type": "Dolby Atmos 2D", "seats": 640, "is_3d": False},
-                    {"name": "Screen 3 — Motion-seat Hall", "theatre_type": "dolby_atmos_4dx", "type": "Motion-seat Hall", "seats": city_motion_seats, "is_3d": False, "is_licensed": False},
-                    {"name": "Screen 4 — Boutique Velvet Salon", "theatre_type": "boutique", "type": "Boutique", "seats": 48, "is_3d": False},
+                    {"name": "Screen 1 — Flagship Big Hall", "theatre_type": "flagship", "type": "Large Format 2D", "seats": 560, "is_3d": False},
+                    {"name": "Screen 2 — Grand Balcony Hall", "theatre_type": "balcony", "type": "Balcony 2D", "seats": 672, "is_3d": False, "arrangement": "balcony_wide_promenade"},
+                    {"name": "Screen 3 — Motion-seat Hall", "theatre_type": "motion_seat", "type": "Motion-seat Hall", "seats": 216, "is_3d": False, "is_licensed": False, "arrangement": "motion_quad_pods"},
+                    {"name": "Screen 4 — Boutique Velvet Salon", "theatre_type": "boutique", "type": "Boutique", "seats": 48, "is_3d": False, "arrangement": "boutique_salon"},
                 ]
             elif c_info["slug"] == "cineverse-orion-dome-rajajinagar":
                 screens_config = [
-                    {"name": "Screen 1 — Large Format Screen", "theatre_type": "large", "type": "Large Format", "seats": 420, "is_3d": False},
-                    {"name": "Screen 2 — Motion-seat Hall", "theatre_type": "dolby_atmos_4dx", "type": "Motion-seat Hall", "seats": city_motion_seats, "is_3d": False, "is_licensed": False},
-                    {"name": "Screen 3 — Continental Stadium", "theatre_type": "standard", "type": "Standard", "seats": 216, "is_3d": False, "arrangement": "continental"},
+                    {"name": "Screen 1 — Large Format Screen", "theatre_type": "large", "type": "Large Format 2D", "seats": 420, "is_3d": False},
+                    {"name": "Screen 2 — Motion-seat Hall", "theatre_type": "motion_seat", "type": "Motion-seat Hall", "seats": 240, "is_3d": False, "is_licensed": False, "arrangement": "motion_quad_pods"},
+                    {"name": "Screen 3 — Continental Stadium", "theatre_type": "standard", "type": "Standard 2D", "seats": 216, "is_3d": False, "arrangement": "continental"},
                 ]
             elif c_info.get("is_flagship"):
                 c_idx = len(cinema_entities)
                 if c_idx % 2 == 0:
                     screens_config = [
-                        {"name": "Screen 1 — Flagship Big Hall", "theatre_type": "flagship", "type": "IMAX with Laser", "seats": 560, "is_3d": False},
-                        {"name": "Screen 2 — Grand Balcony Hall", "theatre_type": "balcony", "type": "Dolby Atmos 2D", "seats": 640, "is_3d": False},
-                        {"name": "Screen 3 — Motion-seat Hall", "theatre_type": "dolby_atmos_4dx", "type": "Motion-seat Hall", "seats": city_motion_seats, "is_3d": False, "is_licensed": False},
-                        {"name": "Screen 4 — Luxe Recliner Lounge", "theatre_type": "luxury_recliner", "type": "Recliner Gold", "seats": 84, "is_3d": False},
+                        {"name": "Screen 1 — Flagship Big Hall", "theatre_type": "flagship", "type": "Large Format 2D", "seats": 560, "is_3d": False},
+                        {"name": "Screen 2 — Grand Balcony Hall", "theatre_type": "balcony", "type": "Balcony 2D", "seats": 588, "is_3d": False, "arrangement": "balcony_classical_triple"},
+                        {"name": "Screen 3 — Motion-seat Hall", "theatre_type": "motion_seat", "type": "Motion-seat Hall", "seats": 240, "is_3d": False, "is_licensed": False, "arrangement": "motion_quad_pods"},
+                        {"name": "Screen 4 — Luxe Recliner Lounge", "theatre_type": "luxury_recliner", "type": "Recliner Gold", "seats": 64, "is_3d": False, "arrangement": "recliner_intimate_242"},
                     ]
                 else:
                     screens_config = [
-                        {"name": "Screen 1 — Flagship Big Hall", "theatre_type": "flagship", "type": "IMAX with Laser", "seats": 520, "is_3d": False},
-                        {"name": "Screen 2 — Large Format Screen", "theatre_type": "large", "type": "Large Format", "seats": 420, "is_3d": False},
-                        {"name": "Screen 3 — Motion-seat Hall", "theatre_type": "dolby_atmos_4dx", "type": "Motion-seat Hall", "seats": city_motion_seats, "is_3d": False, "is_licensed": False},
-                        {"name": "Screen 4 — Boutique Velvet Salon", "theatre_type": "boutique", "type": "Boutique", "seats": 48, "is_3d": False},
+                        {"name": "Screen 1 — Flagship Big Hall", "theatre_type": "flagship", "type": "Large Format 2D", "seats": 560, "is_3d": False},
+                        {"name": "Screen 2 — Large Format Screen", "theatre_type": "large", "type": "Large Format 2D", "seats": 420, "is_3d": False},
+                        {"name": "Screen 3 — Motion-seat Hall", "theatre_type": "motion_seat", "type": "Motion-seat Hall", "seats": 192, "is_3d": False, "is_licensed": False, "arrangement": "motion_dual_pods"},
+                        {"name": "Screen 4 — Luxe Recliner Lounge", "theatre_type": "luxury_recliner", "type": "Recliner Gold", "seats": 80, "is_3d": False, "arrangement": "recliner_executive_343"},
                     ]
             else:
                 c_idx = len(cinema_entities)
                 mod = c_idx % 4
                 if mod == 0:
                     screens_config = [
-                        {"name": "Screen 1 — Large Format Screen", "theatre_type": "large", "type": "Large Format", "seats": 420, "is_3d": False},
-                        {"name": "Screen 2 — Standard Central Aisle", "theatre_type": "standard", "type": "Standard", "seats": 224, "is_3d": False, "arrangement": "single_aisle"},
-                        {"name": "Screen 3 — Luxe Recliner Lounge", "theatre_type": "luxury_recliner", "type": "Recliner Gold", "seats": 84, "is_3d": False},
+                        {"name": "Screen 1 — Large Format Screen", "theatre_type": "large", "type": "Large Format 2D", "seats": 420, "is_3d": False},
+                        {"name": "Screen 2 — Standard Central Aisle", "theatre_type": "standard", "type": "Standard 2D", "seats": 224, "is_3d": False, "arrangement": "single_aisle"},
+                        {"name": "Screen 3 — Luxe Recliner Lounge", "theatre_type": "luxury_recliner", "type": "Recliner Gold", "seats": 64, "is_3d": False, "arrangement": "recliner_intimate_242"},
                     ]
                 elif mod == 1:
                     screens_config = [
-                        {"name": "Screen 1 — Grand Balcony Auditorium", "theatre_type": "balcony", "type": "Dolby Atmos 2D", "seats": 560, "is_3d": False},
-                        {"name": "Screen 2 — Motion-seat Hall", "theatre_type": "dolby_atmos_4dx", "type": "Motion-seat Hall", "seats": city_motion_seats, "is_3d": False, "is_licensed": False},
-                        {"name": "Screen 3 — Boutique Velvet Salon", "theatre_type": "boutique", "type": "Boutique", "seats": 48, "is_3d": False},
+                        {"name": "Screen 1 — Grand Balcony Auditorium", "theatre_type": "balcony", "type": "Balcony 2D", "seats": 432, "is_3d": False, "arrangement": "balcony_compact_dual"},
+                        {"name": "Screen 2 — Motion-seat Hall", "theatre_type": "motion_seat", "type": "Motion-seat Hall", "seats": 168, "is_3d": False, "is_licensed": False, "arrangement": "motion_compact_pods"},
+                        {"name": "Screen 3 — Standard Wide Stadium", "theatre_type": "standard", "type": "Standard 2D", "seats": 216, "is_3d": False, "arrangement": "standard_wide_triple"},
                     ]
                 elif mod == 2:
                     screens_config = [
-                        {"name": "Screen 1 — Motion-seat Hall", "theatre_type": "dolby_atmos_4dx", "type": "Motion-seat Hall", "seats": city_motion_seats, "is_3d": False, "is_licensed": False},
-                        {"name": "Screen 2 — Continental Stadium", "theatre_type": "standard", "type": "Standard", "seats": 216, "is_3d": False, "arrangement": "continental"},
-                        {"name": "Screen 3 — Luxe Recliner Lounge", "theatre_type": "luxury_recliner", "type": "Recliner Gold", "seats": 84, "is_3d": False},
+                        {"name": "Screen 1 — Motion-seat Arena", "theatre_type": "motion_seat", "type": "Motion-seat Hall", "seats": 264, "is_3d": False, "is_licensed": False, "arrangement": "motion_arena_pods"},
+                        {"name": "Screen 2 — Continental Stadium", "theatre_type": "standard", "type": "Standard 2D", "seats": 216, "is_3d": False, "arrangement": "continental"},
+                        {"name": "Screen 3 — Luxe Recliner Suite", "theatre_type": "luxury_recliner", "type": "Recliner Gold", "seats": 48, "is_3d": False, "arrangement": "recliner_private_suite"},
                     ]
                 else:
                     screens_config = [
-                        {"name": "Screen 1 — Standard Central Aisle", "theatre_type": "standard", "type": "Standard", "seats": 224, "is_3d": False, "arrangement": "single_aisle"},
-                        {"name": "Screen 2 — Continental Stadium", "theatre_type": "standard", "type": "Standard", "seats": 216, "is_3d": False, "arrangement": "continental"},
-                        {"name": "Screen 3 — Boutique Velvet Salon", "theatre_type": "boutique", "type": "Boutique", "seats": 48, "is_3d": False},
+                        {"name": "Screen 1 — Standard Central Aisle", "theatre_type": "standard", "type": "Standard 2D", "seats": 224, "is_3d": False, "arrangement": "single_aisle"},
+                        {"name": "Screen 2 — Standard Compact Stadium", "theatre_type": "standard", "type": "Standard 2D", "seats": 140, "is_3d": False, "arrangement": "compact_triple"},
+                        {"name": "Screen 3 — Grand Balcony Auditorium", "theatre_type": "balcony", "type": "Balcony 2D", "seats": 588, "is_3d": False, "arrangement": "balcony_classical_triple"},
                     ]
 
             for s_cfg in screens_config:

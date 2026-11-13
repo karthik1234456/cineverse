@@ -8,6 +8,7 @@ describe('PART F: Screen Distance Rules & FOV Verification', () => {
     'standard',
     'large',
     'flagship',
+    'motion_seat',
     'dolby_atmos_4dx',
     'luxury_recliner',
     'boutique',
@@ -20,7 +21,7 @@ describe('PART F: Screen Distance Rules & FOV Verification', () => {
         theatre_type: tid,
         rows: 10,
         seats_per_row: 14,
-        is_motion_hall: tid === 'dolby_atmos_4dx',
+        is_motion_hall: tid === 'motion_seat' || tid === 'dolby_atmos_4dx',
       });
 
       const screen = res.seatLayout.screen;

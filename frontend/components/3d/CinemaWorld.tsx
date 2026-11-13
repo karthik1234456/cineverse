@@ -251,42 +251,90 @@ function DevBridge() {
         let above15Count = 0;
         let highlightCount = 0;
         let redDominantCount = 0;
-        const hueBins = [0, 0, 0, 0, 0, 0]; // 0: Red, 1: Yellow, 2: Green, 3: Cyan, 4: Blue, 5: Magenta
-        let chromaticCount = 0;
+
+        // 8 Hue classes: red, orange, yellow, green, cyan, blue, purple, neutral
+        const hueClassCounts: Record<string, number> = {
+          red: 0,
+          orange: 0,
+          yellow: 0,
+          green: 0,
+          cyan: 0,
+          blue: 0,
+          purple: 0,
+          neutral: 0,
+        };
+
         const step = 4;
         let sampled = 0;
         for (let i = 0; i < pixels.length; i += 4 * step) {
           const r = pixels[i];
           const g = pixels[i + 1];
           const b = pixels[i + 2];
+          const rN = r / 255.0;
+          const gN = g / 255.0;
+          const bN = b / 255.0;
+
           // Normalized luminance (0.0 to 1.0)
-          const normLum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0;
+          const normLum = 0.2126 * rN + 0.7152 * gN + 0.0722 * bN;
           totalLuminance += normLum;
           if (normLum < 0.05) nearBlackCount++;
           if (normLum > 0.15) above15Count++;
           if (normLum > 0.96) highlightCount++;
           if (r > g * 1.25 && r > b * 1.25 && r > 40) redDominantCount++;
 
-          // Chromatic hue analysis
-          const maxRGB = Math.max(r, g, b);
-          const minRGB = Math.min(r, g, b);
+          // Saturation and chromatic classification
+          const maxRGB = Math.max(rN, gN, bN);
+          const minRGB = Math.min(rN, gN, bN);
           const delta = maxRGB - minRGB;
-          if (delta > 18 && normLum > 0.06) {
+          const saturation = maxRGB > 0 ? delta / maxRGB : 0;
+
+          // Threshold: count only pixels with saturation >= 0.15 and normLum >= 0.05
+          if (saturation < 0.15 || normLum < 0.05) {
+            hueClassCounts.neutral++;
+          } else {
             let h = 0;
-            if (maxRGB === r) h = ((g - b) / delta + (g < b ? 6 : 0)) * 60;
-            else if (maxRGB === g) h = ((b - r) / delta + 2) * 60;
-            else h = ((r - g) / delta + 4) * 60;
-            const binIdx = Math.min(5, Math.floor(h / 60));
-            hueBins[binIdx]++;
-            chromaticCount++;
+            if (maxRGB === rN) h = ((gN - bN) / delta + (gN < bN ? 6 : 0)) * 60;
+            else if (maxRGB === gN) h = ((bN - rN) / delta + 2) * 60;
+            else h = ((rN - gN) / delta + 4) * 60;
+            h = (h + 360) % 360;
+
+            if (h >= 345 || h < 15) {
+              hueClassCounts.red++;
+            } else if (h >= 15 && h < 45) {
+              hueClassCounts.orange++;
+            } else if (h >= 45 && h < 75) {
+              hueClassCounts.yellow++;
+            } else if (h >= 75 && h < 165) {
+              hueClassCounts.green++;
+            } else if (h >= 165 && h < 195) {
+              hueClassCounts.cyan++;
+            } else if (h >= 195 && h < 255) {
+              hueClassCounts.blue++;
+            } else {
+              hueClassCounts.purple++;
+            }
           }
 
           sampled++;
         }
 
         const meanNorm = sampled > 0 ? totalLuminance / sampled : 0;
-        const maxHueBinCount = Math.max(...hueBins);
-        const maxHueDominancePercent = sampled > 0 ? Math.round((maxHueBinCount / sampled) * 1000) / 10 : 0;
+
+        // Build full 8-class histogram percentages
+        const hueHistogram: Record<string, number> = {};
+        let maxClassShare = 0;
+        let maxChromaticShare = 0;
+
+        for (const [cls, count] of Object.entries(hueClassCounts)) {
+          const share = sampled > 0 ? Math.round((count / sampled) * 1000) / 10 : 0;
+          hueHistogram[cls] = share;
+          if (share > maxClassShare) {
+            maxClassShare = share;
+          }
+          if (cls !== 'neutral' && share > maxChromaticShare) {
+            maxChromaticShare = share;
+          }
+        }
 
         return {
           meanLuminance: Math.round(meanNorm * 1000) / 1000,
@@ -295,7 +343,9 @@ function DevBridge() {
           above15Percent: Math.round((above15Count / sampled) * 1000) / 10,
           highlightPercent: Math.round((highlightCount / sampled) * 1000) / 10,
           redDominantPercent: Math.round((redDominantCount / sampled) * 1000) / 10,
-          maxHueDominancePercent,
+          hueHistogram,
+          max_class_share: maxClassShare,
+          maxHueDominancePercent: maxChromaticShare,
           width,
           height,
         };
