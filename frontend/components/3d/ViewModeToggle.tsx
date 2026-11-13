@@ -336,7 +336,7 @@ export function ViewModeToggle() {
                       className="flex w-full items-center justify-between rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left"
                     >
                       <span>Effects Rig</span>
-                      <span className="text-[10px] text-cyan-600 font-bold bg-cyan-50 px-1 rounded">4DX</span>
+                      <span className="text-[10px] text-cyan-600 font-bold bg-cyan-50 px-1 rounded">Motion</span>
                     </button>
                     <button
                       onClick={() => handleSelectPreset('wrap_screen')}

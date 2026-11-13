@@ -251,6 +251,8 @@ function DevBridge() {
         let above15Count = 0;
         let highlightCount = 0;
         let redDominantCount = 0;
+        const hueBins = [0, 0, 0, 0, 0, 0]; // 0: Red, 1: Yellow, 2: Green, 3: Cyan, 4: Blue, 5: Magenta
+        let chromaticCount = 0;
         const step = 4;
         let sampled = 0;
         for (let i = 0; i < pixels.length; i += 4 * step) {
@@ -260,14 +262,31 @@ function DevBridge() {
           // Normalized luminance (0.0 to 1.0)
           const normLum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255.0;
           totalLuminance += normLum;
-          if (normLum < 0.02) nearBlackCount++;
+          if (normLum < 0.05) nearBlackCount++;
           if (normLum > 0.15) above15Count++;
           if (normLum > 0.96) highlightCount++;
           if (r > g * 1.25 && r > b * 1.25 && r > 40) redDominantCount++;
+
+          // Chromatic hue analysis
+          const maxRGB = Math.max(r, g, b);
+          const minRGB = Math.min(r, g, b);
+          const delta = maxRGB - minRGB;
+          if (delta > 18 && normLum > 0.06) {
+            let h = 0;
+            if (maxRGB === r) h = ((g - b) / delta + (g < b ? 6 : 0)) * 60;
+            else if (maxRGB === g) h = ((b - r) / delta + 2) * 60;
+            else h = ((r - g) / delta + 4) * 60;
+            const binIdx = Math.min(5, Math.floor(h / 60));
+            hueBins[binIdx]++;
+            chromaticCount++;
+          }
+
           sampled++;
         }
 
         const meanNorm = sampled > 0 ? totalLuminance / sampled : 0;
+        const maxHueBinCount = Math.max(...hueBins);
+        const maxHueDominancePercent = sampled > 0 ? Math.round((maxHueBinCount / sampled) * 1000) / 10 : 0;
 
         return {
           meanLuminance: Math.round(meanNorm * 1000) / 1000,
@@ -276,6 +295,7 @@ function DevBridge() {
           above15Percent: Math.round((above15Count / sampled) * 1000) / 10,
           highlightPercent: Math.round((highlightCount / sampled) * 1000) / 10,
           redDominantPercent: Math.round((redDominantCount / sampled) * 1000) / 10,
+          maxHueDominancePercent,
           width,
           height,
         };

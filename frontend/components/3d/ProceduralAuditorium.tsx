@@ -652,6 +652,101 @@ export function ProceduralAuditorium({
     []
   );
 
+  const handrailMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: theatreDef.id === 'balcony' ? '#d4af37' : '#94a3b8',
+        roughness: 0.35,
+        metalness: 0.85,
+      }),
+    [theatreDef.id]
+  );
+
+  const reclinerTableMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#452210',
+        roughness: 0.65,
+        metalness: 0.15,
+      }),
+    []
+  );
+
+  const reclinerBadgeMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#d4af37',
+        roughness: 0.25,
+        metalness: 0.90,
+      }),
+    []
+  );
+
+  const reclinerSidePanelMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#2a150e',
+        roughness: 0.70,
+        metalness: 0.10,
+      }),
+    []
+  );
+
+  const motionLedBlueMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#2563eb',
+        emissive: new THREE.Color('#3b82f6'),
+        emissiveIntensity: houseLights === 'show' ? 1.6 : 0.8,
+        roughness: 0.2,
+      }),
+    [houseLights]
+  );
+
+  const motionLedRedMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#dc2626',
+        emissive: new THREE.Color('#ef4444'),
+        emissiveIntensity: houseLights === 'show' ? 1.6 : 0.8,
+        roughness: 0.2,
+      }),
+    [houseLights]
+  );
+
+  const motionLedWhiteMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#e2e8f0',
+        emissive: new THREE.Color('#ffffff'),
+        emissiveIntensity: houseLights === 'show' ? 1.4 : 0.7,
+        roughness: 0.2,
+      }),
+    [houseLights]
+  );
+
+  const amberOutlineMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#d97706',
+        emissive: new THREE.Color('#f59e0b'),
+        emissiveIntensity: houseLights === 'show' ? 1.5 : 0.9,
+        roughness: 0.3,
+        metalness: 0.4,
+      }),
+    [houseLights]
+  );
+
+  const stageGrilleMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#111318',
+        roughness: 0.85,
+        metalness: 0.60,
+      }),
+    []
+  );
+
   // Volumetric Projector Light Beam Geometry connecting booth to screen
   const projectorBeamGeometry = useMemo(() => {
     const geo = new THREE.BufferGeometry();
@@ -910,8 +1005,8 @@ export function ProceduralAuditorium({
         } else {
           if (familyType === 'sofa') {
             hexColor = '#2e4858'; // Slate Teal Velvet
-          } else if (familyType === 'recliner') {
-            hexColor = '#38241b'; // Espresso Brown Leather
+          } else if (familyType === 'recliner' || theatreDef.id === 'luxury_recliner') {
+            hexColor = theatreDef.palette?.fabricPrimary || '#9c5c2e'; // Quilted caramel/tan leather
           } else if (theatreDef.features.motion_seats || theatreDef.features.is_4dx || auditoriumLayout?.layout_signature === 'motion_pods') {
             // Motion hall seats are charcoal/graphite with technical accents
             hexColor = seat.category === 'premier' ? '#252932' : seat.category === 'front' ? '#1a1c22' : '#1f2229';
@@ -1173,6 +1268,16 @@ export function ProceduralAuditorium({
         <boxGeometry args={stageLipBox.size} />
       </mesh>
 
+      {theatreDef.id === 'standard' && (
+        <mesh
+          name="stage_lip_grille"
+          position={[stageLipBox.center[0], stageLipBox.center[1], stageLipBox.center[2] + stageLipBox.size[2] / 2 + 0.02]}
+          material={stageGrilleMaterial}
+        >
+          <boxGeometry args={[stageLipBox.size[0] * 0.92, stageLipBox.size[1] * 0.65, 0.04]} />
+        </mesh>
+      )}
+
       {/* 6b. Proscenium Arch (Open Perimeter Frame: Left Column, Right Column, Top Header) & Side Curtains */}
       {geometry.proscenium && (() => {
         const pBox = geometry.proscenium;
@@ -1285,6 +1390,106 @@ export function ProceduralAuditorium({
           >
             <boxGeometry args={boxHelper(geometry.balconyStructure.coveLightBounds).size} />
           </mesh>
+          {geometry.balconyStructure.columns?.map((col, idx) => {
+            const { size, center } = boxHelper(col);
+            return (
+              <mesh
+                key={`balcony_col_${idx}`}
+                name={`balcony_column_${idx}`}
+                position={center}
+                material={wallMaterial}
+                castShadow
+                receiveShadow
+              >
+                <boxGeometry args={size} />
+              </mesh>
+            );
+          })}
+        </group>
+      )}
+
+      {/* Cross-Aisle Handrails */}
+      {geometry.crossAisleHandrails && geometry.crossAisleHandrails.length > 0 && (
+        <group name="CrossAisleHandrailsContainer">
+          {geometry.crossAisleHandrails.map((rail) => {
+            const { size, center } = boxHelper(rail.bounds);
+            return (
+              <mesh
+                key={rail.id}
+                name={rail.id}
+                position={center}
+                material={handrailMaterial}
+              >
+                <boxGeometry args={size} />
+              </mesh>
+            );
+          })}
+        </group>
+      )}
+
+      {/* Luxury Recliner Swivel Tables, Badges & Side Panels */}
+      {geometry.reclinerAccessories && geometry.reclinerAccessories.length > 0 && (
+        <group name="ReclinerAccessoriesContainer">
+          {geometry.reclinerAccessories.map((acc) => {
+            const { size: sideSize, center: sideCenter } = boxHelper(acc.sidePanelBounds);
+            return (
+              <group key={acc.id} name={acc.id}>
+                {/* Wood Swivel Tray Table */}
+                <mesh position={acc.tablePosition} material={reclinerTableMaterial}>
+                  <cylinderGeometry args={[0.22, 0.22, 0.04, 16]} />
+                </mesh>
+                {/* Generic Round Brass Badge */}
+                <mesh position={acc.badgePosition} rotation={[Math.PI / 2, 0, 0]} material={reclinerBadgeMaterial}>
+                  <cylinderGeometry args={[0.06, 0.06, 0.02, 16]} />
+                </mesh>
+                {/* Dark Wood Side Panel */}
+                <mesh position={sideCenter} material={reclinerSidePanelMaterial}>
+                  <boxGeometry args={sideSize} />
+                </mesh>
+              </group>
+            );
+          })}
+        </group>
+      )}
+
+      {/* Radiating Motion LED Bars */}
+      {geometry.motionLedBars && geometry.motionLedBars.length > 0 && (
+        <group name="MotionLedBarsContainer">
+          {geometry.motionLedBars.map((bar) => {
+            const mat =
+              bar.colorType === 'blue'
+                ? motionLedBlueMaterial
+                : bar.colorType === 'red'
+                ? motionLedRedMaterial
+                : motionLedWhiteMaterial;
+            return (
+              <mesh
+                key={bar.id}
+                name={bar.id}
+                position={bar.position}
+                rotation={bar.rotation}
+                material={mat}
+              >
+                <boxGeometry args={bar.size} />
+              </mesh>
+            );
+          })}
+        </group>
+      )}
+
+      {/* Luxury Recliner Vertical Amber LED Outline Panels */}
+      {geometry.amberOutlinePanels && geometry.amberOutlinePanels.length > 0 && (
+        <group name="AmberOutlinePanelsContainer">
+          {geometry.amberOutlinePanels.map((panel) => (
+            <mesh
+              key={panel.id}
+              name={panel.id}
+              position={panel.position}
+              material={amberOutlineMaterial}
+            >
+              <boxGeometry args={panel.size} />
+            </mesh>
+          ))}
         </group>
       )}
 

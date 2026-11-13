@@ -26,8 +26,9 @@ export function MotionEffectsOverlay() {
   // Exclusive to motion-seat halls (§ Part G): inspect registry features and layout signature
   const isMotionHall = Boolean(
     proceduralResult?.seatLayout.layout_signature === 'motion_pods' ||
-    (proceduralResult?.seatLayout.theatre_type && getTheatreTypeDefinition(proceduralResult.seatLayout.theatre_type).features.motion_seats) ||
-    (screenType && (screenType.toLowerCase().includes('motion') || screenType.toLowerCase().includes('4dx')))
+    Boolean(proceduralResult?.seatLayout.theatre_type && getTheatreTypeDefinition(proceduralResult.seatLayout.theatre_type).features.motion_seats) ||
+    Boolean(proceduralResult?.seatLayout.features?.motion_seats) ||
+    Boolean(proceduralResult?.seatLayout.features?.is_4dx)
   );
 
   const [warningDismissed, setWarningDismissed] = useState(false);
@@ -149,10 +150,10 @@ export function MotionEffectsOverlay() {
           onClick={handleStartRequested}
           data-testid="start-4dx-preview-btn"
           className="absolute top-20 right-4 z-20 flex min-h-[44px] items-center gap-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 px-4 py-2 text-xs sm:text-sm font-black text-white shadow-lg hover:from-rose-500 hover:to-amber-500 transition active:scale-95"
-          title="Simulate 4DX-style motion seat and environmental effects"
+          title="Simulate motion seat and environmental effects"
         >
           <Sparkles className="h-4 w-4 animate-spin-slow text-amber-200" />
-          <span>4DX Experience Preview</span>
+          <span>Motion-Seat Experience Preview</span>
         </button>
       )}
 
@@ -168,11 +169,11 @@ export function MotionEffectsOverlay() {
             <div className="flex items-center gap-3 text-amber-400">
               <ShieldAlert className="h-7 w-7 shrink-0" />
               <h3 id="warning-title" className="text-lg font-black tracking-wide">
-                4DX Experience Preview
+                Motion-Seat Experience Preview
               </h3>
             </div>
             <p id="warning-desc" className="text-sm text-slate-300 leading-relaxed">
-              Preview of 4DX-style effects. Actual effects in the cinema may differ.
+              Preview of motion-seat effects. Actual effects in the cinema may differ.
             </p>
             <div className="rounded-2xl bg-white/5 p-3 text-xs text-slate-400 space-y-1.5 border border-white/10">
               <div>• Simulates synchronized seat tilting, vibration rumble, and wind.</div>
@@ -206,7 +207,7 @@ export function MotionEffectsOverlay() {
           {/* Top disclaimer pill */}
           <div className="pointer-events-auto flex items-center gap-2 rounded-full border border-amber-500/30 bg-black/80 px-4 py-1.5 text-xs font-bold text-amber-300 shadow-xl backdrop-blur">
             <span className="h-2 w-2 rounded-full bg-amber-400 animate-ping" />
-            <span>Preview of 4DX-style effects. Actual effects in the cinema may differ.</span>
+            <span>Preview of motion-seat effects. Actual effects in the cinema may differ.</span>
           </div>
 
           {/* Controls bar: Stop button, Intensity slider, and Effects status */}

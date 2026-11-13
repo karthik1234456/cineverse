@@ -31,7 +31,6 @@ import type {
   CategoryInfo,
 } from './types';
 import {
-  THEATRE_TYPE_REGISTRY,
   getTheatreTypeDefinition,
   METERS_TO_SCENE,
   SCENE_TO_METERS,
@@ -259,8 +258,33 @@ export interface ProceduralGeometryData {
     platform: BoundingBox3D;
     fascia: BoundingBox3D;
     railing: BoundingBox3D;
+    columns?: Array<{ min: [number, number, number]; max: [number, number, number] }>;
     coveLightBounds: BoundingBox3D;
   };
+  crossAisleHandrails?: Array<{
+    id: string;
+    bounds: BoundingBox3D;
+    railColor?: string;
+  }>;
+  reclinerAccessories?: Array<{
+    id: string;
+    seatId: string;
+    tablePosition: [number, number, number];
+    badgePosition: [number, number, number];
+    sidePanelBounds: BoundingBox3D;
+  }>;
+  motionLedBars?: Array<{
+    id: string;
+    position: [number, number, number];
+    size: [number, number, number];
+    rotation: [number, number, number];
+    colorType: 'blue' | 'red' | 'white';
+  }>;
+  amberOutlinePanels?: Array<{
+    id: string;
+    position: [number, number, number];
+    size: [number, number, number];
+  }>;
   cameraBounds: {
     minX: number;
     maxX: number;
@@ -300,12 +324,23 @@ export const SCREEN_Z = -1.255;
  * Calculates optimal front-row distance from screen to satisfy:
  * 1. Screen-to-Row-A distance >= 1.2 * screenHeight
  * 2. Front-row horizontal FOV <= 75 degrees (fov = 2 * atan((screenWidth/2)/dist) <= 75 deg => dist >= (screenWidth/2)/tan(37.5 deg))
+ * 3. First row sits 0.66 to 0.90 times the screen width from the screen
  */
-export function calculateScreenDistance(screenWidth: number, screenHeight: number, maxFrontFovDeg: number = 75.0): number {
+export function calculateScreenDistance(
+  screenWidth: number,
+  screenHeight: number,
+  maxFrontFovDeg: number = 75.0,
+  targetRatio: number = 0.70
+): number {
   const minDistH = 1.2 * screenHeight;
   const halfFovRad = (maxFrontFovDeg / 2.0) * (Math.PI / 180.0);
   const minDistFov = (screenWidth / 2.0) / Math.tan(halfFovRad);
-  return Math.max(minDistH, minDistFov);
+  const minRatioDist = 0.66 * screenWidth;
+  const maxRatioDist = 0.90 * screenWidth;
+  const targetDist = targetRatio * screenWidth;
+
+  const minBound = Math.max(minDistH, minDistFov, minRatioDist);
+  return Math.min(Math.max(targetDist, minBound), maxRatioDist);
 }
 
 /**
@@ -875,10 +910,17 @@ export function generateProceduralAuditorium(
   };
   colliders.push(screenStructure);
 
-  // Stage Lip Collider - sits neatly under screen at SCREEN_Z - 0.2 to SCREEN_Z - 1.2
+  // Stage Lip & Apron
+  // Grand curved hall with balcony has a stage apron extending forward towards Row A
+  const hasApron = theatreDef.id === 'balcony';
+  const stageLipDepth = hasApron
+    ? Math.max(2.4, Math.min(8.0, Math.abs(rowAZ - SCREEN_Z) - 5.2))
+    : 1.2;
+  const stageLipFrontZ = SCREEN_Z - stageLipDepth;
+  const stageLipWidth = Math.min(screenWidth + 1.2, halfWidth * 1.8);
   const stageLip: BoundingBox3D = {
-    min: [-screenWidth / 2 - 0.5, 0.0, SCREEN_Z - 1.2],
-    max: [screenWidth / 2 + 0.5, 0.45, SCREEN_Z - 0.2],
+    min: [-stageLipWidth / 2, 0.0, stageLipFrontZ],
+    max: [stageLipWidth / 2, 0.45, SCREEN_Z - 0.2],
   };
   colliders.push({ name: 'stage_lip', type: 'screen_structure', bounds: stageLip });
 
@@ -1012,11 +1054,17 @@ export function generateProceduralAuditorium(
   // Aisles are open floor with low step lights (<0.5m), no tall partition walls or solid blocks
   const carpetRunners: Array<{ name: string; bounds: BoundingBox3D }> = [];
 
-  // Balcony cantilevered structure if hall has balcony
+  // Balcony cantilevered structure if hall has balcony (properly supported with load-bearing structural columns, never floating)
   let balconyStructure: ProceduralGeometryData['balconyStructure'];
   if (hasBalcony && balconyRowsList.length > 0) {
     const balconyFrontZ = rowAZ - stallsCount * rowPitch - 0.2;
     const bBaseY = ROW_A_Y + stallsCount * tierRise + 3.6;
+    const columns: Array<{ min: [number, number, number]; max: [number, number, number] }> = [
+      { min: [-halfWidth * 0.72 - 0.35, 0.0, balconyFrontZ + 1.05], max: [-halfWidth * 0.72 + 0.35, bBaseY - 0.65, balconyFrontZ + 1.45] },
+      { min: [-halfWidth * 0.24 - 0.35, 0.0, balconyFrontZ + 1.05], max: [-halfWidth * 0.24 + 0.35, bBaseY - 0.65, balconyFrontZ + 1.45] },
+      { min: [halfWidth * 0.24 - 0.35, 0.0, balconyFrontZ + 1.05], max: [halfWidth * 0.24 + 0.35, bBaseY - 0.65, balconyFrontZ + 1.45] },
+      { min: [halfWidth * 0.72 - 0.35, 0.0, balconyFrontZ + 1.05], max: [halfWidth * 0.72 + 0.35, bBaseY - 0.65, balconyFrontZ + 1.45] },
+    ];
     balconyStructure = {
       platform: {
         min: [-halfWidth + 1.2, bBaseY - 0.65, zBack],
@@ -1030,11 +1078,110 @@ export function generateProceduralAuditorium(
         min: [-halfWidth + 1.2, bBaseY, balconyFrontZ + 1.38],
         max: [halfWidth - 1.2, bBaseY + 0.88, balconyFrontZ + 1.45],
       },
+      columns,
       coveLightBounds: {
         min: [-halfWidth + 1.4, bBaseY - 0.72, balconyFrontZ + 1.25],
         max: [halfWidth - 1.4, bBaseY - 0.62, balconyFrontZ + 1.35],
       },
     };
+  }
+
+  // Cross aisle handrails: mid-hall in balcony hall, every few rows in motion hall
+  const crossAisleHandrails: ProceduralGeometryData['crossAisleHandrails'] = [];
+  if (hasBalcony) {
+    const midRowIdx = Math.floor(stallsCount / 2);
+    const midZ = rowAZ - midRowIdx * rowPitch - 0.15;
+    const midY = (midRowIdx + 1) * tierRise;
+    crossAisleHandrails.push({
+      id: 'handrail_mid_cross_aisle',
+      bounds: {
+        min: [-halfWidth + 2.2, midY, midZ - 0.06],
+        max: [halfWidth - 2.2, midY + 0.85, midZ + 0.06],
+      },
+      railColor: '#d4af37',
+    });
+  } else if (isMotionHall) {
+    for (let r = 4; r < totalRows - 1; r += 4) {
+      const crZ = rowAZ - r * rowPitch - 0.15;
+      const crY = (r + 1) * tierRise;
+      crossAisleHandrails.push({
+        id: `handrail_cross_aisle_${r}`,
+        bounds: {
+          min: [-halfWidth + 2.0, crY, crZ - 0.05],
+          max: [halfWidth - 2.0, crY + 0.82, crZ + 0.05],
+        },
+        railColor: '#38bdf8',
+      });
+    }
+  }
+
+  // Luxury recliner swivel tables, badges & side panels
+  const reclinerAccessories: ProceduralGeometryData['reclinerAccessories'] = [];
+  if (theatreDef.id === 'luxury_recliner') {
+    for (const seat of seatRecords) {
+      const [sx, sy, sz] = seat.position_gltf_y_up;
+      reclinerAccessories.push({
+        id: `table_${seat.seat_id}`,
+        seatId: seat.seat_id,
+        tablePosition: [sx + seatPitch * 0.38, sy - 0.12, sz - 0.08],
+        badgePosition: [sx, sy + 0.42, sz - 0.28],
+        sidePanelBounds: {
+          min: [sx + seatPitch * 0.34, sy - 0.85, sz - 0.45],
+          max: [sx + seatPitch * 0.42, sy - 0.10, sz + 0.35],
+        },
+      });
+    }
+  }
+
+  // Motion hall radiating coloured LED bars (blue, red, white)
+  const motionLedBars: ProceduralGeometryData['motionLedBars'] = [];
+  if (isMotionHall) {
+    const barColors: Array<'blue' | 'red' | 'white'> = ['blue', 'red', 'white', 'blue', 'white', 'red'];
+    const barCount = 6;
+    for (let i = 0; i < barCount; i++) {
+      const bZ = -4.0 - i * ((Math.abs(zBack) - 6.0) / barCount);
+      motionLedBars.push({
+        id: `led_bar_left_${i}`,
+        position: [halfWidth - 0.15, ceilingHeight - 1.5, bZ],
+        size: [0.08, 0.15, 1.8],
+        rotation: [0, 0, 0],
+        colorType: barColors[i % barColors.length],
+      });
+      motionLedBars.push({
+        id: `led_bar_right_${i}`,
+        position: [-halfWidth + 0.15, ceilingHeight - 1.5, bZ],
+        size: [0.08, 0.15, 1.8],
+        rotation: [0, 0, 0],
+        colorType: barColors[(i + 1) % barColors.length],
+      });
+      motionLedBars.push({
+        id: `led_bar_ceiling_${i}`,
+        position: [0.0, ceilingHeight - 0.35, bZ],
+        size: [halfWidth * 1.2, 0.08, 0.12],
+        rotation: [0, 0, 0],
+        colorType: barColors[(i + 2) % barColors.length],
+      });
+    }
+  }
+
+  // Luxury recliner vertical amber LED outline panels on black walls
+  const amberOutlinePanels: ProceduralGeometryData['amberOutlinePanels'] = [];
+  if (theatreDef.id === 'luxury_recliner') {
+    const panelCols = 5;
+    const pStep = (Math.abs(zBack) - 4.0) / panelCols;
+    for (let p = 0; p < panelCols; p++) {
+      const pZ = -3.5 - p * pStep;
+      amberOutlinePanels.push({
+        id: `amber_outline_left_${p}`,
+        position: [halfWidth - 0.10, 4.5, pZ],
+        size: [0.06, 5.0, 1.8],
+      });
+      amberOutlinePanels.push({
+        id: `amber_outline_right_${p}`,
+        position: [-halfWidth + 0.10, 4.5, pZ],
+        size: [0.06, 5.0, 1.8],
+      });
+    }
   }
 
   // 8c. Suspended Acoustic Ceiling Clouds & Roof Structural Trusses
@@ -1554,6 +1701,7 @@ export function generateProceduralAuditorium(
       height: screenHeight,
       aspect: Math.round((screenWidth / screenHeight) * 1000) / 1000,
       mesh: 'cinema_screen_surface',
+      is_curved: theatreDef.screenType.isCurved,
     },
     eye_model: {
       cushion_top_above_seat_min_units: 0.8,
@@ -1694,6 +1842,10 @@ export function generateProceduralAuditorium(
       : undefined,
     acousticBaffles,
     balconyStructure,
+    crossAisleHandrails,
+    reclinerAccessories,
+    motionLedBars,
+    amberOutlinePanels,
     cameraBounds,
     targetBounds,
     defaultCameraPos,

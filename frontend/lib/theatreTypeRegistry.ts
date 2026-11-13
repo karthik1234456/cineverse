@@ -199,11 +199,11 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
 
   standard: {
     id: 'standard',
-    name: 'Standard Cinema Hall',
+    name: 'Standard Multiplex Hall',
     label: 'Standard Stadium Hall',
-    targetSeats: [180, 260],
-    typicalSeats: 224,
-    arrangementPattern: 'single_aisle',
+    targetSeats: [160, 260],
+    typicalSeats: 240,
+    arrangementPattern: 'triple_block',
     ceilingDesign: {
       structure: 'coffered_grid',
       cloudsCount: 6,
@@ -213,50 +213,50 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       hasEffectRigs: false,
     },
     palette: {
-      fabricPrimary: '#6b1828',
-      fabricSecondary: '#7a1b2e',
-      wallColor: '#2a2c33',
-      panelColor: '#363942',
-      slatColor: '#25272e',
-      ceilingColor: '#141518',
-      coveColor: '#ffe4a0',
-      skirtingColor: '#ffb74d',
-      carpetColor: '#1e2025',
-      runnerColor: '#2b2e36',
-      trimColor: '#d4af37',
+      fabricPrimary: '#781422',
+      fabricSecondary: '#8a1828',
+      wallColor: '#242730',
+      panelColor: '#2d313c',
+      slatColor: '#1e2129',
+      ceilingColor: '#101626',
+      coveColor: '#2563eb',
+      skirtingColor: '#3b82f6',
+      carpetColor: '#1c1d22',
+      runnerColor: '#242732',
+      trimColor: '#334155',
       boothColor: '#181a1f',
     },
     screenType: {
       type: 'standard_flat',
       name: 'Standard flat screen',
-      aspectRatio: 2.16,
+      aspectRatio: 2.15,
       isCurved: false,
       hasProjectorBeam: true,
       finish: 'matte_white',
-      bezel: { width: 0.30, color: '#111115', hasFrame: true },
+      bezel: { width: 0.25, color: '#111115', hasFrame: true },
     },
     realWorldDimensions: {
-      seatWidthM: 0.55,
+      seatWidthM: 0.52,
       rowPitchM: 1.00,
-      rakeStepM: 0.18,
+      rakeStepM: 0.17,
       aisleWidthM: 1.20,
       ceilingHeightM: 10.0,
-      screenWidthM: 16.0,
-      screenHeightM: 7.4,
+      screenWidthM: 14.0,
+      screenHeightM: 6.5,
     },
     sceneDimensions: {
-      seatPitch: 0.55 * METERS_TO_SCENE,  // 1.10
-      rowPitch: 1.00 * METERS_TO_SCENE,   // 2.00
-      tierRise: 0.18 * METERS_TO_SCENE,   // 0.36
-      aisleGap: 1.20 * METERS_TO_SCENE,   // 2.40
+      seatPitch: 1.20,  // 0.52m + 0.08m gap = 0.60m * 2.0
+      rowPitch: 2.00,   // 1.00m * 2.0
+      tierRise: 0.34,   // 0.17m * 2.0
+      aisleGap: 2.40,   // 1.20m * 2.0
       ceilingHeight: 10.0 * METERS_TO_SCENE,
-      screenWidth: 16.0 * METERS_TO_SCENE,
-      screenHeight: 7.4 * METERS_TO_SCENE,
+      screenWidth: 14.0 * METERS_TO_SCENE,
+      screenHeight: 6.5 * METERS_TO_SCENE,
     },
     features: {
       curved_screen: false,
     },
-    description: 'Mainstream 14-18 row cinema with a central aisle and clear sightlines.',
+    description: 'Wide straight-row layout with a centre block and two narrower side blocks, navy coffered ceiling, blue wall-wash lighting, dark charcoal carpet, and deep red fabric seats.',
   },
 
   large: {
@@ -393,9 +393,9 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
     id: 'dolby_atmos_4dx',
     name: 'Motion-seat Hall',
     label: 'Motion-seat Experience',
-    licensedName: 'Dolby Atmos & 4DX Experience',
-    licensedLabel: '4DX Motion Theatre',
-    targetSeats: [160, 300],
+    licensedName: 'Motion-seat Hall',
+    licensedLabel: 'Motion-seat Hall',
+    targetSeats: [160, 280],
     typicalSeats: 240,
     arrangementPattern: 'motion_pods',
     ceilingDesign: {
@@ -407,24 +407,23 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       hasEffectRigs: true,
     },
     palette: {
-      fabricPrimary: '#121417',
-      fabricSecondary: '#1c2127',
-      wallColor: '#181a1f',
-      panelColor: '#22262c',
-      slatColor: '#282e36',
-      ceilingColor: '#0e1013',
-      coveColor: '#06b6d4',
-      skirtingColor: '#0284c7',
-      carpetColor: '#15171b',
-      runnerColor: '#083344',
+      fabricPrimary: '#17191d',
+      fabricSecondary: '#22252b',
+      wallColor: '#0a0b0e',
+      panelColor: '#121418',
+      slatColor: '#16191f',
+      ceilingColor: '#06070a',
+      coveColor: '#2563eb',
+      skirtingColor: '#ef4444',
+      carpetColor: '#121316',
+      runnerColor: '#181b20',
       trimColor: '#38bdf8',
-      boothColor: '#12151a',
+      boothColor: '#101216',
     },
     screenType: {
       type: 'panoramic_wrap',
       name: 'Panoramic wrap screen',
-      brandName: 'ScreenX',
-      aspectRatio: 1.90,
+      aspectRatio: 2.12,
       isCurved: false,
       hasProjectorBeam: true,
       finish: 'matte_white',
@@ -442,16 +441,16 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       aisleWidthM: 1.25,
       ceilingHeightM: 11.5,
       screenWidthM: 18.0,
-      screenHeightM: 9.5,
+      screenHeightM: 8.5,
     },
     sceneDimensions: {
-      seatPitch: 0.56 * METERS_TO_SCENE, // 1.12
-      rowPitch: 1.25 * METERS_TO_SCENE,  // 2.50
-      tierRise: 0.24 * METERS_TO_SCENE,  // 0.48
-      aisleGap: 1.25 * METERS_TO_SCENE,  // 2.50
+      seatPitch: 1.28, // 0.56m + 0.08m gap = 0.64m * 2.0
+      rowPitch: 2.50,  // 1.25m * 2.0
+      tierRise: 0.48,  // 0.24m * 2.0
+      aisleGap: 2.50,  // 1.25m * 2.0
       ceilingHeight: 11.5 * METERS_TO_SCENE,
       screenWidth: 18.0 * METERS_TO_SCENE,
-      screenHeight: 9.5 * METERS_TO_SCENE,
+      screenHeight: 8.5 * METERS_TO_SCENE,
     },
     features: {
       is_4dx: true,
@@ -459,15 +458,15 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       motion_seats: true,
       panoramic_wrap: true,
     },
-    description: 'Sensory motion-seat theatre with synchronized motion pods, panoramic wrap screen, and atmospheric effect rig.',
+    description: 'Black walls and ceiling with radiating blue, red and white LED bars, black seats in pods of four on visible platform bases with red LED edges, and wrap screen.',
   },
 
   luxury_recliner: {
     id: 'luxury_recliner',
-    name: 'Luxe Recliner & Gold Lounge',
-    label: 'VIP Recliner Lounge',
-    targetSeats: [60, 120],
-    typicalSeats: 84,
+    name: 'Luxury Recliner Hall',
+    label: 'VIP Luxury Recliner Lounge',
+    targetSeats: [80, 160],
+    typicalSeats: 128,
     arrangementPattern: 'luxury_pairs',
     ceilingDesign: {
       structure: 'coffered_walnut',
@@ -478,51 +477,51 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       hasEffectRigs: false,
     },
     palette: {
-      fabricPrimary: '#38241b',
-      fabricSecondary: '#523628',
-      wallColor: '#3d281e',
-      panelColor: '#5a3c2d',
-      slatColor: '#3b2216',
-      ceilingColor: '#1c130e',
-      coveColor: '#ffedd5',
-      skirtingColor: '#f59e0b',
-      carpetColor: '#281b15',
-      runnerColor: '#451a03',
+      fabricPrimary: '#9c5c2e',
+      fabricSecondary: '#a66838',
+      wallColor: '#0d0d10',
+      panelColor: '#17171a',
+      slatColor: '#381c12',
+      ceilingColor: '#08080a',
+      coveColor: '#f59e0b',
+      skirtingColor: '#d97706',
+      carpetColor: '#1c1815',
+      runnerColor: '#281a14',
       trimColor: '#d97706',
-      boothColor: '#261812',
+      boothColor: '#141416',
     },
     screenType: {
       type: 'premium_direct_view',
       name: 'Premium direct-view screen',
-      aspectRatio: 2.15,
+      aspectRatio: 2.08,
       isCurved: false,
       hasProjectorBeam: false,
       finish: 'glossy_led',
       bezel: { width: 0.08, color: '#050505', thinBlack: true, hasFrame: true },
     },
     realWorldDimensions: {
-      seatWidthM: 0.95, // 0.9 to 1.0 m wide seats
-      rowPitchM: 1.50,  // 1.4 to 1.6 m row pitch
+      seatWidthM: 0.92,
+      rowPitchM: 1.42,  // 1.4 to 1.6 m row pitch
       rakeStepM: 0.22,
-      aisleWidthM: 1.30,
-      ceilingHeightM: 8.5,
-      screenWidthM: 14.0,
-      screenHeightM: 6.5,
+      aisleWidthM: 1.40,
+      ceilingHeightM: 9.0,
+      screenWidthM: 11.0,
+      screenHeightM: 5.2,
     },
     sceneDimensions: {
-      seatPitch: 0.95 * METERS_TO_SCENE,  // 1.90
-      rowPitch: 1.50 * METERS_TO_SCENE,   // 3.00
-      tierRise: 0.22 * METERS_TO_SCENE,   // 0.44
-      aisleGap: 1.30 * METERS_TO_SCENE,   // 2.60
-      ceilingHeight: 8.5 * METERS_TO_SCENE,
-      screenWidth: 14.0 * METERS_TO_SCENE,
-      screenHeight: 6.5 * METERS_TO_SCENE,
+      seatPitch: 2.16,  // 0.92m + 0.16m table = 1.08m * 2.0
+      rowPitch: 2.84,   // 1.42m * 2.0
+      tierRise: 0.44,   // 0.22m * 2.0
+      aisleGap: 2.80,   // 1.40m * 2.0
+      ceilingHeight: 9.0 * METERS_TO_SCENE,
+      screenWidth: 11.0 * METERS_TO_SCENE,
+      screenHeight: 5.2 * METERS_TO_SCENE,
     },
     features: {
       recliner_pairs: true,
       curved_screen: false,
     },
-    description: 'Ultra-exclusive luxury hall with leather recliner pairs and generous legroom.',
+    description: 'Black walls with vertical amber LED outline panels, amber ceiling edge strip, quilted caramel leather recliners with wooden swivel tables, and dark wood trim.',
   },
 
   boutique: {
@@ -590,10 +589,10 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
 
   balcony: {
     id: 'balcony',
-    name: 'Grand Balcony Auditorium',
-    label: 'Grand Balcony Hall',
-    targetSeats: [500, 700],
-    typicalSeats: 700,
+    name: 'Grand Curved Hall with Balcony',
+    label: 'Grand Balcony Auditorium',
+    targetSeats: [420, 560],
+    typicalSeats: 520,
     arrangementPattern: 'balcony_two_tier',
     ceilingDesign: {
       structure: 'deep_coffers_balcony',
@@ -604,53 +603,53 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       hasEffectRigs: false,
     },
     palette: {
-      fabricPrimary: '#7f1d1d',
-      fabricSecondary: '#991b1b',
-      wallColor: '#3b1820',
-      panelColor: '#4c1d24',
-      slatColor: '#2c1218',
-      ceilingColor: '#190a0e',
+      fabricPrimary: '#66111f',
+      fabricSecondary: '#7a1526',
+      wallColor: '#2b161c',
+      panelColor: '#381c24',
+      slatColor: '#221116',
+      ceilingColor: '#0c0b0e',
       coveColor: '#fef08a',
       skirtingColor: '#f59e0b',
-      carpetColor: '#260f15',
-      runnerColor: '#5c1322',
-      trimColor: '#eab308',
-      boothColor: '#240c12',
+      carpetColor: '#181215',
+      runnerColor: '#26141a',
+      trimColor: '#d4af37',
+      boothColor: '#111114',
     },
     screenType: {
       type: 'large_curved',
       name: 'Large curved screen',
-      aspectRatio: 2.14,
+      aspectRatio: 2.24,
       isCurved: true,
-      curveRadiusM: 36.0,
+      curveRadiusM: 32.0,
       hasProjectorBeam: true,
       finish: 'matte_white',
       bezel: { width: 0.25, color: '#15101a', hasFrame: true },
     },
     realWorldDimensions: {
-      seatWidthM: 0.55,
+      seatWidthM: 0.54,
       rowPitchM: 1.05,
       rakeStepM: 0.20,
       aisleWidthM: 1.30,
       ceilingHeightM: 14.0, // 14 m ceiling in large balcony halls
-      screenWidthM: 24.0,
-      screenHeightM: 11.2,
+      screenWidthM: 22.0,
+      screenHeightM: 9.8,
     },
     sceneDimensions: {
-      seatPitch: 0.55 * METERS_TO_SCENE,  // 1.10
-      rowPitch: 1.05 * METERS_TO_SCENE,   // 2.10
-      tierRise: 0.20 * METERS_TO_SCENE,   // 0.40
-      aisleGap: 1.30 * METERS_TO_SCENE,   // 2.60
+      seatPitch: 1.24,  // 0.54m + 0.08m gap = 0.62m * 2.0
+      rowPitch: 2.10,   // 1.05m * 2.0
+      tierRise: 0.40,   // 0.20m * 2.0
+      aisleGap: 2.60,   // 1.30m * 2.0
       ceilingHeight: 14.0 * METERS_TO_SCENE,
-      screenWidth: 24.0 * METERS_TO_SCENE,
-      screenHeight: 11.2 * METERS_TO_SCENE,
+      screenWidth: 22.0 * METERS_TO_SCENE,
+      screenHeight: 9.8 * METERS_TO_SCENE,
     },
     features: {
       has_balcony: true,
       curved_screen: true,
       dolby_atmos: true,
     },
-    description: 'Monumental two-tier auditorium with ground-floor Stalls (460 seats) and upper Balcony (240 seats).',
+    description: 'Curved stadium seating with real balcony level, deep burgundy-brown wall panels, dark ceiling with lighting trusses, black stage apron, and curved screen.',
   },
 };
 

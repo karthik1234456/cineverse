@@ -30,7 +30,60 @@ export function AuditoriumInfoPanel() {
   const storeScreenType = useCinemaStore((s) => s.screenType);
   const proceduralResult = useCinemaStore((s) => s.proceduralResult);
 
+  const layout = auditoriumLayout || (layoutData as unknown as SeatLayoutFile);
+
   const displayTiers = React.useMemo(() => {
+    if (layout.seats && layout.seats.length > 0) {
+      const allRows = Array.from(new Set(layout.seats.map((s) => s.row))).sort();
+      const rowToCat = new Map<string, string>();
+      const catPrices = new Map<string, number>();
+
+      for (const s of layout.seats) {
+        const cat = (s.category || 'Prime').toLowerCase();
+        if (!rowToCat.has(s.row)) {
+          rowToCat.set(s.row, cat);
+        }
+        if (s.price && (!catPrices.has(cat) || s.price < (catPrices.get(cat) || Infinity))) {
+          catPrices.set(cat, s.price);
+        }
+      }
+
+      const catRows = new Map<string, string[]>();
+      for (const r of allRows) {
+        const cat = rowToCat.get(r) || 'prime';
+        if (!catRows.has(cat)) catRows.set(cat, []);
+        catRows.get(cat)!.push(r);
+      }
+
+      const order = ['front', 'prime', 'premier'];
+      const result = [];
+      for (const k of order) {
+        if (catRows.has(k) && catRows.get(k)!.length > 0) {
+          const rowsInTier = catRows.get(k)!;
+          const rText =
+            rowsInTier.length === 1
+              ? `Row ${rowsInTier[0]}`
+              : `Rows ${rowsInTier[0]}–${rowsInTier[rowsInTier.length - 1]}`;
+          const capName = k.charAt(0).toUpperCase() + k.slice(1);
+          const colorClass =
+            k === 'premier'
+              ? 'border-rose-300 bg-rose-50 text-[#9F1239]'
+              : k === 'front'
+              ? 'border-amber-300 bg-amber-50 text-[#8D5B28]'
+              : 'border-blue-300 bg-blue-50 text-[#1E40AF]';
+          const p = catPrices.get(k) || (k === 'premier' ? 520 : k === 'front' ? 280 : 380);
+          result.push({
+            name: capName,
+            category: k,
+            rows: rText,
+            price: p,
+            colorClass,
+          });
+        }
+      }
+      if (result.length > 0) return result;
+    }
+
     if (storeTiers && storeTiers.length > 0) {
       return storeTiers.map((t) => ({
         name: t.name,
@@ -50,7 +103,7 @@ export function AuditoriumInfoPanel() {
       { name: 'Prime', category: 'prime', rows: 'Rows D–G', price: 380, colorClass: 'border-blue-300 bg-blue-50 text-[#1E40AF]' },
       { name: 'Premier', category: 'premier', rows: 'Rows H–J', price: 520, colorClass: 'border-rose-300 bg-rose-50 text-[#9F1239]' },
     ];
-  }, [storeTiers]);
+  }, [layout.seats, storeTiers]);
 
   // Check URL query flag ?debug=1 (dev builds only)
   useEffect(() => {
@@ -60,17 +113,15 @@ export function AuditoriumInfoPanel() {
     }
   }, []);
 
-  const layout = auditoriumLayout || (layoutData as unknown as SeatLayoutFile);
-
   const totalSeatsCount = layout.seats ? layout.seats.length : 100;
   const rowsList = React.useMemo(() => {
-    if (!layout.seats || layout.seats.length === 0) return ['A', 'J'];
+    if (!layout.seats || layout.seats.length === 0) return { first: 'A', last: 'J', count: 10 };
     const rSet = new Set(layout.seats.map((s) => s.row));
     const sorted = Array.from(rSet).sort();
-    return [sorted[0], sorted[sorted.length - 1]];
+    return { first: sorted[0], last: sorted[sorted.length - 1], count: sorted.length };
   }, [layout.seats]);
 
-  const rowRangeText = `${totalSeatsCount} Seats • ${rowsList[0]}–${rowsList[1]}`;
+  const rowRangeText = `${totalSeatsCount} Seats • ${rowsList.count} Rows (${rowsList.first}–${rowsList.last})`;
   const displayHallTitle = auditoriumName || 'Auditorium';
   const displayScreenType = storeScreenType || layout.theatre_type_label || 'Standard Screen';
 
