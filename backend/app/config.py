@@ -66,6 +66,7 @@ class Settings(BaseSettings):
     ENABLE_WAITLIST: bool = True
     ENABLE_OFFLINE_SCANNING: bool = True
     ENABLE_TICKET_TRANSFERS: bool = True  # Can be toggled to false via ENABLE_TICKET_TRANSFERS=false for state compliance
+    ENABLE_BUG_REPORTING: bool = os.getenv("ENABLE_BUG_REPORTING", "true").lower() in ("true", "1", "yes")
 
     # Catalog Source & TMDB Settings (accepts both v3 32-hex api_key and v4 Bearer token)
     CATALOG_SOURCE: str = os.getenv("CATALOG_SOURCE", "local")  # "local" or "tmdb"

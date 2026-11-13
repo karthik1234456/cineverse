@@ -38,6 +38,7 @@ from app.api.v1.group_booking import router as group_booking_router
 from app.api.v1.waitlist import router as waitlist_router
 from app.api.v1.pricing import router as pricing_router
 from app.api.v1.insights import router as insights_router
+from app.api.v1.problem_reports import router as problem_reports_router
 from app.api.v1.dev import router as dev_router
 from app.api.websockets.showtimes import router as ws_router
 
@@ -211,6 +212,7 @@ def create_app() -> FastAPI:
     application.include_router(group_booking_router, prefix=f"{v1}/groups", tags=["Group Booking"])
     application.include_router(dev_router, prefix=f"{v1}/dev", tags=["Developer Diagnostics"])
     application.include_router(dev_router, prefix="/api/dev", tags=["Developer Diagnostics"])
+    application.include_router(problem_reports_router, prefix=f"{v1}", tags=["Problem Reports"])
     application.include_router(ws_router, tags=["WebSockets"])
 
     # 6. Static files mount for trailers, posters, backdrops with byte-range support
@@ -220,6 +222,8 @@ def create_app() -> FastAPI:
     trailers_dir = os.path.join(frontend_public, "trailers")
     posters_dir = os.path.join(frontend_public, "posters")
     backdrops_dir = os.path.join(frontend_public, "backdrops")
+    bug_reports_dir = os.path.join(frontend_public, "bug_reports")
+    os.makedirs(bug_reports_dir, exist_ok=True)
 
     if os.path.exists(trailers_dir):
         application.mount("/trailers", StaticFiles(directory=trailers_dir), name="trailers")
@@ -227,6 +231,8 @@ def create_app() -> FastAPI:
         application.mount("/posters", StaticFiles(directory=posters_dir), name="posters")
     if os.path.exists(backdrops_dir):
         application.mount("/backdrops", StaticFiles(directory=backdrops_dir), name="backdrops")
+    if os.path.exists(bug_reports_dir):
+        application.mount("/bug_reports", StaticFiles(directory=bug_reports_dir), name="bug_reports")
 
     return application
 

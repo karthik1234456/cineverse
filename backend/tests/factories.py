@@ -11,8 +11,7 @@ async def make_test_user(
     db: AsyncSession,
     email: Optional[str] = None,
     full_name: str = "Test User",
-    role: RoleEnum = RoleEnum.CUSTOMER,
-    loyalty_points: int = 0
+    role: RoleEnum = RoleEnum.CUSTOMER
 ) -> User:
     """Factory creating an isolated user instance."""
     unique_email = email or f"user_{uuid.uuid4().hex[:8]}@cineverse-test.in"
@@ -20,9 +19,7 @@ async def make_test_user(
         email=unique_email,
         full_name=full_name,
         role=role,
-        hashed_password="mock_hashed_pw",
-        loyalty_points=loyalty_points,
-        loyalty_tier="silver"
+        hashed_password="mock_hashed_pw"
     )
     db.add(user)
     await db.commit()

@@ -9,6 +9,7 @@ import { getShowtimeSeats, type ShowtimeSeatsResponse } from '@/services/api';
 import { LayoutGrid, Maximize2, Minimize2, ArrowLeft } from 'lucide-react';
 import { useMovieBackdrop } from '@/context/MovieBackdropContext';
 import { useComfortStore } from '@/store/useComfortStore';
+import ProblemReportButton from '@/components/ProblemReportButton';
 
 interface AuditoriumViewRouterProps {
   cinemaId: string;
@@ -170,8 +171,9 @@ export function AuditoriumViewRouter({
             </span>
           </div>
 
-          {/* Right: Fullscreen Toggle Button */}
+          {/* Right: Fullscreen Toggle Button & Problem Report */}
           <div className="flex items-center gap-2">
+            <ProblemReportButton />
             <button
               onClick={toggleFullScreen}
               data-testid="fullscreen-toggle-btn"

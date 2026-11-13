@@ -36,9 +36,18 @@ export default function AdminDashboardPage() {
           <p className="text-xs text-zinc-400 mt-1">Live booking velocity, screen occupancy, and revenue telemetry</p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-semibold text-emerald-400">Live Telemetry Active</span>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/admin/reports"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 hover:border-slate-600 transition"
+          >
+            <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+            <span>Problem Reports</span>
+          </Link>
+          <div className="flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-semibold text-emerald-400">Live Telemetry Active</span>
+          </div>
         </div>
       </div>
 

@@ -14,6 +14,7 @@ from app.models.operations import (
 )
 from app.models.waitlist import WaitlistEntry, WaitlistStatusEnum
 from app.models.dynamic_pricing import DynamicPricingRule, PricingRuleStatusEnum, PriceAuditLog
+from app.models.problem_report import ProblemReport
 
 __all__ = [
     "User", "RoleEnum", "RefreshToken",
@@ -29,6 +30,7 @@ __all__ = [
     "LoyaltyAccount", "LoyaltyLedger", "LoyaltyTierEnum", "LoyaltyActionEnum",
     "CinePassSubscription", "TicketTransferLog",
     "WaitlistEntry", "WaitlistStatusEnum",
-    "DynamicPricingRule", "PricingRuleStatusEnum", "PriceAuditLog"
+    "DynamicPricingRule", "PricingRuleStatusEnum", "PriceAuditLog",
+    "ProblemReport",
 ]
 

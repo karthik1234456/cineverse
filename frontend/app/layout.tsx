@@ -12,6 +12,7 @@ import { TmdbAttribution } from '@/components/TmdbAttribution';
 import { TmdbReadinessBanner } from '@/components/TmdbReadinessBanner';
 import { PwaUpdatePrompt } from '@/components/PwaUpdatePrompt';
 import { BuildStamp } from '@/components/BuildStamp';
+import ProblemReportButton from '@/components/ProblemReportButton';
 
 export const metadata: Metadata = {
   title: 'CineVerse — Experience The Theatre Before Booking Your Movie',
@@ -61,6 +62,8 @@ export default function RootLayout({
                   <a href="/legal/privacy" className="hover:text-[#C8102E] transition">Privacy (DPDP)</a>
                   <a href="/legal/refunds" className="hover:text-[#C8102E] transition">Refunds</a>
                   <a href="/about" className="hover:text-[#C8102E] transition">About</a>
+                  <span className="text-[#E6DCD2] hidden md:inline">|</span>
+                  <ProblemReportButton />
                   <span className="text-[#E6DCD2] hidden md:inline">|</span>
                   <span>© 2026 CineVerse Cinemas India</span>
                 </div>
