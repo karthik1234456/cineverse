@@ -937,17 +937,18 @@ export function ProceduralAuditorium({
       const camX = camera.position.x;
 
       const ceilDist = Math.abs(camY - geometry.dimensions.height);
-      if (ceilDist < 1.8) {
-        ceilingMaterial.opacity = THREE.MathUtils.clamp((ceilDist - 0.25) / 1.5, 0.0, 1.0);
+      if (ceilDist < 1.5) {
+        ceilingMaterial.opacity = THREE.MathUtils.clamp((ceilDist - 0.2) / 1.3, 0.0, 1.0);
       } else {
         ceilingMaterial.opacity = 1.0;
       }
 
       const backWallDist = Math.abs(camZ - geometry.dimensions.zBack);
+      const frontWallDist = Math.abs(camZ - geometry.dimensions.zFront);
       const sideWallDist = Math.abs(Math.abs(camX) - geometry.dimensions.halfWidth);
-      const wallDist = Math.min(backWallDist, sideWallDist);
-      if (wallDist < 1.8) {
-        const wallFade = THREE.MathUtils.clamp((wallDist - 0.25) / 1.5, 0.0, 1.0);
+      const wallDist = Math.min(backWallDist, frontWallDist, sideWallDist);
+      if (wallDist < 1.5) {
+        const wallFade = THREE.MathUtils.clamp((wallDist - 0.2) / 1.3, 0.0, 1.0);
         wallMaterial.opacity = wallFade;
         acousticPanelMaterial.opacity = wallFade;
         panelTrimMaterial.opacity = wallFade;
@@ -1241,12 +1242,11 @@ export function ProceduralAuditorium({
         })}
       </group>
 
-      {/* 5. Ceiling (hidden in Look around / dollhouse cutaway mode) */}
+      {/* 5. Ceiling */}
       <mesh
         name="ceiling"
         position={ceilingBox.center}
         material={ceilingMaterial}
-        visible={!isOverview}
       >
         <boxGeometry args={ceilingBox.size} />
       </mesh>
@@ -1493,8 +1493,8 @@ export function ProceduralAuditorium({
         </group>
       )}
 
-      {/* 6d. Suspended Acoustic Ceiling Clouds (hidden in Look around / dollhouse cutaway mode) */}
-      {!isOverview && geometry.ceilingClouds && geometry.ceilingClouds.length > 0 && (
+      {/* 6d. Suspended Acoustic Ceiling Clouds */}
+      {geometry.ceilingClouds && geometry.ceilingClouds.length > 0 && (
         <group name="CeilingCloudsContainer">
           {geometry.ceilingClouds.map((cloud) => {
             const { size, center } = boxHelper(cloud.bounds);
@@ -1644,7 +1644,7 @@ export function ProceduralAuditorium({
         </group>
       )}
 
-      {/* 6k. 4DX Effect Rigs */}
+      {/* 6k. Overhead Structural Lighting Trusses */}
       {geometry.effectRigs && geometry.effectRigs.length > 0 && (
         <group name="EffectRigsContainer">
           {geometry.effectRigs.map((rig) => {
@@ -1654,16 +1654,6 @@ export function ProceduralAuditorium({
                 <mesh position={center} material={effectRigMaterial}>
                   <boxGeometry args={size} />
                 </mesh>
-                {rig.fans.map((fanPos, fIdx) => (
-                  <mesh key={`fan_${fIdx}`} position={fanPos} material={effectRigMaterial}>
-                    <cylinderGeometry args={[0.35, 0.35, 0.2, 12]} />
-                  </mesh>
-                ))}
-                {rig.nozzles.map((nozPos, nIdx) => (
-                  <mesh key={`nozzle_${nIdx}`} position={nozPos} material={effectRigMaterial}>
-                    <sphereGeometry args={[0.12, 8, 8]} />
-                  </mesh>
-                ))}
               </group>
             );
           })}
@@ -1707,86 +1697,6 @@ export function ProceduralAuditorium({
               ))}
             </group>
           ))}
-        </group>
-      )}
-
-      {/* 6n. Environmental Effect Props Rig (Wind, Fog, Water, Strobe, Scent, Poke) */}
-      {geometry.effectProps && geometry.effectProps.length > 0 && (
-        <group name="EffectPropsRigContainer">
-          {geometry.effectProps.map((prop) => {
-            const isWind = prop.type === 'wind';
-            const isFog = prop.type === 'fog';
-            const isWater = prop.type === 'water';
-            const isStrobe = prop.type === 'strobe';
-            const isScent = prop.type === 'scent';
-            const isPoke = prop.type === 'poke';
-
-            return (
-              <group key={prop.id} name={prop.id} position={prop.position}>
-                {/* Wind turbine / fan casing */}
-                {isWind && (
-                  <group>
-                    <mesh material={effectPropMaterial}>
-                      <cylinderGeometry args={[0.55, 0.55, 0.25, 16]} />
-                    </mesh>
-                    <mesh position={[0, -0.13, 0]} material={effectPropLedMaterial}>
-                      <cylinderGeometry args={[0.12, 0.12, 0.02, 12]} />
-                    </mesh>
-                  </group>
-                )}
-                {/* Fog / smoke machine */}
-                {isFog && (
-                  <group>
-                    <mesh material={effectPropMaterial}>
-                      <boxGeometry args={[0.65, 0.55, 0.75]} />
-                    </mesh>
-                    <mesh position={[0, -0.15, 0.38]} rotation={[Math.PI / 2, 0, 0]} material={effectPropLedMaterial}>
-                      <cylinderGeometry args={[0.08, 0.08, 0.04, 12]} />
-                    </mesh>
-                  </group>
-                )}
-                {/* Water mist / rain nozzle */}
-                {isWater && (
-                  <group>
-                    <mesh material={effectPropMaterial}>
-                      <cylinderGeometry args={[0.09, 0.14, 0.18, 10]} />
-                    </mesh>
-                    <mesh position={[0, -0.1, 0]} material={effectPropLedMaterial}>
-                      <sphereGeometry args={[0.045, 8, 8]} />
-                    </mesh>
-                  </group>
-                )}
-                {/* Strobe light bar */}
-                {isStrobe && (
-                  <group>
-                    <mesh material={effectPropMaterial}>
-                      <boxGeometry args={[1.6, 0.14, 0.22]} />
-                    </mesh>
-                    <mesh position={[0, -0.075, 0]} material={effectPropLedMaterial}>
-                      <boxGeometry args={[1.4, 0.03, 0.15]} />
-                    </mesh>
-                  </group>
-                )}
-                {/* Scent unit dispenser */}
-                {isScent && (
-                  <group>
-                    <mesh material={effectPropMaterial}>
-                      <boxGeometry args={[0.45, 0.38, 0.35]} />
-                    </mesh>
-                    <mesh position={[0, -0.12, 0.18]} material={effectPropLedMaterial}>
-                      <boxGeometry args={[0.22, 0.04, 0.02]} />
-                    </mesh>
-                  </group>
-                )}
-                {/* Seat pokers / ticklers */}
-                {isPoke && (
-                  <mesh material={effectPropMaterial} rotation={[Math.PI / 2, 0, 0]}>
-                    <cylinderGeometry args={[0.02, 0.02, 0.25, 8]} />
-                  </mesh>
-                )}
-              </group>
-            );
-          })}
         </group>
       )}
 

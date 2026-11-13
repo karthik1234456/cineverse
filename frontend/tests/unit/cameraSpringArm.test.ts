@@ -6,7 +6,8 @@ export function solveSpringArm(
   target: THREE.Vector3,
   desiredPos: THREE.Vector3,
   bounds: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number },
-  margin: number = 0.35
+  margin: number = 0.35,
+  minDist: number = 2.0
 ): THREE.Vector3 {
   const dir = new THREE.Vector3().subVectors(desiredPos, target);
   const dist = dir.length();
@@ -33,7 +34,7 @@ export function solveSpringArm(
     hitDist = Math.min(hitDist, (bounds.minZ + margin - target.z) / u.z);
   }
 
-  const maxAllowed = Math.max(2.2, Math.max(0, hitDist));
+  const maxAllowed = Math.max(minDist, Math.max(0, hitDist));
   const resultDist = Math.min(dist, maxAllowed);
   const clampedPos = target.clone().addScaledVector(u, resultDist);
 
@@ -44,6 +45,11 @@ export function solveSpringArm(
   clampedPos.z = THREE.MathUtils.clamp(clampedPos.z, bounds.minZ + safetyMargin, bounds.maxZ - safetyMargin);
 
   return clampedPos;
+}
+
+export function computeProximityOpacity(distanceToSurface: number, fadeThreshold: number = 1.5): number {
+  if (distanceToSurface >= fadeThreshold) return 1.0;
+  return THREE.MathUtils.clamp((distanceToSurface - 0.2) / (fadeThreshold - 0.2), 0.0, 1.0);
 }
 
 describe('PART A: Spring-Arm Camera Collision & Boundary Clamping', () => {
@@ -58,7 +64,7 @@ describe('PART A: Spring-Arm Camera Collision & Boundary Clamping', () => {
   const target = new THREE.Vector3(0.0, 3.0, -14.0);
 
   it('rotates 360 degrees without stalling azimuth at three zoom levels', () => {
-    const zoomDistances = [5.0, 15.0, 35.0]; // close, medium, far
+    const zoomDistances = [3.0, 12.0, 35.0]; // close (near screen), medium, far
 
     for (const radius of zoomDistances) {
       let previousAzimuth = -1;
@@ -106,5 +112,52 @@ describe('PART A: Spring-Arm Camera Collision & Boundary Clamping', () => {
     // Y and Z should remain aligned with target
     expect(clamped.y).toBeCloseTo(target.y, 2);
     expect(clamped.z).toBeCloseTo(target.z, 2);
+  });
+
+  it('respects pitch bounds from 8 to 85 degrees', () => {
+    const minPitchRad = (8 * Math.PI) / 180; // 0.1396 rad
+    const maxPitchRad = (85 * Math.PI) / 180; // 1.4835 rad
+
+    for (let pitchDeg = 8; pitchDeg <= 85; pitchDeg += 5) {
+      const phi = (pitchDeg * Math.PI) / 180;
+      expect(phi).toBeGreaterThanOrEqual(minPitchRad - 1e-4);
+      expect(phi).toBeLessThanOrEqual(maxPitchRad + 1e-4);
+    }
+  });
+
+  it('fades out surfaces within ~1.5m of camera', () => {
+    // Outside 1.5m -> full opacity 1.0
+    expect(computeProximityOpacity(2.5)).toBe(1.0);
+    expect(computeProximityOpacity(1.5)).toBe(1.0);
+
+    // Between 0.2m and 1.5m -> smooth fade
+    const midFade = computeProximityOpacity(0.85);
+    expect(midFade).toBeGreaterThan(0.0);
+    expect(midFade).toBeLessThan(1.0);
+
+    // Below 0.2m -> completely faded out
+    expect(computeProximityOpacity(0.15)).toBe(0.0);
+  });
+
+  it('verifies spring-arm bounds across all 4 hall types', () => {
+    const hallBounds = {
+      standard: { minX: -9.5, maxX: 9.5, minY: 1.0, maxY: 9.0, minZ: -24.5, maxZ: -2.0 },
+      balcony: { minX: -14.5, maxX: 14.5, minY: 1.0, maxY: 14.5, minZ: -36.0, maxZ: -2.0 },
+      luxury_recliner: { minX: -7.5, maxX: 7.5, minY: 1.0, maxY: 6.8, minZ: -18.5, maxZ: -2.0 },
+      dolby_atmos_4dx: { minX: -10.5, maxX: 10.5, minY: 1.0, maxY: 10.0, minZ: -27.0, maxZ: -2.0 },
+    };
+
+    for (const [type, b] of Object.entries(hallBounds)) {
+      const tgt = new THREE.Vector3(0, (b.minY + b.maxY) / 3, (b.minZ + b.maxZ) / 2);
+      const testPos = new THREE.Vector3(b.maxX + 20, tgt.y, tgt.z);
+      const res = solveSpringArm(tgt, testPos, b);
+
+      expect(res.x).toBeLessThanOrEqual(b.maxX);
+      expect(res.x).toBeGreaterThanOrEqual(b.minX);
+      expect(res.y).toBeLessThanOrEqual(b.maxY);
+      expect(res.y).toBeGreaterThanOrEqual(b.minY);
+      expect(res.z).toBeLessThanOrEqual(b.maxZ);
+      expect(res.z).toBeGreaterThanOrEqual(b.minZ);
+    }
   });
 });

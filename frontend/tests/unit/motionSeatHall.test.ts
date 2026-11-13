@@ -151,26 +151,16 @@ describe('Motion-Seat (4DX-Style) Hall Type — Structure, Screen & Seating Veri
     });
   });
 
-  describe('4. 3D Structure, Effects Rig & Colliders', () => {
-    it('generates 30 atmospheric effect props with valid types and tags', () => {
+  describe('4. 3D Structure, Motion Pods & Colliders', () => {
+    it('verifies environmental effect props (wind, fog, water, strobes, scents) are completely removed', () => {
       const props = geometry.effectProps || [];
-      expect(props.length).toBe(30);
-
-      const propTypes = new Set(props.map((p) => p.type));
-      expect(propTypes.has('wind')).toBe(true);
-      expect(propTypes.has('fog')).toBe(true);
-      expect(propTypes.has('water')).toBe(true);
-      expect(propTypes.has('strobe')).toBe(true);
-      expect(propTypes.has('scent')).toBe(true);
-      expect(propTypes.has('poke')).toBe(true);
+      const envProps = props.filter((p) => ['wind', 'fog', 'water', 'strobe', 'scent'].includes(p.type));
+      expect(envProps.length).toBe(0);
     });
 
-    it('registers pod platform bases and wall fog machines as colliders in walkNav', () => {
+    it('registers pod platform bases as colliders in walkNav', () => {
       const podColliders = walkNav.colliders.filter((c) => c.type === ('pod_base' as any));
       expect(podColliders.length).toBeGreaterThan(0);
-
-      const rigColliders = walkNav.colliders.filter((c) => c.type === ('effect_rig' as any));
-      expect(rigColliders.length).toBe(4); // 4 wall fog machines
     });
 
     it('provides front floor trim light along stage proscenium', () => {
@@ -238,11 +228,8 @@ describe('Motion-Seat (4DX-Style) Hall Type — Structure, Screen & Seating Veri
       // Stage lip sits compactly under screen (min Z >= SCREEN_Z - 1.5, nowhere near Row A at Z <= -11.6)
       expect(geometry.stageLip.min[2]).toBeGreaterThan(-3.0);
       expect(geometry.stageLip.max[2]).toBeLessThanOrEqual(geometry.screenMesh.center[2]);
-      // Poke actuators are not located at X = 0.0 (middle aisle)
-      const pokeProps = (geometry.effectProps || []).filter((p) => p.type === 'poke');
-      for (const p of pokeProps) {
-        expect(Math.abs(p.position[0])).toBeGreaterThan(0.5);
-      }
+      // Environmental props removed
+      expect(geometry.effectProps || []).toHaveLength(0);
     });
   });
 });

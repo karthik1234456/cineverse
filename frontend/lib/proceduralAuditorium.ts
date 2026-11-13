@@ -126,6 +126,7 @@ export interface ProceduralGeometryData {
     height: number;
     halfWidth: number;
     zBack: number;
+    zFront: number;
     topTierY: number;
   };
   roomFloor: BoundingBox3D;
@@ -1401,17 +1402,8 @@ export function generateProceduralAuditorium(
           min: [-halfWidth * 0.65, ceilingHeight - 1.8, -6.2],
           max: [halfWidth * 0.65, ceilingHeight - 1.5, -5.8],
         },
-        nozzles: [
-          [-halfWidth * 0.5, ceilingHeight - 1.85, -6.0],
-          [-halfWidth * 0.2, ceilingHeight - 1.85, -6.0],
-          [halfWidth * 0.2, ceilingHeight - 1.85, -6.0],
-          [halfWidth * 0.5, ceilingHeight - 1.85, -6.0],
-        ],
-        fans: [
-          [-halfWidth * 0.35, ceilingHeight - 1.9, -6.0],
-          [0.0, ceilingHeight - 1.9, -6.0],
-          [halfWidth * 0.35, ceilingHeight - 1.9, -6.0],
-        ],
+        nozzles: [],
+        fans: [],
       },
       {
         id: 'effect_rig_mid',
@@ -1419,17 +1411,8 @@ export function generateProceduralAuditorium(
           min: [-halfWidth * 0.65, ceilingHeight - 1.8, -13.2],
           max: [halfWidth * 0.65, ceilingHeight - 1.5, -12.8],
         },
-        nozzles: [
-          [-halfWidth * 0.5, ceilingHeight - 1.85, -13.0],
-          [-halfWidth * 0.2, ceilingHeight - 1.85, -13.0],
-          [halfWidth * 0.2, ceilingHeight - 1.85, -13.0],
-          [halfWidth * 0.5, ceilingHeight - 1.85, -13.0],
-        ],
-        fans: [
-          [-halfWidth * 0.35, ceilingHeight - 1.9, -13.0],
-          [0.0, ceilingHeight - 1.9, -13.0],
-          [halfWidth * 0.35, ceilingHeight - 1.9, -13.0],
-        ],
+        nozzles: [],
+        fans: [],
       },
     ];
   }
@@ -1514,52 +1497,11 @@ export function generateProceduralAuditorium(
     }
   }
 
-  let effectProps: ProceduralGeometryData['effectProps'];
-  if (input.effect_props && input.effect_props.length > 0) {
-    effectProps = input.effect_props;
-  } else if (isMotionHall) {
-    effectProps = [
-      // 6 Wind Turbines
-      { id: 'prop_wind_fan_1', type: 'wind', position: [-6.0, ceilingHeight - 1.2, -10.0], label: 'Ceiling Wind Turbine 1' },
-      { id: 'prop_wind_fan_2', type: 'wind', position: [0.0, ceilingHeight - 1.2, -10.0], label: 'Ceiling Wind Turbine 2' },
-      { id: 'prop_wind_fan_3', type: 'wind', position: [6.0, ceilingHeight - 1.2, -10.0], label: 'Ceiling Wind Turbine 3' },
-      { id: 'prop_wind_fan_4', type: 'wind', position: [-6.0, ceilingHeight - 1.2, -20.0], label: 'Ceiling Wind Turbine 4' },
-      { id: 'prop_wind_fan_5', type: 'wind', position: [0.0, ceilingHeight - 1.2, -20.0], label: 'Ceiling Wind Turbine 5' },
-      { id: 'prop_wind_fan_6', type: 'wind', position: [6.0, ceilingHeight - 1.2, -20.0], label: 'Ceiling Wind Turbine 6' },
-      // 4 Side Wall Smoke/Fog Machines
-      { id: 'prop_fog_machine_1', type: 'fog', position: [-halfWidth + 0.4, 4.5, -12.0], label: 'Wall Fog Machine 1' },
-      { id: 'prop_fog_machine_2', type: 'fog', position: [halfWidth - 0.4, 4.5, -12.0], label: 'Wall Fog Machine 2' },
-      { id: 'prop_fog_machine_3', type: 'fog', position: [-halfWidth + 0.4, 4.5, -22.0], label: 'Wall Fog Machine 3' },
-      { id: 'prop_fog_machine_4', type: 'fog', position: [halfWidth - 0.4, 4.5, -22.0], label: 'Wall Fog Machine 4' },
-      // 6 Ceiling Water/Rain Mist Nozzles
-      { id: 'prop_water_mist_1', type: 'water', position: [-4.0, ceilingHeight - 0.9, -8.0], label: 'Ceiling Rain/Mist Nozzle 1' },
-      { id: 'prop_water_mist_2', type: 'water', position: [4.0, ceilingHeight - 0.9, -8.0], label: 'Ceiling Rain/Mist Nozzle 2' },
-      { id: 'prop_water_mist_3', type: 'water', position: [-4.0, ceilingHeight - 0.9, -16.0], label: 'Ceiling Rain/Mist Nozzle 3' },
-      { id: 'prop_water_mist_4', type: 'water', position: [4.0, ceilingHeight - 0.9, -16.0], label: 'Ceiling Rain/Mist Nozzle 4' },
-      { id: 'prop_water_mist_5', type: 'water', position: [-4.0, ceilingHeight - 0.9, -24.0], label: 'Ceiling Rain/Mist Nozzle 5' },
-      { id: 'prop_water_mist_6', type: 'water', position: [4.0, ceilingHeight - 0.9, -24.0], label: 'Ceiling Rain/Mist Nozzle 6' },
-      // 4 Strobe Light Bars
-      { id: 'prop_strobe_bar_1', type: 'strobe', position: [0.0, ceilingHeight - 0.8, -8.0], label: 'Ceiling Strobe Bar 1' },
-      { id: 'prop_strobe_bar_2', type: 'strobe', position: [0.0, ceilingHeight - 0.8, -14.0], label: 'Ceiling Strobe Bar 2' },
-      { id: 'prop_strobe_bar_3', type: 'strobe', position: [0.0, ceilingHeight - 0.8, -20.0], label: 'Ceiling Strobe Bar 3' },
-      { id: 'prop_strobe_bar_4', type: 'strobe', position: [0.0, ceilingHeight - 0.8, -26.0], label: 'Ceiling Strobe Bar 4' },
-      // 4 Scent Dispensers
-      { id: 'prop_scent_unit_1', type: 'scent', position: [-5.0, ceilingHeight - 1.4, -11.0], label: 'Scent Dispenser 1' },
-      { id: 'prop_scent_unit_2', type: 'scent', position: [5.0, ceilingHeight - 1.4, -11.0], label: 'Scent Dispenser 2' },
-      { id: 'prop_scent_unit_3', type: 'scent', position: [-5.0, ceilingHeight - 1.4, -21.0], label: 'Scent Dispenser 3' },
-      { id: 'prop_scent_unit_4', type: 'scent', position: [5.0, ceilingHeight - 1.4, -21.0], label: 'Scent Dispenser 4' },
-      // Poke actuators (mounted slim under seat pods on the side, not in the central aisle)
-      ...rows.slice(0, 6).map((r, rIdx) => ({
-        id: `prop_poke_row_${r}`,
-        type: 'poke' as const,
-        position: [2.5, ROW_A_Y + rIdx * tierRise - 0.15, rowAZ - rIdx * rowPitch - 0.35] as [number, number, number],
-        label: `Row ${r} Seat Back Pokers`,
-      })),
-    ];
-  }
+  const effectProps: ProceduralGeometryData['effectProps'] = [];
+  // Environmental effect props (fans, fog machines, water nozzles, strobes, scents) removed per pure seat motion spec.
 
-  // Add wall fog units to colliders for walk navigation
-  if (effectProps) {
+  // Add wall units to colliders for walk navigation if present
+  if (effectProps && effectProps.length > 0) {
     for (const ep of effectProps) {
       if (ep.type === 'fog') {
         colliders.push({
@@ -1784,6 +1726,7 @@ export function generateProceduralAuditorium(
       height: ceilingHeight,
       halfWidth,
       zBack,
+      zFront: SCREEN_Z,
       topTierY,
     },
     roomFloor: walkableSurfaces[0].bounds,

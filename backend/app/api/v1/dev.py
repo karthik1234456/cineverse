@@ -303,11 +303,11 @@ async def get_developer_readiness(
                 if m.id in [1, 2, 3]:
                     effects_status = "reviewed"
                     effects_ok = True
-                    effects_reason = "Hand-reviewed 4DX motion seat timeline with haptic & sub-bass vibration"
+                    effects_reason = "Hand-reviewed motion seat timeline with haptic & sub-bass vibration"
                 elif trailer_url:
                     effects_status = "auto"
                     effects_ok = True
-                    effects_reason = "Auto audio-analyser derived motion & sensory cues"
+                    effects_reason = "Auto audio-analyser derived seat motion cues"
                 else:
                     effects_status = "none"
                     effects_ok = False
@@ -398,7 +398,7 @@ async def get_developer_readiness(
         # Determine features from layout and screen type
         features = []
         if aud.screen_type == "4DX" or layout.get("has_motion_seats"):
-            features.extend(["motion_seats", "wind", "water", "fog", "strobe", "scent"])
+            features.append("motion_seats")
         if "Dolby Atmos" in theatre_type:
             features.append("atmos_overhead")
         if layout.get("has_balcony") or aud.total_seats >= 380:

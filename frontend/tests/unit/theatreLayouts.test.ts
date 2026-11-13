@@ -256,7 +256,7 @@ describe('Real-World Theatre Dimensions & Arrangements Tests', () => {
       expect(booth.screenTarget[2]).toBe(-1.255); // Screen Z
     });
 
-    it('generates 4DX effect rigs (transverse trusses with fans and nozzles) for 4DX halls', () => {
+    it('generates overhead trusses for motion-seat halls with environmental props removed', () => {
       const res = generateProceduralAuditorium({
         theatre_type: 'dolby_atmos_4dx',
         rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'],
@@ -266,8 +266,9 @@ describe('Real-World Theatre Dimensions & Arrangements Tests', () => {
 
       expect(res.geometry.effectRigs).toBeDefined();
       expect(res.geometry.effectRigs!.length).toBeGreaterThanOrEqual(2);
-      expect(res.geometry.effectRigs![0].fans.length).toBeGreaterThanOrEqual(3);
-      expect(res.geometry.effectRigs![0].nozzles.length).toBeGreaterThanOrEqual(4);
+      expect(res.geometry.effectRigs![0].fans).toHaveLength(0);
+      expect(res.geometry.effectRigs![0].nozzles).toHaveLength(0);
+      expect(res.geometry.effectProps).toHaveLength(0);
     });
 
     it('generates acoustic baffles for IMAX flagship hall', () => {

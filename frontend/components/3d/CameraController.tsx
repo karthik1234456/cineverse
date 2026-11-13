@@ -313,7 +313,47 @@ export function CameraController() {
           setMode('overview');
         }
       } else if (isOverview) {
-        // Overview mode controls
+        // Overview (Look around) mode controls: arrows rotate & tilt, plus/minus zoom
+        const ctrl = controlsRef.current;
+        const persCam = camera as THREE.PerspectiveCamera;
+        if (ctrl) {
+          if (e.key === 'ArrowLeft') {
+            ctrl.setAzimuthalAngle(ctrl.getAzimuthalAngle() + 0.08);
+            ctrl.update();
+            useCinemaStore.getState().setContinuousRendering(true);
+            setTimeout(() => useCinemaStore.getState().setContinuousRendering(false), 200);
+          } else if (e.key === 'ArrowRight') {
+            ctrl.setAzimuthalAngle(ctrl.getAzimuthalAngle() - 0.08);
+            ctrl.update();
+            useCinemaStore.getState().setContinuousRendering(true);
+            setTimeout(() => useCinemaStore.getState().setContinuousRendering(false), 200);
+          } else if (e.key === 'ArrowUp') {
+            const minP = (8 * Math.PI) / 180;
+            ctrl.setPolarAngle(Math.max(minP, ctrl.getPolarAngle() - 0.05));
+            ctrl.update();
+            useCinemaStore.getState().setContinuousRendering(true);
+            setTimeout(() => useCinemaStore.getState().setContinuousRendering(false), 200);
+          } else if (e.key === 'ArrowDown') {
+            const maxP = (85 * Math.PI) / 180;
+            ctrl.setPolarAngle(Math.min(maxP, ctrl.getPolarAngle() + 0.05));
+            ctrl.update();
+            useCinemaStore.getState().setContinuousRendering(true);
+            setTimeout(() => useCinemaStore.getState().setContinuousRendering(false), 200);
+          } else if (e.key === '+' || e.key === '=') {
+            // Zoom in
+            persCam.position.sub(ctrl.target).multiplyScalar(0.92).add(ctrl.target);
+            ctrl.update();
+            useCinemaStore.getState().setContinuousRendering(true);
+            setTimeout(() => useCinemaStore.getState().setContinuousRendering(false), 200);
+          } else if (e.key === '-' || e.key === '_') {
+            // Zoom out
+            persCam.position.sub(ctrl.target).multiplyScalar(1.08).add(ctrl.target);
+            ctrl.update();
+            useCinemaStore.getState().setContinuousRendering(true);
+            setTimeout(() => useCinemaStore.getState().setContinuousRendering(false), 200);
+          }
+        }
+
         if (e.code === 'KeyW' || e.code === 'KeyS') {
           // Switch to Walk mode
           setMode('walk');
@@ -324,6 +364,84 @@ export function CameraController() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isSeated, isOverview, activeSeatId, standUp, setMode, navigatePOV, toggleCompare, toggleSeat]);
+
+  // Interior Spring-Arm Collision & Hard Bounds Enforcement
+  const enforceInteriorSpringArm = React.useCallback(() => {
+    if (!controlsRef.current) return;
+    const persCam = camera as THREE.PerspectiveCamera;
+    const curTarget = targetBounds || TARGET_BOUNDS;
+    const bounds = cameraBounds || AUDITORIUM_BOUNDS;
+
+    // Clamp orbit target to interior hall center
+    const tgt = controlsRef.current.target;
+    tgt.x = THREE.MathUtils.clamp(tgt.x, curTarget.minX, curTarget.maxX);
+    tgt.y = THREE.MathUtils.clamp(tgt.y, curTarget.minY, curTarget.maxY);
+    tgt.z = THREE.MathUtils.clamp(tgt.z, curTarget.minZ, curTarget.maxZ);
+
+    // Spring-Arm Raycast Collision against hall shell:
+    // Cast ray from target to desired camera position against hall walls/ceiling/floor.
+    // Near a wall, pull camera closer to target along the ray without clamping azimuth.
+    const camPos = persCam.position;
+    const dir = new THREE.Vector3().subVectors(camPos, tgt);
+    const dist = dir.length();
+    if (dist > 1e-4) {
+      const u = dir.clone().multiplyScalar(1 / dist);
+      const margin = 0.35;
+      let hitDist = Infinity;
+
+      if (u.x > 1e-5) {
+        hitDist = Math.min(hitDist, (bounds.maxX - margin - tgt.x) / u.x);
+      } else if (u.x < -1e-5) {
+        hitDist = Math.min(hitDist, (bounds.minX + margin - tgt.x) / u.x);
+      }
+
+      if (u.y > 1e-5) {
+        hitDist = Math.min(hitDist, (bounds.maxY - margin - tgt.y) / u.y);
+      } else if (u.y < -1e-5) {
+        hitDist = Math.min(hitDist, (bounds.minY + margin - tgt.y) / u.y);
+      }
+
+      if (u.z > 1e-5) {
+        hitDist = Math.min(hitDist, (bounds.maxZ - margin - tgt.z) / u.z);
+      } else if (u.z < -1e-5) {
+        hitDist = Math.min(hitDist, (bounds.minZ + margin - tgt.z) / u.z);
+      }
+
+      const maxAllowed = Math.max(2.0, Math.max(0, hitDist));
+      if (dist > maxAllowed) {
+        persCam.position.copy(tgt).addScaledVector(u, maxAllowed);
+      }
+    }
+
+    // Hard boundary safety clamp: camera NEVER leaves the interior volume
+    const margin = 0.25;
+    persCam.position.x = THREE.MathUtils.clamp(persCam.position.x, bounds.minX + margin, bounds.maxX - margin);
+    persCam.position.y = THREE.MathUtils.clamp(persCam.position.y, bounds.minY + margin, bounds.maxY - margin);
+    persCam.position.z = THREE.MathUtils.clamp(persCam.position.z, bounds.minZ + margin, bounds.maxZ - margin);
+
+    if (typeof window !== 'undefined') {
+      (window as any).__cineverse_cam_pos = {
+        x: persCam.position.x,
+        y: persCam.position.y,
+        z: persCam.position.z,
+      };
+      (window as any).__cineverse_cam_bounds = bounds;
+      (window as any).__cineverse_orbit_controls = controlsRef.current;
+      (window as any).__cineverse_set_orbit_pose = (theta: number, phi: number, r: number) => {
+        if (!controlsRef.current) return;
+        const curTgt = controlsRef.current.target;
+        const sinPhi = Math.sin(phi);
+        persCam.position.set(
+          curTgt.x + r * sinPhi * Math.sin(theta),
+          curTgt.y + r * Math.cos(phi),
+          curTgt.z + r * sinPhi * Math.cos(theta)
+        );
+        enforceInteriorSpringArm();
+        controlsRef.current.update();
+        enforceInteriorSpringArm();
+      };
+    }
+  }, [camera, cameraBounds, targetBounds]);
 
   // Frame tick: transitions, head-look, boundary clamps
   useFrame(({ invalidate }, delta) => {
@@ -377,6 +495,22 @@ export function CameraController() {
       persCam.position.copy(targetPose.position);
       persCam.quaternion.copy(targetPose.quaternion);
 
+      // Apply matching small camera motion in Sit view with seat edges fixed to camera
+      const isMotionActive = useCinemaStore.getState().experience4dxActive;
+      const motionIntensity = useCinemaStore.getState().experience4dxIntensity;
+      if (isMotionActive && motionIntensity !== 'off') {
+        invalidate();
+        const t4 = performance.now() * 0.007;
+        const intMult = motionIntensity === 'full' ? 1.0 : motionIntensity === 'light' ? 0.35 : 0.65;
+        const heave = Math.sin(t4 * 7.5) * 0.025 * intMult;
+        const pitchM = Math.sin(t4 * 5.5) * 0.035 * intMult;
+        const rollM = Math.cos(t4 * 6.5) * 0.02 * intMult;
+
+        persCam.position.y += heave;
+        const motionQuat = new THREE.Quaternion().setFromEuler(new THREE.Euler(pitchM, 0, rollM));
+        persCam.quaternion.multiply(motionQuat);
+      }
+
       // Apply yaw (around world Y) and pitch (around camera local X)
       const yawQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), look.yaw);
       const pitchQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), look.pitch);
@@ -384,57 +518,7 @@ export function CameraController() {
       persCam.quaternion.premultiply(yawQuat);
       persCam.quaternion.multiply(pitchQuat);
     } else if (isOverview) {
-      const curTarget = targetBounds || TARGET_BOUNDS;
-      const bounds = cameraBounds || AUDITORIUM_BOUNDS;
-
-      if (controlsRef.current) {
-        // Clamp orbit target to interior hall center
-        const tgt = controlsRef.current.target;
-        tgt.x = THREE.MathUtils.clamp(tgt.x, curTarget.minX, curTarget.maxX);
-        tgt.y = THREE.MathUtils.clamp(tgt.y, curTarget.minY, curTarget.maxY);
-        tgt.z = THREE.MathUtils.clamp(tgt.z, curTarget.minZ, curTarget.maxZ);
-
-        // Spring-Arm Raycast Collision against hall shell:
-        // Cast ray from target to desired camera position against hall walls/ceiling/floor.
-        // Near a wall, pull camera closer to target along the ray without clamping azimuth.
-        const camPos = persCam.position;
-        const dir = new THREE.Vector3().subVectors(camPos, tgt);
-        const dist = dir.length();
-        if (dist > 1e-4) {
-          const u = dir.clone().multiplyScalar(1 / dist);
-          const margin = 0.35;
-          let hitDist = Infinity;
-
-          if (u.x > 1e-5) {
-            hitDist = Math.min(hitDist, (bounds.maxX - margin - tgt.x) / u.x);
-          } else if (u.x < -1e-5) {
-            hitDist = Math.min(hitDist, (bounds.minX + margin - tgt.x) / u.x);
-          }
-
-          if (u.y > 1e-5) {
-            hitDist = Math.min(hitDist, (bounds.maxY - margin - tgt.y) / u.y);
-          } else if (u.y < -1e-5) {
-            hitDist = Math.min(hitDist, (bounds.minY + margin - tgt.y) / u.y);
-          }
-
-          if (u.z > 1e-5) {
-            hitDist = Math.min(hitDist, (bounds.maxZ - margin - tgt.z) / u.z);
-          } else if (u.z < -1e-5) {
-            hitDist = Math.min(hitDist, (bounds.minZ + margin - tgt.z) / u.z);
-          }
-
-          const maxAllowed = Math.max(2.2, Math.max(0, hitDist));
-          if (dist > maxAllowed) {
-            persCam.position.copy(tgt).addScaledVector(u, maxAllowed);
-          }
-        }
-
-        // Hard boundary safety clamp: camera NEVER leaves the interior volume
-        const margin = 0.25;
-        persCam.position.x = THREE.MathUtils.clamp(persCam.position.x, bounds.minX + margin, bounds.maxX - margin);
-        persCam.position.y = THREE.MathUtils.clamp(persCam.position.y, bounds.minY + margin, bounds.maxY - margin);
-        persCam.position.z = THREE.MathUtils.clamp(persCam.position.z, bounds.minZ + margin, bounds.maxZ - margin);
-      }
+      enforceInteriorSpringArm();
     }
   });
 
@@ -450,11 +534,21 @@ export function CameraController() {
           rotateSpeed={0.8}
           panSpeed={0.8}
           zoomSpeed={0.9}
-          minDistance={3.5}
-          maxDistance={42.0}
-          maxPolarAngle={Math.PI / 2.05}
-          minPolarAngle={0.05}
+          minDistance={2.0}
+          maxDistance={55.0}
+          minPolarAngle={(8 * Math.PI) / 180}
+          maxPolarAngle={(85 * Math.PI) / 180}
+          mouseButtons={{
+            LEFT: THREE.MOUSE.ROTATE,
+            MIDDLE: THREE.MOUSE.DOLLY,
+            RIGHT: THREE.MOUSE.PAN,
+          }}
+          touches={{
+            ONE: THREE.TOUCH.ROTATE,
+            TWO: THREE.TOUCH.DOLLY_PAN,
+          }}
           target={cameraTarget ? new THREE.Vector3(...cameraTarget) : new THREE.Vector3(0, 2.5, -12)}
+          onChange={enforceInteriorSpringArm}
         />
       )}
     </>

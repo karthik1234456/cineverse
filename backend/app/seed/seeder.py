@@ -1702,12 +1702,6 @@ def generate_auditorium_layout(
         "features": {
             "is_4dx": is_4dx,
             "motion_seats": is_motion_hall,
-            "wind": is_motion_hall,
-            "water": is_motion_hall,
-            "fog": is_motion_hall,
-            "scent": is_motion_hall,
-            "strobe": is_motion_hall,
-            "ticklers": is_motion_hall,
             "dolby_atmos": "Atmos" in screen_type or is_4dx or "atmos" in tid,
             "panoramic_wrap": is_motion_hall,
         }
