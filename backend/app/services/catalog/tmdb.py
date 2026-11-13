@@ -517,9 +517,13 @@ class TMDBCatalogProvider(CatalogProvider):
         poster_path = data.get("poster_path")
         backdrop_path = data.get("backdrop_path")
 
-        poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path else None
-        banner_url = f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else (
-            f"https://image.tmdb.org/t/p/w1280{poster_path}" if poster_path else None
+        poster_url = (
+            f"https://image.tmdb.org/t/p/w500{poster_path}" if poster_path
+            else (f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path else "/posters/quantum-odyssey.webp")
+        )
+        banner_url = (
+            f"https://image.tmdb.org/t/p/original{backdrop_path}" if backdrop_path
+            else (f"https://image.tmdb.org/t/p/w1280{poster_path}" if poster_path else "/backdrops/quantum-odyssey.webp")
         )
 
         # Extract YouTube trailer

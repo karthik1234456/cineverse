@@ -1,6 +1,6 @@
 from typing import List, Optional
 from datetime import date, datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class CastMemberResponse(BaseModel):
@@ -42,8 +42,18 @@ class MovieResponse(BaseModel):
     title: str
     slug: str
     synopsis: str
-    poster_url: str
-    banner_url: str
+    poster_url: Optional[str] = "/posters/quantum-odyssey.webp"
+    banner_url: Optional[str] = "/backdrops/quantum-odyssey.webp"
+
+    @field_validator("poster_url", mode="before")
+    @classmethod
+    def default_poster_if_none(cls, v):
+        return v if v else "/posters/quantum-odyssey.webp"
+
+    @field_validator("banner_url", mode="before")
+    @classmethod
+    def default_banner_if_none(cls, v):
+        return v if v else "/backdrops/quantum-odyssey.webp"
     trailer_url: Optional[str] = None
     trailer_duration_seconds: Optional[int] = 25
     trailer_poster_frame_url: Optional[str] = None

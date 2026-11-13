@@ -135,7 +135,7 @@ export async function getMovies(params: {
   if (params.page) query.set('page', params.page.toString());
   if (params.page_size) query.set('page_size', params.page_size.toString());
 
-  return apiFetch<Movie[]>(`/movies/?${query.toString()}`);
+  return apiFetch<Movie[]>(`/movies?${query.toString()}`);
 }
 
 export async function getMovie(idOrSlug: string | number): Promise<MovieDetail> {
