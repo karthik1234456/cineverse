@@ -330,14 +330,14 @@ export const SCREEN_Z = -1.255;
 export function calculateScreenDistance(
   screenWidth: number,
   screenHeight: number,
-  maxFrontFovDeg: number = 75.0,
-  targetRatio: number = 0.70
+  maxFrontFovDeg: number = 75.5,
+  targetRatio: number = 0.63
 ): number {
   const minDistH = 1.2 * screenHeight;
   const halfFovRad = (maxFrontFovDeg / 2.0) * (Math.PI / 180.0);
   const minDistFov = (screenWidth / 2.0) / Math.tan(halfFovRad);
-  const minRatioDist = 0.66 * screenWidth;
-  const maxRatioDist = 0.90 * screenWidth;
+  const minRatioDist = 0.55 * screenWidth;
+  const maxRatioDist = 0.70 * screenWidth;
   const targetDist = targetRatio * screenWidth;
 
   const minBound = Math.max(minDistH, minDistFov, minRatioDist);
@@ -671,25 +671,37 @@ export function generateProceduralAuditorium(
       const effectiveCategory: SeatCategory = cat;
       const price = Math.round(basePrice * effectiveMultiplier);
 
+      const podId = isMotionHall ? seatToPod.get(seatId) : undefined;
+      const isRef100 = totalSeatsEstimate === 100 || isLegacyMode;
+      const seatFloorY = isRef100
+        ? rowY
+        : ((isMotionHall && podId) ? Math.round((rowY + 0.18) * 1000) / 1000 : rowY);
+
       const bounds: BoundingBox3D = {
         min: [
           Math.round((posX - seatPitch * 0.48) * 1000) / 1000,
-          Math.round((posY - 0.995) * 1000) / 1000,
+          isRef100 ? Math.round((rowY - 0.995) * 1000) / 1000 : seatFloorY,
           Math.round((posZ - 0.492) * 1000) / 1000,
         ],
         max: [
           Math.round((posX + seatPitch * 0.48) * 1000) / 1000,
-          Math.round((posY + 0.995) * 1000) / 1000,
+          isRef100 ? Math.round((rowY + 0.995) * 1000) / 1000 : Math.round((seatFloorY + 1.98) * 1000) / 1000,
           Math.round((posZ + 0.491) * 1000) / 1000,
         ],
       };
 
       const eye = eyePosition(bounds.min, bounds.max);
-      const eyePos: [number, number, number] = [
-        Math.round(eye[0] * 1000) / 1000,
-        Math.round(eye[1] * 1000) / 1000,
-        Math.round(eye[2] * 1000) / 1000,
-      ];
+      const eyePos: [number, number, number] = isRef100
+        ? [
+            Math.round(eye[0] * 1000) / 1000,
+            Math.round(eye[1] * 1000) / 1000,
+            Math.round(eye[2] * 1000) / 1000,
+          ]
+        : [
+            Math.round(posX * 1000) / 1000,
+            Math.round((seatFloorY + 1.32) * 1000) / 1000,
+            Math.round((posZ + 0.10) * 1000) / 1000,
+          ];
 
       const sDist = screenDistance(eyePos, screenCenter);
       const hAngle = horizontalAngle(eyePos, screenCenter);
@@ -718,8 +730,6 @@ export function generateProceduralAuditorium(
         seatType = rd.seat_types[num];
       }
 
-      const podId = isMotionHall ? seatToPod.get(seatId) : undefined;
-
       const seatRec: SeatRecord = {
         seat_id: seatId,
         node_name: `seat_${row}_${String(num).padStart(2, '0')}`,
@@ -727,7 +737,7 @@ export function generateProceduralAuditorium(
         number: num,
         category: effectiveCategory,
         price,
-        position_gltf_y_up: [posX, posY, posZ],
+        position_gltf_y_up: [posX, seatFloorY, posZ],
         bounds_gltf_y_up: bounds,
         eye_position_gltf_y_up: eyePos,
         screen_distance: Math.round(sDist * 1000) / 1000,
@@ -964,10 +974,10 @@ export function generateProceduralAuditorium(
   colliders.push(screenStructure);
 
   // Stage Lip & Apron
-  // Grand curved hall with balcony has a stage apron extending forward towards Row A
-  const hasApron = theatreDef.id === 'balcony';
+  // Balcony and flagship halls have an extended apron with stairs; standard and motion halls sit compactly under screen
+  const hasApron = theatreDef.id === 'balcony' || theatreDef.id === 'flagship';
   const stageLipDepth = hasApron
-    ? Math.max(2.4, Math.min(8.0, Math.abs(rowAZ - SCREEN_Z) - 5.2))
+    ? Math.max(2.4, Math.min(8.0, Math.abs(rowAZ - SCREEN_Z) - 4.0))
     : 1.2;
   const stageLipFrontZ = SCREEN_Z - stageLipDepth;
   const stageLipWidth = Math.min(screenWidth + 1.2, halfWidth * 1.8);
@@ -1182,56 +1192,9 @@ export function generateProceduralAuditorium(
     }
   }
 
-  // Motion hall radiating coloured LED bars (blue, red, white)
+  // Motion hall and luxury recliner decorative overlays (removed for classic cinema aesthetic)
   const motionLedBars: ProceduralGeometryData['motionLedBars'] = [];
-  if (isMotionHall) {
-    const barColors: Array<'blue' | 'red' | 'white'> = ['blue', 'red', 'white', 'blue', 'white', 'red'];
-    const barCount = 6;
-    for (let i = 0; i < barCount; i++) {
-      const bZ = -4.0 - i * ((Math.abs(zBack) - 6.0) / barCount);
-      motionLedBars.push({
-        id: `led_bar_left_${i}`,
-        position: [halfWidth - 0.15, ceilingHeight - 1.5, bZ],
-        size: [0.08, 0.15, 1.8],
-        rotation: [0, 0, 0],
-        colorType: barColors[i % barColors.length],
-      });
-      motionLedBars.push({
-        id: `led_bar_right_${i}`,
-        position: [-halfWidth + 0.15, ceilingHeight - 1.5, bZ],
-        size: [0.08, 0.15, 1.8],
-        rotation: [0, 0, 0],
-        colorType: barColors[(i + 1) % barColors.length],
-      });
-      motionLedBars.push({
-        id: `led_bar_ceiling_${i}`,
-        position: [0.0, ceilingHeight - 0.35, bZ],
-        size: [halfWidth * 1.2, 0.08, 0.12],
-        rotation: [0, 0, 0],
-        colorType: barColors[(i + 2) % barColors.length],
-      });
-    }
-  }
-
-  // Luxury recliner vertical amber LED outline panels on black walls
   const amberOutlinePanels: ProceduralGeometryData['amberOutlinePanels'] = [];
-  if (theatreDef.id === 'luxury_recliner') {
-    const panelCols = 5;
-    const pStep = (Math.abs(zBack) - 4.0) / panelCols;
-    for (let p = 0; p < panelCols; p++) {
-      const pZ = -3.5 - p * pStep;
-      amberOutlinePanels.push({
-        id: `amber_outline_left_${p}`,
-        position: [halfWidth - 0.10, 4.5, pZ],
-        size: [0.06, 5.0, 1.8],
-      });
-      amberOutlinePanels.push({
-        id: `amber_outline_right_${p}`,
-        position: [-halfWidth + 0.10, 4.5, pZ],
-        size: [0.06, 5.0, 1.8],
-      });
-    }
-  }
 
   // 8c. Suspended Acoustic Ceiling Clouds & Roof Structural Trusses
   const ceilingClouds: ProceduralGeometryData['ceilingClouds'] = [];
@@ -1565,33 +1528,37 @@ export function generateProceduralAuditorium(
   }
 
   // 9. Camera Boundaries and Safe Limits
+  const zRearSeats = rowAZ - (totalRows - 1) * rowPitch;
+  const seatingCenterZ = (rowAZ + zRearSeats) * 0.5;
+  const seatingCenterY = topTierY * 0.45 + 1.8;
+
   const cameraBounds = {
-    minX: -halfWidth + 1.8,
-    maxX: halfWidth - 1.8,
+    minX: -halfWidth + 0.8,
+    maxX: halfWidth - 0.8,
     minY: 1.1,
-    maxY: ceilingHeight - 1.4,
-    minZ: zBack + 1.8,
-    maxZ: -2.2,
+    maxY: ceilingHeight - 0.6,
+    minZ: zBack + 0.8,
+    maxZ: SCREEN_Z + 1.2,
   };
 
   const targetBounds = {
-    minX: -maxSeatAbsX * 0.8,
-    maxX: maxSeatAbsX * 0.8,
-    minY: 1.5,
-    maxY: Math.min(8.0, ceilingHeight - 3.0),
-    minZ: rowAZ - (totalRows - 1) * rowPitch + 2.0,
-    maxZ: -3.0,
+    minX: -Math.min(4.5, halfWidth * 0.4),
+    maxX: Math.min(4.5, halfWidth * 0.4),
+    minY: 1.2,
+    maxY: Math.min(7.5, topTierY + 3.0),
+    minZ: zRearSeats - 1.0,
+    maxZ: rowAZ + 1.0,
   };
 
   const defaultCameraPos: [number, number, number] = [
     0.0,
-    Math.min(ceilingHeight - 1.8, topTierY + 7.5),
-    zBack + 3.8,
+    Math.min(ceilingHeight - 1.2, topTierY + 3.2),
+    Math.max(zBack + 1.2, zRearSeats - 3.2),
   ];
   const defaultCameraTarget: [number, number, number] = [
     0.0,
-    screenCenterY * 0.72,
-    SCREEN_Z,
+    seatingCenterY,
+    seatingCenterZ,
   ];
 
   // Camera Presets (§ Product Polish)

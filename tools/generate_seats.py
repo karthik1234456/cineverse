@@ -50,7 +50,7 @@ class MeshBuilder:
     def triangle_count(self) -> int:
         return len(self.indices) // 3
 
-    def add_vertex(self, x: float, y: float, z: float, nx: float, ny: float, nz: float, u: float = 0.0, v: float = 0.0, ao: float = 1.0):
+    def add_vertex(self, x: float, y: float, z: float, nx: float, ny: float, nz: float, u: float = 0.0, v: float = 0.0, ao: float = 1.0, tint: Tuple[float, float, float] = (1.0, 1.0, 1.0)):
         # Normalize normal
         l = math.sqrt(nx * nx + ny * ny + nz * nz)
         if l > 1e-6:
@@ -61,8 +61,11 @@ class MeshBuilder:
         self.vertices.extend([round(x, 5), round(y, 5), round(z, 5)])
         self.normals.extend([round(nx, 5), round(ny, 5), round(nz, 5)])
         self.uvs.extend([round(u, 5), round(v, 5)])
-        # AO applied to RGB channels, Alpha is 1.0
-        self.colors.extend([round(ao, 3), round(ao, 3), round(ao, 3), 1.0])
+        # AO multiplied by tint applied to RGB channels, Alpha is 1.0
+        r = round(max(0.0, min(1.0, ao * tint[0])), 3)
+        g = round(max(0.0, min(1.0, ao * tint[1])), 3)
+        b = round(max(0.0, min(1.0, ao * tint[2])), 3)
+        self.colors.extend([r, g, b, 1.0])
 
     def add_triangle(self, i1: int, i2: int, i3: int):
         self.indices.extend([i1, i2, i3])
@@ -91,7 +94,8 @@ def create_beveled_box(
     ao_bottom: float = 0.7,
     seams_h: List[float] = None,
     seams_v: List[float] = None,
-    seam_depth: float = 0.015
+    seam_depth: float = 0.015,
+    color_tint: Tuple[float, float, float] = (1.0, 1.0, 1.0)
 ) -> MeshBuilder:
     """
     Creates a smoothly rounded contoured box with optional bulge, stitch seam indentations,
@@ -118,7 +122,7 @@ def create_beveled_box(
                 v = j / v_steps
                 pos, norm, extra_ao = pos_fn(u, v)
                 ao = get_ao(pos[1]) * extra_ao
-                m.add_vertex(pos[0], pos[1], pos[2], norm[0], norm[1], norm[2], u, v, ao)
+                m.add_vertex(pos[0], pos[1], pos[2], norm[0], norm[1], norm[2], u, v, ao, tint=color_tint)
 
         for i in range(u_steps):
             for j in range(v_steps):
@@ -217,7 +221,8 @@ def create_cylinder(
     caps: bool = True,
     axis: str = 'Y',
     ao_top: float = 1.0,
-    ao_bottom: float = 0.8
+    ao_bottom: float = 0.8,
+    color_tint: Tuple[float, float, float] = (1.0, 1.0, 1.0)
 ) -> MeshBuilder:
     """Generates a cylinder along X, Y, or Z axis with normal smoothing."""
     m = MeshBuilder()
@@ -231,16 +236,16 @@ def create_cylinder(
 
         if axis == 'Y':
             # Bottom vertex
-            m.add_vertex(cx + c * radius, cy_bottom, cz + s_val * radius, c, 0.0, s_val, s / segments, 0.0, ao_bottom)
+            m.add_vertex(cx + c * radius, cy_bottom, cz + s_val * radius, c, 0.0, s_val, s / segments, 0.0, ao_bottom, tint=color_tint)
             # Top vertex
-            m.add_vertex(cx + c * radius, cy_bottom + height, cz + s_val * radius, c, 0.0, s_val, s / segments, 1.0, ao_top)
+            m.add_vertex(cx + c * radius, cy_bottom + height, cz + s_val * radius, c, 0.0, s_val, s / segments, 1.0, ao_top, tint=color_tint)
         elif axis == 'X':
             # Cylinder along X (for rolled armrests)
-            m.add_vertex(cx, cy_bottom + c * radius, cz + s_val * radius, 0.0, c, s_val, s / segments, 0.0, ao_bottom)
-            m.add_vertex(cx + height, cy_bottom + c * radius, cz + s_val * radius, 0.0, c, s_val, s / segments, 1.0, ao_top)
+            m.add_vertex(cx, cy_bottom + c * radius, cz + s_val * radius, 0.0, c, s_val, s / segments, 0.0, ao_bottom, tint=color_tint)
+            m.add_vertex(cx + height, cy_bottom + c * radius, cz + s_val * radius, 0.0, c, s_val, s / segments, 1.0, ao_top, tint=color_tint)
         elif axis == 'Z':
-            m.add_vertex(cx + c * radius, cy_bottom + s_val * radius, cz, c, s_val, 0.0, s / segments, 0.0, ao_bottom)
-            m.add_vertex(cx + c * radius, cy_bottom + s_val * radius, cz + height, c, s_val, 0.0, s / segments, 1.0, ao_top)
+            m.add_vertex(cx + c * radius, cy_bottom + s_val * radius, cz, c, s_val, 0.0, s / segments, 0.0, ao_bottom, tint=color_tint)
+            m.add_vertex(cx + c * radius, cy_bottom + s_val * radius, cz + height, c, s_val, 0.0, s / segments, 1.0, ao_top, tint=color_tint)
 
     # Side quads
     for s in range(segments):
@@ -256,7 +261,7 @@ def create_cylinder(
     if caps and axis == 'Y':
         # Top cap
         top_center = m.vertex_count()
-        m.add_vertex(cx, cy_bottom + height, cz, 0.0, 1.0, 0.0, 0.5, 0.5, ao_top)
+        m.add_vertex(cx, cy_bottom + height, cz, 0.0, 1.0, 0.0, 0.5, 0.5, ao_top, tint=color_tint)
         for s in range(segments):
             next_s = (s + 1) % segments
             t0 = start_v + s * 2 + 1
@@ -265,7 +270,7 @@ def create_cylinder(
 
         # Bottom cap
         bot_center = m.vertex_count()
-        m.add_vertex(cx, cy_bottom, cz, 0.0, -1.0, 0.0, 0.5, 0.5, ao_bottom)
+        m.add_vertex(cx, cy_bottom, cz, 0.0, -1.0, 0.0, 0.5, 0.5, ao_bottom, tint=color_tint)
         for s in range(segments):
             next_s = (s + 1) % segments
             b0 = start_v + s * 2
@@ -275,27 +280,27 @@ def create_cylinder(
     return m
 
 
-def create_cup_holder_cavity(cx: float, cy: float, cz: float, outer_r: float = 0.05, inner_r: float = 0.042, depth: float = 0.065, segs: int = 12) -> MeshBuilder:
+def create_cup_holder_cavity(cx: float, cy: float, cz: float, outer_r: float = 0.05, inner_r: float = 0.042, depth: float = 0.065, segs: int = 12, color_tint: Tuple[float, float, float] = (0.08, 0.08, 0.10)) -> MeshBuilder:
     """Generates an embedded cup holder rim and hollow cylindrical recess."""
     m = MeshBuilder()
     # Outer rim, inner rim, bottom disc
     rim_out_start = m.vertex_count()
     for i in range(segs):
         ang = (i / segs) * 2 * math.pi
-        m.add_vertex(cx + math.cos(ang) * outer_r, cy, cz + math.sin(ang) * outer_r, 0.0, 1.0, 0.0, ao=0.9)
+        m.add_vertex(cx + math.cos(ang) * outer_r, cy, cz + math.sin(ang) * outer_r, 0.0, 1.0, 0.0, ao=0.9, tint=color_tint)
 
     rim_in_start = m.vertex_count()
     for i in range(segs):
         ang = (i / segs) * 2 * math.pi
-        m.add_vertex(cx + math.cos(ang) * inner_r, cy, cz + math.sin(ang) * inner_r, 0.0, 1.0, 0.0, ao=0.7)
+        m.add_vertex(cx + math.cos(ang) * inner_r, cy, cz + math.sin(ang) * inner_r, 0.0, 1.0, 0.0, ao=0.7, tint=color_tint)
 
     bot_start = m.vertex_count()
     for i in range(segs):
         ang = (i / segs) * 2 * math.pi
-        m.add_vertex(cx + math.cos(ang) * (inner_r * 0.9), cy - depth, cz + math.sin(ang) * (inner_r * 0.9), -math.cos(ang), 0.1, -math.sin(ang), ao=0.35)
+        m.add_vertex(cx + math.cos(ang) * (inner_r * 0.9), cy - depth, cz + math.sin(ang) * (inner_r * 0.9), -math.cos(ang), 0.1, -math.sin(ang), ao=0.35, tint=color_tint)
 
     bot_center = m.vertex_count()
-    m.add_vertex(cx, cy - depth, cz, 0.0, 1.0, 0.0, ao=0.3)
+    m.add_vertex(cx, cy - depth, cz, 0.0, 1.0, 0.0, ao=0.3, tint=color_tint)
 
     for i in range(segs):
         ni = (i + 1) % segs
@@ -336,85 +341,102 @@ def build_standard_seat(lod: int = 0, is_tipped: bool = False) -> MeshBuilder:
         cup_segs = 20
         leg_segs = 16
     elif lod == 1:
-        s_back = (7, 8, 2)
-        s_head = (5, 5, 2)
-        s_cush = (7, 4, 6)
-        s_arm = (3, 3, 5)
-        cup_segs = 10
-        leg_segs = 8
-    else:  # lod == 2 (far, target ~300 tris)
-        s_back = (2, 2, 1)
+        s_back = (6, 7, 2)
+        s_head = (4, 4, 2)
+        s_cush = (6, 4, 5)
+        s_arm = (3, 3, 4)
+        cup_segs = 8
+        leg_segs = 6
+    else:  # lod == 2 (far, target ~300 tris, budget 250-350)
+        s_back = (2, 3, 1)
         s_head = (2, 2, 1)
-        s_cush = (2, 2, 2)
-        s_arm = (2, 2, 2)
+        s_cush = (3, 2, 2)
+        s_arm = (1, 2, 2)
         cup_segs = 0
         leg_segs = 4
 
-    # 1. Backrest Main Panel
-    # X: [-0.48, +0.48], Y: [0.65, 1.62], Z: [-0.44, -0.18]
-    # Includes 2 horizontal seams (lumbar/mid) and 2 vertical contour seams
+    frame_tint = (0.18, 0.19, 0.22)
+    fabric_tint = (1.0, 1.0, 1.0)
+    cavity_tint = (0.08, 0.08, 0.10)
+
+    # 1. Backrest Protective Rear Shell (Dark charcoal injection-moulded polymer shell)
+    # Visible from rear view; encloses back cushion and gives distinct cinema seat silhouette
+    back_shell = create_beveled_box(
+        -0.47, 0.62, -0.44, 0.47, 1.62, -0.32,
+        seg_x=s_back[0], seg_y=s_back[1], seg_z=s_back[2],
+        bulge_front=0.01,
+        ao_base=0.88, ao_bottom=0.65,
+        color_tint=frame_tint
+    )
+    seat.merge(back_shell)
+
+    # 1b. Backrest Front Padded Cushion (Plush fabric facing forward +Z)
+    # X: [-0.46, +0.46], Y: [0.65, 1.60], Z: [-0.32, -0.16]
     seams_h = [0.35, 0.70] if lod < 2 else []
     seams_v = [0.30, 0.70] if lod < 2 else []
     back = create_beveled_box(
-        -0.48, 0.65, -0.44, 0.48, 1.62, -0.18,
+        -0.46, 0.65, -0.32, 0.46, 1.60, -0.16,
         seg_x=s_back[0], seg_y=s_back[1], seg_z=s_back[2],
-        bulge_front=0.04 if lod < 2 else 0.01,
-        ao_base=0.95, ao_bottom=0.75,
-        seams_h=seams_h, seams_v=seams_v, seam_depth=0.018
+        bulge_front=0.04 if lod < 2 else 0.015,
+        ao_base=0.98, ao_bottom=0.78,
+        seams_h=seams_h, seams_v=seams_v, seam_depth=0.018,
+        color_tint=fabric_tint
     )
     seat.merge(back)
 
     # 2. Separate Padded Headrest Cushion (distinct top pillow)
-    # X: [-0.42, +0.42], Y: [1.64, 1.98], Z: [-0.42, -0.14]
+    # X: [-0.42, +0.42], Y: [1.63, 1.98], Z: [-0.40, -0.14]
     head = create_beveled_box(
-        -0.42, 1.64, -0.42, 0.42, 1.98, -0.14,
+        -0.42, 1.63, -0.40, 0.42, 1.98, -0.14,
         seg_x=s_head[0], seg_y=s_head[1], seg_z=s_head[2],
         bulge_front=0.03 if lod < 2 else 0.01,
         bulge_top=0.02,
-        ao_base=1.0, ao_bottom=0.82
+        ao_base=1.0, ao_bottom=0.85,
+        color_tint=fabric_tint
     )
     seat.merge(head)
 
     # 3. Seat Cushion
     if not is_tipped:
-        # Standard down position: X: [-0.48, +0.48], Y: [0.42, 0.68], Z: [-0.36, 0.44]
-        # Waterfall front edge (+Z)
+        # Standard down position: X: [-0.46, +0.46], Y: [0.42, 0.68], Z: [-0.34, 0.44]
         cush = create_beveled_box(
-            -0.48, 0.42, -0.36, 0.48, 0.68, 0.44,
+            -0.46, 0.42, -0.34, 0.46, 0.68, 0.44,
             seg_x=s_cush[0], seg_y=s_cush[1], seg_z=s_cush[2],
             bulge_top=0.03 if lod < 2 else 0.01,
             bulge_front=0.02,
-            ao_base=0.95, ao_bottom=0.65
+            ao_base=0.95, ao_bottom=0.68,
+            color_tint=fabric_tint
         )
         seat.merge(cush)
     else:
-        # Tipped up position (rotated upwards ~75 degrees toward backrest)
-        # Y: [0.55, 1.25], Z: [-0.28, -0.02]
+        # Tipped up position
         cush_tipped = create_beveled_box(
-            -0.48, 0.55, -0.28, 0.48, 1.25, -0.02,
+            -0.46, 0.55, -0.28, 0.46, 1.25, -0.02,
             seg_x=s_cush[0], seg_y=s_cush[1], seg_z=s_cush[2],
             bulge_top=0.02,
-            ao_base=0.85, ao_bottom=0.60
+            ao_base=0.88, ao_bottom=0.62,
+            color_tint=fabric_tint
         )
         seat.merge(cush_tipped)
 
     # 4. Black Moulded Armrests with Integrated Round Cup Holders (Left & Right)
     for side in [-1, 1]:
-        x0 = 0.48 if side == 1 else -0.62
-        x1 = 0.62 if side == 1 else -0.48
+        x0 = 0.47 if side == 1 else -0.62
+        x1 = 0.62 if side == 1 else -0.47
         # Armrest body: Y: [0.44, 0.82], Z: [-0.38, 0.42]
         arm = create_beveled_box(
             x0, 0.44, -0.38, x1, 0.82, 0.42,
             seg_x=s_arm[0], seg_y=s_arm[1], seg_z=s_arm[2],
             bulge_top=0.015,
-            ao_base=0.90, ao_bottom=0.60
+            ao_base=0.90, ao_bottom=0.65,
+            color_tint=frame_tint
         )
         seat.merge(arm)
 
         # Cup holder cavity at front of armrest
-        if lod < 2:
+        if cup_segs > 0:
             cx = (x0 + x1) / 2
-            cup = create_cup_holder_cavity(cx, 0.82, 0.28, outer_r=0.048, inner_r=0.040, depth=0.055, segs=cup_segs)
+            cup = create_cup_holder_cavity(cx, 0.82, 0.28, outer_r=0.048, inner_r=0.040, depth=0.055, segs=cup_segs, color_tint=cavity_tint)
             seat.merge(cup)
 
     # 5. Tapered Black Side Supports & Metal Floor-Mounted Feet
@@ -427,7 +449,8 @@ def build_standard_seat(lod: int = 0, is_tipped: bool = False) -> MeshBuilder:
         stanchion = create_beveled_box(
             sx - 0.035, 0.06, -0.14, sx + 0.035, 0.46, 0.14,
             seg_x=st_segs[0], seg_y=st_segs[1], seg_z=st_segs[2],
-            ao_base=0.75, ao_bottom=0.45
+            ao_base=0.78, ao_bottom=0.50,
+            color_tint=frame_tint
         )
         seat.merge(stanchion)
 
@@ -435,12 +458,13 @@ def build_standard_seat(lod: int = 0, is_tipped: bool = False) -> MeshBuilder:
         foot = create_beveled_box(
             sx - 0.075, 0.00, -0.22, sx + 0.075, 0.06, 0.22,
             seg_x=ft_segs[0], seg_y=ft_segs[1], seg_z=ft_segs[2],
-            ao_base=0.55, ao_bottom=0.25
+            ao_base=0.60, ao_bottom=0.30,
+            color_tint=frame_tint
         )
         seat.merge(foot)
 
     # Under-seat pivot tube & spring housing (between stanchions)
-    tube = create_cylinder(0.0, 0.38, -0.10, radius=0.038, height=0.96, segments=leg_segs, axis='X', ao_top=0.65, ao_bottom=0.45)
+    tube = create_cylinder(0.0, 0.38, -0.10, radius=0.038, height=0.96, segments=leg_segs, axis='X', ao_top=0.65, ao_bottom=0.45, color_tint=frame_tint)
     # Center along X
     for i in range(len(tube.vertices) // 3):
         tube.vertices[i * 3] -= 0.48
@@ -720,60 +744,63 @@ def generate_texture_atlases(output_dir: str):
     random.seed(42)
 
     size = 256
-    # 1. Standard Fabric Diffuse & Normal
-    diff_std = Image.new("RGBA", (size, size), (159, 18, 57, 255))
+    # 1. Standard Fabric Diffuse & Normal (Smooth woven cinema velvet texture, no coarse dot grid)
+    diff_std = Image.new("RGBA", (size, size), (255, 255, 255, 255))
     draw_std = ImageDraw.Draw(diff_std)
-    for x in range(0, size, 4):
-        for y in range(0, size, 4):
-            shade = random.randint(-12, 12)
-            c = (max(0, min(255, 159 + shade)), max(0, min(255, 18 + shade // 2)), max(0, min(255, 57 + shade // 2)), 255)
-            draw_std.point((x, y), fill=c)
+    for x in range(size):
+        for y in range(size):
+            # Fine micro-weave variation (amplitude 4, non-repeating sub-pixel noise)
+            grain = int(((x * 37 + y * 59 + (x ^ y) * 13) % 9) - 4)
+            val = max(246, min(255, 252 + grain))
+            draw_std.point((x, y), fill=(val, val, val, 255))
     diff_std.save(os.path.join(tex_dir, "atlas_standard_diffuse.png"))
 
     norm_std = Image.new("RGBA", (size, size), (128, 128, 255, 255))
     draw_norm_std = ImageDraw.Draw(norm_std)
     for x in range(size):
         for y in range(size):
-            nx = int(128 + math.sin(x * 0.8) * 14)
-            ny = int(128 + math.cos(y * 0.8) * 14)
+            # Subtle diagonal textile twill weave
+            twill = math.sin((x + y) * 1.2) * 5
+            nx = int(128 + twill)
+            ny = int(128 + twill)
             draw_norm_std.point((x, y), fill=(nx, ny, 255, 255))
     norm_std.save(os.path.join(tex_dir, "atlas_standard_normal.png"))
 
     # 2. Recliner Leather Diffuse & Normal
-    diff_rec = Image.new("RGBA", (size, size), (56, 36, 27, 255))
+    diff_rec = Image.new("RGBA", (size, size), (255, 255, 255, 255))
     draw_rec = ImageDraw.Draw(diff_rec)
-    for x in range(0, size, 2):
-        for y in range(0, size, 2):
-            grain = random.randint(-8, 8)
-            c = (max(0, min(255, 56 + grain)), max(0, min(255, 36 + grain)), max(0, min(255, 27 + grain)), 255)
-            draw_rec.point((x, y), fill=c)
+    for x in range(size):
+        for y in range(size):
+            grain = int(((x * 43 + y * 71) % 11) - 5)
+            val = max(244, min(255, 250 + grain))
+            draw_rec.point((x, y), fill=(val, val, val, 255))
     diff_rec.save(os.path.join(tex_dir, "atlas_recliner_diffuse.png"))
 
     norm_rec = Image.new("RGBA", (size, size), (128, 128, 255, 255))
     draw_norm_rec = ImageDraw.Draw(norm_rec)
     for x in range(size):
         for y in range(size):
-            nx = int(128 + (math.sin(x * 0.3) * math.cos(y * 0.3)) * 18)
-            ny = int(128 + (math.cos(x * 0.3) * math.sin(y * 0.3)) * 18)
+            nx = int(128 + (math.sin(x * 0.4) * math.cos(y * 0.4)) * 10)
+            ny = int(128 + (math.cos(x * 0.4) * math.sin(y * 0.4)) * 10)
             draw_norm_rec.point((x, y), fill=(nx, ny, 255, 255))
     norm_rec.save(os.path.join(tex_dir, "atlas_recliner_normal.png"))
 
     # 3. Boutique Velvet Diffuse & Normal
-    diff_sofa = Image.new("RGBA", (size, size), (46, 72, 88, 255))
+    diff_sofa = Image.new("RGBA", (size, size), (255, 255, 255, 255))
     draw_sofa = ImageDraw.Draw(diff_sofa)
-    for x in range(0, size, 3):
-        for y in range(0, size, 3):
-            sheen = random.randint(-10, 10)
-            c = (max(0, min(255, 46 + sheen)), max(0, min(255, 72 + sheen)), max(0, min(255, 88 + sheen)), 255)
-            draw_sofa.point((x, y), fill=c)
+    for x in range(size):
+        for y in range(size):
+            grain = int(((x * 29 + y * 67) % 7) - 3)
+            val = max(248, min(255, 252 + grain))
+            draw_sofa.point((x, y), fill=(val, val, val, 255))
     diff_sofa.save(os.path.join(tex_dir, "atlas_sofa_diffuse.png"))
 
     norm_sofa = Image.new("RGBA", (size, size), (128, 128, 255, 255))
     draw_norm_sofa = ImageDraw.Draw(norm_sofa)
     for x in range(size):
         for y in range(size):
-            nx = int(128 + math.sin(x * 0.4) * 8)
-            ny = int(128 + math.cos(y * 0.4) * 12)
+            nx = int(128 + math.sin(x * 0.5) * 6)
+            ny = int(128 + math.cos(y * 0.5) * 6)
             draw_norm_sofa.point((x, y), fill=(nx, ny, 255, 255))
     norm_sofa.save(os.path.join(tex_dir, "atlas_sofa_normal.png"))
 
@@ -817,9 +844,9 @@ def export_glb(mesh: MeshBuilder, output_path: str, model_name: str, material_de
         idx_bytes = struct.pack(f'<{len(indices)}I', *indices)
         idx_component_type = 5125  # UNSIGNED_INT
 
-    def pad4(b: bytes) -> bytes:
+    def pad4(b: bytes, pad_byte: bytes = b'\x00') -> bytes:
         pad = (4 - (len(b) % 4)) % 4
-        return b + b'\x00' * pad
+        return b + pad_byte * pad
 
     pos_bytes = pad4(pos_bytes)
     norm_bytes = pad4(norm_bytes)
@@ -929,9 +956,9 @@ def export_glb(mesh: MeshBuilder, output_path: str, model_name: str, material_de
         ]
     }
 
-    # Serialize JSON
+    # Serialize JSON (glTF spec requires trailing space 0x20 padding for Chunk 0)
     json_bytes = json.dumps(gltf_json, separators=(',', ':')).encode('utf-8')
-    json_bytes = pad4(json_bytes)
+    json_bytes = pad4(json_bytes, b' ')
 
     # GLB header
     # 12 bytes header: magic (0x46546C67), version (2), totalLength

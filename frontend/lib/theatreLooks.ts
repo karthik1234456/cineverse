@@ -28,30 +28,30 @@ export interface TheatreLookPalette {
 }
 
 export const THEATRE_LOOKS: Record<TheatreLookId, TheatreLookPalette> = {
-  // Look A: Modern Architectural Charcoal & Burgundy Accent (Balanced, elegant)
+  // Look A: Classic Cinema Red (Default)
   a: {
     id: 'a',
-    name: 'Modern Charcoal & Burgundy',
-    subtitle: 'Charcoal walls, deep burgundy seats & warm brass trim',
-    floorColor: '#1e2025',
-    tierColor: '#25272e',
-    treadColor: '#2b2e36',
-    wallColor: '#2a2c33',
-    acousticPanelColor: '#363942',
-    panelTrimColor: '#d4af37',
-    ceilingColor: '#141518',
-    screenFrameColor: '#0a0a0c',
-    stageLipColor: '#25272e',
-    railColor: '#d4af37', // Satin Brass
-    sconceGlowColor: '#fef08a', // Warm Gold 2800K
-    stepLightColor: '#fbbf24', // Amber/gold aisle
+    name: 'Classic Cinema Red',
+    subtitle: 'Deep red fabric seats, dark neutral room & warm brass trim',
+    floorColor: '#18191d',
+    tierColor: '#1f2025',
+    treadColor: '#26272e',
+    wallColor: '#1c1d22',
+    acousticPanelColor: '#25272e',
+    panelTrimColor: '#b48a60',
+    ceilingColor: '#121316',
+    screenFrameColor: '#0a0b0d',
+    stageLipColor: '#1f2025',
+    railColor: '#94a3b8',
+    sconceGlowColor: '#fff4e0',
+    stepLightColor: '#fbbf24',
     seats: {
-      premier: '#7a1b2e', // Deep Burgundy Accent
-      prime: '#6b1828', // Rich Wine
-      front: '#3f434e', // Charcoal/Slate
-      selected: '#dc2626', // Vivid Crimson Highlight
-      held: '#b45309', // Warm Amber
-      booked: '#374151', // Neutral Slate
+      premier: '#9f1239',
+      prime: '#881337',
+      front: '#7c2d12',
+      selected: '#dc2626',
+      held: '#b45309',
+      booked: '#374151',
       selectedEmissive: '#ef4444',
     },
   },

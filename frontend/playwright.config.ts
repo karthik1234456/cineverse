@@ -10,7 +10,7 @@ export default defineConfig({
   workers: 1,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:3001',
+    baseURL: process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:3000',
     viewport: { width: 1280, height: 800 },
   },
   projects: [
@@ -31,9 +31,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'npx next start -p 3001',
-    port: 3001,
-    reuseExistingServer: !process.env.CI,
+    command: 'npm run dev',
+    port: 3000,
+    reuseExistingServer: true,
     timeout: 60000,
   },
 });

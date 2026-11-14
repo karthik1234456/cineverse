@@ -27,9 +27,9 @@
       "lods": {
         "lod0": {
           "file": "standard_lod0.glb",
-          "triangles": 5744,
-          "vertices": 3644,
-          "size_kb": 205.9,
+          "triangles": 7264,
+          "vertices": 4554,
+          "size_kb": 257.4,
           "bounds": {
             "min": [
               -0.62,
@@ -48,9 +48,9 @@
         },
         "lod1": {
           "file": "standard_lod1.glb",
-          "triangles": 1544,
-          "vertices": 1222,
-          "size_kb": 67.7,
+          "triangles": 1540,
+          "vertices": 1250,
+          "size_kb": 69.0,
           "bounds": {
             "min": [
               -0.62,
@@ -59,19 +59,19 @@
             ],
             "max": [
               0.62,
-              1.999,
+              2.0,
               0.46
             ],
             "width": 1.24,
-            "height": 1.999,
-            "depth": 0.899
+            "height": 2.0,
+            "depth": 0.9
           }
         },
         "lod2": {
           "file": "standard_lod2.glb",
-          "triangles": 296,
-          "vertices": 382,
-          "size_kb": 21.0,
+          "triangles": 336,
+          "vertices": 432,
+          "size_kb": 23.6,
           "bounds": {
             "min": [
               -0.62,
@@ -81,19 +81,19 @@
             "max": [
               0.62,
               1.98,
-              0.46
+              0.457
             ],
             "width": 1.24,
             "height": 1.98,
-            "depth": 0.9
+            "depth": 0.897
           }
         }
       },
       "tipped_variant": {
         "file": "standard_tipped.glb",
-        "triangles": 5744,
-        "vertices": 3644,
-        "size_kb": 205.9,
+        "triangles": 7264,
+        "vertices": 4554,
+        "size_kb": 257.4,
         "bounds": {
           "min": [
             -0.62,

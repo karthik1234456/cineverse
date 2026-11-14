@@ -54,6 +54,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db():
+    import app.models
     from sqlalchemy import text
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
@@ -108,6 +109,7 @@ async def init_db():
 
 
 async def reset_db():
+    import app.models  # Ensure all models are registered on Base.metadata
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)

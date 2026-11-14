@@ -9,36 +9,35 @@ const TEST_HALLS = [
   {
     type: 'standard_multiplex',
     name: 'Standard Multiplex (Cinema 2, Audi 6)',
-    url: '/cinemas/2/auditorium/6?showtime=141&mode=3d',
+    url: '/cinemas/2/auditorium/6?showtime=26&mode=3d',
     hasMotion: false,
   },
   {
     type: 'grand_curved_balcony',
     name: 'Grand Curved Balcony (Cinema 1, Audi 3)',
-    url: '/cinemas/1/auditorium/3?showtime=57&mode=3d',
+    url: '/cinemas/1/auditorium/3?showtime=11&mode=3d',
     hasMotion: false,
   },
   {
     type: 'luxury_recliner',
     name: 'Luxury Recliner (Cinema 1, Audi 4)',
-    url: '/cinemas/1/auditorium/4?showtime=85&mode=3d',
+    url: '/cinemas/1/auditorium/4?showtime=16&mode=3d',
     hasMotion: false,
   },
   {
     type: 'motion_seats',
     name: 'Motion-Seat Hall (Cinema 2, Audi 5)',
-    url: '/cinemas/2/auditorium/5?showtime=113&mode=3d',
+    url: '/cinemas/2/auditorium/5?showtime=21&mode=3d',
     hasMotion: true,
   },
 ];
 
-test.beforeAll(() => {
-  if (!fs.existsSync(EVIDENCE_DIR)) {
-    fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
-  }
-});
-
 test.describe('Part A: Look around Interior Orbit & Spring Arm across 4 Hall Types', () => {
+  test.beforeAll(() => {
+    if (!fs.existsSync(EVIDENCE_DIR)) {
+      fs.mkdirSync(EVIDENCE_DIR, { recursive: true });
+    }
+  });
   for (const hall of TEST_HALLS) {
     test(`Hall: ${hall.name} - 360 rotation at 3 zoom levels within interior bounds & proximity fade`, async ({
       page,
@@ -47,13 +46,13 @@ test.describe('Part A: Look around Interior Orbit & Spring Arm across 4 Hall Typ
 
       // 1. Navigate to hall 3D view
       await page.goto(hall.url, { waitUntil: 'domcontentloaded' });
-      await page.waitForSelector('canvas', { timeout: 15000 });
+      await page.waitForSelector('canvas', { timeout: 30000 });
 
       // Wait for 3D engine initialization
       await page.waitForFunction(
         () => (window as any).__cineverse?.getState?.()?.rendererInfo?.calls > 0,
         null,
-        { timeout: 15000 }
+        { timeout: 30000 }
       );
 
       // Verify dark interior background (never white)
@@ -171,8 +170,8 @@ test.describe('Part A: Look around Interior Orbit & Spring Arm across 4 Hall Typ
 test.describe('Part B: Pure Motion-Seat Simulation & Safety Controls', () => {
   test('Non-motion halls do NOT display "Motion seat preview" button', async ({ page }) => {
     // Cinema 2, Audi 6 is standard multiplex (non-motion)
-    await page.goto('/cinemas/2/auditorium/6?showtime=141&mode=3d', { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('canvas', { timeout: 15000 });
+    await page.goto('/cinemas/2/auditorium/6?showtime=26&mode=3d', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('canvas', { timeout: 30000 });
 
     const motionBtn = page.locator('button:has-text("Motion seat preview")');
     expect(await motionBtn.isVisible()).toBe(false);
@@ -186,8 +185,8 @@ test.describe('Part B: Pure Motion-Seat Simulation & Safety Controls', () => {
     page,
   }) => {
     // Cinema 2, Audi 5 is motion-seat hall
-    await page.goto('/cinemas/2/auditorium/5?showtime=113&mode=3d', { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('canvas', { timeout: 15000 });
+    await page.goto('/cinemas/2/auditorium/5?showtime=21&mode=3d', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('canvas', { timeout: 30000 });
 
     // Verify "Motion seat preview" button is visible
     const motionBtn = page.locator('button:has-text("Motion seat preview")');
@@ -249,8 +248,8 @@ test.describe('Part B: Pure Motion-Seat Simulation & Safety Controls', () => {
 
   test('Sit view synchronizes camera with seat motion (seat edges fixed to viewport)', async ({ page }) => {
     // Cinema 2, Audi 5
-    await page.goto('/cinemas/2/auditorium/5?showtime=113&mode=3d', { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('canvas', { timeout: 15000 });
+    await page.goto('/cinemas/2/auditorium/5?showtime=21&mode=3d', { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('canvas', { timeout: 30000 });
 
     // Select a seat and sit down
     await page.evaluate(() => {

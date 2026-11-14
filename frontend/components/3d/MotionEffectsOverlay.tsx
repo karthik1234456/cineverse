@@ -22,7 +22,8 @@ export function MotionEffectsOverlay() {
 
   // Exclusive to motion-seat halls: inspect registry features and layout signature
   const isMotionHall = Boolean(
-    proceduralResult?.seatLayout.layout_signature === 'motion_pods' ||
+    proceduralResult?.seatLayout.layout_signature?.includes('motion') ||
+    proceduralResult?.seatLayout.is_motion_hall ||
     Boolean(proceduralResult?.seatLayout.theatre_type && getTheatreTypeDefinition(proceduralResult.seatLayout.theatre_type).features.motion_seats) ||
     Boolean(proceduralResult?.seatLayout.features?.motion_seats) ||
     Boolean(proceduralResult?.seatLayout.features?.is_4dx)
