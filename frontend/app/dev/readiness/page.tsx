@@ -127,6 +127,12 @@ interface ReadinessData {
     non_showcase_tmdb_ratio: number;
     total_halls: number;
     total_cities: number;
+    seat_assets_ok?: boolean;
+  };
+  seat_assets?: {
+    status_ok: boolean;
+    families: Record<string, any>;
+    reason: string;
   };
   movies: MovieReport[];
   halls: HallReport[];
@@ -442,16 +448,35 @@ export default function DeveloperReadinessPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[#E6DCD2] bg-white p-4 shadow-sm">
-          <div className="text-xs font-bold uppercase text-slate-500">Cities Active</div>
-          <div className="mt-1 text-2xl font-black text-[#1B1320]">
-            {data.metrics.total_cities}
+        <div className={`rounded-2xl border ${data.seat_assets && !data.seat_assets.status_ok ? 'border-red-500 bg-red-50' : 'border-[#E6DCD2] bg-white'} p-4 shadow-sm`}>
+          <div className="text-xs font-bold uppercase text-slate-500">Seat 3D Models</div>
+          <div className={`mt-1 text-2xl font-black ${data.seat_assets && !data.seat_assets.status_ok ? 'text-red-700' : 'text-[#1B1320]'}`}>
+            {data.seat_assets?.status_ok !== false ? 'Verified' : 'Asset Error'}
           </div>
-          <div className="mt-1 text-xs font-semibold text-emerald-700">
-            All 7 cities live with schedules
+          <div className={`mt-1 flex items-center gap-1 text-xs font-semibold ${data.seat_assets?.status_ok !== false ? 'text-emerald-700' : 'text-red-700'}`}>
+            {data.seat_assets?.status_ok !== false ? <CheckCircle className="h-3.5 w-3.5 text-emerald-600" /> : <AlertTriangle className="h-3.5 w-3.5 text-red-600" />}
+            <span className="truncate">{data.seat_assets?.reason || 'All GLB models loaded'}</span>
           </div>
         </div>
       </div>
+
+      {/* Seat Models Warning Banner if assets degraded */}
+      {data.seat_assets && !data.seat_assets.status_ok && (
+        <div
+          role="alert"
+          className="rounded-2xl border-2 border-red-500 bg-red-600 p-4 text-white shadow-xl flex items-center gap-3 animate-in fade-in"
+        >
+          <AlertTriangle className="h-6 w-6 text-amber-200 shrink-0" />
+          <div>
+            <div className="text-base font-black tracking-wide">
+              CRITICAL: 3D Seat Models Failed Verification
+            </div>
+            <div className="text-xs text-red-100 mt-0.5">
+              {data.seat_assets.reason} — Silent fallback to boxes is prohibited.
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 4. Tab Switcher */}
       <div className="flex items-center gap-2 border-b border-[#E6DCD2] pb-2">

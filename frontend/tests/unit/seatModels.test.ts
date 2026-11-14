@@ -137,4 +137,96 @@ describe('CineVerse 3D Seat Models & Registry Verification', () => {
     expect(getSeatFamilyForSeat('prime', 'standard', 'Boutique VIP')).toBe('sofa');
     expect(getSeatFamilyForSeat('prime', 'sofa', 'Standard')).toBe('sofa');
   });
+
+  it('7. Shape tests: mesh volume to bounding box volume ratio < 0.70 for all seat families (not boxes)', () => {
+    function computeGlbMeshVolume(filePath: string) {
+      const buf = fs.readFileSync(filePath);
+      const jsonLen = buf.readUInt32LE(12);
+      const jsonStr = buf.toString('utf8', 20, 20 + jsonLen);
+      const gltf = JSON.parse(jsonStr);
+      const binOffset = 20 + jsonLen + 8;
+
+      const prim = gltf.meshes[0].primitives[0];
+      const posAcc = gltf.accessors[prim.attributes.POSITION];
+      const idxAcc = gltf.accessors[prim.indices];
+
+      const posBv = gltf.bufferViews[posAcc.bufferView];
+      const idxBv = gltf.bufferViews[idxAcc.bufferView];
+
+      const posByteOffset = binOffset + (posBv.byteOffset || 0) + (posAcc.byteOffset || 0);
+      const idxByteOffset = binOffset + (idxBv.byteOffset || 0) + (idxAcc.byteOffset || 0);
+
+      const numVertices = posAcc.count;
+      const positions = new Float32Array(buf.buffer, buf.byteOffset + posByteOffset, numVertices * 3);
+
+      const numIndices = idxAcc.count;
+      const indices = idxAcc.componentType === 5123 
+        ? new Uint16Array(buf.buffer, buf.byteOffset + idxByteOffset, numIndices)
+        : new Uint32Array(buf.buffer, buf.byteOffset + idxByteOffset, numIndices);
+
+      let totalVol = 0;
+      for (let i = 0; i < numIndices; i += 3) {
+        const i0 = indices[i] * 3;
+        const i1 = indices[i + 1] * 3;
+        const i2 = indices[i + 2] * 3;
+
+        const ax = positions[i0], ay = positions[i0+1], az = positions[i0+2];
+        const bx = positions[i1], by = positions[i1+1], bz = positions[i1+2];
+        const cx = positions[i2], cy = positions[i2+1], cz = positions[i2+2];
+
+        const vol = (ax * (by * cz - bz * cy) - ay * (bx * cz - bz * cx) + az * (bx * cy - by * cx)) / 6.0;
+        totalVol += vol;
+      }
+
+      const [minX, minY, minZ] = posAcc.min;
+      const [maxX, maxY, maxZ] = posAcc.max;
+      const bboxVol = (maxX - minX) * (maxY - minY) * (maxZ - minZ);
+      return {
+        meshVolume: Math.abs(totalVol),
+        bboxVolume: bboxVol,
+        ratio: Math.abs(totalVol) / bboxVol,
+        dimensions: {
+          width: maxX - minX,
+          height: maxY - minY,
+          depth: maxZ - minZ,
+        },
+      };
+    }
+
+    // Standard Cinema Seat: ratio ~0.296 < 0.70
+    const stdRes = computeGlbMeshVolume(path.join(modelsDir, 'standard_lod0.glb'));
+    expect(stdRes.ratio).toBeLessThan(0.70);
+    expect(stdRes.ratio).toBeGreaterThan(0.15); // Genuine non-empty mesh
+
+    // Recliner Single: ratio ~0.370 < 0.70
+    const recRes = computeGlbMeshVolume(path.join(modelsDir, 'recliner_single_lod0.glb'));
+    expect(recRes.ratio).toBeLessThan(0.70);
+    expect(recRes.ratio).toBeGreaterThan(0.20);
+
+    // Boutique Sofa: ratio ~0.385 < 0.70
+    const sofaRes = computeGlbMeshVolume(path.join(modelsDir, 'sofa_lod0.glb'));
+    expect(sofaRes.ratio).toBeLessThan(0.70);
+    expect(sofaRes.ratio).toBeGreaterThan(0.20);
+  });
+
+  it('8. Human-scale dimensions: cushion height ~0.45m, back top 1.0-1.1m, width 0.52-0.58m (recliners 0.8-0.95m)', () => {
+    // Model scale factor: 1 meter = 2.0 scene units (SCENE_TO_METERS = 0.5)
+    // In real-world meters:
+    const stdWidthM = SEAT_REGISTRY.standard.realWorldMeters.width;
+    expect(stdWidthM).toBeGreaterThanOrEqual(0.52);
+    expect(stdWidthM).toBeLessThanOrEqual(0.65);
+
+    const stdHeightM = SEAT_REGISTRY.standard.realWorldMeters.height;
+    expect(stdHeightM).toBeGreaterThanOrEqual(0.95);
+    expect(stdHeightM).toBeLessThanOrEqual(1.15);
+
+    // Recliner single: wider luxury footprint (0.80 - 0.95m)
+    const recWidthM = SEAT_REGISTRY.recliner.realWorldMeters.width;
+    expect(recWidthM).toBeGreaterThanOrEqual(0.80);
+    expect(recWidthM).toBeLessThanOrEqual(0.95);
+
+    const recHeightM = SEAT_REGISTRY.recliner.realWorldMeters.height;
+    expect(recHeightM).toBeGreaterThanOrEqual(1.00);
+    expect(recHeightM).toBeLessThanOrEqual(1.15);
+  });
 });

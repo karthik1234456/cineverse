@@ -547,10 +547,22 @@ async def get_developer_readiness(
     ]
 
     # Seat Assets Diagnostic
-    seat_manifest_path = os.path.join(FRONTEND_PUBLIC_DIR, "models", "seats", "manifest.json")
+    seat_models_dir = os.path.join(FRONTEND_PUBLIC_DIR, "models", "seats")
+    seat_manifest_path = os.path.join(seat_models_dir, "manifest.json")
     seat_assets_ok = True
     seat_assets_reasons = []
     seat_assets_info = {}
+
+    required_glbs = [
+        "standard_lod0.glb", "standard_lod1.glb", "standard_lod2.glb",
+        "recliner_single_lod0.glb", "recliner_single_lod1.glb", "recliner_single_lod2.glb",
+        "sofa_lod0.glb", "sofa_lod1.glb", "sofa_lod2.glb",
+    ]
+    for glb_name in required_glbs:
+        glb_path = os.path.join(seat_models_dir, glb_name)
+        if not os.path.exists(glb_path) or os.path.getsize(glb_path) < 1000:
+            seat_assets_ok = False
+            seat_assets_reasons.append(f"Missing or corrupted GLB: {glb_name}")
 
     if os.path.exists(seat_manifest_path):
         try:
@@ -558,7 +570,7 @@ async def get_developer_readiness(
             with open(seat_manifest_path, "r", encoding="utf-8") as f:
                 manifest_data = json.load(f)
             families = manifest_data.get("families", {})
-            for fam_name in ["standard", "recliner"]:
+            for fam_name in ["standard", "recliner", "sofa"]:
                 if fam_name not in families:
                     seat_assets_ok = False
                     seat_assets_reasons.append(f"Missing family {fam_name} in seat manifest")
