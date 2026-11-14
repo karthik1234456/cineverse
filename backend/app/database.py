@@ -130,6 +130,26 @@ async def init_db():
                 except Exception:
                     pass
 
+        # Check screen_formats columns
+        try:
+            res = await conn.execute(text("PRAGMA table_info(screen_formats)"))
+            existing_fmt_cols = [r[1] for r in res.fetchall()]
+        except Exception:
+            existing_fmt_cols = []
+
+        fmt_cols = [
+            ("min_seats", "INTEGER DEFAULT 200"),
+            ("max_seats", "INTEGER DEFAULT 300"),
+            ("confirmation_note", "VARCHAR(255)"),
+            ("equipment_profile", "JSON"),
+        ]
+        for col_name, col_def in fmt_cols:
+            if existing_fmt_cols and col_name not in existing_fmt_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE screen_formats ADD COLUMN {col_name} {col_def}"))
+                except Exception:
+                    pass
+
 
 async def reset_db():
     import app.models  # Ensure all models are registered on Base.metadata

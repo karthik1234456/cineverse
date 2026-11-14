@@ -568,6 +568,58 @@ export function ProceduralAuditorium({
     []
   );
 
+  const glassesDeskMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#1e222b',
+        roughness: 0.4,
+        metalness: 0.6,
+      }),
+    []
+  );
+
+  const glassesTrayMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#0e1117',
+        roughness: 0.7,
+        metalness: 0.3,
+      }),
+    []
+  );
+
+  const glassesSignMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#0284c7',
+        emissive: new THREE.Color('#38bdf8'),
+        emissiveIntensity: 2.2,
+        roughness: 0.2,
+      }),
+    []
+  );
+
+  const sideProjectorHousingMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#1e2025',
+        roughness: 0.5,
+        metalness: 0.7,
+      }),
+    []
+  );
+
+  const sideProjectorLensMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#0284c7',
+        emissive: new THREE.Color('#0ea5e9'),
+        emissiveIntensity: 1.8,
+        roughness: 0.1,
+      }),
+    []
+  );
+
   const effectRigMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
@@ -1078,8 +1130,24 @@ export function ProceduralAuditorium({
     updateSeatMeshGroup(reclinerMeshRef.current, reclinerSeats, 'recliner');
     updateSeatMeshGroup(sofaMeshRef.current, sofaSeats, 'sofa');
 
-    // Smoothly update volumetric projector beam opacity (Show Mode = 0.12, Dim = 0.05, Lights on = 0.00)
-    const targetBeamOpacity = isShow ? 0.12 : useCinemaStore.getState().houseLights === 'dim' ? 0.05 : 0.00;
+    // Smoothly update volumetric projector beam opacity based on equipment profile
+    const hasBeam = geometry.screenMesh.hasProjectorBeam !== false;
+    const brightnessTier = geometry.beamBrightness || 'standard';
+    let baseShowOpacity = 0.12;
+    let baseDimOpacity = 0.05;
+
+    if (!hasBeam || brightnessTier === 'none') {
+      baseShowOpacity = 0.00;
+      baseDimOpacity = 0.00;
+    } else if (brightnessTier === 'laser') {
+      baseShowOpacity = 0.22;
+      baseDimOpacity = 0.08;
+    } else if (brightnessTier === 'bright') {
+      baseShowOpacity = 0.18;
+      baseDimOpacity = 0.06;
+    }
+
+    const targetBeamOpacity = isShow ? baseShowOpacity : (useCinemaStore.getState().houseLights === 'dim' ? baseDimOpacity : 0.00);
     if (projectorBeamMaterial) {
       projectorBeamMaterial.opacity = THREE.MathUtils.lerp(
         projectorBeamMaterial.opacity,
@@ -1665,12 +1733,59 @@ export function ProceduralAuditorium({
               <boxGeometry args={boxHelper(sw).size} />
             </mesh>
           ))}
+          {geometry.screenMesh.hasProjectorBeam !== false && (
+            <mesh
+              ref={projectorBeamRef}
+              name="volumetric_projector_beam"
+              geometry={projectorBeamGeometry}
+              material={projectorBeamMaterial}
+            />
+          )}
+        </group>
+      )}
+
+      {/* 6j-2. 3D Glasses Counter at Entrance */}
+      {geometry.glassesCounter && (
+        <group name="Entrance3DGlassesCounter">
           <mesh
-            ref={projectorBeamRef}
-            name="volumetric_projector_beam"
-            geometry={projectorBeamGeometry}
-            material={projectorBeamMaterial}
-          />
+            name="glasses_counter_desk"
+            position={boxHelper(geometry.glassesCounter.bounds).center}
+            material={glassesDeskMaterial}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry args={boxHelper(geometry.glassesCounter.bounds).size} />
+          </mesh>
+          <mesh
+            name="glasses_counter_tray"
+            position={boxHelper(geometry.glassesCounter.topTrayBounds).center}
+            material={glassesTrayMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.glassesCounter.topTrayBounds).size} />
+          </mesh>
+          <mesh
+            name="glasses_counter_sign"
+            position={boxHelper(geometry.glassesCounter.signBounds).center}
+            material={glassesSignMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.glassesCounter.signBounds).size} />
+          </mesh>
+        </group>
+      )}
+
+      {/* 6j-3. ScreenX Side Wall Projectors */}
+      {geometry.sideProjectors && geometry.sideProjectors.length > 0 && (
+        <group name="ScreenXSideProjectorsContainer">
+          {geometry.sideProjectors.map((sp) => (
+            <group key={sp.id} name={sp.id} position={sp.position} rotation={[0, sp.rotationY, 0]}>
+              <mesh material={sideProjectorHousingMaterial}>
+                <boxGeometry args={[0.35, 0.22, 0.45]} />
+              </mesh>
+              <mesh position={[0, 0, 0.23]} material={sideProjectorLensMaterial}>
+                <cylinderGeometry args={[0.07, 0.07, 0.04, 16]} />
+              </mesh>
+            </group>
+          ))}
         </group>
       )}
 

@@ -99,6 +99,25 @@ export interface AuditoriumLayoutInput {
   pods?: any[];
   effect_props?: any[];
   is_motion_hall?: boolean;
+  screen_format?: string;
+  sound_system?: string;
+  projection_type?: string;
+  equipment_profile?: {
+    screen_description?: string;
+    screen_aspect?: number;
+    screen_curved?: boolean;
+    curve_radius?: number;
+    is_direct_led?: boolean;
+    is_screenx?: boolean;
+    has_glasses_counter?: boolean;
+    has_motion_pods?: boolean;
+    has_projector_beam?: boolean;
+    beam_brightness?: 'laser' | 'bright' | 'standard' | 'none';
+    seat_family?: 'standard' | 'recliner';
+    sound_system?: string;
+    projection_type?: string;
+    confirmation_note?: string;
+  };
   features?: {
     motion_seats?: boolean;
     wind?: boolean;
@@ -286,6 +305,20 @@ export interface ProceduralGeometryData {
     position: [number, number, number];
     size: [number, number, number];
   }>;
+  glassesCounter?: {
+    bounds: BoundingBox3D;
+    topTrayBounds: BoundingBox3D;
+    signBounds: BoundingBox3D;
+    glassesCount: number;
+  };
+  sideProjectors?: Array<{
+    id: string;
+    position: [number, number, number];
+    rotationY: number;
+  }>;
+  soundSystem?: string;
+  projectionType?: string;
+  beamBrightness?: 'laser' | 'bright' | 'standard' | 'none';
   cameraBounds: {
     minX: number;
     maxX: number;
@@ -423,7 +456,14 @@ export function generateProceduralAuditorium(
   const isDedicatedMotionHall = theatreDef.id === 'motion_seat' || theatreDef.id === 'dolby_atmos_4dx' || input.theatre_type === 'motion_seat' || input.theatre_type === 'dolby_atmos_4dx' || input.arrangement_pattern === 'motion_pods';
   const isMotionHall = isDedicatedMotionHall || !!input.is_motion_hall || (screenType && screenType.toLowerCase().includes('motion-seat')) || !!input.features?.motion_seats;
   const isFlagship = theatreDef.id === 'flagship' || totalSeatsEstimate >= 400;
-  const isCurved = !isMotionHall && (theatreDef.features.curved_screen || input.curve_radius !== undefined || isFlagship);
+  const isCurved = !isMotionHall && (
+    theatreDef.features.curved_screen ||
+    input.curve_radius !== undefined ||
+    isFlagship ||
+    input.screen_format === 'Dolby Cinema' ||
+    Boolean(input.screen_format?.includes('IMAX')) ||
+    Boolean(input.equipment_profile?.screen_curved)
+  );
 
   // Build row definitions map if variable row widths are provided
   const rowDefMap = new Map<string, RowDefinition>();
@@ -713,6 +753,13 @@ export function generateProceduralAuditorium(
         (isAccessible === false && _accessibleSeats.has(`${row}${String(num - 1).padStart(2, '0')}`));
       const pairPartner = reclinerPairMap.get(seatId);
 
+      const isReclinerFormat = Boolean(
+        theatreDef.id === 'luxury_recliner' ||
+        input.theatre_type === 'luxury_recliner' ||
+        input.screen_format === 'Dolby Cinema' ||
+        input.equipment_profile?.seat_family === 'recliner'
+      );
+
       let seatType = isAccessible
         ? 'accessible'
         : (isCompanion
@@ -723,7 +770,7 @@ export function generateProceduralAuditorium(
               ? 'sofa'
               : (pairPartner
                 ? 'recliner_pair'
-                : (theatreDef.id === 'luxury_recliner' ? 'recliner' : 'standard')))));
+                : (isReclinerFormat ? 'recliner' : 'standard')))));
 
       // Override if row definition explicitly specifies seat type
       if (rd?.seat_types && rd.seat_types[num]) {
@@ -1072,23 +1119,114 @@ export function generateProceduralAuditorium(
     }
   }
 
-  // Dolby Atmos overhead & surround speaker coordinates
-  const atmosSpeakers: Array<{ id: string; position: [number, number, number]; channel: string }> = [
-    // Overhead rows (6 speakers)
-    { id: 'atmos_top_l1', position: [-halfWidth * 0.45, ceilingHeight - 0.4, -6.5], channel: 'top_left_front' },
-    { id: 'atmos_top_r1', position: [halfWidth * 0.45, ceilingHeight - 0.4, -6.5], channel: 'top_right_front' },
-    { id: 'atmos_top_l2', position: [-halfWidth * 0.45, ceilingHeight - 0.4, -13.0], channel: 'top_left_middle' },
-    { id: 'atmos_top_r2', position: [halfWidth * 0.45, ceilingHeight - 0.4, -13.0], channel: 'top_right_middle' },
-    { id: 'atmos_top_l3', position: [-halfWidth * 0.45, ceilingHeight - 0.4, zBack + 3.0], channel: 'top_left_rear' },
-    { id: 'atmos_top_r3', position: [halfWidth * 0.45, ceilingHeight - 0.4, zBack + 3.0], channel: 'top_right_rear' },
-    // Side surround (6 speakers)
-    { id: 'atmos_surr_l1', position: [halfWidth - 0.25, 6.2, -7.0], channel: 'surround_left_front' },
-    { id: 'atmos_surr_r1', position: [-halfWidth + 0.25, 6.2, -7.0], channel: 'surround_right_front' },
-    { id: 'atmos_surr_l2', position: [halfWidth - 0.25, 6.6, -14.0], channel: 'surround_left_middle' },
-    { id: 'atmos_surr_r2', position: [-halfWidth + 0.25, 6.6, -14.0], channel: 'surround_right_middle' },
-    { id: 'atmos_surr_l3', position: [halfWidth - 0.25, 7.0, zBack + 3.0], channel: 'surround_left_rear' },
-    { id: 'atmos_surr_r3', position: [-halfWidth + 0.25, 7.0, zBack + 3.0], channel: 'surround_right_rear' },
-  ];
+  // Sound system-aware speaker layout
+  const soundSys = input.sound_system || input.equipment_profile?.sound_system || 'Dolby Atmos';
+  const isObjectAudio = soundSys.includes('Atmos') || soundSys.includes('DTS:X');
+  const isStandard51 = soundSys.includes('5.1');
+
+  const atmosSpeakers: Array<{ id: string; position: [number, number, number]; channel: string }> = [];
+
+  // Overhead ceiling speaker arrays: Only for Dolby Atmos and DTS:X
+  if (isObjectAudio) {
+    atmosSpeakers.push(
+      // Overhead ceiling array (6 speakers)
+      { id: 'atmos_top_l1', position: [-halfWidth * 0.45, ceilingHeight - 0.4, -6.5], channel: 'top_left_front' },
+      { id: 'atmos_top_r1', position: [halfWidth * 0.45, ceilingHeight - 0.4, -6.5], channel: 'top_right_front' },
+      { id: 'atmos_top_l2', position: [-halfWidth * 0.45, ceilingHeight - 0.4, -13.0], channel: 'top_left_middle' },
+      { id: 'atmos_top_r2', position: [halfWidth * 0.45, ceilingHeight - 0.4, -13.0], channel: 'top_right_middle' },
+      { id: 'atmos_top_l3', position: [-halfWidth * 0.45, ceilingHeight - 0.4, zBack + 3.0], channel: 'top_left_rear' },
+      { id: 'atmos_top_r3', position: [halfWidth * 0.45, ceilingHeight - 0.4, zBack + 3.0], channel: 'top_right_rear' },
+      // Side wall surrounds (6 speakers)
+      { id: 'atmos_surr_l1', position: [halfWidth - 0.25, 6.2, -7.0], channel: 'surround_left_front' },
+      { id: 'atmos_surr_r1', position: [-halfWidth + 0.25, 6.2, -7.0], channel: 'surround_right_front' },
+      { id: 'atmos_surr_l2', position: [halfWidth - 0.25, 6.6, -14.0], channel: 'surround_left_middle' },
+      { id: 'atmos_surr_r2', position: [-halfWidth + 0.25, 6.6, -14.0], channel: 'surround_right_middle' },
+      { id: 'atmos_surr_l3', position: [halfWidth - 0.25, 7.0, zBack + 3.0], channel: 'surround_left_rear' },
+      { id: 'atmos_surr_r3', position: [-halfWidth + 0.25, 7.0, zBack + 3.0], channel: 'surround_right_rear' },
+    );
+  } else if (isStandard51) {
+    // 5.1: 4 side surrounds and 2 rear surrounds (no overhead ceiling speakers)
+    atmosSpeakers.push(
+      { id: 'surr_l1', position: [halfWidth - 0.25, 6.2, -8.0], channel: 'surround_left_front' },
+      { id: 'surr_r1', position: [-halfWidth + 0.25, 6.2, -8.0], channel: 'surround_right_front' },
+      { id: 'surr_l2', position: [halfWidth - 0.25, 6.6, -14.0], channel: 'surround_left_rear' },
+      { id: 'surr_r2', position: [-halfWidth + 0.25, 6.6, -14.0], channel: 'surround_right_rear' },
+      { id: 'rear_l1', position: [halfWidth * 0.35, topTierY + 3.2, zBack + 0.25], channel: 'rear_left' },
+      { id: 'rear_r1', position: [-halfWidth * 0.35, topTierY + 3.2, zBack + 0.25], channel: 'rear_right' },
+    );
+  } else {
+    // 7.1: 6 side wall surrounds and 4 rear surrounds (no overhead ceiling speakers)
+    atmosSpeakers.push(
+      { id: 'surr_l1', position: [halfWidth - 0.25, 6.2, -7.0], channel: 'surround_left_front' },
+      { id: 'surr_r1', position: [-halfWidth + 0.25, 6.2, -7.0], channel: 'surround_right_front' },
+      { id: 'surr_l2', position: [halfWidth - 0.25, 6.6, -14.0], channel: 'surround_left_middle' },
+      { id: 'surr_r2', position: [-halfWidth + 0.25, 6.6, -14.0], channel: 'surround_right_middle' },
+      { id: 'surr_l3', position: [halfWidth - 0.25, 7.0, zBack + 3.0], channel: 'surround_left_rear' },
+      { id: 'surr_r3', position: [-halfWidth + 0.25, 7.0, zBack + 3.0], channel: 'surround_right_rear' },
+      { id: 'rear_l1', position: [halfWidth * 0.55, topTierY + 3.2, zBack + 0.25], channel: 'rear_left_outer' },
+      { id: 'rear_l2', position: [halfWidth * 0.20, topTierY + 3.2, zBack + 0.25], channel: 'rear_left_inner' },
+      { id: 'rear_r1', position: [-halfWidth * 0.20, topTierY + 3.2, zBack + 0.25], channel: 'rear_right_inner' },
+      { id: 'rear_r2', position: [-halfWidth * 0.55, topTierY + 3.2, zBack + 0.25], channel: 'rear_right_outer' },
+    );
+  }
+
+  // 3D Glasses Counter at entrance (for all 3D formats)
+  const is3DFormat = Boolean(
+    (input.screen_format && input.screen_format.includes('3D')) ||
+    input.equipment_profile?.has_glasses_counter
+  );
+
+  let glassesCounter: ProceduralGeometryData['glassesCounter'];
+  if (is3DFormat) {
+    const counterX = -halfWidth + 1.8;
+    const counterY = topTierY;
+    const counterZ = zBack + 3.6;
+    glassesCounter = {
+      bounds: {
+        min: [counterX - 0.6, counterY, counterZ - 1.2],
+        max: [counterX + 0.6, counterY + 1.8, counterZ + 1.2],
+      },
+      topTrayBounds: {
+        min: [counterX - 0.5, counterY + 1.8, counterZ - 1.0],
+        max: [counterX + 0.5, counterY + 2.1, counterZ + 1.0],
+      },
+      signBounds: {
+        min: [counterX - 0.4, counterY + 2.3, counterZ - 0.8],
+        max: [counterX + 0.4, counterY + 2.9, counterZ + 0.8],
+      },
+      glassesCount: 48,
+    };
+  }
+
+  // ScreenX side wall projectors
+  const isScreenX = Boolean(
+    input.screen_format?.toLowerCase().includes('screen') ||
+    input.equipment_profile?.is_screenx
+  );
+
+  const sideProjectors: Array<{ id: string; position: [number, number, number]; rotationY: number }> = [];
+  if (isScreenX) {
+    for (let z = -6.0; z >= zBack + 2.0; z -= 5.5) {
+      sideProjectors.push(
+        { id: `sp_left_${Math.abs(z).toFixed(0)}`, position: [halfWidth - 0.35, ceilingHeight - 1.2, z], rotationY: -Math.PI / 2 },
+        { id: `sp_right_${Math.abs(z).toFixed(0)}`, position: [-halfWidth + 0.35, ceilingHeight - 1.2, z], rotationY: Math.PI / 2 }
+      );
+    }
+  }
+
+  // Direct-view Samsung Onyx LED
+  const isDirectLED = Boolean(
+    input.equipment_profile?.is_direct_led ||
+    input.screen_format?.toLowerCase().includes('onyx')
+  );
+
+  const beamBrightness: 'laser' | 'bright' | 'standard' | 'none' = isDirectLED
+    ? 'none'
+    : (input.equipment_profile?.beam_brightness || (
+        input.screen_format?.includes('IMAX') || input.screen_format?.includes('Dolby') || input.projection_type?.includes('Laser')
+          ? 'laser'
+          : (is3DFormat ? 'bright' : 'standard')
+      ));
 
   // Side curtains flanking the screen
   const sideCurtains = {
@@ -1757,12 +1895,21 @@ export function generateProceduralAuditorium(
       width: screenWidth,
       height: screenHeight,
       curved: isCurved,
-      curveRadius: isCurved ? screenWidth * 1.8 : undefined,
-      type: theatreDef.screenType?.type || (isCurved ? 'large_curved' : 'standard_flat'),
-      panoramicWrap: theatreDef.screenType?.wrapPanels || (theatreDef.screenType as any)?.panoramicWrap,
-      bezel: theatreDef.screenType?.bezel,
-      finish: theatreDef.screenType?.finish,
-      hasProjectorBeam: theatreDef.screenType?.hasProjectorBeam ?? true,
+      curveRadius: isCurved ? (input.equipment_profile?.curve_radius ? input.equipment_profile.curve_radius * 2.0 : screenWidth * 1.8) : undefined,
+      type: isScreenX ? 'panoramic_wrap' : (isDirectLED ? 'premium_direct_view' : (isCurved ? 'large_curved' : (theatreDef.screenType?.type || 'standard_flat'))),
+      panoramicWrap: isScreenX ? {
+        sideAngleDeg: 28,
+        sideWidthRatio: 0.48,
+        sideHeightRatio: 0.85,
+      } : (theatreDef.screenType?.wrapPanels || (theatreDef.screenType as any)?.panoramicWrap),
+      bezel: isDirectLED ? {
+        width: 0.04,
+        color: '#09090b',
+        hasFrame: true,
+        thinBlack: true,
+      } : theatreDef.screenType?.bezel,
+      finish: isDirectLED ? 'glossy_led' : 'matte_white',
+      hasProjectorBeam: !isDirectLED,
     },
     screenFrame: {
       min: [-screenWidth / 2 - 0.4, screenCenterY - screenHeight / 2 - 0.4, SCREEN_Z - 0.08],
@@ -1804,6 +1951,11 @@ export function generateProceduralAuditorium(
     reclinerAccessories,
     motionLedBars,
     amberOutlinePanels,
+    glassesCounter,
+    sideProjectors,
+    soundSystem: soundSys,
+    projectionType: input.projection_type || input.equipment_profile?.projection_type || '4K Laser',
+    beamBrightness,
     cameraBounds,
     targetBounds,
     defaultCameraPos,

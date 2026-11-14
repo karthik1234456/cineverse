@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 from pydantic import BaseModel
 
 
@@ -7,6 +7,10 @@ class ScreenFormatBase(BaseModel):
     description: Optional[str] = None
     requires_glasses: bool = False
     is_active: bool = True
+    min_seats: int = 200
+    max_seats: int = 300
+    confirmation_note: Optional[str] = None
+    equipment_profile: Optional[Dict[str, Any]] = None
 
 
 class ScreenFormatCreate(ScreenFormatBase):
@@ -18,6 +22,10 @@ class ScreenFormatUpdate(BaseModel):
     description: Optional[str] = None
     requires_glasses: Optional[bool] = None
     is_active: Optional[bool] = None
+    min_seats: Optional[int] = None
+    max_seats: Optional[int] = None
+    confirmation_note: Optional[str] = None
+    equipment_profile: Optional[Dict[str, Any]] = None
 
 
 class ScreenFormatResponse(ScreenFormatBase):

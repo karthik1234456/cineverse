@@ -77,43 +77,40 @@ export function useSeatData(showtimeId: string = '1') {
         }
       }
 
-      // Generate procedural 3D auditorium for all halls (except Auditorium 1 which uses the bespoke GLB by default)
+      // Generate procedural 3D auditorium for all halls when layout_data is present
       const audId = String(data.auditorium_id || '1');
-      let isProceduralRequested = false;
-      if (typeof window !== 'undefined') {
-        const p = new URLSearchParams(window.location.search);
-        isProceduralRequested = p.get('procedural') === '1';
-      }
 
-      if (audId !== '1' || isProceduralRequested) {
-        if (data.layout_data && data.layout_data.rows) {
-          const proceduralData = generateProceduralAuditorium({
-            ...data.layout_data,
-            screen_type: data.screen_type,
-            total_seats: data.seats && data.seats.length > 0 ? data.seats.length : (data.layout_data.rows.length * (data.layout_data.seats_per_row || 10)),
-            base_price: data.seats && data.seats[0] ? data.seats[0].price : 280,
-            theatre_type: (data.layout_data as any).theatre_type,
-            arrangement_pattern: (data.layout_data as any).arrangement_pattern,
-            blocks_pattern: (data.layout_data as any).blocks_pattern,
-            sweet_spot: (data.layout_data as any).sweet_spot,
-            sofa_pairs: (data.layout_data as any).sofa_pairs,
-            balcony_rows: data.layout_data.balcony_rows || data.layout_data.levels?.balcony?.rows,
-            recliner_pairs: data.layout_data.recliner_pairs as [string, string][] | undefined,
-          });
-          setAuditoriumData(audId, proceduralData, {
-            name: data.auditorium_name,
-            screenType: data.screen_type,
-            screenFormat: data.screen_format || data.screen_type,
-            soundSystem: data.sound_system || 'Dolby Atmos',
-            projectionType: data.projection_type || '4K Laser',
-            techSpecsDisplay: data.tech_specs_display || `${data.auditorium_name} · ${data.screen_format || data.screen_type} · ${data.sound_system || 'Dolby Atmos'} · ${data.projection_type || '4K Laser'}`,
-            requiresGlasses: data.requires_glasses ?? false,
-            confirmedWithCinema: data.confirmed_with_cinema ?? false,
-            isDemo: data.is_demo ?? true,
-          });
-        }
+      if (data.layout_data && data.layout_data.rows) {
+        const proceduralData = generateProceduralAuditorium({
+          ...data.layout_data,
+          screen_type: data.screen_type,
+          screen_format: data.screen_format || data.screen_type,
+          sound_system: data.sound_system || 'Dolby Atmos',
+          projection_type: data.projection_type || '4K Laser',
+          equipment_profile: (data.layout_data as any).equipment_profile,
+          total_seats: data.seats && data.seats.length > 0 ? data.seats.length : (data.layout_data.rows.length * (data.layout_data.seats_per_row || 10)),
+          base_price: data.seats && data.seats[0] ? data.seats[0].price : 280,
+          theatre_type: (data.layout_data as any).theatre_type,
+          arrangement_pattern: (data.layout_data as any).arrangement_pattern,
+          blocks_pattern: (data.layout_data as any).blocks_pattern,
+          sweet_spot: (data.layout_data as any).sweet_spot,
+          sofa_pairs: (data.layout_data as any).sofa_pairs,
+          balcony_rows: data.layout_data.balcony_rows || data.layout_data.levels?.balcony?.rows,
+          recliner_pairs: data.layout_data.recliner_pairs as [string, string][] | undefined,
+        });
+        setAuditoriumData(audId, proceduralData, {
+          name: data.auditorium_name,
+          screenType: data.screen_type,
+          screenFormat: data.screen_format || data.screen_type,
+          soundSystem: data.sound_system || 'Dolby Atmos',
+          projectionType: data.projection_type || '4K Laser',
+          techSpecsDisplay: data.tech_specs_display || `${data.auditorium_name} · ${data.screen_format || data.screen_type} · ${data.sound_system || 'Dolby Atmos'} · ${data.projection_type || '4K Laser'}`,
+          requiresGlasses: data.requires_glasses ?? false,
+          confirmedWithCinema: data.confirmed_with_cinema ?? false,
+          isDemo: data.is_demo ?? true,
+        });
       } else {
-        setAuditoriumData('1', null, {
+        setAuditoriumData(audId, null, {
           name: data.auditorium_name,
           screenType: data.screen_type,
           screenFormat: data.screen_format || data.screen_type,

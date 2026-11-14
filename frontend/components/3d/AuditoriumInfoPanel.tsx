@@ -238,7 +238,76 @@ export function AuditoriumInfoPanel() {
                 {layout.screen.aspect}:1 Aspect ({screenMetersWidth}m × {screenMetersHeight}m)
               </span>
             </div>
+            {(layout as any).layout_signature && (
+              <div className="flex items-center justify-between pt-1 border-t border-[#E6DCD2]/60">
+                <span className="text-slate-500">Signature</span>
+                <span className="font-mono text-[11px] font-semibold text-slate-700" data-testid="auditorium-panel-signature">
+                  {(layout as any).layout_signature}
+                </span>
+              </div>
+            )}
           </div>
+
+          {/* Format Equipment in Plain Words (§ Stage 3) */}
+          {((layout as any).equipment_profile || storeScreenFormat) && (
+            <div className="mt-3 rounded-xl bg-slate-900 text-slate-200 border border-slate-800 p-3 text-xs space-y-1.5" data-testid="auditorium-equipment-card">
+              <div className="font-bold text-white flex items-center justify-between">
+                <span>Auditorium Equipment</span>
+                {((layout as any).equipment_profile?.confirmation_note || ['ICE', 'ICE 3D', 'P[XL]', 'EPIQ'].includes(storeScreenFormat || '')) && (
+                  <span className="text-[10px] font-normal text-amber-300 italic">
+                    details to confirm with the cinema
+                  </span>
+                )}
+              </div>
+              <p className="text-slate-300">
+                {(layout as any).equipment_profile?.screen_description ||
+                  (storeScreenFormat?.includes('IMAX') ? 'Expansive tall curved screen with steep rake' :
+                   storeScreenFormat?.includes('Onyx') ? 'Direct-view Samsung Onyx LED with thin black bezel (no projector beam)' :
+                   storeScreenFormat?.includes('ScreenX') ? '270° panoramic centre screen + dual side wall screens' :
+                   storeScreenFormat === 'Dolby Cinema' ? 'Dolby Vision HDR laser screen with dark matte interior and plush recliners' :
+                   'Flat cinema projection screen')}
+              </p>
+              <div className="flex flex-wrap gap-1.5 pt-1 text-[11px]">
+                {(storeScreenFormat?.includes('3D') || (layout as any).equipment_profile?.has_glasses_counter) && (
+                  <span className="rounded bg-sky-950 text-sky-300 border border-sky-800 px-2 py-0.5">
+                    👓 3D glasses counter at entrance
+                  </span>
+                )}
+                {(storeScreenFormat?.includes('4DX') || storeScreenFormat?.includes('MX4D') || (layout as any).equipment_profile?.has_motion_pods) && (
+                  <span className="rounded bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5">
+                    ⚡ 4-seat motion pods on visible bases
+                  </span>
+                )}
+                {(storeScreenFormat === 'Dolby Cinema' || (layout as any).theatre_type === 'luxury_recliner') && (
+                  <span className="rounded bg-amber-950 text-amber-300 border border-amber-800 px-2 py-0.5">
+                    🛋️ Plush brown leather recliners
+                  </span>
+                )}
+                {(storeSoundSystem?.includes('Atmos') || storeSoundSystem?.includes('DTS:X')) ? (
+                  <span className="rounded bg-slate-800 text-slate-300 px-2 py-0.5">
+                    🔊 Overhead & surround speaker arrays
+                  </span>
+                ) : storeSoundSystem?.includes('7.1') ? (
+                  <span className="rounded bg-slate-800 text-slate-300 px-2 py-0.5">
+                    🔊 Side & rear surrounds
+                  </span>
+                ) : (
+                  <span className="rounded bg-slate-800 text-slate-300 px-2 py-0.5">
+                    🔊 Standard surround speakers
+                  </span>
+                )}
+                {storeScreenFormat?.includes('Onyx') ? (
+                  <span className="rounded bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5">
+                    ✨ Direct LED (no projector beam)
+                  </span>
+                ) : (
+                  <span className="rounded bg-slate-800 text-slate-300 px-2 py-0.5">
+                    📽️ Projector booth with laser beam
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Seat Categories & Pricing (§ Task 3) */}
           <div className="mt-4 space-y-2 border-t border-[#E6DCD2] pt-3">

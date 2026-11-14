@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy import Column, Integer, String, Boolean, JSON
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -11,6 +11,10 @@ class ScreenFormat(Base):
     description = Column(String(255), nullable=True)
     requires_glasses = Column(Boolean, default=False, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    min_seats = Column(Integer, default=200, nullable=False)
+    max_seats = Column(Integer, default=300, nullable=False)
+    confirmation_note = Column(String(255), nullable=True)
+    equipment_profile = Column(JSON, nullable=True)
 
     auditoriums = relationship("Auditorium", back_populates="screen_format")
 

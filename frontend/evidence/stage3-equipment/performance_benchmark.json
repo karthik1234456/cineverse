@@ -1,0 +1,112 @@
+{
+  "imax_3d": {
+    "format": "IMAX 3D",
+    "auditoriumId": 1,
+    "seats": 522,
+    "triangles": 3685721.6666666665,
+    "calls": 148,
+    "fps": 7,
+    "geometries": 121,
+    "textures": 31
+  },
+  "dolby_cinema": {
+    "format": "Dolby Cinema",
+    "auditoriumId": 2,
+    "seats": 252,
+    "triangles": 1705654,
+    "calls": 815,
+    "fps": 6,
+    "geometries": 787,
+    "textures": 33
+  },
+  "4dx_3d": {
+    "format": "4DX 3D",
+    "auditoriumId": 3,
+    "seats": 208,
+    "triangles": 1528382,
+    "calls": 570,
+    "fps": 0,
+    "geometries": 552,
+    "textures": 21
+  },
+  "pxl": {
+    "format": "P[XL]",
+    "auditoriumId": 4,
+    "seats": 390,
+    "triangles": 2754348,
+    "calls": 122,
+    "fps": 0,
+    "geometries": 102,
+    "textures": 25
+  },
+  "screenx": {
+    "format": "ScreenX",
+    "auditoriumId": 5,
+    "seats": 286,
+    "triangles": 2024938,
+    "calls": 105,
+    "fps": 0,
+    "geometries": 91,
+    "textures": 19
+  },
+  "onyx_led": {
+    "format": "Onyx (Samsung Onyx LED)",
+    "auditoriumId": 20,
+    "seats": 220,
+    "triangles": 1550022,
+    "calls": 87,
+    "fps": 0,
+    "geometries": 78,
+    "textures": 15
+  },
+  "3d_standard": {
+    "format": "3D",
+    "auditoriumId": 9,
+    "seats": 240,
+    "triangles": 1696190,
+    "calls": 125,
+    "fps": 1,
+    "geometries": 103,
+    "textures": 27
+  },
+  "2d_standard": {
+    "format": "2D",
+    "auditoriumId": 12,
+    "seats": 225,
+    "triangles": 1590480,
+    "calls": 125,
+    "fps": 1,
+    "geometries": 103,
+    "textures": 27
+  },
+  "mx4d_3d": {
+    "format": "MX4D 3D",
+    "auditoriumId": 82,
+    "seats": 192,
+    "triangles": 1410810,
+    "calls": 521,
+    "fps": 0,
+    "geometries": 505,
+    "textures": 19
+  },
+  "ice_3d": {
+    "format": "ICE 3D",
+    "auditoriumId": 6,
+    "seats": 384,
+    "triangles": 2717464,
+    "calls": 130,
+    "fps": 1,
+    "geometries": 108,
+    "textures": 27
+  },
+  "epiq": {
+    "format": "EPIQ",
+    "auditoriumId": 36,
+    "seats": 384,
+    "triangles": 2717464,
+    "calls": 130,
+    "fps": 0,
+    "geometries": 108,
+    "textures": 27
+  }
+}

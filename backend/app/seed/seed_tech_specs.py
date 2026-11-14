@@ -6,14 +6,15 @@ Seeds technical specifications for CineVerse:
 - Hall assignments across all 112 auditoriums in 7 cities
 """
 import asyncio
-from typing import Dict, List, Tuple
-from sqlalchemy import select, update
+from typing import Dict, List, Tuple, Set
+from sqlalchemy import select, update, delete, insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal, init_db
-from app.models.cinema import City, Cinema, Auditorium
-from app.models.showtime import Showtime
+from app.models.cinema import City, Cinema, Auditorium, Seat
+from app.models.showtime import Showtime, SeatInventory, SeatStatusEnum
 from app.models.technical_specs import ScreenFormat, SoundSystem, ProjectionType
+from app.seed.format_layouts import FORMAT_SPECS, generate_format_layout
 
 SCREEN_FORMATS_DATA = [
     {"name": "2D", "description": "Standard 2D cinematic projection", "requires_glasses": False},
@@ -186,16 +187,31 @@ async def seed_technical_specs(db: AsyncSession):
     # 1. Screen Formats
     format_map: Dict[str, ScreenFormat] = {}
     for item in SCREEN_FORMATS_DATA:
-        existing = (await db.execute(select(ScreenFormat).where(ScreenFormat.name == item["name"]))).scalar_one_or_none()
+        name = item["name"]
+        spec_info = FORMAT_SPECS.get(name, {})
+        existing = (await db.execute(select(ScreenFormat).where(ScreenFormat.name == name))).scalar_one_or_none()
         if not existing:
-            existing = ScreenFormat(**item)
+            existing = ScreenFormat(
+                name=name,
+                description=item["description"],
+                requires_glasses=item["requires_glasses"],
+                min_seats=spec_info.get("min_seats", 200),
+                max_seats=spec_info.get("max_seats", 300),
+                confirmation_note=spec_info.get("confirmation_note"),
+                equipment_profile=spec_info,
+                is_active=True,
+            )
             db.add(existing)
             await db.flush()
         else:
             existing.description = item["description"]
             existing.requires_glasses = item["requires_glasses"]
+            existing.min_seats = spec_info.get("min_seats", 200)
+            existing.max_seats = spec_info.get("max_seats", 300)
+            existing.confirmation_note = spec_info.get("confirmation_note")
+            existing.equipment_profile = spec_info
             existing.is_active = True
-        format_map[item["name"]] = existing
+        format_map[name] = existing
 
     # 2. Sound Systems
     sound_map: Dict[str, SoundSystem] = {}
@@ -228,9 +244,11 @@ async def seed_technical_specs(db: AsyncSession):
     await db.commit()
     print(f"Seeded {len(format_map)} Screen Formats, {len(sound_map)} Sound Systems, {len(projection_map)} Projection Types.")
 
-    # 4. Assign specs to all auditoriums by city
+    # 4. Assign specs to all auditoriums by city, generate scaled format layouts and sync seats
     cities = (await db.execute(select(City))).scalars().all()
     total_auditoriums_updated = 0
+    all_seats_to_insert: List[dict] = []
+    cinema_sig_map: Dict[int, Set[str]] = {}
 
     for city in cities:
         city_slug = city.slug.lower()
@@ -240,37 +258,142 @@ async def seed_technical_specs(db: AsyncSession):
             continue
 
         cinemas = (await db.execute(select(Cinema).where(Cinema.city_id == city.id).order_by(Cinema.id))).scalars().all()
-        auditoriums: List[Auditorium] = []
+        aud_dist_idx = 0
+
         for c in cinemas:
+            if c.id not in cinema_sig_map:
+                cinema_sig_map[c.id] = set()
             auds = (await db.execute(select(Auditorium).where(Auditorium.cinema_id == c.id).order_by(Auditorium.id))).scalars().all()
-            auditoriums.extend(auds)
 
-        print(f"Assigning specs to {len(auditoriums)} auditoriums in {city.name}...")
-        for i, aud in enumerate(auditoriums):
-            spec = distribution[i % len(distribution)]
-            fmt_name, snd_name, prj_name, confirmed = spec
+            for screen_idx, aud in enumerate(auds):
+                spec = distribution[aud_dist_idx % len(distribution)]
+                aud_dist_idx += 1
+                fmt_name, snd_name, prj_name, confirmed = spec
 
-            fmt = format_map[fmt_name]
-            snd = sound_map[snd_name]
-            prj = projection_map[prj_name]
+                fmt = format_map[fmt_name]
+                snd = sound_map[snd_name]
+                prj = projection_map[prj_name]
 
-            aud.screen_format_id = fmt.id
-            aud.sound_system_id = snd.id
-            aud.projection_type_id = prj.id
-            aud.screen_type = fmt.name
-            aud.confirmed_with_cinema = confirmed
-            aud.is_demo = not confirmed  # demo if not confirmed by real cinema
-            total_auditoriums_updated += 1
+                # Deterministic signature without conflict inside this cinema
+                offset = 0
+                while True:
+                    layout_data, seat_records = generate_format_layout(
+                        fmt_name,
+                        variant_idx=screen_idx + offset,
+                        sound_system=snd_name,
+                        projection_type=prj_name,
+                        cinema_id=c.id,
+                    )
+                    sig = layout_data["layout_signature"]
+                    if sig not in cinema_sig_map[c.id]:
+                        cinema_sig_map[c.id].add(sig)
+                        break
+                    offset += 1
 
-            # Also update showtimes in this auditorium so format is consistent
-            await db.execute(
-                update(Showtime)
-                .where(Showtime.auditorium_id == aud.id)
-                .values(format=fmt.name)
-            )
+                aud.screen_format_id = fmt.id
+                aud.sound_system_id = snd.id
+                aud.projection_type_id = prj.id
+                aud.screen_type = fmt.name
+                aud.confirmed_with_cinema = confirmed
+                aud.is_demo = not confirmed
+                aud.layout_data = layout_data
+                aud.total_seats = len(seat_records)
+                total_auditoriums_updated += 1
+
+                # Collect new seats for insertion
+                for sr in seat_records:
+                    all_seats_to_insert.append({
+                        "auditorium_id": aud.id,
+                        "seat_id": sr["seat_id"],
+                        "row": sr["row"],
+                        "number": sr["number"],
+                        "category": sr["category"],
+                        "node_name": sr["node_name"],
+                        "eye_x": sr["eye_x"],
+                        "eye_y": sr["eye_y"],
+                        "eye_z": sr["eye_z"],
+                        "distance_to_screen": sr["distance_to_screen"],
+                        "vertical_angle_deg": sr["vertical_angle_deg"],
+                        "horizontal_angle_deg": sr["horizontal_angle_deg"],
+                        "is_accessible": sr["is_accessible"]
+                    })
+
+                # Update showtimes format in this auditorium
+                await db.execute(
+                    update(Showtime)
+                    .where(Showtime.auditorium_id == aud.id)
+                    .values(format=fmt.name)
+                )
+
+    await db.flush()
+    print(f"Assigning seats to {total_auditoriums_updated} auditoriums across all cities...")
+
+    # Clear previous seats and insert new seats in safe chunks
+    await db.execute(delete(Seat))
+    for i in range(0, len(all_seats_to_insert), 75):
+        await db.execute(insert(Seat).values(all_seats_to_insert[i:i + 75]))
+    await db.commit()
+
+    # Re-sync SeatInventory for all showtimes
+    print("Synchronizing SeatInventory records across all showtimes...")
+    await db.execute(delete(SeatInventory))
+
+    aud_seat_map: Dict[int, List[dict]] = {}
+    for s_dict in all_seats_to_insert:
+        aud_seat_map.setdefault(s_dict["auditorium_id"], []).append(s_dict)
+
+    showtimes = (await db.execute(select(Showtime).order_by(Showtime.id))).scalars().all()
+    inventory_records_batch: List[dict] = []
+
+    for st in showtimes:
+        aud_seats = aud_seat_map.get(st.auditorium_id, [])
+        is_premium_fmt = "IMAX" in st.format or "4DX" in st.format or "Dolby" in st.format
+        base_factor = 1.3 if is_premium_fmt else 1.0
+
+        front_price = round(220.0 * base_factor)
+        prime_price = round(320.0 * base_factor)
+        premier_price = round(460.0 * base_factor)
+
+        for s_obj in aud_seats:
+            if st.id == 1 and s_obj["seat_id"] == "C01":
+                status = SeatStatusEnum.BOOKED
+                booking_id = 1
+                hold_id = None
+            elif st.id == 1 and s_obj["seat_id"] == "A06":
+                status = SeatStatusEnum.HELD
+                booking_id = None
+                hold_id = "cv-seed-hold-a06"
+            else:
+                status = SeatStatusEnum.AVAILABLE
+                booking_id = None
+                hold_id = None
+
+            s_price = premier_price if s_obj["category"] == "Premier" else (front_price if s_obj["category"] == "Front" else prime_price)
+
+            inventory_records_batch.append({
+                "showtime_id": st.id,
+                "seat_id": s_obj["seat_id"],
+                "category": s_obj["category"],
+                "price": float(s_price),
+                "status": status,
+                "hold_id": hold_id,
+                "hold_expires_at": None,
+                "booking_id": booking_id,
+                "held_by_user_id": None
+            })
+
+            if len(inventory_records_batch) >= 2000:
+                for chunk_start in range(0, len(inventory_records_batch), 75):
+                    await db.execute(insert(SeatInventory).values(inventory_records_batch[chunk_start:chunk_start + 75]))
+                inventory_records_batch.clear()
+
+    if inventory_records_batch:
+        for chunk_start in range(0, len(inventory_records_batch), 75):
+            await db.execute(insert(SeatInventory).values(inventory_records_batch[chunk_start:chunk_start + 75]))
+        inventory_records_batch.clear()
 
     await db.commit()
-    print(f"Successfully assigned specs to {total_auditoriums_updated} auditoriums across all cities.")
+    print(f"Successfully assigned specs, format layouts, seats, and inventory across {total_auditoriums_updated} auditoriums.")
 
 
 async def main():

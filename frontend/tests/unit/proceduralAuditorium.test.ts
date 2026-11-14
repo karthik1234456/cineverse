@@ -316,4 +316,115 @@ describe('Procedural Auditorium Generator — Faithfulness & Geometry Tests', ()
       expect(res.geometry.cameraPresets?.screen).toBeDefined();
     });
   });
+
+  describe('6. Stage 3 Format Equipment & Profiles Tests', () => {
+    it('generates 3D glasses counter at entrance for 3D variants', () => {
+      const res3D = generateProceduralAuditorium({
+        rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'],
+        seats_per_row: 16,
+        aisles: [8],
+        screen_format: '3D',
+        theatre_type: 'standard',
+        total_seats: 240,
+      });
+
+      expect(res3D.geometry.glassesCounter).toBeDefined();
+      expect(res3D.geometry.glassesCounter?.glassesCount).toBe(48);
+      expect(res3D.geometry.glassesCounter?.bounds.max[1]).toBeGreaterThan(res3D.geometry.glassesCounter?.bounds.min[1] ?? 0);
+    });
+
+    it('omits 3D glasses counter for 2D variants', () => {
+      const res2D = generateProceduralAuditorium({
+        rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'],
+        seats_per_row: 16,
+        aisles: [8],
+        screen_format: '2D',
+        theatre_type: 'standard',
+        total_seats: 240,
+      });
+
+      expect(res2D.geometry.glassesCounter).toBeUndefined();
+    });
+
+    it('configures sound systems accurately: Atmos has overheads, 7.1 has side/rear surrounds, 5.1 has fewer rear speakers', () => {
+      const baseInput: AuditoriumLayoutInput = {
+        rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'],
+        seats_per_row: 16,
+        aisles: [8],
+        theatre_type: 'standard',
+        total_seats: 224,
+      };
+
+      const resAtmos = generateProceduralAuditorium({ ...baseInput, sound_system: 'Dolby Atmos' });
+      const res71 = generateProceduralAuditorium({ ...baseInput, sound_system: 'Dolby 7.1' });
+      const res51 = generateProceduralAuditorium({ ...baseInput, sound_system: 'Standard 5.1' });
+
+      // Atmos has 6 overhead ceiling speakers
+      const atmosTops = resAtmos.geometry.atmosSpeakers.filter((s) => s.channel.startsWith('top_'));
+      expect(atmosTops.length).toBe(6);
+
+      // 7.1 has 0 overhead speakers and 4 rear surrounds
+      const tops71 = res71.geometry.atmosSpeakers.filter((s) => s.channel.startsWith('top_'));
+      expect(tops71.length).toBe(0);
+      const rears71 = res71.geometry.atmosSpeakers.filter((s) => s.channel.startsWith('rear_'));
+      expect(rears71.length).toBe(4);
+
+      // 5.1 has 0 overhead speakers and fewer rear speakers (2 rear surrounds)
+      const tops51 = res51.geometry.atmosSpeakers.filter((s) => s.channel.startsWith('top_'));
+      expect(tops51.length).toBe(0);
+      const rears51 = res51.geometry.atmosSpeakers.filter((s) => s.channel.startsWith('rear_'));
+      expect(rears51.length).toBe(2);
+      expect(rears51.length).toBeLessThan(rears71.length);
+    });
+
+    it('generates ScreenX panoramic wrap and side wall projectors', () => {
+      const resScreenX = generateProceduralAuditorium({
+        rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'],
+        seats_per_row: 20,
+        aisles: [10],
+        screen_format: 'ScreenX',
+        theatre_type: 'standard',
+        total_seats: 280,
+      });
+
+      expect(resScreenX.geometry.screenMesh.type).toBe('panoramic_wrap');
+      expect(resScreenX.geometry.screenMesh.panoramicWrap).toBeDefined();
+      expect(resScreenX.geometry.sideProjectors?.length).toBeGreaterThan(0);
+    });
+
+    it('configures Samsung Onyx LED with direct-view LED and no projector beam', () => {
+      const resOnyx = generateProceduralAuditorium({
+        rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'],
+        seats_per_row: 18,
+        aisles: [9],
+        screen_format: 'Onyx (Samsung Onyx LED)',
+        theatre_type: 'standard',
+        total_seats: 216,
+      });
+
+      expect(resOnyx.geometry.screenMesh.type).toBe('premium_direct_view');
+      expect(resOnyx.geometry.screenMesh.finish).toBe('glossy_led');
+      expect(resOnyx.geometry.screenMesh.hasProjectorBeam).toBe(false);
+      expect(resOnyx.geometry.beamBrightness).toBe('none');
+      expect(resOnyx.geometry.screenMesh.bezel?.thinBlack).toBe(true);
+    });
+
+    it('configures Dolby Cinema with brown recliners, curved screen, and laser beam', () => {
+      const resDolby = generateProceduralAuditorium({
+        rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'],
+        seats_per_row: 14,
+        aisles: [7],
+        screen_format: 'Dolby Cinema',
+        theatre_type: 'luxury_recliner',
+        total_seats: 224,
+      });
+
+      expect(resDolby.geometry.screenMesh.curved).toBe(true);
+      expect(resDolby.geometry.beamBrightness).toBe('laser');
+      const nonAccessibleSeats = resDolby.seatLayout.seats.filter((s) => s.row !== 'A');
+      for (const seat of nonAccessibleSeats) {
+        expect(seat.seat_type?.startsWith('recliner')).toBe(true);
+      }
+    });
+  });
 });

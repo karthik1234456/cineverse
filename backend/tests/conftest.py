@@ -36,6 +36,15 @@ def initialize_test_database():
     """Ensure dedicated test database is fresh and seeded once per test session."""
     async def _setup():
         await init_db()
+        async with AsyncSessionLocal() as session:
+            try:
+                from app.models.cinema import Auditorium
+                from sqlalchemy import func, select
+                count = (await session.execute(select(func.count(Auditorium.id)))).scalar()
+                if count and count >= 112:
+                    return
+            except Exception:
+                pass
         await seed_database()
     asyncio.run(_setup())
     yield
