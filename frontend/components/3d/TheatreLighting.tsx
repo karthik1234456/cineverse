@@ -55,16 +55,16 @@ export function TheatreLighting() {
     const isLuxuryRecliner = tid === 'luxury_recliner';
     const isBalcony = tid === 'balcony';
 
-    const typeFactor = isMotionHall ? 0.45 : isLuxuryRecliner ? 0.55 : isBalcony ? 0.88 : 1.0;
+    const typeFactor = isMotionHall ? 0.75 : isLuxuryRecliner ? 0.85 : isBalcony ? 0.95 : 1.0;
     const intensityMultiplier = isBrighter ? 1.20 : 1.0;
 
-    const targetAmbient = isShow ? 0.10 : isDim ? 0.50 : 8.50 * typeFactor * intensityMultiplier;
-    const targetHemi = isShow ? 0.15 : isDim ? 0.65 : 9.00 * typeFactor * intensityMultiplier;
-    const targetScreenSpill = isShow ? 2.80 : isDim ? 1.60 : 0.60;
-    const targetCeiling = isShow ? 0.02 : isDim ? 0.45 : 12.00 * typeFactor * intensityMultiplier;
-    const targetWallWash = isShow ? 0.05 : isDim ? 0.45 : 8.50 * typeFactor * intensityMultiplier;
-    const targetRearFill = isShow ? 0.06 : isDim ? 0.40 : 7.50 * typeFactor * intensityMultiplier;
-    const targetStepLight = isShow ? 0.30 : isDim ? 0.65 : 3.50 * (isMotionHall || isLuxuryRecliner ? 0.85 : 1.0) * intensityMultiplier;
+    const targetAmbient = isShow ? 0.10 : isDim ? 0.30 : 0.65 * typeFactor * intensityMultiplier;
+    const targetHemi = isShow ? 0.14 : isDim ? 0.35 : 0.75 * typeFactor * intensityMultiplier;
+    const targetScreenSpill = isShow ? 2.80 : isDim ? 1.40 : 0.40;
+    const targetCeiling = isShow ? 0.02 : isDim ? 0.50 : 1.80 * typeFactor * intensityMultiplier;
+    const targetWallWash = isShow ? 0.04 : isDim ? 0.40 : 1.40 * typeFactor * intensityMultiplier;
+    const targetRearFill = isShow ? 0.05 : isDim ? 0.35 : 1.20 * typeFactor * intensityMultiplier;
+    const targetStepLight = isShow ? 0.40 : isDim ? 1.00 : 2.20 * (isMotionHall || isLuxuryRecliner ? 0.90 : 1.0) * intensityMultiplier;
 
     const curAmbient = ambientRef.current?.intensity ?? targetAmbient;
     const needsTransition = Math.abs(curAmbient - targetAmbient) > 0.005;
@@ -158,21 +158,21 @@ export function TheatreLighting() {
   return (
     <group name="TheatreLightingRig">
       {/* Soft atmospheric ambient fill */}
-      <ambientLight ref={ambientRef} color="#fff8ee" intensity={lightIntensity === 'brighter' ? 2.40 : 1.85} />
+      <ambientLight ref={ambientRef} color="#fff8ee" intensity={lightIntensity === 'brighter' ? 0.34 : 0.28} />
 
       {/* Natural hemisphere ambient fill: warm ceiling bounce, rich floor reflection */}
       <hemisphereLight
         ref={hemiRef}
         color="#ffedd5"
         groundColor={theatreDef.palette?.carpetColor || look.floorColor}
-        intensity={lightIntensity === 'brighter' ? 2.85 : 2.20}
+        intensity={lightIntensity === 'brighter' ? 0.42 : 0.35}
       />
 
       {/* Overhead warm house key wash across tiers */}
       <directionalLight
         position={[0, topY + 8.0, midZ]}
         color="#fff6ed"
-        intensity={houseLights === 'show' ? 0.05 : lightIntensity === 'brighter' ? 3.20 : 2.50}
+        intensity={houseLights === 'show' ? 0.01 : lightIntensity === 'brighter' ? 0.30 : 0.22}
         castShadow={false}
       />
 
@@ -182,7 +182,7 @@ export function TheatreLighting() {
         position={[0, 5.55, -1.0]}
         target-position={[0, 2.0, -14.0]}
         color="#8ab4f8"
-        intensity={houseLights === 'show' ? 2.80 : 0.40}
+        intensity={houseLights === 'show' ? 2.50 : 0.35}
         angle={Math.PI / 2.4}
         penumbra={0.85}
         distance={45}
@@ -194,7 +194,7 @@ export function TheatreLighting() {
         ref={ceilingL1Ref}
         position={[-halfWidth * 0.42, topY - 1.4, ceilingZ]}
         color="#ffecd1"
-        intensity={lightIntensity === 'brighter' ? 3.40 : 2.60}
+        intensity={lightIntensity === 'brighter' ? 1.15 : 0.95}
         distance={0}
         decay={1.2}
         castShadow={qualityMode === 'beautiful'}
@@ -205,7 +205,7 @@ export function TheatreLighting() {
         ref={ceilingR1Ref}
         position={[halfWidth * 0.42, topY - 1.4, ceilingZ]}
         color="#ffecd1"
-        intensity={lightIntensity === 'brighter' ? 3.40 : 2.60}
+        intensity={lightIntensity === 'brighter' ? 1.15 : 0.95}
         distance={0}
         decay={1.2}
         castShadow={qualityMode === 'beautiful'}
@@ -218,7 +218,7 @@ export function TheatreLighting() {
         ref={rearFillRef}
         position={[0, topY - 2.5, zBack + 3.0]}
         color="#fef3c7"
-        intensity={houseLights === 'show' ? 0.12 : lightIntensity === 'brighter' ? 2.20 : 1.65}
+        intensity={houseLights === 'show' ? 0.03 : lightIntensity === 'brighter' ? 0.70 : 0.55}
         distance={0}
         decay={1.2}
       />
@@ -228,7 +228,7 @@ export function TheatreLighting() {
         ref={wallWasherLeftRef}
         position={[-halfWidth + 1.2, 5.0, midZ]}
         color={theatreDef.palette?.coveColor || look.sconceGlowColor}
-        intensity={houseLights === 'show' ? 0.10 : lightIntensity === 'brighter' ? 2.20 : 1.65}
+        intensity={houseLights === 'show' ? 0.02 : lightIntensity === 'brighter' ? 0.90 : 0.75}
         distance={0}
         decay={1.2}
       />
@@ -236,7 +236,7 @@ export function TheatreLighting() {
         ref={wallWasherRightRef}
         position={[halfWidth - 1.2, 5.0, midZ]}
         color={theatreDef.palette?.coveColor || look.sconceGlowColor}
-        intensity={houseLights === 'show' ? 0.10 : lightIntensity === 'brighter' ? 2.20 : 1.65}
+        intensity={houseLights === 'show' ? 0.02 : lightIntensity === 'brighter' ? 0.90 : 0.75}
         distance={0}
         decay={1.2}
       />
@@ -246,7 +246,7 @@ export function TheatreLighting() {
         ref={stepLightLRef}
         position={[-4.2, 0.4, -9.0]}
         color={theatreDef.palette?.skirtingColor || look.stepLightColor}
-        intensity={houseLights === 'show' ? 0.40 : lightIntensity === 'brighter' ? 1.40 : 1.05}
+        intensity={houseLights === 'show' ? 0.35 : lightIntensity === 'brighter' ? 2.30 : 1.90}
         distance={15}
         decay={1.2}
       />
@@ -254,7 +254,7 @@ export function TheatreLighting() {
         ref={stepLightRRef}
         position={[4.2, 0.4, -9.0]}
         color={theatreDef.palette?.skirtingColor || look.stepLightColor}
-        intensity={houseLights === 'show' ? 0.40 : lightIntensity === 'brighter' ? 1.40 : 1.05}
+        intensity={houseLights === 'show' ? 0.35 : lightIntensity === 'brighter' ? 2.30 : 1.90}
         distance={15}
         decay={1.2}
       />

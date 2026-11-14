@@ -528,16 +528,16 @@ export function AuditoriumModel() {
 
         let hexColor: string;
         if (isSelected) {
-          hexColor = currentLook.seats.selected; // Crimson
+          hexColor = currentLook.seats.selected; // Emerald #22C55E
         } else if (isHeld) {
-          hexColor = currentLook.seats.held; // Pulsing amber
+          hexColor = currentLook.seats.held; // Amber #F59E0B
         } else if (isBooked) {
-          hexColor = currentLook.seats.booked; // Desaturated slate
+          hexColor = currentLook.seats.booked; // Desaturated grey #3F424A
         } else if (isHovered) {
-          hexColor = '#ffd700'; // Vibrant gold rim feedback
+          hexColor = '#FF9E2C'; // Soft rim amber outline
         } else {
           if (isReclinerGroup) {
-            hexColor = '#38241b'; // Dark espresso leather for VIP recliners
+            hexColor = '#4A2818'; // Cognac leather for VIP recliners
           } else {
             const cat = (seat.category || 'prime').toLowerCase();
             hexColor =
@@ -545,7 +545,7 @@ export function AuditoriumModel() {
                 ? currentLook.seats.premier
                 : cat === 'front'
                 ? currentLook.seats.front
-                : currentLook.seats.prime;
+                : currentLook.seats.prime; // Classic velvet red #6E141A
           }
         }
 

@@ -61,7 +61,7 @@ export function CinemaWorld({
         camera={{
           position: [6.5, 8.5, -22.5],
           fov: 60,
-          near: 0.1,
+          near: 0.05,
           far: 90,
         }}
         gl={{
@@ -70,7 +70,7 @@ export function CinemaWorld({
           preserveDrawingBuffer: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: houseLights === 'show' ? 0.98 : 3.20,
+          toneMappingExposure: houseLights === 'show' ? 0.90 : 1.05,
         }}
         dpr={qualityMode === 'smooth' ? 1.0 : [1, 1.5]}
         frameloop="always" // Dynamically managed by AdaptiveFrameloopController
@@ -79,8 +79,8 @@ export function CinemaWorld({
             gl.setClearColor('#000000', 0.0);
             scene.background = null;
           } else {
-            gl.setClearColor(houseLights === 'show' ? '#07080a' : '#222630', 1.0);
-            scene.background = new THREE.Color(houseLights === 'show' ? '#07080a' : '#222630');
+            gl.setClearColor('#0E0F12', 1.0);
+            scene.background = new THREE.Color('#0E0F12');
           }
         }}
       >
@@ -88,9 +88,9 @@ export function CinemaWorld({
           <fog
             attach="fog"
             args={[
-              houseLights === 'show' ? '#07080a' : '#222630',
-              houseLights === 'show' ? 25 : 150,
-              houseLights === 'show' ? 90 : 400,
+              '#0E0F12',
+              houseLights === 'show' ? 25 : 60,
+              houseLights === 'show' ? 90 : 250,
             ]}
           />
         )}
@@ -141,6 +141,7 @@ export function CinemaWorld({
 function AdaptiveFrameloopController() {
   const setFrameloop = useThree((s) => s.setFrameloop);
   const invalidate = useThree((s) => s.invalidate);
+  const { gl, scene } = useThree();
   const isPlaying = useCinemaStore((s) => s.trailer.isPlaying);
   const mode = useCinemaStore((s) => s.mode);
   const isContinuous = useCinemaStore((s) => s.isContinuousRendering);
@@ -150,6 +151,16 @@ function AdaptiveFrameloopController() {
   const houseLights = useCinemaStore((s) => s.houseLights);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
   const theatreLook = useCinemaStore((s) => s.theatreLook);
+
+  // Synchronize tone mapping exposure and background color on lighting switch
+  useEffect(() => {
+    gl.toneMappingExposure = houseLights === 'show' ? 0.90 : 1.05;
+    gl.setClearColor('#0E0F12', 1.0);
+    if (scene) {
+      scene.background = new THREE.Color('#0E0F12');
+    }
+    invalidate();
+  }, [gl, scene, houseLights, invalidate]);
 
   // Invalidate and render frame whenever interactive state changes
   useEffect(() => {

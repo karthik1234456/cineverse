@@ -55,9 +55,9 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
   const tickMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: '#10b981', // Vivid Emerald Green
-        emissive: '#059669',
-        emissiveIntensity: 1.4,
+        color: '#22C55E', // Selected Emerald Green
+        emissive: '#16a34a',
+        emissiveIntensity: 1.6,
         roughness: 0.2,
         metalness: 0.1,
         side: THREE.DoubleSide,
@@ -88,8 +88,8 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
   const crossMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: '#6b7280', // Slate Grey Desaturated
-        emissive: '#374151',
+        color: '#3F424A', // Booked Desaturated Grey
+        emissive: '#262930',
         emissiveIntensity: 0.4,
         roughness: 0.6,
         metalness: 0.2,
@@ -109,9 +109,9 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
   const hoverRimMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: '#facc15', // Vibrant amber gold
-        emissive: '#eab308',
-        emissiveIntensity: 2.2,
+        color: '#FF9E2C', // Warm Amber Outline
+        emissive: '#d97706',
+        emissiveIntensity: 2.0,
         roughness: 0.2,
         metalness: 0.1,
         transparent: true,

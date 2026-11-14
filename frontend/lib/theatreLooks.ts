@@ -28,87 +28,87 @@ export interface TheatreLookPalette {
 }
 
 export const THEATRE_LOOKS: Record<TheatreLookId, TheatreLookPalette> = {
-  // Look A: Classic Cinema Red (Default)
+  // Look A: Classic Cinema Red (Default standard auditorium)
   a: {
     id: 'a',
-    name: 'Classic Cinema Red',
-    subtitle: 'Deep red fabric seats, dark neutral room & warm brass trim',
-    floorColor: '#18191d',
-    tierColor: '#1f2025',
-    treadColor: '#26272e',
-    wallColor: '#1c1d22',
-    acousticPanelColor: '#25272e',
-    panelTrimColor: '#b48a60',
-    ceilingColor: '#121316',
-    screenFrameColor: '#0a0b0d',
-    stageLipColor: '#1f2025',
-    railColor: '#94a3b8',
-    sconceGlowColor: '#fff4e0',
-    stepLightColor: '#fbbf24',
+    name: 'Classic Velvet Red',
+    subtitle: 'Classic velvet red seats (#6E141A), oxblood acoustic panels (#3B1318) & dark espresso carpet (#141316)',
+    floorColor: '#141316', // Dark espresso carpet
+    tierColor: '#17181c',
+    treadColor: '#1a191d', // Slightly contrasting aisle runner
+    wallColor: '#1C1E24', // Side acoustic walls
+    acousticPanelColor: '#3B1318', // Oxblood accent panels
+    panelTrimColor: '#18191C', // Gunmetal trim
+    ceilingColor: '#0E0F12', // Screen wall & ceiling
+    screenFrameColor: '#0E0F12',
+    stageLipColor: '#141316',
+    railColor: '#18191C', // Gunmetal railings
+    sconceGlowColor: '#FF9E2C', // Warm amber
+    stepLightColor: '#FF9E2C', // Warm amber step LEDs
     seats: {
-      premier: '#9f1239',
-      prime: '#881337',
-      front: '#7c2d12',
-      selected: '#dc2626',
-      held: '#b45309',
-      booked: '#374151',
-      selectedEmissive: '#ef4444',
+      premier: '#6E141A', // Classic velvet red
+      prime: '#6E141A',
+      front: '#5c1116',
+      selected: '#22C55E', // Selected emerald green
+      held: '#F59E0B', // Held amber
+      booked: '#3F424A', // Booked desaturated grey
+      selectedEmissive: '#22C55E',
     },
   },
 
-  // Look B: Warm Grey, Walnut & Cream (Welcoming natural acoustic look)
+  // Look B: Midnight Navy & Cognac Leather (Premium / Recliner Lounges)
   b: {
     id: 'b',
-    name: 'Warm Grey & Cream',
-    subtitle: 'Warm grey panelling, cream fabric panels & terracotta seats',
-    floorColor: '#222326',
-    tierColor: '#2b2c30',
-    treadColor: '#35363b',
-    wallColor: '#3a3836',
-    acousticPanelColor: '#e8e2d8', // Cream fabric
-    panelTrimColor: '#8c5e3c', // Warm Walnut
-    ceilingColor: '#18181a',
-    screenFrameColor: '#0e0e10',
-    stageLipColor: '#2b2c30',
-    railColor: '#b48a60', // Antique Bronze
-    sconceGlowColor: '#fed7aa', // Warm Amber
-    stepLightColor: '#f97316', // Warm Orange
+    name: 'Midnight Navy & Cognac Leather',
+    subtitle: 'Midnight navy acoustic panels (#141D2B), cognac leather seats (#4A2818) & dark espresso carpet (#141316)',
+    floorColor: '#141316', // Dark espresso carpet
+    tierColor: '#17181c',
+    treadColor: '#1a191d', // Aisle runner
+    wallColor: '#1C1E24', // Matte fabric side walls
+    acousticPanelColor: '#141D2B', // Midnight navy accent panels
+    panelTrimColor: '#18191C', // Gunmetal trim
+    ceilingColor: '#0E0F12',
+    screenFrameColor: '#0E0F12',
+    stageLipColor: '#141316',
+    railColor: '#18191C',
+    sconceGlowColor: '#FF9E2C', // Warm amber
+    stepLightColor: '#FF9E2C',
     seats: {
-      premier: '#9a3412', // Rust Red
-      prime: '#c2410c', // Terracotta
-      front: '#854d0e', // Warm Ochre
-      selected: '#ea580c', // Bright Rust
-      held: '#b45309', // Warm Amber
-      booked: '#3f3f46', // Neutral Zinc
-      selectedEmissive: '#f97316',
+      premier: '#4A2818', // Cognac leather
+      prime: '#4A2818',
+      front: '#3d2013',
+      selected: '#22C55E', // Selected emerald green
+      held: '#F59E0B', // Held amber
+      booked: '#3F424A', // Booked desaturated grey
+      selectedEmissive: '#22C55E',
     },
   },
 
-  // Look C: Midnight Navy & Deep Teal (High-contrast flagship aesthetic)
+  // Look C: Midnight Navy & Deep Slate (Dolby Cinema / 4DX / Technical Halls)
   c: {
     id: 'c',
-    name: 'Midnight Navy & Teal',
-    subtitle: 'Deep navy carpet, charcoal walls & deep blue/teal seats',
-    floorColor: '#181f2c',
-    tierColor: '#1e2638',
-    treadColor: '#263045',
-    wallColor: '#222733',
-    acousticPanelColor: '#0f766e', // Vibrant Teal
-    panelTrimColor: '#94a3b8', // Silver Trim
-    ceilingColor: '#0f131a',
-    screenFrameColor: '#090c10',
-    stageLipColor: '#1e2638',
-    railColor: '#cbd5e1', // Brushed Steel
-    sconceGlowColor: '#bae6fd', // Cool Cyan/Ice
-    stepLightColor: '#38bdf8', // Sky Blue
+    name: 'Midnight Navy & Deep Slate',
+    subtitle: 'Midnight navy panels (#141D2B), deep slate leather seats (#262930) & soft blue LEDs (#388BFF)',
+    floorColor: '#141316', // Dark espresso carpet
+    tierColor: '#17181c',
+    treadColor: '#1a191d',
+    wallColor: '#1C1E24',
+    acousticPanelColor: '#141D2B', // Midnight navy
+    panelTrimColor: '#18191C',
+    ceilingColor: '#0E0F12',
+    screenFrameColor: '#0E0F12',
+    stageLipColor: '#141316',
+    railColor: '#18191C',
+    sconceGlowColor: '#388BFF', // Soft blue LEDs
+    stepLightColor: '#388BFF',
     seats: {
-      premier: '#1e40af', // Deep Royal Blue
-      prime: '#2563eb', // Sapphire Blue
-      front: '#0d9488', // Petrol Teal
-      selected: '#06b6d4', // Cyan Glow
-      held: '#d97706', // Amber Accent
-      booked: '#334155', // Slate Grey
-      selectedEmissive: '#22d3ee',
+      premier: '#262930', // Deep slate leather
+      prime: '#262930',
+      front: '#1e2026',
+      selected: '#22C55E', // Selected emerald green
+      held: '#F59E0B', // Held amber
+      booked: '#3F424A', // Booked desaturated grey
+      selectedEmissive: '#22C55E',
     },
   },
 };

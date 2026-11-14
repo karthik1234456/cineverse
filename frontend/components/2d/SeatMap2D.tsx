@@ -1159,18 +1159,22 @@ export function SeatMap2D({
                 <span className="font-medium text-xs sm:text-sm">Available</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="h-5 w-5 rounded-lg bg-[#C8102E] text-white flex items-center justify-center text-xs font-bold shadow-sm">
+                <div className="h-5 w-5 rounded-lg bg-[#22C55E] text-white flex items-center justify-center text-xs font-bold shadow-sm">
                   ✓
                 </div>
-                <span className="font-bold text-xs sm:text-sm text-[#C8102E]">Selected</span>
+                <span className="font-bold text-xs sm:text-sm text-[#22C55E]">Selected</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="h-5 w-5 rounded-lg border-2 border-amber-400 bg-amber-100" />
-                <span className="font-semibold text-xs sm:text-sm text-amber-800">Held</span>
+                <div className="h-5 w-5 rounded-lg border-2 border-[#F59E0B] bg-[#FEF3C7] text-[#B45309] flex items-center justify-center text-[10px] font-bold">
+                  ⏳
+                </div>
+                <span className="font-semibold text-xs sm:text-sm text-[#B45309]">Held</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="h-5 w-5 rounded-lg bg-slate-300 opacity-60 cursor-not-allowed" />
-                <span className="text-xs sm:text-sm text-slate-400">Sold</span>
+                <div className="h-5 w-5 rounded-lg bg-[#3F424A] text-slate-300 flex items-center justify-center text-xs font-bold cursor-not-allowed">
+                  ✕
+                </div>
+                <span className="text-xs sm:text-sm text-[#3F424A] font-semibold">Booked</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="flex h-5 w-5 items-center justify-center rounded-lg bg-blue-100 text-blue-700 border border-blue-300 text-xs font-bold">
@@ -1323,9 +1327,9 @@ export function SeatMap2D({
                           const score = scored.score;
                           const seatPrice = inv?.price ?? (tier?.price || 380);
 
-                          let bgClass = 'border-[#E6DCD2] bg-[#FAF6F0] text-[#1B1320] hover:border-[#C8102E] hover:bg-rose-50';
+                          let bgClass = 'border-[#E6DCD2] bg-[#FAF6F0] text-[#1B1320] hover:border-[#22C55E] hover:bg-emerald-50';
                           if (isSelected) {
-                            bgClass = 'border-[#C8102E] bg-[#C8102E] text-white shadow-md scale-105 font-black ring-2 ring-rose-300';
+                            bgClass = 'border-[#22C55E] bg-[#22C55E] text-white shadow-md scale-105 font-black ring-2 ring-emerald-300';
                           } else if (isHeatmapActive) {
                             if (score >= 80) {
                               bgClass = 'border-emerald-700 bg-emerald-600 text-white font-black shadow-sm';
@@ -1335,9 +1339,9 @@ export function SeatMap2D({
                               bgClass = 'border-orange-600 bg-orange-500 text-white font-black shadow-sm';
                             }
                           } else if (isHeld) {
-                            bgClass = 'border-amber-400 bg-amber-100 text-amber-900 cursor-not-allowed opacity-80';
+                            bgClass = 'border-[#F59E0B] bg-[#FEF3C7] text-[#B45309] cursor-not-allowed opacity-80';
                           } else if (isBooked) {
-                            bgClass = 'border-slate-200 bg-slate-200 text-slate-400 cursor-not-allowed opacity-60';
+                            bgClass = 'border-[#3F424A] bg-[#3F424A] text-slate-300 cursor-not-allowed opacity-75';
                           }
 
                           // Curved arc vertical sag (dipping down at edges for realism)
