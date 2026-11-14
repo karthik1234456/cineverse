@@ -544,10 +544,53 @@ export function generateProceduralAuditorium(
 
   const totalRows = rows.length;
   const zBack = rowAZ - (totalRows - 1) * rowPitch - 4.5;
-  const topTierY = totalRows * tierRise;
-  const ceilingHeight = Math.max(input.ceiling_height ?? (isLegacyMode ? 11.2 : theatreDef.sceneDimensions.ceilingHeight), topTierY + 7.5);
 
   const screenCenter: [number, number, number] = [0.0, screenCenterY, SCREEN_Z];
+  const isRef100 = totalSeatsEstimate === 100 || isLegacyMode;
+
+  // Balcony configuration
+  const hasBalcony = !!(theatreDef.features.has_balcony || input.has_balcony || (input.balcony_rows && input.balcony_rows.length > 0) || (input.levels?.balcony && input.levels.balcony.rows.length > 0));
+  const balconyRowsList: string[] = input.balcony_rows || (input.levels?.balcony?.rows) || (hasBalcony ? rows.slice(Math.max(rows.length - 4, 10)) : []);
+  const balconyRowSet = new Set(balconyRowsList);
+  const stallsRowsList = rows.filter((r) => !balconyRowSet.has(r));
+  const stallsCount = stallsRowsList.length;
+
+  // Compute dynamic sightline clearance risers (§ Part D: C >= 0.12m clearance)
+  // Guarantees no front seat blocks screen bottom, center, or corners from any row.
+  const rowYElevations: number[] = [];
+  const screenBottomY = screenCenterY - screenHeight / 2.0;
+  const H_seat_top = isMotionHall ? 2.28 : 2.10; // seat back top in scene units (1.05m * 2 + motion pod base)
+  const H_eye = 2.24;      // seated adult eye height in scene units (1.12m * 2)
+  const C_clearance = 0.24;// 0.12m clearance * 2
+
+  for (let rIdx = 0; rIdx < rows.length; rIdx++) {
+    const row = rows[rIdx];
+    const isBalcony = balconyRowSet.has(row);
+
+    if (isRef100) {
+      rowYElevations.push(Math.round((ROW_A_Y + rIdx * tierRise) * 1000) / 1000);
+    } else if (isBalcony) {
+      const bIdx = balconyRowsList.indexOf(row);
+      const balconyElevationJump = 3.6;
+      const bY = Math.round((tierRise + stallsCount * tierRise + balconyElevationJump + bIdx * (tierRise + 0.12)) * 1000) / 1000;
+      rowYElevations.push(bY);
+    } else if (rIdx === 0) {
+      rowYElevations.push(tierRise);
+    } else {
+      const zEye = (rowAZ - rIdx * rowPitch) + 0.10;
+      const zAhead = (rowAZ - (rIdx - 1) * rowPitch) + 0.10;
+      const dScreen = SCREEN_Z - zEye;
+      const dAhead = zAhead - zEye;
+      const t = dAhead / Math.max(0.001, dScreen);
+      const prevY = rowYElevations[rIdx - 1];
+      const reqFloor = (prevY + H_seat_top + C_clearance - t * screenBottomY) / (1 - t) - H_eye;
+      const rise = Math.max(tierRise, reqFloor - prevY);
+      rowYElevations.push(Math.round((prevY + rise) * 1000) / 1000);
+    }
+  }
+
+  const topTierY = rowYElevations[totalRows - 1] || (totalRows * tierRise);
+  const ceilingHeight = Math.max(input.ceiling_height ?? (isLegacyMode ? 11.2 : theatreDef.sceneDimensions.ceilingHeight), topTierY + 7.5);
 
   // Category bands
   const categoryBands = input.category_bands || [
@@ -573,13 +616,6 @@ export function generateProceduralAuditorium(
   const sweetSpotRows = new Set(input.sweet_spot?.rows || []);
   const sweetSpotSeats = new Set(input.sweet_spot?.seat_numbers || []);
   const sweetSpotMultiplier = input.sweet_spot?.price_multiplier || 1.45;
-
-  // Balcony configuration
-  const hasBalcony = !!(theatreDef.features.has_balcony || input.has_balcony || (input.balcony_rows && input.balcony_rows.length > 0) || (input.levels?.balcony && input.levels.balcony.rows.length > 0));
-  const balconyRowsList: string[] = input.balcony_rows || (input.levels?.balcony?.rows) || (hasBalcony ? rows.slice(Math.max(rows.length - 4, 10)) : []);
-  const balconyRowSet = new Set(balconyRowsList);
-  const stallsRowsList = rows.filter((r) => !balconyRowSet.has(r));
-  const stallsCount = stallsRowsList.length;
 
   // Seat Records & Colliders
   const seatRecords: SeatRecord[] = [];
@@ -676,16 +712,13 @@ export function generateProceduralAuditorium(
   for (let rIdx = 0; rIdx < rows.length; rIdx++) {
     const row = rows[rIdx];
     const isBalcony = balconyRowSet.has(row);
-    let rowY: number;
+    let rowY: number = rowYElevations[rIdx];
     let rowZ: number;
 
     if (isBalcony) {
       const bIdx = balconyRowsList.indexOf(row);
-      const balconyElevationJump = 3.6;
-      rowY = Math.round((ROW_A_Y + stallsCount * tierRise + balconyElevationJump + bIdx * (tierRise + 0.12)) * 1000) / 1000;
       rowZ = Math.round((rowAZ - (stallsCount + bIdx) * rowPitch - 0.5) * 1000) / 1000;
     } else {
-      rowY = Math.round((ROW_A_Y + rIdx * tierRise) * 1000) / 1000;
       rowZ = Math.round((rowAZ - rIdx * rowPitch) * 1000) / 1000;
     }
 
@@ -739,7 +772,7 @@ export function generateProceduralAuditorium(
           ]
         : [
             Math.round(posX * 1000) / 1000,
-            Math.round((seatFloorY + 1.32) * 1000) / 1000,
+            Math.round((seatFloorY + 2.24) * 1000) / 1000,
             Math.round((posZ + 0.10) * 1000) / 1000,
           ];
 
@@ -847,9 +880,12 @@ export function generateProceduralAuditorium(
       tierTopY = Math.round((ROW_A_Y + stallsCount * tierRise + balconyElevationJump + (bIdx + 1) * (tierRise + 0.12)) * 1000) / 1000;
       tierBottomY = Math.round((ROW_A_Y + stallsCount * tierRise + balconyElevationJump + bIdx * (tierRise + 0.12)) * 1000) / 1000;
       rowZ = rowAZ - (stallsCount + bIdx) * rowPitch - 0.5;
-    } else {
+    } else if (isRef100) {
       tierTopY = Math.round((rIdx + 1) * tierRise * 1000) / 1000;
       tierBottomY = Math.round(rIdx * tierRise * 1000) / 1000;
+    } else {
+      tierTopY = rowYElevations[rIdx];
+      tierBottomY = rIdx === 0 ? 0.0 : rowYElevations[rIdx - 1];
     }
 
     const tierBounds: BoundingBox3D = {
@@ -898,8 +934,10 @@ export function generateProceduralAuditorium(
           const balconyElevationJump = 3.6;
           treadY = Math.round((ROW_A_Y + stallsCount * tierRise + balconyElevationJump + (bIdx + 1) * (tierRise + 0.12)) * 1000) / 1000;
           rowZ = rowAZ - (stallsCount + bIdx) * rowPitch - 0.5;
-        } else {
+        } else if (isRef100) {
           treadY = Math.round((rIdx + 1) * tierRise * 1000) / 1000;
+        } else {
+          treadY = rowYElevations[rIdx];
         }
 
         const stepBounds: BoundingBox3D = {
@@ -950,8 +988,10 @@ export function generateProceduralAuditorium(
           const balconyElevationJump = 3.6;
           treadY = Math.round((ROW_A_Y + stallsCount * tierRise + balconyElevationJump + (bIdx + 1) * (tierRise + 0.12)) * 1000) / 1000;
           rowZ = rowAZ - (stallsCount + bIdx) * rowPitch - 0.5;
-        } else {
+        } else if (isRef100) {
           treadY = Math.round((rIdx + 1) * tierRise * 1000) / 1000;
+        } else {
+          treadY = rowYElevations[rIdx];
         }
 
         const stepBounds: BoundingBox3D = {
