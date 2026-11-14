@@ -12,8 +12,98 @@ import { getSeatFamilyForSeat } from '@/lib/seatRegistry';
 import { getTheatreTypeDefinition } from '@/lib/theatreTypeRegistry';
 import { SeatStateMarkers } from './SeatStateMarkers';
 import { AudienceSimulation } from './AudienceSimulation';
+import { PersonSilhouette } from './PersonSilhouette';
 
 const SCREEN_Z = -1.255;
+
+function createCarpetCanvasTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  ctx.fillStyle = '#141316';
+  ctx.fillRect(0, 0, 128, 128);
+  for (let y = 0; y < 128; y += 2) {
+    for (let x = 0; x < 128; x += 2) {
+      const isWeave = (x + y) % 4 === 0;
+      const noise = (Math.random() - 0.5) * 8;
+      const r = Math.min(255, Math.max(0, Math.round(20 + (isWeave ? 4 : -3) + noise)));
+      const g = Math.min(255, Math.max(0, Math.round(19 + (isWeave ? 4 : -3) + noise)));
+      const b = Math.min(255, Math.max(0, Math.round(22 + (isWeave ? 5 : -3) + noise)));
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(x, y, 2, 2);
+    }
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(16, 16);
+  return tex;
+}
+
+function createCarpetNormalTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  ctx.fillStyle = 'rgb(128,128,255)';
+  ctx.fillRect(0, 0, 128, 128);
+  for (let y = 0; y < 128; y += 4) {
+    for (let x = 0; x < 128; x += 4) {
+      const isHorizontal = ((x / 4) + (y / 4)) % 2 === 0;
+      const nx = isHorizontal ? 138 : 118;
+      const ny = isHorizontal ? 118 : 138;
+      ctx.fillStyle = `rgb(${nx},${ny},245)`;
+      ctx.fillRect(x, y, 4, 4);
+    }
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(16, 16);
+  return tex;
+}
+
+function createSoftShadowTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  const grad = ctx.createRadialGradient(32, 32, 4, 32, 32, 30);
+  grad.addColorStop(0, 'rgba(0, 0, 0, 0.65)');
+  grad.addColorStop(0.5, 'rgba(0, 0, 0, 0.35)');
+  grad.addColorStop(1, 'rgba(0, 0, 0, 0.0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 64, 64);
+  const tex = new THREE.CanvasTexture(canvas);
+  return tex;
+}
+
+function createWallRibNormalTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  for (let x = 0; x < 64; x++) {
+    const sinVal = Math.sin((x / 64) * Math.PI * 8);
+    const nx = Math.round(128 + sinVal * 25);
+    ctx.fillStyle = `rgb(${nx}, 128, 255)`;
+    ctx.fillRect(x, 0, 1, 64);
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(4, 4);
+  return tex;
+}
 
 // Seat Family Model Paths
 const STD_LOD0_PATH = '/models/seats/standard_lod0.glb';
@@ -141,16 +231,25 @@ export function ProceduralAuditorium({
   }, [seats, effectiveScreenType]);
 
   const shadowGeometry = useMemo(() => new THREE.PlaneGeometry(1.22, 0.92), []);
+  const shadowTexture = useMemo(() => createSoftShadowTexture(), []);
   const shadowMaterial = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
-        color: '#030406',
+        map: shadowTexture,
         transparent: true,
-        opacity: qualityMode === 'smooth' ? 0.22 : 0.45,
+        opacity: qualityMode === 'smooth' ? 0.35 : 0.45,
         depthWrite: false,
       }),
-    [qualityMode]
+    [shadowTexture, qualityMode]
   );
+
+  const carpetTextures = useMemo(() => {
+    return {
+      albedo: createCarpetCanvasTexture(),
+      normal: createCarpetNormalTexture(),
+      ribNormal: createWallRibNormalTexture(),
+    };
+  }, []);
 
   // Shared texture loaders for seat families
   const seatTextures = useMemo(() => {
@@ -198,8 +297,8 @@ export function ProceduralAuditorium({
   const standardMaterial = useMemo(
     () => {
       const mat = new THREE.MeshStandardMaterial({
-        roughness: 0.85,
-        metalness: 0.02,
+        roughness: 0.70, // Classic plush velvet roughness 0.65-0.75
+        metalness: 0.04,
         vertexColors: true,
         map: seatTextures?.stdDiff || null,
         normalMap: seatTextures?.stdNorm || null,
@@ -215,8 +314,8 @@ export function ProceduralAuditorium({
   const reclinerMaterial = useMemo(
     () => {
       const mat = new THREE.MeshStandardMaterial({
-        roughness: 0.45,
-        metalness: 0.08,
+        roughness: 0.40, // Semi-matte leather roughness 0.35-0.45
+        metalness: 0.06,
         vertexColors: true,
         map: seatTextures?.recDiff || null,
         normalMap: seatTextures?.recNorm || null,
@@ -232,8 +331,8 @@ export function ProceduralAuditorium({
   const sofaMaterial = useMemo(
     () => {
       const mat = new THREE.MeshStandardMaterial({
-        roughness: 0.82,
-        metalness: 0.05,
+        roughness: 0.40, // Modern leather / slate roughness 0.35-0.45
+        metalness: 0.06,
         vertexColors: true,
         map: seatTextures?.sofaDiff || null,
         normalMap: seatTextures?.sofaNorm || null,
@@ -264,51 +363,80 @@ export function ProceduralAuditorium({
   const floorMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(theatreDef.palette?.carpetColor || look.floorColor),
-        roughness: qualityMode === 'smooth' ? 0.88 : 0.65,
-        metalness: qualityMode === 'smooth' ? 0.02 : 0.08,
+        color: new THREE.Color(theatreDef.palette?.carpetColor || '#141316'),
+        roughness: 0.90,
+        metalness: 0.01,
+        map: carpetTextures?.albedo || null,
+        normalMap: carpetTextures?.normal || null,
       }),
-    [theatreDef.palette, look.floorColor, qualityMode]
+    [theatreDef.palette, carpetTextures]
   );
 
   const tierMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(theatreDef.palette?.wallColor ? '#25272e' : look.tierColor),
-        roughness: 0.85,
-        metalness: 0.02,
+        color: new THREE.Color(theatreDef.palette?.carpetColor || '#141316'),
+        roughness: 0.90,
+        metalness: 0.01,
+        map: carpetTextures?.albedo || null,
+        normalMap: carpetTextures?.normal || null,
       }),
-    [theatreDef.palette, look.tierColor]
+    [theatreDef.palette, carpetTextures]
   );
 
   const treadMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(theatreDef.palette?.runnerColor || look.treadColor),
-        roughness: 0.70,
-        metalness: 0.08,
+        color: new THREE.Color(theatreDef.palette?.runnerColor || '#1a191d'),
+        roughness: 0.88,
+        metalness: 0.01,
+        map: carpetTextures?.albedo || null,
+        normalMap: carpetTextures?.normal || null,
       }),
-    [theatreDef.palette, look.treadColor]
+    [theatreDef.palette, carpetTextures]
   );
 
   const wallMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(theatreDef.palette?.wallColor || look.wallColor),
-        roughness: 0.90,
+        color: new THREE.Color(theatreDef.palette?.wallColor || '#1C1E24'),
+        roughness: 0.80,
         metalness: 0.02,
         transparent: true,
         opacity: 1.0,
         side: isOverview ? THREE.BackSide : THREE.DoubleSide,
+        normalMap: carpetTextures?.ribNormal || null,
       }),
-    [theatreDef.palette, look.wallColor, isOverview]
+    [theatreDef.palette, isOverview, carpetTextures]
+  );
+
+  const frontScreenWallMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color('#0E0F12'),
+        roughness: 0.90,
+        metalness: 0.02,
+        side: isOverview ? THREE.BackSide : THREE.DoubleSide,
+      }),
+    [isOverview]
+  );
+
+  const nosingMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: theatreDef.id === 'flagship' ? '#388BFF' : '#FF9E2C',
+        emissive: new THREE.Color(theatreDef.id === 'flagship' ? '#388BFF' : '#FF9E2C'),
+        emissiveIntensity: 2.0,
+        roughness: 0.20,
+      }),
+    [theatreDef.id]
   );
 
   const acousticPanelMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
         color: new THREE.Color(theatreDef.palette?.panelColor || look.acousticPanelColor),
-        roughness: 0.82,
+        roughness: 0.75,
         metalness: 0.04,
         transparent: true,
         opacity: 1.0,
@@ -1044,7 +1172,7 @@ export function ProceduralAuditorium({
         const isHeld = rawStatus === 'held';
         const isBooked = rawStatus === 'booked';
         const isHovered = currentHovered === seat.seat_id;
-        const isHiddenInPov = camMode === 'pov' && actSeatId === seat.seat_id;
+        const isHiddenInPov = (camMode === 'pov' || useCinemaStore.getState().mode === 'seated') && actSeatId === seat.seat_id;
 
         let hexColor: string;
         if (isSelected) {
@@ -1054,15 +1182,12 @@ export function ProceduralAuditorium({
         } else if (isBooked) {
           hexColor = currentLook.seats.booked;
         } else if (isHovered) {
-          hexColor = '#ffd700';
+          hexColor = '#FF9E2C';
         } else {
-          if (familyType === 'sofa') {
-            hexColor = '#2e4858'; // Slate Teal Velvet
+          if (familyType === 'sofa' || theatreDef.features.motion_seats || theatreDef.features.is_4dx || auditoriumLayout?.layout_signature === 'motion_pods') {
+            hexColor = '#262930'; // Deep slate leather
           } else if (familyType === 'recliner' || theatreDef.id === 'luxury_recliner') {
-            hexColor = theatreDef.palette?.fabricPrimary || '#9c5c2e'; // Quilted caramel/tan leather
-          } else if (theatreDef.features.motion_seats || theatreDef.features.is_4dx || auditoriumLayout?.layout_signature === 'motion_pods') {
-            // Motion hall seats are charcoal/graphite with technical accents
-            hexColor = seat.category === 'premier' ? '#252932' : seat.category === 'front' ? '#1a1c22' : '#1f2229';
+            hexColor = '#4A2818'; // Cognac leather
           } else {
             const cat = (seat.category || 'prime').toLowerCase();
             hexColor =
@@ -1070,7 +1195,7 @@ export function ProceduralAuditorium({
                 ? (theatreDef.palette?.fabricSecondary || currentLook.seats.premier)
                 : cat === 'front'
                 ? currentLook.seats.front
-                : (theatreDef.palette?.fabricPrimary || currentLook.seats.prime);
+                : (theatreDef.palette?.fabricPrimary || currentLook.seats.prime); // Classic velvet red #6E141A
           }
         }
 
@@ -1282,14 +1407,27 @@ export function ProceduralAuditorium({
   const stageLipBox = boxHelper(geometry.stageLip);
   const screenFrameBox = boxHelper(geometry.screenFrame);
 
-  // Debug proxy flag
+  // Debug flags
   const [debugProxies, setDebugProxies] = React.useState(false);
+  const [debugScale, setDebugScale] = React.useState(false);
   useEffect(() => {
-    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+    if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       setDebugProxies(params.get('debug') === 'proxies');
+      setDebugScale(params.get('debug') === 'scale');
     }
   }, []);
+
+  const hasModelLoadError =
+    (standardSeats.length > 0 && !standardGeometry) ||
+    (reclinerSeats.length > 0 && !reclinerGeometry) ||
+    (sofaSeats.length > 0 && !sofaGeometry);
+
+  useEffect(() => {
+    if (hasModelLoadError) {
+      console.error('[CineVerse 3D] CRITICAL: Seat models failed to load. Check /dev/readiness.');
+    }
+  }, [hasModelLoadError]);
 
   return (
     <group name="ProceduralAuditoriumRoot">
@@ -1303,38 +1441,56 @@ export function ProceduralAuditorium({
         <boxGeometry args={floorBox.size} />
       </mesh>
 
-      {/* 2. Tier Platforms */}
+      {/* 2. Tier Platforms with Lit Stair Nosings */}
       <group name="TierPlatforms">
         {geometry.tiers.map((tier) => {
           const { size, center } = boxHelper(tier.bounds);
           return (
-            <mesh
-              key={tier.name}
-              name={tier.name}
-              position={center}
-              material={tierMaterial}
-              receiveShadow
-            >
-              <boxGeometry args={size} />
-            </mesh>
+            <group key={tier.name}>
+              <mesh
+                name={tier.name}
+                position={center}
+                material={tierMaterial}
+                receiveShadow
+              >
+                <boxGeometry args={size} />
+              </mesh>
+              {/* Lit stair nosing strip on the front edge of the tier */}
+              <mesh
+                name={`${tier.name}_nosing`}
+                position={[center[0], tier.topY - 0.01, tier.bounds.max[2] + 0.01]}
+                material={nosingMaterial}
+              >
+                <boxGeometry args={[size[0], 0.025, 0.025]} />
+              </mesh>
+            </group>
           );
         })}
       </group>
 
-      {/* 3. Aisle Stair Treads */}
+      {/* 3. Aisle Stair Treads with Lit Stair Nosings */}
       <group name="AisleSteps">
         {geometry.aisleSteps.map((step) => {
           const { size, center } = boxHelper(step.bounds);
           return (
-            <mesh
-              key={step.name}
-              name={step.name}
-              position={center}
-              material={treadMaterial}
-              receiveShadow
-            >
-              <boxGeometry args={size} />
-            </mesh>
+            <group key={step.name}>
+              <mesh
+                name={step.name}
+                position={center}
+                material={treadMaterial}
+                receiveShadow
+              >
+                <boxGeometry args={size} />
+              </mesh>
+              {/* Lit stair nosing strip on the front edge of the step tread */}
+              <mesh
+                name={`${step.name}_nosing`}
+                position={[center[0], step.topY - 0.01, step.bounds.max[2] + 0.01]}
+                material={nosingMaterial}
+              >
+                <boxGeometry args={[size[0], 0.025, 0.025]} />
+              </mesh>
+            </group>
           );
         })}
       </group>
@@ -1343,12 +1499,13 @@ export function ProceduralAuditorium({
       <group name="AuditoriumWalls">
         {Object.entries(geometry.walls).map(([wallKey, bounds]) => {
           const { size, center } = boxHelper(bounds);
+          const mat = wallKey === 'front' ? frontScreenWallMaterial : wallMaterial;
           return (
             <mesh
               key={`${wallKey}_wall`}
               name={`${wallKey}_wall`}
               position={center}
-              material={wallMaterial}
+              material={mat}
             >
               <boxGeometry args={size} />
             </mesh>
@@ -1971,6 +2128,30 @@ export function ProceduralAuditorium({
 
       {/* 9b. Instanced Audience Simulation on Booked Seats Only */}
       <AudienceSimulation seats={seats} />
+
+      {/* Critical Red Warning if seat models fail to load (No silent fallback to boxes) */}
+      {hasModelLoadError && (
+        <group position={[0, geometry.screenMesh.center[1] + 1.0, geometry.screenMesh.center[2] + 1.0]}>
+          <mesh>
+            <planeGeometry args={[14, 2.2]} />
+            <meshBasicMaterial color="#DC2626" />
+          </mesh>
+        </group>
+      )}
+
+      {/* 1.75m Person Silhouette Scale Verification (?debug=scale) */}
+      {debugScale && (
+        <group name="DebugScaleSilhouettes">
+          <PersonSilhouette
+            position={[geometry.dimensions.halfWidth - 3.0, 0.0, geometry.dimensions.zFront + 3.0]}
+            label="1.75m Scale Silhouette"
+          />
+          <PersonSilhouette
+            position={[geometry.dimensions.halfWidth - 3.0, geometry.dimensions.topTierY, geometry.dimensions.zBack + 2.0]}
+            label="1.75m Scale Silhouette"
+          />
+        </group>
+      )}
 
       {/* 10. Debug Proxies (Only when ?debug=proxies enabled, otherwise 0 draw calls) */}
       {debugProxies && (
