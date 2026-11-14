@@ -75,6 +75,13 @@ class ShowtimeSeatsResponse(BaseModel):
     layout_data: Optional[dict] = None
     layout_signature: Optional[str] = None
     format: str
+    screen_format: Optional[str] = None
+    sound_system: Optional[str] = None
+    projection_type: Optional[str] = None
+    tech_specs_display: Optional[str] = None
+    requires_glasses: bool = False
+    confirmed_with_cinema: bool = False
+    is_demo: bool = True
     language: str
     start_time: datetime
     currency: str = "INR"

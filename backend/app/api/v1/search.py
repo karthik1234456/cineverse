@@ -8,7 +8,9 @@ from sqlalchemy.orm import selectinload
 
 from app.database import get_db
 from app.models.movie import Movie, MovieCast
-from app.models.cinema import Cinema, City
+from app.models.cinema import Cinema, City, Auditorium
+from app.models.showtime import Showtime
+from app.models.technical_specs import ScreenFormat, SoundSystem, ProjectionType
 from app.schemas.movie import MovieResponse
 from app.schemas.cinema import CinemaResponse
 
@@ -37,6 +39,7 @@ def check_search_rate_limit(request: Request):
     _search_request_history[client_ip] = timestamps
 
 
+@router.get("")
 @router.get("/")
 async def global_search(
     request: Request,
@@ -50,16 +53,25 @@ async def global_search(
     clean_q = q.strip().replace("%", "\\%").replace("_", "\\_")
     search_term = f"%{clean_q.lower()}%"
 
-    # 1. Search Movies (by title, synopsis, genres, or actor name)
+    # 1. Search Movies (by title, synopsis, genres, actor name, or screen format/sound/showtime)
     movie_stmt = (
         select(Movie)
         .outerjoin(MovieCast, MovieCast.movie_id == Movie.id)
+        .outerjoin(Showtime, Showtime.movie_id == Movie.id)
+        .outerjoin(Auditorium, Auditorium.id == Showtime.auditorium_id)
+        .outerjoin(ScreenFormat, ScreenFormat.id == Auditorium.screen_format_id)
+        .outerjoin(SoundSystem, SoundSystem.id == Auditorium.sound_system_id)
+        .outerjoin(ProjectionType, ProjectionType.id == Auditorium.projection_type_id)
         .where(
             or_(
                 func.lower(Movie.title).like(search_term),
                 func.lower(Movie.synopsis).like(search_term),
                 func.lower(MovieCast.person_name).like(search_term),
-                func.lower(MovieCast.role_name).like(search_term)
+                func.lower(MovieCast.role_name).like(search_term),
+                func.lower(Showtime.format).like(search_term),
+                func.lower(ScreenFormat.name).like(search_term),
+                func.lower(SoundSystem.name).like(search_term),
+                func.lower(ProjectionType.name).like(search_term)
             )
         )
         .distinct()
@@ -67,7 +79,7 @@ async def global_search(
         .limit(limit)
     )
     movie_res = await db.execute(movie_stmt)
-    movies = movie_res.scalars().all()
+    movies = list(movie_res.scalars().all())
 
     # In-memory check for genres array if not found yet
     if len(movies) < limit:
@@ -79,15 +91,23 @@ async def global_search(
                     if len(movies) >= limit:
                         break
 
-    # 2. Search Cinemas (by name, address, or city name)
+    # 2. Search Cinemas (by name, address, city name, or screen format/sound/projection)
     cinema_stmt = (
         select(Cinema)
         .outerjoin(City, City.id == Cinema.city_id)
+        .outerjoin(Auditorium, Auditorium.cinema_id == Cinema.id)
+        .outerjoin(ScreenFormat, ScreenFormat.id == Auditorium.screen_format_id)
+        .outerjoin(SoundSystem, SoundSystem.id == Auditorium.sound_system_id)
+        .outerjoin(ProjectionType, ProjectionType.id == Auditorium.projection_type_id)
         .where(
             or_(
                 func.lower(Cinema.name).like(search_term),
                 func.lower(Cinema.address).like(search_term),
-                func.lower(City.name).like(search_term)
+                func.lower(City.name).like(search_term),
+                func.lower(Auditorium.screen_type).like(search_term),
+                func.lower(ScreenFormat.name).like(search_term),
+                func.lower(SoundSystem.name).like(search_term),
+                func.lower(ProjectionType.name).like(search_term)
             )
         )
         .distinct()
@@ -95,7 +115,7 @@ async def global_search(
         .limit(limit)
     )
     cinema_res = await db.execute(cinema_stmt)
-    cinemas = cinema_res.scalars().all()
+    cinemas = list(cinema_res.scalars().all())
 
     return {
         "query": q,

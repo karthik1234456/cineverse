@@ -10,9 +10,16 @@ from app.models.auth import User, RoleEnum
 from app.models.booking import Booking, BookingSeat, BookingStatusEnum
 from app.models.showtime import Showtime, PriceRule, SeatInventory, SeatStatusEnum
 from app.models.cinema import Auditorium, Seat, Cinema
+from app.models.technical_specs import ScreenFormat, SoundSystem, ProjectionType
 from app.models.movie import Movie
 from app.schemas.admin import AdminAnalyticsResponse, ShowtimeCreateRequest
-from app.schemas.cinema import CinemaCoordinatesUpdateRequest, CinemaResponse
+from app.schemas.cinema import CinemaCoordinatesUpdateRequest, CinemaResponse, AuditoriumResponse
+from app.schemas.technical_specs import (
+    ScreenFormatResponse, ScreenFormatCreate, ScreenFormatUpdate,
+    SoundSystemResponse, SoundSystemCreate, SoundSystemUpdate,
+    ProjectionTypeResponse, ProjectionTypeCreate, ProjectionTypeUpdate,
+    AuditoriumAssignmentUpdate,
+)
 from app.services.auth_service import require_role
 from app.services.geo_service import generate_directions_url
 
@@ -408,5 +415,293 @@ async def trigger_catalog_sync(
     provider = get_catalog_provider()
     report = await provider.sync_catalog(db, languages=languages, force_refresh=force_refresh)
     return report
+
+
+# --- Technical Specifications Admin Endpoints ---
+
+@router.get("/screen-formats", response_model=List[ScreenFormatResponse])
+async def admin_list_screen_formats(
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(ScreenFormat).order_by(ScreenFormat.name)
+    res = await db.execute(stmt)
+    return res.scalars().all()
+
+
+@router.post("/screen-formats", response_model=ScreenFormatResponse)
+async def admin_create_screen_format(
+    req: ScreenFormatCreate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    fmt = ScreenFormat(**req.model_dump())
+    db.add(fmt)
+    await db.commit()
+    await db.refresh(fmt)
+    return fmt
+
+
+@router.put("/screen-formats/{format_id}", response_model=ScreenFormatResponse)
+async def admin_update_screen_format(
+    format_id: int,
+    req: ScreenFormatUpdate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    fmt = await db.get(ScreenFormat, format_id)
+    if not fmt:
+        raise HTTPException(status_code=404, detail="Screen format not found")
+    for k, v in req.model_dump(exclude_unset=True).items():
+        setattr(fmt, k, v)
+    await db.commit()
+    await db.refresh(fmt)
+    return fmt
+
+
+@router.delete("/screen-formats/{format_id}")
+async def admin_delete_screen_format(
+    format_id: int,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    fmt = await db.get(ScreenFormat, format_id)
+    if not fmt:
+        raise HTTPException(status_code=404, detail="Screen format not found")
+    await db.delete(fmt)
+    await db.commit()
+    return {"message": "Screen format deleted successfully"}
+
+
+@router.get("/sound-systems", response_model=List[SoundSystemResponse])
+async def admin_list_sound_systems(
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(SoundSystem).order_by(SoundSystem.name)
+    res = await db.execute(stmt)
+    return res.scalars().all()
+
+
+@router.post("/sound-systems", response_model=SoundSystemResponse)
+async def admin_create_sound_system(
+    req: SoundSystemCreate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    snd = SoundSystem(**req.model_dump())
+    db.add(snd)
+    await db.commit()
+    await db.refresh(snd)
+    return snd
+
+
+@router.put("/sound-systems/{sound_id}", response_model=SoundSystemResponse)
+async def admin_update_sound_system(
+    sound_id: int,
+    req: SoundSystemUpdate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    snd = await db.get(SoundSystem, sound_id)
+    if not snd:
+        raise HTTPException(status_code=404, detail="Sound system not found")
+    for k, v in req.model_dump(exclude_unset=True).items():
+        setattr(snd, k, v)
+    await db.commit()
+    await db.refresh(snd)
+    return snd
+
+
+@router.delete("/sound-systems/{sound_id}")
+async def admin_delete_sound_system(
+    sound_id: int,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    snd = await db.get(SoundSystem, sound_id)
+    if not snd:
+        raise HTTPException(status_code=404, detail="Sound system not found")
+    await db.delete(snd)
+    await db.commit()
+    return {"message": "Sound system deleted successfully"}
+
+
+@router.get("/projection-types", response_model=List[ProjectionTypeResponse])
+async def admin_list_projection_types(
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(ProjectionType).order_by(ProjectionType.name)
+    res = await db.execute(stmt)
+    return res.scalars().all()
+
+
+@router.post("/projection-types", response_model=ProjectionTypeResponse)
+async def admin_create_projection_type(
+    req: ProjectionTypeCreate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    prj = ProjectionType(**req.model_dump())
+    db.add(prj)
+    await db.commit()
+    await db.refresh(prj)
+    return prj
+
+
+@router.put("/projection-types/{projection_id}", response_model=ProjectionTypeResponse)
+async def admin_update_projection_type(
+    projection_id: int,
+    req: ProjectionTypeUpdate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    prj = await db.get(ProjectionType, projection_id)
+    if not prj:
+        raise HTTPException(status_code=404, detail="Projection type not found")
+    for k, v in req.model_dump(exclude_unset=True).items():
+        setattr(prj, k, v)
+    await db.commit()
+    await db.refresh(prj)
+    return prj
+
+
+@router.delete("/projection-types/{projection_id}")
+async def admin_delete_projection_type(
+    projection_id: int,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    prj = await db.get(ProjectionType, projection_id)
+    if not prj:
+        raise HTTPException(status_code=404, detail="Projection type not found")
+    await db.delete(prj)
+    await db.commit()
+    return {"message": "Projection type deleted successfully"}
+
+
+@router.get("/auditoriums", response_model=List[AuditoriumResponse])
+async def admin_list_auditoriums(
+    cinema_id: Optional[int] = None,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.CINEMA_MANAGER])),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(Auditorium).options(
+        selectinload(Auditorium.screen_format),
+        selectinload(Auditorium.sound_system),
+        selectinload(Auditorium.projection_type),
+    )
+    if cinema_id:
+        stmt = stmt.where(Auditorium.cinema_id == cinema_id)
+    res = await db.execute(stmt)
+    auds = res.scalars().all()
+    return [
+        AuditoriumResponse(
+            id=a.id,
+            cinema_id=a.cinema_id,
+            name=a.name,
+            screen_type=a.screen_format_name,
+            total_seats=a.total_seats,
+            has_3d_preview=a.has_3d_preview,
+            layout_data=a.layout_data,
+            glb_path="/models/cineverse_auditorium_v2.web.glb",
+            layout_path="/models/seat_layout_v2.json",
+            screen_format_id=a.screen_format_id,
+            sound_system_id=a.sound_system_id,
+            projection_type_id=a.projection_type_id,
+            screen_format_name=a.screen_format_name,
+            sound_system_name=a.sound_system_name,
+            projection_type_name=a.projection_type_name,
+            tech_specs_display=a.tech_specs_display,
+            requires_glasses=a.screen_format.requires_glasses if a.screen_format else ("3D" in a.screen_format_name),
+            confirmed_with_cinema=a.confirmed_with_cinema,
+            is_demo=a.is_demo,
+        )
+        for a in auds
+    ]
+
+
+@router.patch("/auditoriums/{auditorium_id}/specs", response_model=AuditoriumResponse)
+async def admin_update_auditorium_specs(
+    auditorium_id: int,
+    req: AuditoriumAssignmentUpdate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.CINEMA_MANAGER])),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = (
+        select(Auditorium)
+        .where(Auditorium.id == auditorium_id)
+        .options(
+            selectinload(Auditorium.screen_format),
+            selectinload(Auditorium.sound_system),
+            selectinload(Auditorium.projection_type),
+        )
+    )
+    res = await db.execute(stmt)
+    aud = res.scalars().first()
+    if not aud:
+        raise HTTPException(status_code=404, detail="Auditorium not found")
+
+    if req.screen_format_id is not None:
+        aud.screen_format_id = req.screen_format_id
+        fmt = await db.get(ScreenFormat, req.screen_format_id)
+        if fmt:
+            aud.screen_type = fmt.name
+            # also sync showtimes in this hall
+            from sqlalchemy import update as sql_update
+            await db.execute(
+                sql_update(Showtime)
+                .where(Showtime.auditorium_id == aud.id)
+                .values(format=fmt.name)
+            )
+
+    if req.sound_system_id is not None:
+        aud.sound_system_id = req.sound_system_id
+    if req.projection_type_id is not None:
+        aud.projection_type_id = req.projection_type_id
+    if req.confirmed_with_cinema is not None:
+        aud.confirmed_with_cinema = req.confirmed_with_cinema
+    if req.is_demo is not None:
+        aud.is_demo = req.is_demo
+
+    await db.commit()
+    await db.refresh(aud)
+
+    # Re-fetch with relationships
+    stmt = (
+        select(Auditorium)
+        .where(Auditorium.id == auditorium_id)
+        .options(
+            selectinload(Auditorium.screen_format),
+            selectinload(Auditorium.sound_system),
+            selectinload(Auditorium.projection_type),
+        )
+    )
+    res = await db.execute(stmt)
+    aud = res.scalars().first()
+
+    return AuditoriumResponse(
+        id=aud.id,
+        cinema_id=aud.cinema_id,
+        name=aud.name,
+        screen_type=aud.screen_format_name,
+        total_seats=aud.total_seats,
+        has_3d_preview=aud.has_3d_preview,
+        layout_data=aud.layout_data,
+        glb_path="/models/cineverse_auditorium_v2.web.glb",
+        layout_path="/models/seat_layout_v2.json",
+        screen_format_id=aud.screen_format_id,
+        sound_system_id=aud.sound_system_id,
+        projection_type_id=aud.projection_type_id,
+        screen_format_name=aud.screen_format_name,
+        sound_system_name=aud.sound_system_name,
+        projection_type_name=aud.projection_type_name,
+        tech_specs_display=aud.tech_specs_display,
+        requires_glasses=aud.screen_format.requires_glasses if aud.screen_format else ("3D" in aud.screen_format_name),
+        confirmed_with_cinema=aud.confirmed_with_cinema,
+        is_demo=aud.is_demo,
+    )
+
 
 

@@ -7,6 +7,7 @@ import { SlidersHorizontal, ArrowUpDown, X } from 'lucide-react';
 import { MovieCard } from '@/components/MovieCard';
 import { getMovies, type Movie } from '@/services/api';
 import { useMovieBackdrop } from '@/context/MovieBackdropContext';
+import { TechnicalSpecsFilterBar } from '@/components/filters/TechnicalSpecsFilterBar';
 
 function MoviesListContent() {
   const router = useRouter();
@@ -16,7 +17,9 @@ function MoviesListContent() {
   const paramSearch = searchParams.get('search') || '';
   const paramLang = searchParams.get('lang') || 'All';
   const paramGenre = searchParams.get('genre') || 'All';
-  const paramFormat = searchParams.get('format') || 'All';
+  const paramFormat = searchParams.get('format') || '';
+  const paramSound = searchParams.get('sound') || '';
+  const paramProjection = searchParams.get('projection') || '';
   const paramCert = searchParams.get('certificate') || 'All';
   const paramSort = searchParams.get('sort') || 'popularity';
   const paramStatus = searchParams.get('status') || 'now_showing';
@@ -25,7 +28,36 @@ function MoviesListContent() {
   const [search, setSearch] = useState(paramSearch);
   const [selectedLanguage, setSelectedLanguage] = useState<string>(paramLang);
   const [selectedGenre, setSelectedGenre] = useState<string>(paramGenre);
-  const [selectedFormat, setSelectedFormat] = useState<string>(paramFormat);
+  const [selectedFormats, setSelectedFormats] = useState<string[]>(() => {
+    if (paramFormat) return paramFormat.split(',').filter(Boolean);
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cineverse_tech_filters_movies');
+        if (stored) return JSON.parse(stored).formats || [];
+      } catch {}
+    }
+    return [];
+  });
+  const [selectedSounds, setSelectedSounds] = useState<string[]>(() => {
+    if (paramSound) return paramSound.split(',').filter(Boolean);
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cineverse_tech_filters_movies');
+        if (stored) return JSON.parse(stored).sounds || [];
+      } catch {}
+    }
+    return [];
+  });
+  const [selectedProjections, setSelectedProjections] = useState<string[]>(() => {
+    if (paramProjection) return paramProjection.split(',').filter(Boolean);
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cineverse_tech_filters_movies');
+        if (stored) return JSON.parse(stored).projections || [];
+      } catch {}
+    }
+    return [];
+  });
   const [selectedCertificate, setSelectedCertificate] = useState<string>(paramCert);
   const [selectedSort, setSelectedSort] = useState<string>(paramSort);
   const [selectedTab, setSelectedTab] = useState<'all' | 'now_showing' | 'coming_soon'>(
@@ -83,7 +115,9 @@ function MoviesListContent() {
       search: search || undefined,
       language: selectedLanguage !== 'All' ? selectedLanguage : undefined,
       genre: selectedGenre !== 'All' ? selectedGenre : undefined,
-      format: selectedFormat !== 'All' ? selectedFormat : undefined,
+      format: selectedFormats.length > 0 ? selectedFormats.join(',') : undefined,
+      sound: selectedSounds.length > 0 ? selectedSounds.join(',') : undefined,
+      projection: selectedProjections.length > 0 ? selectedProjections.join(',') : undefined,
       certificate: selectedCertificate !== 'All' ? selectedCertificate : undefined,
       sort: selectedSort as any,
       status: selectedTab !== 'all' ? selectedTab : undefined,
@@ -91,7 +125,7 @@ function MoviesListContent() {
       .then((data) => setMovies(data))
       .catch((err) => console.warn(err))
       .finally(() => setLoading(false));
-  }, [currentCityId, search, selectedLanguage, selectedGenre, selectedFormat, selectedCertificate, selectedSort, selectedTab]);
+  }, [currentCityId, search, selectedLanguage, selectedGenre, selectedFormats, selectedSounds, selectedProjections, selectedCertificate, selectedSort, selectedTab]);
 
   function handleTabChange(tab: 'all' | 'now_showing' | 'coming_soon') {
     setSelectedTab(tab);
@@ -109,8 +143,9 @@ function MoviesListContent() {
   }
 
   function handleFormatChange(f: string) {
-    setSelectedFormat(f);
-    updateUrlParams({ format: f });
+    const updated = f === 'All' ? [] : [f];
+    setSelectedFormats(updated);
+    updateUrlParams({ format: updated.join(',') });
   }
 
   function handleCertChange(c: string) {
@@ -126,18 +161,27 @@ function MoviesListContent() {
   function handleReset() {
     setSelectedLanguage('All');
     setSelectedGenre('All');
-    setSelectedFormat('All');
+    setSelectedFormats([]);
+    setSelectedSounds([]);
+    setSelectedProjections([]);
     setSelectedCertificate('All');
     setSelectedSort('popularity');
     setSearch('');
     setSelectedTab('now_showing');
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem('cineverse_tech_filters_movies');
+      } catch {}
+    }
     router.replace('/movies', { scroll: false });
   }
 
   const isFiltered =
     selectedLanguage !== 'All' ||
     selectedGenre !== 'All' ||
-    selectedFormat !== 'All' ||
+    selectedFormats.length > 0 ||
+    selectedSounds.length > 0 ||
+    selectedProjections.length > 0 ||
     selectedCertificate !== 'All' ||
     selectedSort !== 'popularity' ||
     Boolean(search) ||
@@ -232,7 +276,7 @@ function MoviesListContent() {
 
         {/* Formats (Generic names) */}
         <select
-          value={selectedFormat}
+          value={selectedFormats.length === 1 ? selectedFormats[0] : 'All'}
           onChange={(e) => handleFormatChange(e.target.value)}
           className="rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3.5 py-2.5 text-sm font-medium text-[#1B1320] focus:outline-none focus:ring-2 focus:ring-[#C8102E]"
           data-testid="format-filter"
@@ -292,6 +336,21 @@ function MoviesListContent() {
           </button>
         )}
       </div>
+
+      {/* Screen Format, Sound & Projection Multi-Select Chips Bar */}
+      <TechnicalSpecsFilterBar
+        cityId={currentCityId}
+        selectedFormats={selectedFormats}
+        selectedSounds={selectedSounds}
+        selectedProjections={selectedProjections}
+        storageKey="cineverse_tech_filters_movies"
+        onChange={({ formats, sounds, projections }) => {
+          setSelectedFormats(formats);
+          setSelectedSounds(sounds);
+          setSelectedProjections(projections);
+        }}
+        className="mb-8"
+      />
 
       {/* Movie Grid */}
       {loading ? (

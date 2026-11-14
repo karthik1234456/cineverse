@@ -167,6 +167,13 @@ export interface CinemaState {
   auditoriumId: string;
   auditoriumName?: string;
   screenType?: string;
+  screenFormat?: string;
+  soundSystem?: string;
+  projectionType?: string;
+  techSpecsDisplay?: string;
+  requiresGlasses?: boolean;
+  confirmedWithCinema?: boolean;
+  isDemo?: boolean;
   auditoriumLayout: SeatLayoutFile;
   auditoriumWalkNav: WalkNavFile;
   cameraBounds: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number };
@@ -175,7 +182,17 @@ export interface CinemaState {
   setAuditoriumData: (
     auditoriumId: string,
     result: ProceduralAuditoriumResult | null,
-    meta?: { name?: string; screenType?: string }
+    meta?: {
+      name?: string;
+      screenType?: string;
+      screenFormat?: string;
+      soundSystem?: string;
+      projectionType?: string;
+      techSpecsDisplay?: string;
+      requiresGlasses?: boolean;
+      confirmedWithCinema?: boolean;
+      isDemo?: boolean;
+    }
   ) => void;
 
   // Actions
@@ -418,6 +435,13 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   auditoriumId: '1',
   auditoriumName: 'Auditorium 1',
   screenType: 'Standard Flat',
+  screenFormat: '2D',
+  soundSystem: 'Standard 5.1',
+  projectionType: 'Standard digital',
+  techSpecsDisplay: 'Auditorium 1 · 2D · Standard 5.1 · Standard digital',
+  requiresGlasses: false,
+  confirmedWithCinema: false,
+  isDemo: true,
   auditoriumLayout: layoutData as unknown as SeatLayoutFile,
   auditoriumWalkNav: walkNavData as unknown as WalkNavFile,
   cameraBounds: DEFAULT_AUDITORIUM_BOUNDS,
@@ -429,7 +453,14 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
       set({
         auditoriumId,
         auditoriumName: meta?.name || `Auditorium ${auditoriumId}`,
-        screenType: meta?.screenType || 'Standard Flat',
+        screenType: meta?.screenType || meta?.screenFormat || 'Standard Flat',
+        screenFormat: meta?.screenFormat || meta?.screenType || '2D',
+        soundSystem: meta?.soundSystem || 'Standard 5.1',
+        projectionType: meta?.projectionType || 'Standard digital',
+        techSpecsDisplay: meta?.techSpecsDisplay || `${meta?.name || `Auditorium ${auditoriumId}`} · ${meta?.screenFormat || '2D'} · ${meta?.soundSystem || 'Standard 5.1'} · ${meta?.projectionType || 'Standard digital'}`,
+        requiresGlasses: meta?.requiresGlasses ?? false,
+        confirmedWithCinema: meta?.confirmedWithCinema ?? false,
+        isDemo: meta?.isDemo ?? true,
         proceduralResult: null,
         auditoriumLayout: layoutData as unknown as SeatLayoutFile,
         auditoriumWalkNav: walkNavData as unknown as WalkNavFile,
@@ -442,7 +473,14 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     set({
       auditoriumId,
       auditoriumName: meta?.name || result.seatLayout.theatre_type_label || `Auditorium ${auditoriumId}`,
-      screenType: meta?.screenType || (result.seatLayout.screen as any)?.name || 'Standard Flat',
+      screenType: meta?.screenType || meta?.screenFormat || (result.seatLayout.screen as any)?.name || 'Standard Flat',
+      screenFormat: meta?.screenFormat || meta?.screenType || '2D',
+      soundSystem: meta?.soundSystem || 'Standard 5.1',
+      projectionType: meta?.projectionType || 'Standard digital',
+      techSpecsDisplay: meta?.techSpecsDisplay || `${meta?.name || `Auditorium ${auditoriumId}`} · ${meta?.screenFormat || '2D'} · ${meta?.soundSystem || 'Standard 5.1'} · ${meta?.projectionType || 'Standard digital'}`,
+      requiresGlasses: meta?.requiresGlasses ?? false,
+      confirmedWithCinema: meta?.confirmedWithCinema ?? false,
+      isDemo: meta?.isDemo ?? true,
       proceduralResult: result,
       auditoriumLayout: result.seatLayout,
       auditoriumWalkNav: result.walkNav,

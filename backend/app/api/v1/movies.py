@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models.movie import Movie, MovieCast, Review
 from app.models.showtime import Showtime, PriceRule, SeatInventory, SeatStatusEnum
 from app.models.cinema import Cinema, Auditorium, City
+from app.models.technical_specs import ScreenFormat, SoundSystem, ProjectionType
 from app.models.auth import User
 from app.schemas.movie import MovieResponse, MovieDetailResponse, ReviewCreate, ReviewResponse
 from app.services.auth_service import get_current_user, require_user
@@ -24,7 +25,9 @@ async def list_movies(
     city_id: Optional[int] = None,
     genre: Optional[str] = None,
     language: Optional[str] = None,
-    format: Optional[str] = None,
+    format: Optional[str] = Query(None, description="Screen format filter (comma-separated for multi-select)"),
+    sound: Optional[str] = Query(None, description="Sound system filter (comma-separated for multi-select)"),
+    projection: Optional[str] = Query(None, description="Projection filter (comma-separated for multi-select)"),
     certificate: Optional[str] = None,
     status: Optional[str] = None,  # "now_showing" or "coming_soon"
     search: Optional[str] = None,
@@ -53,6 +56,35 @@ async def list_movies(
                            )
                        )\
                        .distinct()
+
+    # Technical specs filters on movies via auditoriums / showtimes
+    if (format or sound or projection) and not (city_id and status == "now_showing"):
+        stmt = stmt.join(Showtime, Showtime.movie_id == Movie.id)\
+                   .join(Auditorium, Auditorium.id == Showtime.auditorium_id)\
+                   .distinct()
+    elif (format or sound or projection) and (city_id and status == "now_showing"):
+        stmt = stmt.join(Auditorium, Auditorium.id == Showtime.auditorium_id)\
+                   .distinct()
+
+    if format and format.lower() != "all":
+        fmts = [f.strip().lower() for f in format.split(",") if f.strip()]
+        if fmts:
+            stmt = stmt.outerjoin(ScreenFormat, ScreenFormat.id == Auditorium.screen_format_id)\
+                       .where(or_(
+                           func.lower(ScreenFormat.name).in_(fmts),
+                           func.lower(Showtime.format).in_(fmts),
+                           func.lower(Auditorium.screen_type).in_(fmts)
+                       ))
+    if sound and sound.lower() != "all":
+        snds = [s.strip().lower() for s in sound.split(",") if s.strip()]
+        if snds:
+            stmt = stmt.outerjoin(SoundSystem, SoundSystem.id == Auditorium.sound_system_id)\
+                       .where(func.lower(SoundSystem.name).in_(snds))
+    if projection and projection.lower() != "all":
+        prjs = [p.strip().lower() for p in projection.split(",") if p.strip()]
+        if prjs:
+            stmt = stmt.outerjoin(ProjectionType, ProjectionType.id == Auditorium.projection_type_id)\
+                       .where(func.lower(ProjectionType.name).in_(prjs))
 
     if status == "now_showing":
         stmt = stmt.where(Movie.is_now_showing == True)
@@ -228,7 +260,9 @@ async def get_movie_showtimes(
     movie_id: int,
     city_id: Optional[int] = None,
     target_date: Optional[str] = None,  # YYYY-MM-DD
-    format: Optional[str] = None,
+    format: Optional[str] = Query(None, description="Screen format filter (comma-separated for multi-select)"),
+    sound: Optional[str] = Query(None, description="Sound system filter (comma-separated for multi-select)"),
+    projection: Optional[str] = Query(None, description="Projection filter (comma-separated for multi-select)"),
     language: Optional[str] = None,
     user_lat: Optional[float] = Query(None, description="User latitude (rounded to 2 decimal places)"),
     user_lng: Optional[float] = Query(None, description="User longitude (rounded to 2 decimal places)"),
@@ -261,7 +295,9 @@ async def get_movie_showtimes(
 
     stmt = stmt.options(
         selectinload(Showtime.cinema),
-        selectinload(Showtime.auditorium),
+        selectinload(Showtime.auditorium).selectinload(Auditorium.screen_format),
+        selectinload(Showtime.auditorium).selectinload(Auditorium.sound_system),
+        selectinload(Showtime.auditorium).selectinload(Auditorium.projection_type),
         selectinload(Showtime.price_rules),
         selectinload(Showtime.seat_inventory)
     ).order_by(Showtime.start_time)
@@ -273,37 +309,30 @@ async def get_movie_showtimes(
     u_lat = round(user_lat, 2) if user_lat is not None else None
     u_lng = round(user_lng, 2) if user_lng is not None else None
 
-    # Filter by city, format, language
+    # Parse multi-select filter lists
+    filter_fmts = [f.strip().lower() for f in format.split(",") if f.strip()] if format and format.lower() != "all" else []
+    filter_snds = [s.strip().lower() for s in sound.split(",") if s.strip()] if sound and sound.lower() != "all" else []
+    filter_prjs = [p.strip().lower() for p in projection.split(",") if p.strip()] if projection and projection.lower() != "all" else []
+
+    # Filter by city, format, sound, projection, language
     grouped_by_cinema: Dict[int, Dict[str, Any]] = {}
 
     for st in all_showtimes:
         if city_id and st.cinema.city_id != city_id:
             continue
-        if format and format.lower() != "all":
-            fmt_low = format.lower()
-            st_fmt = (st.format or "").lower()
-            matched = False
-            if fmt_low == "large screen":
-                matched = "large" in st_fmt or "imax" in st_fmt
-            elif fmt_low == "overhead sound":
-                matched = "overhead" in st_fmt or "atmos" in st_fmt
-            elif fmt_low == "motion seats":
-                matched = "motion" in st_fmt or "4dx" in st_fmt
-            elif fmt_low == "laser projection":
-                matched = "laser" in st_fmt
-            elif fmt_low == "recliner":
-                matched = "recliner" in st_fmt or "gold" in st_fmt
-            elif fmt_low == "balcony":
-                matched = "balcony" in st_fmt
-            elif fmt_low == "boutique":
-                matched = "boutique" in st_fmt
-            elif fmt_low == "3d":
-                matched = "3d" in st_fmt
-            else:
-                matched = fmt_low in st_fmt
-            if not matched:
-                continue
-        if language and language != st.language:
+
+        aud = st.auditorium
+        fmt_name = aud.screen_format_name if aud else (st.format or "2D")
+        snd_name = aud.sound_system_name if aud else "Standard 5.1"
+        prj_name = aud.projection_type_name if aud else "Standard digital"
+
+        if filter_fmts and fmt_name.lower() not in filter_fmts and (st.format or "").lower() not in filter_fmts:
+            continue
+        if filter_snds and snd_name.lower() not in filter_snds:
+            continue
+        if filter_prjs and prj_name.lower() not in filter_prjs:
+            continue
+        if language and language.lower() != "all" and language.lower() != (st.language or "").lower():
             continue
 
         cinema = st.cinema
@@ -353,16 +382,28 @@ async def get_movie_showtimes(
         else:
             avail_status = "AVAILABLE"
 
+        tech_specs = aud.tech_specs_display if aud else f"{aud.name if aud else 'Screen 1'} · {fmt_name} · {snd_name} · {prj_name}"
+        requires_glasses = aud.screen_format.requires_glasses if (aud and aud.screen_format) else ("3D" in fmt_name)
+        confirmed_with_cinema = aud.confirmed_with_cinema if aud else False
+        is_demo = aud.is_demo if aud else True
+
         grouped_by_cinema[cinema.id]["showtimes"].append({
             "id": st.id,
             "movie_id": st.movie_id,
             "auditorium_id": st.auditorium_id,
-            "auditorium_name": st.auditorium.name if st.auditorium else "Screen 1",
-            "screen_type": st.auditorium.screen_type if st.auditorium else "IMAX 3D",
-            "has_3d_preview": st.auditorium.has_3d_preview if st.auditorium else True,
+            "auditorium_name": aud.name if aud else "Screen 1",
+            "screen_type": fmt_name,
+            "has_3d_preview": aud.has_3d_preview if aud else True,
             "start_time": st.start_time,
             "end_time": st.end_time,
-            "format": st.format,
+            "format": fmt_name,
+            "screen_format": fmt_name,
+            "sound_system": snd_name,
+            "projection_type": prj_name,
+            "tech_specs_display": tech_specs,
+            "requires_glasses": requires_glasses,
+            "confirmed_with_cinema": confirmed_with_cinema,
+            "is_demo": is_demo,
             "language": st.language,
             "lowest_price": lowest_price,
             "availability_status": avail_status,

@@ -162,13 +162,18 @@ export function AuditoriumViewRouter({
             <span className="font-bold">Back to seat map</span>
           </button>
 
-          {/* Center: Movie / Auditorium Title */}
-          <div className="flex items-center gap-2 text-sm font-bold text-[#1B1320]">
-            <span className="text-[#C8102E] font-black">CINEVERSE 3D</span>
-            <span className="text-[#E6DCD2]">|</span>
-            <span data-testid="auditorium-header-title">
-              {showtimeDetails?.auditorium_name || `Auditorium ${auditoriumId}`} — {showtimeDetails?.screen_type || 'Standard Flat'}
+          {/* Center: Movie / Auditorium Title & Tech Specs */}
+          <div className="flex items-center gap-2 text-sm font-bold text-[#1B1320] overflow-hidden">
+            <span className="text-[#C8102E] font-black shrink-0">CINEVERSE 3D</span>
+            <span className="text-[#E6DCD2] shrink-0">|</span>
+            <span data-testid="auditorium-header-title" className="truncate">
+              {showtimeDetails?.tech_specs_display || `${showtimeDetails?.auditorium_name || `Screen ${auditoriumId}`} · ${showtimeDetails?.screen_format || showtimeDetails?.screen_type || '2D'} · ${showtimeDetails?.sound_system || 'Dolby Atmos'} · ${showtimeDetails?.projection_type || '4K Laser'}`}
             </span>
+            {showtimeDetails?.is_demo && (
+              <span className="shrink-0 rounded bg-amber-100 border border-amber-300 px-1.5 py-0.5 text-[11px] font-bold text-amber-900" title="Demo hall configuration">
+                Demo
+              </span>
+            )}
           </div>
 
           {/* Right: Fullscreen Toggle Button & Problem Report */}

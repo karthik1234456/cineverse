@@ -269,10 +269,23 @@ export default function ProfilePage() {
                 className="flex flex-col md:flex-row items-start md:items-center justify-between rounded-3xl border border-[#E6DCD2] bg-white p-6 gap-4 shadow-sm hover:shadow-md transition group"
               >
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-sm font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                       {b.booking_code}
                     </span>
+                    <span className="rounded-md bg-rose-50 border border-rose-200 px-2 py-0.5 text-xs font-bold text-[#9F1239]">
+                      {b.screen_format || b.screen_type}
+                    </span>
+                    {b.requires_glasses && (
+                      <span className="rounded-md bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
+                        Glasses
+                      </span>
+                    )}
+                    {b.is_demo && (
+                      <span className="rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+                        Demo
+                      </span>
+                    )}
                     <span className={`rounded-md px-2.5 py-0.5 text-xs font-bold ${
                       b.status === 'CONFIRMED'
                         ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
@@ -286,9 +299,13 @@ export default function ProfilePage() {
                     {b.movie_title}
                   </h3>
 
-                  <p className="text-sm text-slate-600 flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4 text-slate-400" />
-                    <span>{b.cinema_name} • {b.auditorium_name}</span>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {b.tech_specs_display || `${b.auditorium_name} · ${b.screen_format || '2D'} · ${b.sound_system || 'Dolby Atmos'} · ${b.projection_type || '4K Laser'}`}
+                  </p>
+
+                  <p className="text-xs text-slate-600 flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                    <span>{b.cinema_name}</span>
                   </p>
 
                   <div className="text-sm font-semibold text-slate-700">

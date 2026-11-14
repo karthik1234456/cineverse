@@ -28,6 +28,11 @@ export function AuditoriumInfoPanel() {
   const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
   const auditoriumName = useCinemaStore((s) => s.auditoriumName);
   const storeScreenType = useCinemaStore((s) => s.screenType);
+  const storeScreenFormat = useCinemaStore((s) => s.screenFormat);
+  const storeSoundSystem = useCinemaStore((s) => s.soundSystem);
+  const storeProjectionType = useCinemaStore((s) => s.projectionType);
+  const storeTechSpecsDisplay = useCinemaStore((s) => s.techSpecsDisplay);
+  const isDemo = useCinemaStore((s) => s.isDemo);
   const proceduralResult = useCinemaStore((s) => s.proceduralResult);
 
   const layout = auditoriumLayout || (layoutData as unknown as SeatLayoutFile);
@@ -180,11 +185,16 @@ export function AuditoriumInfoPanel() {
         <div className="pointer-events-auto rounded-3xl border border-[#E6DCD2] bg-white/95 p-5 shadow-2xl backdrop-blur-md text-[#1B1320]">
           <div className="flex items-start justify-between">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="h-2.5 w-2.5 rounded-full bg-[#C8102E] shadow-[0_0_8px_#C8102E]" />
                 <h1 className="text-base font-bold tracking-tight text-[#1B1320]" data-testid="auditorium-panel-title">
-                  {displayHallTitle} — {displayScreenType}
+                  {storeTechSpecsDisplay || `${displayHallTitle} · ${storeScreenFormat || displayScreenType} · ${storeSoundSystem || 'Dolby Atmos'} · ${storeProjectionType || '4K Laser'}`}
                 </h1>
+                {isDemo && (
+                  <span className="rounded bg-amber-100 border border-amber-300 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">
+                    Demo
+                  </span>
+                )}
               </div>
               <p className="mt-1 text-sm text-slate-500" data-testid="auditorium-panel-subtitle">
                 {rowRangeText}
@@ -209,11 +219,25 @@ export function AuditoriumInfoPanel() {
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] px-3 py-2 text-sm">
-            <span className="text-slate-600 font-medium">Screen Format</span>
-            <span className="font-bold text-[#1B1320]" data-testid="auditorium-panel-screen-dims">
-              {layout.screen.aspect}:1 Aspect ({screenMetersWidth}m × {screenMetersHeight}m)
-            </span>
+          <div className="mt-3 flex flex-col gap-1.5 rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] p-3 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-600 font-medium">Screen Format</span>
+              <span className="font-bold text-[#1B1320]">{storeScreenFormat || storeScreenType || '2D'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-600 font-medium">Sound System</span>
+              <span className="font-bold text-[#1B1320]">{storeSoundSystem || 'Dolby Atmos'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-600 font-medium">Projection</span>
+              <span className="font-bold text-[#1B1320]">{storeProjectionType || '4K Laser'}</span>
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t border-[#E6DCD2]/60">
+              <span className="text-slate-500">Geometry</span>
+              <span className="font-medium text-slate-700" data-testid="auditorium-panel-screen-dims">
+                {layout.screen.aspect}:1 Aspect ({screenMetersWidth}m × {screenMetersHeight}m)
+              </span>
+            </div>
           </div>
 
           {/* Seat Categories & Pricing (§ Task 3) */}

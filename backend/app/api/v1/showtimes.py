@@ -47,6 +47,9 @@ async def get_showtime_seats(
             selectinload(Showtime.movie),
             selectinload(Showtime.cinema),
             selectinload(Showtime.auditorium).selectinload(Auditorium.seats),
+            selectinload(Showtime.auditorium).selectinload(Auditorium.screen_format),
+            selectinload(Showtime.auditorium).selectinload(Auditorium.sound_system),
+            selectinload(Showtime.auditorium).selectinload(Auditorium.projection_type),
             selectinload(Showtime.seat_inventory)
         )
     )
@@ -161,6 +164,14 @@ async def get_showtime_seats(
             ))
 
     quote_id = f"cv-quote-{showtime.id}-{int(datetime.utcnow().timestamp())}"
+    aud = showtime.auditorium
+    fmt_name = aud.screen_format_name if aud else showtime.format
+    snd_name = aud.sound_system_name if aud else "Standard 5.1"
+    prj_name = aud.projection_type_name if aud else "Standard digital"
+    tech_specs = aud.tech_specs_display if aud else f"{aud.name if aud else 'Screen 1'} · {fmt_name} · {snd_name} · {prj_name}"
+    requires_glasses = aud.screen_format.requires_glasses if (aud and aud.screen_format) else ("3D" in fmt_name)
+    confirmed_with_cinema = aud.confirmed_with_cinema if aud else False
+    is_demo = aud.is_demo if aud else True
 
     return ShowtimeSeatsResponse(
         showtime_id=showtime.id,
@@ -170,11 +181,18 @@ async def get_showtime_seats(
         cinema_name=showtime.cinema.name if showtime.cinema else "Cinema",
         auditorium_id=showtime.auditorium_id,
         auditorium_name=showtime.auditorium.name if showtime.auditorium else "Screen 1",
-        screen_type=showtime.auditorium.screen_type if showtime.auditorium else "IMAX 3D",
+        screen_type=fmt_name,
         has_3d_preview=showtime.auditorium.has_3d_preview if showtime.auditorium else True,
         layout_data=showtime.auditorium.layout_data if showtime.auditorium else None,
         layout_signature=showtime.auditorium.layout_data.get("layout_signature") if showtime.auditorium and showtime.auditorium.layout_data else None,
-        format=showtime.format,
+        format=fmt_name,
+        screen_format=fmt_name,
+        sound_system=snd_name,
+        projection_type=prj_name,
+        tech_specs_display=tech_specs,
+        requires_glasses=requires_glasses,
+        confirmed_with_cinema=confirmed_with_cinema,
+        is_demo=is_demo,
         language=showtime.language,
         start_time=showtime.start_time,
         currency="INR",

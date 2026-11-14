@@ -350,14 +350,29 @@ function CheckoutContent() {
             <div className="rounded-3xl border border-[#E6DCD2] bg-white p-6 space-y-4 shadow-sm">
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <span className="rounded-lg bg-rose-50 px-3 py-1 text-sm font-bold text-[#9F1239] border border-rose-200">
-                    {quote.screen_type || 'IMAX 3D Laser'}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="rounded-lg bg-rose-50 px-3 py-1 text-sm font-bold text-[#9F1239] border border-rose-200" data-testid="checkout-format-badge">
+                      {quote.screen_format || quote.screen_type || '2D'}
+                    </span>
+                    {quote.requires_glasses && (
+                      <span className="rounded-lg bg-indigo-50 px-2.5 py-0.5 text-xs font-bold text-indigo-700 border border-indigo-200">
+                        Glasses Required
+                      </span>
+                    )}
+                    {quote.is_demo && (
+                      <span className="rounded-lg bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-800 border border-amber-200">
+                        Demo
+                      </span>
+                    )}
+                  </div>
                   <h1 className="text-2xl font-black text-[#1B1320] mt-2">
                     {quote.movie_title}
                   </h1>
-                  <p className="text-sm text-slate-600 mt-1">
-                    {quote.cinema_name} • {quote.auditorium_name}
+                  <p className="text-sm font-semibold text-slate-800 mt-1" data-testid="checkout-tech-specs">
+                    {quote.tech_specs_display || `${quote.auditorium_name} · ${quote.screen_format || '2D'} · ${quote.sound_system || 'Dolby Atmos'} · ${quote.projection_type || '4K Laser'}`}
+                  </p>
+                  <p className="text-xs text-slate-600 mt-0.5">
+                    {quote.cinema_name}
                   </p>
                   {quote.cinema_address && (
                     <p className="text-xs text-slate-500 mt-0.5">

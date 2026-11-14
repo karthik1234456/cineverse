@@ -68,6 +68,9 @@ export default function RootLayout({
                   <span>© 2026 CineVerse Cinemas India</span>
                 </div>
               </div>
+              <div className="mt-3 text-xs text-[#7A6E85]" data-testid="format-trademark-disclaimer">
+                Format names belong to their owners and are shown to describe the screen.
+              </div>
               <div className="mt-2 flex justify-center">
                 <BuildStamp />
               </div>

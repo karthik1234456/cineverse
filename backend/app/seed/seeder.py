@@ -1996,6 +1996,10 @@ async def seed_database(force: bool = False):
                 from app.seed.seed_tmdb_movies import seed_tmdb_movies_data
                 await seed_tmdb_movies_data(db)
 
+                # Ensure technical specifications and hall assignments are seeded
+                from app.seed.seed_tech_specs import seed_technical_specs
+                await seed_technical_specs(db)
+
                 print(f"Database already contains {existing_movies} movies, {existing_auds} auditoriums, and {existing_shows} showtimes. Seed verified.")
                 return
 
@@ -2487,6 +2491,10 @@ async def seed_database(force: bool = False):
             inventory_records_batch.clear()
 
         await db.commit()
+
+        # Seed technical specifications and hall assignments
+        from app.seed.seed_tech_specs import seed_technical_specs
+        await seed_technical_specs(db)
 
     duration = (datetime.now() - start_time).total_seconds()
     print(f"SUCCESS: Database seeded deterministically in {duration:.1f} seconds!")

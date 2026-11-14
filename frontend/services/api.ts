@@ -55,6 +55,96 @@ export async function getCities(): Promise<City[]> {
   return apiFetch<City[]>('/cities/');
 }
 
+// ---------------- TECHNICAL SPECIFICATIONS ----------------
+export interface ScreenFormatItem {
+  id: number;
+  name: string;
+  description?: string;
+  requires_glasses: boolean;
+  is_active: boolean;
+}
+
+export interface SoundSystemItem {
+  id: number;
+  name: string;
+  description?: string;
+  channels?: string;
+  is_active: boolean;
+}
+
+export interface ProjectionTypeItem {
+  id: number;
+  name: string;
+  description?: string;
+  resolution?: string;
+  is_active: boolean;
+}
+
+export interface FilterFacetCount {
+  name: string;
+  count: number;
+  requires_glasses?: boolean;
+  channels?: string;
+  resolution?: string;
+}
+
+export interface FilterFacetsResponse {
+  city_id?: number | null;
+  movie_id?: number | null;
+  cinema_id?: number | null;
+  total_auditoriums: number;
+  formats: FilterFacetCount[];
+  sounds: FilterFacetCount[];
+  projections: FilterFacetCount[];
+}
+
+export async function getFilterFacets(cityId?: number, movieId?: number, cinemaId?: number): Promise<FilterFacetsResponse> {
+  const query = new URLSearchParams();
+  if (cityId) query.set('city_id', cityId.toString());
+  if (movieId) query.set('movie_id', movieId.toString());
+  if (cinemaId) query.set('cinema_id', cinemaId.toString());
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  return apiFetch<FilterFacetsResponse>(`/technical-specs/facets${qs}`);
+}
+
+export async function getScreenFormats(): Promise<ScreenFormatItem[]> {
+  return apiFetch<ScreenFormatItem[]>('/technical-specs/formats');
+}
+
+export async function getSoundSystems(): Promise<SoundSystemItem[]> {
+  return apiFetch<SoundSystemItem[]>('/technical-specs/sounds');
+}
+
+export async function getProjectionTypes(): Promise<ProjectionTypeItem[]> {
+  return apiFetch<ProjectionTypeItem[]>('/technical-specs/projections');
+}
+
+export interface AuditoriumDetail {
+  id: number;
+  cinema_id: number;
+  name: string;
+  screen_type: string;
+  total_seats: number;
+  has_3d_preview: boolean;
+  layout_data?: any;
+  glb_path?: string;
+  layout_path?: string;
+  screen_format_id?: number;
+  sound_system_id?: number;
+  projection_type_id?: number;
+  screen_format_name?: string;
+  sound_system_name?: string;
+  projection_type_name?: string;
+  tech_specs_display?: string;
+  requires_glasses?: boolean;
+  confirmed_with_cinema?: boolean;
+  is_demo?: boolean;
+}
+
+export async function getAuditorium(auditoriumId: number | string): Promise<AuditoriumDetail> {
+  return apiFetch<AuditoriumDetail>(`/auditoriums/${auditoriumId}`);
+}
+
 // ---------------- MOVIES ----------------
 export interface Movie {
   id: number;
@@ -115,6 +205,8 @@ export async function getMovies(params: {
   genre?: string;
   language?: string;
   format?: string;
+  sound?: string;
+  projection?: string;
   certificate?: string;
   status?: 'now_showing' | 'coming_soon';
   search?: string;
@@ -128,6 +220,8 @@ export async function getMovies(params: {
   if (params.genre) query.set('genre', params.genre);
   if (params.language) query.set('language', params.language);
   if (params.format) query.set('format', params.format);
+  if (params.sound) query.set('sound', params.sound);
+  if (params.projection) query.set('projection', params.projection);
   if (params.certificate) query.set('certificate', params.certificate);
   if (params.status) query.set('status', params.status);
   if (params.search) query.set('search', params.search);
@@ -148,6 +242,13 @@ export interface ShowtimeSlot {
   auditorium_id: number;
   auditorium_name: string;
   screen_type: string;
+  screen_format?: string;
+  sound_system?: string;
+  projection_type?: string;
+  tech_specs_display?: string;
+  requires_glasses?: boolean;
+  confirmed_with_cinema?: boolean;
+  is_demo?: boolean;
   has_3d_preview: boolean;
   start_time: string;
   end_time: string;
@@ -187,13 +288,17 @@ export async function getMovieShowtimes(
   language?: string,
   userLat?: number,
   userLng?: number,
-  maxDistanceKm?: number
+  maxDistanceKm?: number,
+  sound?: string,
+  projection?: string
 ): Promise<CinemaShowtimesGroup[]> {
   const query = new URLSearchParams();
   const cId = cityId || (typeof window !== 'undefined' ? parseInt(localStorage.getItem('cineverse_city_id') || '1', 10) : 1);
   if (cId) query.set('city_id', cId.toString());
   if (targetDate) query.set('target_date', targetDate);
   if (format) query.set('format', format);
+  if (sound) query.set('sound', sound);
+  if (projection) query.set('projection', projection);
   if (language) query.set('language', language);
   if (userLat != null) query.set('user_lat', userLat.toString());
   if (userLng != null) query.set('user_lng', userLng.toString());
@@ -228,6 +333,9 @@ export interface Cinema {
 export async function getCinemas(params: {
   cityId?: number;
   search?: string;
+  format?: string;
+  sound?: string;
+  projection?: string;
   userLat?: number;
   userLng?: number;
   maxDistanceKm?: number;
@@ -240,6 +348,9 @@ export async function getCinemas(params: {
     const cId = params.cityId || (typeof window !== 'undefined' ? parseInt(localStorage.getItem('cineverse_city_id') || '1', 10) : 1);
     if (cId) query.set('city_id', cId.toString());
     if (params.search) query.set('search', params.search);
+    if (params.format) query.set('format', params.format);
+    if (params.sound) query.set('sound', params.sound);
+    if (params.projection) query.set('projection', params.projection);
     if (params.userLat != null) query.set('user_lat', params.userLat.toString());
     if (params.userLng != null) query.set('user_lng', params.userLng.toString());
     if (params.maxDistanceKm != null) query.set('max_distance_km', params.maxDistanceKm.toString());
@@ -267,10 +378,18 @@ export interface CinemaMovieShowtimes {
 
 export async function getCinemaShowtimes(
   cinemaId: number,
-  targetDate?: string
+  targetDate?: string,
+  format?: string,
+  sound?: string,
+  projection?: string
 ): Promise<CinemaMovieShowtimes[]> {
-  const query = targetDate ? `?target_date=${targetDate}` : '';
-  return apiFetch<CinemaMovieShowtimes[]>(`/cinemas/${cinemaId}/showtimes${query}`);
+  const query = new URLSearchParams();
+  if (targetDate) query.set('target_date', targetDate);
+  if (format) query.set('format', format);
+  if (sound) query.set('sound', sound);
+  if (projection) query.set('projection', projection);
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  return apiFetch<CinemaMovieShowtimes[]>(`/cinemas/${cinemaId}/showtimes${qs}`);
 }
 
 // ---------------- GLOBAL SEARCH ----------------
@@ -342,6 +461,13 @@ export interface ShowtimeSeatsResponse {
   auditorium_id: number;
   auditorium_name: string;
   screen_type: string;
+  screen_format?: string;
+  sound_system?: string;
+  projection_type?: string;
+  tech_specs_display?: string;
+  requires_glasses?: boolean;
+  confirmed_with_cinema?: boolean;
+  is_demo?: boolean;
   has_3d_preview: boolean;
   layout_data?: AuditoriumLayoutData | null;
   format: string;
@@ -458,6 +584,13 @@ export interface BookingResponse {
   directions_url?: string | null;
   auditorium_name: string;
   screen_type: string;
+  screen_format?: string;
+  sound_system?: string;
+  projection_type?: string;
+  tech_specs_display?: string;
+  requires_glasses?: boolean;
+  confirmed_with_cinema?: boolean;
+  is_demo?: boolean;
   start_time: string;
   seats: { seat_id: string; category: string; price: number }[];
   addons: { fnb_item_id: number; name: string; quantity: number; unit_price: number; total_price: number }[];
@@ -526,6 +659,13 @@ export interface HoldQuoteResponse {
   directions_url?: string | null;
   auditorium_name: string;
   screen_type: string;
+  screen_format?: string;
+  sound_system?: string;
+  projection_type?: string;
+  tech_specs_display?: string;
+  requires_glasses?: boolean;
+  confirmed_with_cinema?: boolean;
+  is_demo?: boolean;
   start_time: string;
   expires_at: string;
   hold_duration_seconds: number;

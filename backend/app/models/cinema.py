@@ -48,15 +48,47 @@ class Auditorium(Base):
     id = Column(Integer, primary_key=True, index=True)
     cinema_id = Column(Integer, ForeignKey("cinemas.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(100), nullable=False)  # "Screen 1 - 3D Experience"
-    screen_type = Column(String(50), default="IMAX 3D")  # IMAX 3D, 4DX, Dolby Atmos, Standard
+    screen_type = Column(String(50), default="IMAX 3D")  # backward-compatible format name
     total_seats = Column(Integer, default=100)
     has_3d_preview = Column(Boolean, default=False)
     layout_data = Column(JSON, nullable=True)
+
+    # Technical Specs & Hall Certification
+    screen_format_id = Column(Integer, ForeignKey("screen_formats.id", ondelete="SET NULL"), nullable=True, index=True)
+    sound_system_id = Column(Integer, ForeignKey("sound_systems.id", ondelete="SET NULL"), nullable=True, index=True)
+    projection_type_id = Column(Integer, ForeignKey("projection_types.id", ondelete="SET NULL"), nullable=True, index=True)
+    confirmed_with_cinema = Column(Boolean, default=False, nullable=False)
+    is_demo = Column(Boolean, default=True, nullable=False)
 
     cinema = relationship("Cinema", back_populates="auditoriums")
     seats = relationship("Seat", back_populates="auditorium")
     theatre_assets = relationship("TheatreAsset", back_populates="auditorium", uselist=False)
     showtimes = relationship("Showtime", back_populates="auditorium")
+    screen_format = relationship("ScreenFormat", back_populates="auditoriums")
+    sound_system = relationship("SoundSystem", back_populates="auditoriums")
+    projection_type = relationship("ProjectionType", back_populates="auditoriums")
+
+    @property
+    def screen_format_name(self) -> str:
+        if self.screen_format and self.screen_format.name:
+            return self.screen_format.name
+        return self.screen_type or "2D"
+
+    @property
+    def sound_system_name(self) -> str:
+        if self.sound_system and self.sound_system.name:
+            return self.sound_system.name
+        return "Dolby Atmos" if "atmos" in (self.screen_type or "").lower() else "Standard 5.1"
+
+    @property
+    def projection_type_name(self) -> str:
+        if self.projection_type and self.projection_type.name:
+            return self.projection_type.name
+        return "4K Laser" if ("imax" in (self.screen_type or "").lower() or "laser" in (self.screen_type or "").lower()) else "Standard digital"
+
+    @property
+    def tech_specs_display(self) -> str:
+        return f"{self.name} · {self.screen_format_name} · {self.sound_system_name} · {self.projection_type_name}"
 
 
 class TheatreAsset(Base):

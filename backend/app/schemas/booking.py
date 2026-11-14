@@ -79,6 +79,13 @@ class HoldQuoteResponse(BaseModel):
     directions_url: Optional[str] = None
     auditorium_name: str
     screen_type: str
+    screen_format: Optional[str] = None
+    sound_system: Optional[str] = None
+    projection_type: Optional[str] = None
+    tech_specs_display: Optional[str] = None
+    requires_glasses: bool = False
+    confirmed_with_cinema: bool = False
+    is_demo: bool = True
     start_time: datetime
     expires_at: datetime
     hold_duration_seconds: int
@@ -185,6 +192,13 @@ class BookingResponse(BaseModel):
     directions_url: Optional[str] = None
     auditorium_name: str
     screen_type: str
+    screen_format: Optional[str] = None
+    sound_system: Optional[str] = None
+    projection_type: Optional[str] = None
+    tech_specs_display: Optional[str] = None
+    requires_glasses: bool = False
+    confirmed_with_cinema: bool = False
+    is_demo: bool = True
     start_time: datetime
     seats: List[BookingSeatResponse]
     addons: List[BookingAddonResponse]

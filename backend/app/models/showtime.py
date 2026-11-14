@@ -25,7 +25,7 @@ class Showtime(Base):
     cinema_id = Column(Integer, ForeignKey("cinemas.id", ondelete="CASCADE"), nullable=False, index=True)
     start_time = Column(DateTime, nullable=False, index=True)
     end_time = Column(DateTime, nullable=False)
-    format = Column(String(50), default="IMAX 3D")
+    format = Column(String(50), default="IMAX 3D", index=True)
     language = Column(String(50), default="English")
     cancellation_cutoff_minutes = Column(Integer, default=120)
 

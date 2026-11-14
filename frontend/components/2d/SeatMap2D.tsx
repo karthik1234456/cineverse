@@ -843,14 +843,29 @@ export function SeatMap2D({
             </div>
 
             <div>
-              <h1 className="text-2xl font-black text-[#1B1320] flex items-center gap-3">
-                <span>{showtimeDetails?.movie_title || 'Quantum Odyssey'}</span>
-                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-100 text-[#9F1239] border border-rose-200">
-                  {showtimeDetails?.screen_type || 'IMAX 3D Laser'}
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs font-bold px-2.5 py-1 rounded-lg bg-rose-100 text-[#9F1239] border border-rose-200" data-testid="format-badge">
+                  {showtimeDetails?.screen_format || showtimeDetails?.screen_type || '2D'}
                 </span>
+                {showtimeDetails?.requires_glasses && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                    Glasses Required
+                  </span>
+                )}
+                {showtimeDetails?.is_demo && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200">
+                    Demo
+                  </span>
+                )}
+              </div>
+              <h1 className="text-2xl font-black text-[#1B1320] mt-1">
+                <span>{showtimeDetails?.movie_title || 'Quantum Odyssey'}</span>
               </h1>
-              <p className="text-sm text-slate-600 mt-1">
-                {showtimeDetails?.cinema_name || 'CineVerse Astral Koramangala'} • {showtimeDetails?.auditorium_name || 'Auditorium 1'} ({totalSeatsCount} seats)
+              <p className="text-sm font-semibold text-slate-700 mt-1" data-testid="seatmap-tech-specs">
+                {showtimeDetails?.tech_specs_display || `${showtimeDetails?.auditorium_name || 'Screen 1'} · ${showtimeDetails?.screen_format || '2D'} · ${showtimeDetails?.sound_system || 'Dolby Atmos'} · ${showtimeDetails?.projection_type || '4K Laser'}`}
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {showtimeDetails?.cinema_name || 'CineVerse Cinema'} ({totalSeatsCount} seats)
               </p>
             </div>
           </div>

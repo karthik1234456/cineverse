@@ -39,7 +39,9 @@ async def print_ticket(booking_code: str, db: AsyncSession = Depends(get_db)):
             selectinload(Booking.seats),
             selectinload(Booking.showtime).selectinload(Showtime.movie),
             selectinload(Booking.showtime).selectinload(Showtime.cinema),
-            selectinload(Booking.showtime).selectinload(Showtime.auditorium),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.screen_format),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.sound_system),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.projection_type),
             selectinload(Booking.ticket)
         )
     )
@@ -56,6 +58,11 @@ async def print_ticket(booking_code: str, db: AsyncSession = Depends(get_db)):
     parking_str = f"{cinema.parking.title()} parking available" if cinema and cinema.parking and cinema.parking != 'none' else ("No on-site parking" if cinema and cinema.parking == 'none' else "Parking available")
     transit_str = f" • Metro/Bus: {cinema.transit_stop}" if cinema and cinema.transit_stop else ""
     pincode_str = f", PIN: {cinema.pincode}" if cinema and cinema.pincode else ""
+
+    aud = st.auditorium
+    tech_specs = aud.tech_specs_display if aud else f"{st.auditorium.name} · {st.format} · Dolby Atmos · 4K Laser"
+    glasses_note = " • 👓 3D Glasses Provided" if ((aud and aud.screen_format and aud.screen_format.requires_glasses) or "3D" in (st.format or "")) else ""
+    demo_badge = ' <span style="background: #f59e0b; color: #000; font-size: 10px; font-weight: bold; padding: 2px 6px; border-radius: 4px;">DEMO</span>' if (aud and aud.is_demo) else ""
 
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -77,15 +84,15 @@ async def print_ticket(booking_code: str, db: AsyncSession = Depends(get_db)):
     .directions-btn:hover {{ text-decoration: underline; }}
     .qr-container {{ text-align: center; margin: 20px 0; background: #0f1014; padding: 16px; border-radius: 12px; }}
     .qr-img {{ width: 180px; height: 180px; border-radius: 8px; }}
-    .footer {{ text-align: center; font-size: 11px; color: #6b7280; margin-top: 16px; }}
+    .footer {{ text-align: center; font-size: 11px; color: #6b7280; margin-top: 16px; line-height: 1.5; }}
   </style>
 </head>
 <body>
   <div class="ticket-card">
     <div class="header">
       <div class="logo">CINEVERSE</div>
-      <div class="movie-title">{st.movie.title}</div>
-      <div class="meta">{st.format} | {st.language} | {st.auditorium.name}</div>
+      <div class="movie-title">{st.movie.title}{demo_badge}</div>
+      <div class="meta">{tech_specs} | {st.language}{glasses_note}</div>
     </div>
     <div class="grid">
       <div><span>CINEMA</span><strong>{st.cinema.name}</strong></div>
@@ -109,7 +116,8 @@ async def print_ticket(booking_code: str, db: AsyncSession = Depends(get_db)):
     </div>
     <div class="footer">
       Gate Admission Token: {booking.booking_code}<br/>
-      Please present this verifiable QR code at the cinema entrance.
+      Please present this verifiable QR code at the cinema entrance.<br/>
+      <em>Format names belong to their owners and are shown to describe the screen</em>
     </div>
   </div>
 </body>

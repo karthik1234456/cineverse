@@ -28,6 +28,7 @@ from app.api.v1.payments import router as payments_router
 from app.api.v1.tickets import router as tickets_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.search import router as search_router
+from app.api.v1.technical_specs import router as technical_specs_router
 from app.api.v1.agent import router as agent_router
 from app.api.v1.operations.onboarding import router as onboarding_router
 from app.api.v1.operations.scanning import router as scanning_router
@@ -198,6 +199,7 @@ def create_app() -> FastAPI:
     application.include_router(coupons_router, prefix=f"{v1}/coupons", tags=["Coupons & Offers"])
     application.include_router(payments_router, prefix=f"{v1}/payments", tags=["Payments"])
     application.include_router(tickets_router, prefix=f"{v1}/tickets", tags=["Tickets"])
+    application.include_router(technical_specs_router, prefix=f"{v1}/technical-specs", tags=["Technical Specifications"])
     application.include_router(search_router, prefix=f"{v1}/search", tags=["Global Search"])
     application.include_router(admin_router, prefix=f"{v1}/admin", tags=["Admin"])
     application.include_router(pricing_router, prefix=f"{v1}/admin", tags=["Admin Dynamic Pricing"])

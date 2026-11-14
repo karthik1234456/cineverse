@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL",
-        "sqlite+aiosqlite:///./cineverse.db"
+        f"sqlite+aiosqlite:///{os.path.join(_root_dir, 'cineverse.db').replace(chr(92), '/')}"
     )
 
     # Redis

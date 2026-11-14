@@ -98,12 +98,35 @@ async def init_db():
             ("tmdb_vote_average", "FLOAT"),
             ("tmdb_popularity", "FLOAT"),
             ("is_tmdb", "BOOLEAN DEFAULT 0"),
+            ("is_showcase", "BOOLEAN DEFAULT 0"),
+            ("source", "VARCHAR(20) DEFAULT 'local'"),
             ("youtube_trailer_id", "VARCHAR(50)"),
         ]
         for col_name, col_def in movie_cols:
             if existing_movie_cols and col_name not in existing_movie_cols:
                 try:
                     await conn.execute(text(f"ALTER TABLE movies ADD COLUMN {col_name} {col_def}"))
+                except Exception:
+                    pass
+
+        # Check auditorium columns
+        try:
+            res = await conn.execute(text("PRAGMA table_info(auditoriums)"))
+            existing_aud_cols = [r[1] for r in res.fetchall()]
+        except Exception:
+            existing_aud_cols = []
+
+        aud_cols = [
+            ("screen_format_id", "INTEGER REFERENCES screen_formats(id)"),
+            ("sound_system_id", "INTEGER REFERENCES sound_systems(id)"),
+            ("projection_type_id", "INTEGER REFERENCES projection_types(id)"),
+            ("confirmed_with_cinema", "BOOLEAN DEFAULT 0"),
+            ("is_demo", "BOOLEAN DEFAULT 1"),
+        ]
+        for col_name, col_def in aud_cols:
+            if existing_aud_cols and col_name not in existing_aud_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE auditoriums ADD COLUMN {col_name} {col_def}"))
                 except Exception:
                     pass
 

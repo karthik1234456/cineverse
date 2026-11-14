@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, Suspense, useCallback } from 'react';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
 import {
   MapPin,
   Compass,
@@ -22,6 +23,7 @@ import { getCinemas, type Cinema } from '@/services/api';
 import { CinemaMap } from '@/components/map/CinemaMap';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { getDirectionsUrl } from '@/components/map/MapAdapter';
+import { TechnicalSpecsFilterBar } from '@/components/filters/TechnicalSpecsFilterBar';
 
 const CITY_COORDINATES: Record<string, [number, number]> = {
   bengaluru: [12.9716, 77.5946],
@@ -43,58 +45,131 @@ const CITY_NAMES: Record<number, string> = {
   7: 'kolkata',
 };
 
-export default function CinemasPage() {
+function CinemasContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const paramFormat = searchParams.get('format') || '';
+  const paramSound = searchParams.get('sound') || '';
+  const paramProjection = searchParams.get('projection') || '';
+  const paramSearch = searchParams.get('search') || '';
+
   const [cinemas, setCinemas] = useState<Cinema[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'map' | 'list'>('map');
   const [selectedCinemaId, setSelectedCinemaId] = useState<number | null>(null);
   const [cityId, setCityId] = useState<number>(1);
   const [formatFilter, setFormatFilter] = useState<string>('ALL');
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>(paramSearch);
+
+  const [selectedFormats, setSelectedFormats] = useState<string[]>(() => {
+    if (paramFormat) return paramFormat.split(',').filter(Boolean);
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cineverse_tech_filters_cinemas');
+        if (stored) return JSON.parse(stored).formats || [];
+      } catch {}
+    }
+    return [];
+  });
+  const [selectedSounds, setSelectedSounds] = useState<string[]>(() => {
+    if (paramSound) return paramSound.split(',').filter(Boolean);
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cineverse_tech_filters_cinemas');
+        if (stored) return JSON.parse(stored).sounds || [];
+      } catch {}
+    }
+    return [];
+  });
+  const [selectedProjections, setSelectedProjections] = useState<string[]>(() => {
+    if (paramProjection) return paramProjection.split(',').filter(Boolean);
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cineverse_tech_filters_cinemas');
+        if (stored) return JSON.parse(stored).projections || [];
+      } catch {}
+    }
+    return [];
+  });
 
   const { coords: userCoords, error: geoError, isRequesting: isGeoRequesting, requestLocation, clearLocation } =
     useGeolocation();
 
-  function loadCinemasData(cId: number, lat?: number, lng?: number) {
-    setLoading(true);
-    getCinemas({
-      cityId: cId,
-      userLat: lat,
-      userLng: lng,
-      sortBy: lat != null && lng != null ? 'distance' : 'name',
-    })
-      .then((data) => {
-        setCinemas(data);
-        if (data.length > 0 && !selectedCinemaId) {
-          setSelectedCinemaId(data[0].id);
+  const updateUrlParams = useCallback(
+    (updates: Record<string, string>) => {
+      const current = new URLSearchParams(
+        typeof window !== 'undefined' ? window.location.search : searchParams.toString()
+      );
+      Object.entries(updates).forEach(([key, val]) => {
+        if (!val) {
+          current.delete(key);
+        } else {
+          current.set(key, val);
         }
+      });
+      const query = current.toString();
+      router.replace(`/cinemas${query ? `?${query}` : ''}`, { scroll: false });
+    },
+    [router, searchParams]
+  );
+
+  const loadCinemasData = useCallback(
+    (
+      cId: number,
+      lat?: number,
+      lng?: number,
+      fmts = selectedFormats,
+      snds = selectedSounds,
+      prjs = selectedProjections
+    ) => {
+      setLoading(true);
+      getCinemas({
+        cityId: cId,
+        userLat: lat,
+        userLng: lng,
+        format: fmts.length > 0 ? fmts.join(',') : undefined,
+        sound: snds.length > 0 ? snds.join(',') : undefined,
+        projection: prjs.length > 0 ? prjs.join(',') : undefined,
+        sortBy: lat != null && lng != null ? 'distance' : 'name',
       })
-      .catch((err) => console.warn(err))
-      .finally(() => setLoading(false));
-  }
+        .then((data) => {
+          setCinemas(data);
+          if (data.length > 0 && !selectedCinemaId) {
+            setSelectedCinemaId(data[0].id);
+          }
+        })
+        .catch((err) => console.warn(err))
+        .finally(() => setLoading(false));
+    },
+    [selectedFormats, selectedSounds, selectedProjections, selectedCinemaId]
+  );
 
   useEffect(() => {
     const storedCityId = typeof window !== 'undefined' ? localStorage.getItem('cineverse_city_id') : null;
     const initialCityId = storedCityId ? parseInt(storedCityId, 10) : 1;
     setCityId(initialCityId);
-    loadCinemasData(initialCityId, userCoords?.lat, userCoords?.lng);
+    loadCinemasData(initialCityId, userCoords?.lat, userCoords?.lng, selectedFormats, selectedSounds, selectedProjections);
 
     function onCityChanged(e: any) {
       if (e.detail?.id) {
         setCityId(e.detail.id);
-        loadCinemasData(e.detail.id, userCoords?.lat, userCoords?.lng);
+        loadCinemasData(e.detail.id, userCoords?.lat, userCoords?.lng, selectedFormats, selectedSounds, selectedProjections);
       }
     }
     window.addEventListener('cityChanged', onCityChanged);
     return () => window.removeEventListener('cityChanged', onCityChanged);
   }, []);
 
-  // Reload when geolocation changes
+  // Reload when technical filters change
   useEffect(() => {
-    if (userCoords) {
-      loadCinemasData(cityId, userCoords.lat, userCoords.lng);
-    }
-  }, [userCoords]);
+    loadCinemasData(cityId, userCoords?.lat, userCoords?.lng, selectedFormats, selectedSounds, selectedProjections);
+    updateUrlParams({
+      format: selectedFormats.join(','),
+      sound: selectedSounds.join(','),
+      projection: selectedProjections.join(','),
+    });
+  }, [selectedFormats, selectedSounds, selectedProjections, cityId, userCoords]);
 
   const activeCitySlug = CITY_NAMES[cityId] || 'bengaluru';
   const cityCenter: [number, number] = CITY_COORDINATES[activeCitySlug] || [12.9716, 77.5946];
@@ -298,6 +373,21 @@ export default function CinemasPage() {
           )}
         </div>
       </div>
+
+      {/* Screen Format, Sound & Projection Multi-Select Chips Bar */}
+      <TechnicalSpecsFilterBar
+        cityId={cityId}
+        selectedFormats={selectedFormats}
+        selectedSounds={selectedSounds}
+        selectedProjections={selectedProjections}
+        storageKey="cineverse_tech_filters_cinemas"
+        onChange={({ formats, sounds, projections }) => {
+          setSelectedFormats(formats);
+          setSelectedSounds(sounds);
+          setSelectedProjections(projections);
+        }}
+        className="mb-8"
+      />
 
       {/* Main Content Area */}
       {viewMode === 'map' ? (
@@ -561,5 +651,13 @@ export default function CinemasPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function CinemasPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-base text-slate-600">Loading cinemas...</div>}>
+      <CinemasContent />
+    </Suspense>
   );
 }

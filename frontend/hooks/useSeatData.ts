@@ -103,12 +103,26 @@ export function useSeatData(showtimeId: string = '1') {
           setAuditoriumData(audId, proceduralData, {
             name: data.auditorium_name,
             screenType: data.screen_type,
+            screenFormat: data.screen_format || data.screen_type,
+            soundSystem: data.sound_system || 'Dolby Atmos',
+            projectionType: data.projection_type || '4K Laser',
+            techSpecsDisplay: data.tech_specs_display || `${data.auditorium_name} · ${data.screen_format || data.screen_type} · ${data.sound_system || 'Dolby Atmos'} · ${data.projection_type || '4K Laser'}`,
+            requiresGlasses: data.requires_glasses ?? false,
+            confirmedWithCinema: data.confirmed_with_cinema ?? false,
+            isDemo: data.is_demo ?? true,
           });
         }
       } else {
         setAuditoriumData('1', null, {
           name: data.auditorium_name,
           screenType: data.screen_type,
+          screenFormat: data.screen_format || data.screen_type,
+          soundSystem: data.sound_system || 'Dolby Atmos',
+          projectionType: data.projection_type || '4K Laser',
+          techSpecsDisplay: data.tech_specs_display || `${data.auditorium_name} · ${data.screen_format || data.screen_type} · ${data.sound_system || 'Dolby Atmos'} · ${data.projection_type || '4K Laser'}`,
+          requiresGlasses: data.requires_glasses ?? false,
+          confirmedWithCinema: data.confirmed_with_cinema ?? false,
+          isDemo: data.is_demo ?? true,
         });
       }
 
