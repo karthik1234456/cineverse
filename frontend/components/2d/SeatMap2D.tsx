@@ -340,7 +340,7 @@ export function SeatMap2D({
     if (showtimeDetails?.layout_data?.aisles) {
       return showtimeDetails.layout_data.aisles;
     }
-    return [3, 7]; // Default 2 aisles for 100-seat hall
+    return [5]; // Default 1 centre aisle for 100-seat compact hall (two blocks of 5)
   }, [showtimeDetails?.layout_data]);
 
   const reclinerPairMap = useMemo(() => {
@@ -409,17 +409,27 @@ export function SeatMap2D({
 
   // Build Dynamic Category Tiers from layout_data.category_bands or showtimeDetails.tiers
   const categoryTiers = useMemo(() => {
+    const isReclinerHall = Boolean(
+      showtimeDetails?.layout_data?.seat_family === 'recliner' ||
+      showtimeDetails?.layout_data?.theatre_type === 'luxury_recliner' ||
+      showtimeDetails?.screen_format?.toLowerCase().includes('dolby cinema') ||
+      showtimeDetails?.auditorium_name?.toLowerCase().includes('recliner')
+    );
+
     // 1. If layout_data category_bands is present
     if (showtimeDetails?.layout_data?.category_bands && showtimeDetails.layout_data.category_bands.length > 0) {
       const bands = showtimeDetails.layout_data.category_bands;
-      // We display tiers from furthest from screen (Premier) down to nearest (Front)
-      // Reverse copy so Premier is at the top
-      return [...bands].reverse().map((b) => {
+      // Rows run away from screen down the page: Front -> Prime -> Premier
+      return [...bands].map((b) => {
         const catLower = b.category.toLowerCase();
         let name = b.category;
-        if (catLower === 'premier') name = isMotionHall ? 'Premier Motion' : 'Premier Recliner';
-        else if (catLower === 'prime') name = isMotionHall ? 'Prime Motion' : 'Prime Standard';
-        else if (catLower === 'front') name = isMotionHall ? 'Front Motion' : 'Front Row';
+        if (catLower === 'premier') {
+          name = isMotionHall ? 'Premier Motion' : (isReclinerHall ? 'Premier Recliner' : 'Premier');
+        } else if (catLower === 'prime') {
+          name = isMotionHall ? 'Prime Motion' : 'Prime';
+        } else if (catLower === 'front') {
+          name = isMotionHall ? 'Front Motion' : 'Front';
+        }
 
         // Find price from first seat in this category
         let price = 380;
@@ -445,8 +455,15 @@ export function SeatMap2D({
             ? 'bg-[#8D5B28] text-white'
             : 'bg-[#1E40AF] text-white';
 
-        // Order rows descending inside the tier (e.g. J, I, H)
-        const sortedRows = [...b.rows].sort().reverse();
+        const stripColor =
+          catLower === 'premier'
+            ? 'bg-[#9F1239]'
+            : catLower === 'front'
+            ? 'bg-[#8D5B28]'
+            : 'bg-[#1E40AF]';
+
+        // Order rows ascending from screen (e.g. A, B, C...)
+        const sortedRows = [...b.rows].sort();
 
         return {
           name,
@@ -454,6 +471,7 @@ export function SeatMap2D({
           price,
           colorClass,
           badgeColor,
+          stripColor,
           rows: sortedRows,
         };
       });
@@ -461,12 +479,23 @@ export function SeatMap2D({
 
     // 2. If showtimeDetails.tiers is present
     if (showtimeDetails?.tiers && showtimeDetails.tiers.length > 0) {
-      return showtimeDetails.tiers.map((t) => {
+      const order = ['front', 'prime', 'premier'];
+      const sortedTiers = [...showtimeDetails.tiers].sort((a, b) => {
+        const aIdx = order.indexOf(a.category.toLowerCase());
+        const bIdx = order.indexOf(b.category.toLowerCase());
+        return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx);
+      });
+
+      return sortedTiers.map((t) => {
         const cat = t.category.toLowerCase();
         let name = t.name;
-        if (cat === 'premier') name = 'Premier Recliner';
-        else if (cat === 'prime') name = 'Prime Standard';
-        else if (cat === 'front') name = 'Front Row';
+        if (cat === 'premier') {
+          name = isMotionHall ? 'Premier Motion' : (isReclinerHall ? 'Premier Recliner' : 'Premier');
+        } else if (cat === 'prime') {
+          name = isMotionHall ? 'Prime Motion' : 'Prime';
+        } else if (cat === 'front') {
+          name = isMotionHall ? 'Front Motion' : 'Front';
+        }
 
         const colorClass =
           cat === 'premier'
@@ -482,13 +511,21 @@ export function SeatMap2D({
             ? 'bg-[#8D5B28] text-white'
             : 'bg-[#1E40AF] text-white';
 
+        const stripColor =
+          cat === 'premier'
+            ? 'bg-[#9F1239]'
+            : cat === 'front'
+            ? 'bg-[#8D5B28]'
+            : 'bg-[#1E40AF]';
+
         return {
           name,
           category: cat,
           price: t.price,
           colorClass,
           badgeColor,
-          rows: [...t.rows].reverse(),
+          stripColor,
+          rows: [...t.rows].sort(),
         };
       });
     }
@@ -496,31 +533,34 @@ export function SeatMap2D({
     // 3. Canonical database bands fallback
     return [
       {
-        name: 'Premier Recliner',
-        category: 'premier',
-        price: 520,
-        colorClass: 'text-[#9F1239] border-[#9F1239]/30 bg-rose-50',
-        badgeColor: 'bg-[#9F1239] text-white',
-        rows: ['J', 'I', 'H'],
-      },
-      {
-        name: 'Prime Standard',
-        category: 'prime',
-        price: 380,
-        colorClass: 'text-[#1E40AF] border-[#1E40AF]/30 bg-blue-50',
-        badgeColor: 'bg-[#1E40AF] text-white',
-        rows: ['G', 'F', 'E', 'D'],
-      },
-      {
-        name: 'Front Row',
+        name: 'Front',
         category: 'front',
         price: 280,
         colorClass: 'text-[#8D5B28] border-[#8D5B28]/30 bg-amber-50',
         badgeColor: 'bg-[#8D5B28] text-white',
-        rows: ['C', 'B', 'A'],
+        stripColor: 'bg-[#8D5B28]',
+        rows: ['A', 'B', 'C'],
+      },
+      {
+        name: 'Prime',
+        category: 'prime',
+        price: 380,
+        colorClass: 'text-[#1E40AF] border-[#1E40AF]/30 bg-blue-50',
+        badgeColor: 'bg-[#1E40AF] text-white',
+        stripColor: 'bg-[#1E40AF]',
+        rows: ['D', 'E', 'F', 'G'],
+      },
+      {
+        name: isReclinerHall ? 'Premier Recliner' : 'Premier',
+        category: 'premier',
+        price: 520,
+        colorClass: 'text-[#9F1239] border-[#9F1239]/30 bg-rose-50',
+        badgeColor: 'bg-[#9F1239] text-white',
+        stripColor: 'bg-[#9F1239]',
+        rows: ['H', 'I', 'J'],
       },
     ];
-  }, [showtimeDetails?.layout_data?.category_bands, showtimeDetails?.tiers, showtimeDetails?.seats]);
+  }, [showtimeDetails?.layout_data?.category_bands, showtimeDetails?.tiers, showtimeDetails?.seats, isMotionHall]);
 
   // Group seats by row
   const rowSeats = useMemo(() => {
@@ -575,6 +615,16 @@ export function SeatMap2D({
 
   const allRowsOrdered = useMemo(() => {
     return categoryTiers.flatMap((t) => t.rows);
+  }, [categoryTiers]);
+
+  const rowToTierMap = useMemo(() => {
+    const map = new Map<string, (typeof categoryTiers)[0]>();
+    for (const t of categoryTiers) {
+      for (const r of t.rows) {
+        map.set(r, t);
+      }
+    }
+    return map;
   }, [categoryTiers]);
 
   const handleSeatToggle = useCallback((seatId: string) => {
@@ -1072,13 +1122,6 @@ export function SeatMap2D({
           </div>
         )}
 
-        {/* Curved Screen Banner with ambient glow */}
-        <div className="pt-2 pb-6 flex flex-col items-center">
-          <div className="h-2.5 w-4/5 max-w-xl rounded-full bg-gradient-to-r from-transparent via-[#C8102E] to-transparent shadow-lg shadow-rose-200/60" />
-          <span className="text-xs uppercase tracking-widest text-slate-500 font-black mt-3">
-            ▔▔▔▔▔ SCREEN THIS WAY ▔▔▔▔▔
-          </span>
-        </div>
 
         {/* Legend */}
         {isHeatmapActive ? (
@@ -1170,239 +1213,278 @@ export function SeatMap2D({
         )}
 
         {/* 2D Seat Matrix (Zoomable & Pannable for large halls) */}
-        <div ref={mapScrollContainerRef} className="relative w-full overflow-x-auto pb-6 pt-2">
-          {/* Multi-Block Header Bar for triple block / multi-aisle arrangements */}
-          {showtimeDetails?.layout_data?.blocks_pattern && showtimeDetails.layout_data.blocks_pattern.length > 1 && (
-            <div className="flex items-center justify-center gap-3 sm:gap-6 text-[11px] font-black uppercase tracking-wider text-slate-500 py-2 mb-2" data-testid="block-headers">
-              {showtimeDetails.layout_data.blocks_pattern.map((count: number, bIdx: number) => {
-                const totalBlocks = showtimeDetails.layout_data?.blocks_pattern?.length ?? 0;
-                const label = totalBlocks === 3
-                  ? (bIdx === 0 ? 'Left Wing' : bIdx === 1 ? 'Centre Stalls' : 'Right Wing')
-                  : `Section ${String.fromCharCode(65 + bIdx)}`;
-                return (
-                  <span key={bIdx} className="px-3 py-1 rounded-xl bg-slate-100 border border-slate-200 shadow-xs">
-                    {label} ({count} seats)
-                  </span>
-                );
-              })}
-            </div>
-          )}
-
+        <div
+          ref={mapScrollContainerRef}
+          data-testid="2d-seat-map"
+          className="relative w-full overflow-x-auto pb-6 pt-2"
+        >
           <div
             role="grid"
             data-testid="seatmap-grid"
             aria-label="2D Auditorium Seat Selection Map"
-            className="space-y-8 py-2 min-w-max mx-auto flex flex-col items-center transition-transform duration-150 origin-top"
+            className="w-full max-w-5xl mx-auto rounded-3xl border border-[#E6DCD2] bg-white p-4 sm:p-8 shadow-sm flex flex-col items-center transition-transform duration-150 origin-top min-w-max"
             style={{ transform: zoom !== 1 ? `scale(${zoom})` : undefined }}
           >
-            {categoryTiers.map((tier) => (
-              <div
-                key={tier.name}
-                className="w-full space-y-3 rounded-3xl border border-[#E6DCD2] bg-white p-6 shadow-sm"
-              >
-                {/* Category Header with Authentic Pricing */}
-                <div className="flex items-center justify-between border-b border-[#E6DCD2] pb-3 px-2">
-                  <div className="flex items-center gap-2">
-                    <span className="font-black text-base text-[#1B1320]">{tier.name}</span>
-                    <span className="text-xs text-slate-500 font-bold uppercase tracking-wider">
-                      (Rows {tier.rows[tier.rows.length - 1]}–{tier.rows[0]})
-                    </span>
-                    {hasBalconyLevel && tier.rows.some((r) => balconyRowsSet.has(r)) && (
-                      <span className="px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-black uppercase tracking-wider">
-                        Balcony Tier
-                      </span>
-                    )}
-                  </div>
-                  <span className="font-black text-lg text-[#C8102E]">₹{Math.round(tier.price)}</span>
-                </div>
+            {/* Screen Banner directly above Row A */}
+            <div className="pt-2 pb-6 flex flex-col items-center w-full" data-testid="screen-element">
+              <div className="h-2.5 w-4/5 max-w-xl rounded-full bg-gradient-to-r from-transparent via-[#C8102E] to-transparent shadow-lg shadow-rose-200/60" />
+              <span className="text-xs uppercase tracking-widest text-slate-500 font-black mt-3">
+                ▔▔▔▔▔ SCREEN THIS WAY ▔▔▔▔▔
+              </span>
+            </div>
 
-                {/* Rows */}
-                <div className="space-y-3 pt-2">
-                  {tier.rows.map((row) => {
-                    const seatsInRow = rowSeats[row] || [];
-                    const isBalconyRow = balconyRowsSet.has(row);
-                    const midIndex = (seatsInRow.length + 1) / 2;
-                    return (
-                      <div key={row} role="row" data-row-id={row} className="flex items-center justify-center gap-2 sm:gap-3">
-                        {/* Left Row Label */}
-                        <span className="w-8 shrink-0 text-center text-sm font-black text-slate-500 flex items-center justify-center gap-1">
+            {/* Multi-Block Header Bar: shown ONLY when hall has more than two blocks */}
+            {showtimeDetails?.layout_data?.blocks_pattern && showtimeDetails.layout_data.blocks_pattern.length > 2 && (
+              <div className="flex items-center justify-center gap-6 text-[11px] font-black uppercase tracking-wider text-slate-500 py-2 mb-3" data-testid="block-headers">
+                {showtimeDetails.layout_data.blocks_pattern.map((_: number, bIdx: number) => {
+                  const label = `Block ${String.fromCharCode(65 + bIdx)}`;
+                  return (
+                    <span key={bIdx} className="px-2.5 py-0.5 rounded-md bg-slate-100 border border-slate-200 shadow-xs text-slate-600">
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Continuous Rows Plan with Consistent Spacing */}
+            <div className="w-full space-y-3 pt-2 flex flex-col items-center">
+              {allRowsOrdered.map((row) => {
+                const tier = rowToTierMap.get(row);
+                const isFirstRowOfTier = tier && tier.rows[0] === row;
+                const seatsInRow = rowSeats[row] || [];
+                const isBalconyRow = balconyRowsSet.has(row);
+                const midIndex = (seatsInRow.length + 1) / 2;
+
+                return (
+                  <React.Fragment key={row}>
+                    {/* Category Divider Strip and Price Label */}
+                    {isFirstRowOfTier && tier && (
+                      <div
+                        className="w-full max-w-2xl flex items-center justify-between border-t border-dashed border-slate-200 pt-3 pb-1 mt-2 text-xs"
+                        data-testid={`category-band-${tier.category}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className={`w-2.5 h-2.5 rounded-full ${tier.stripColor}`} />
+                          <span className="font-black text-sm text-[#1B1320]">{tier.name}</span>
+                          <span className="text-slate-400 font-semibold uppercase text-[10px]">
+                            (Rows {tier.rows[0]}–{tier.rows[tier.rows.length - 1]})
+                          </span>
+                          {hasBalconyLevel && tier.rows.some((r) => balconyRowsSet.has(r)) && (
+                            <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black uppercase tracking-wider">
+                              Balcony
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1.5 font-black text-sm text-[#C8102E]">
+                          <span>₹{Math.round(tier.price)}</span>
+                          <span className="text-[10px] text-slate-400 font-semibold">(incl. fees)</span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div
+                      role="row"
+                      data-row-id={row}
+                      className="flex items-center justify-center gap-2 sm:gap-3 w-full"
+                    >
+                      {/* Left Row Label with Category Color Strip */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span
+                          className={`w-1 h-7 rounded-full ${tier?.stripColor || 'bg-slate-300'}`}
+                          title={`${tier?.name || 'Standard'} Category`}
+                        />
+                        <span
+                          data-testid={`row-label-left-${row}`}
+                          className="w-7 text-center text-sm font-black text-slate-600 flex items-center justify-center gap-1"
+                        >
                           {row}
                           {isBalconyRow && <span className="text-[9px] text-amber-700 font-black">B</span>}
                         </span>
-
-                        {/* Seats in Row (curved as an arc when curve_radius is active) */}
-                        <div className="flex items-center">
-                          {seatsInRow.map((s) => {
-                            const seatId = s.seat_id;
-                            const inv = seatInventoryMap.get(seatId);
-                            const rawStatus = (seatStatuses[seatId] || inv?.status || 'AVAILABLE').toString().toLowerCase();
-                            const status = rawStatus === 'payment_pending' ? 'held' : rawStatus;
-                            const isSelected = selectedSeats.includes(seatId);
-                            const isHeld = status === 'held';
-                            const isBooked = status === 'booked';
-                            const isFocused = focusedSeatId === seatId;
-                            const isAccessible = s.seat_id in accessibleSeatsList || accessibleSeatsList.includes(s.seat_id) || inv?.is_accessible;
-                            const partnerId = reclinerPairMap.get(seatId);
-                            const isRecliner = !!partnerId;
-
-                            // Compute comfort score for this seat
-                            const scored = viewScore(s);
-                            const score = scored.score;
-                            const seatPrice = inv?.price ?? tier.price;
-
-                            let bgClass = 'border-[#E6DCD2] bg-[#FAF6F0] text-[#1B1320] hover:border-[#C8102E] hover:bg-rose-50';
-                            if (isSelected) {
-                              bgClass = 'border-[#C8102E] bg-[#C8102E] text-white shadow-md scale-105 font-black ring-2 ring-rose-300';
-                            } else if (isHeatmapActive) {
-                              if (score >= 80) {
-                                bgClass = 'border-emerald-700 bg-emerald-600 text-white font-black shadow-sm';
-                              } else if (score >= 65) {
-                                bgClass = 'border-amber-600 bg-amber-500 text-white font-black shadow-sm';
-                              } else {
-                                bgClass = 'border-orange-600 bg-orange-500 text-white font-black shadow-sm';
-                              }
-                            } else if (isHeld) {
-                              bgClass = 'border-amber-400 bg-amber-100 text-amber-900 cursor-not-allowed opacity-80';
-                            } else if (isBooked) {
-                              bgClass = 'border-slate-200 bg-slate-200 text-slate-400 cursor-not-allowed opacity-60';
-                            }
-
-                            // Curved arc vertical sag (dipping down at edges for realism)
-                            const arcOffset = isRowCurved && midIndex > 0 ? Math.round(Math.pow((s.number - midIndex) / midIndex, 2) * 14) : 0;
-
-                            // Aisle gap margin
-                            const hasAisleAfter = aisles.includes(s.number);
-
-                            // Motion pod grouping
-                            const podId = isMotionHall ? seatToPodMap.get(seatId) : null;
-                            const sIndexInRow = seatsInRow.indexOf(s);
-                            const nextSeat = sIndexInRow < seatsInRow.length - 1 ? seatsInRow[sIndexInRow + 1] : null;
-                            const nextPodId = nextSeat && isMotionHall ? seatToPodMap.get(nextSeat.seat_id) : null;
-                            const isPodEnd = Boolean(podId && nextPodId && podId !== nextPodId);
-
-                            const groupMember = seatGroupMemberMap.get(seatId);
-
-                            const statusWord = isSelected ? 'selected' : (isBooked ? 'booked' : (isHeld ? 'held' : 'available'));
-                            const accessibleKind = isAccessible ? ', accessible wheelchair space' : (s.is_companion ? ', companion seat' : '');
-                            const reclinerKind = isRecliner ? `, recliner pair with ${partnerId}` : '';
-                            const motionKind = podId ? `, Motion pod ${podId}` : '';
-                            const accessibleName = `Row ${s.row}, seat ${s.number}, ${tier.name}, ${Math.round(seatPrice)} rupees, ${statusWord}${accessibleKind}${reclinerKind}${motionKind}`;
-
-                            return (
-                              <div
-                                key={seatId}
-                                role="gridcell"
-                                aria-selected={isSelected}
-                                style={arcOffset ? { transform: `translateY(${arcOffset}px)` } : undefined}
-                                className={`relative flex items-center justify-center p-1 ${
-                                  hasAisleAfter
-                                    ? 'mr-5 sm:mr-8 md:mr-10'
-                                    : isPodEnd
-                                      ? 'mr-3.5 sm:mr-5 md:mr-6'
-                                      : ''
-                                } ${isMotionHall && podId ? 'rounded-lg bg-cyan-950/5' : ''}`}
-                              >
-                                <button
-                                  type="button"
-                                  aria-pressed={isSelected}
-                                  aria-disabled={isBooked || isHeld}
-                                  aria-label={accessibleName}
-                                  onClick={() => {
-                                    focusedSeatIdRef.current = seatId;
-                                    setFocusedSeatId(seatId);
-                                    handleSeatToggle(seatId);
-                                  }}
-                                  onFocus={(e) => {
-                                    focusedSeatIdRef.current = seatId;
-                                    setFocusedSeatId(seatId);
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top });
-                                    setHoveredSeat({
-                                      seat_id: seatId,
-                                      row: s.row,
-                                      number: s.number,
-                                      category: s.category || tier.name,
-                                      price: seatPrice,
-                                      status: status,
-                                      is_accessible: isAccessible,
-                                    });
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    focusedSeatIdRef.current = seatId;
-                                    setFocusedSeatId(seatId);
-                                    const rect = e.currentTarget.getBoundingClientRect();
-                                    setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top });
-                                    setHoveredSeat({
-                                      seat_id: seatId,
-                                      row: s.row,
-                                      number: s.number,
-                                      category: s.category || tier.name,
-                                      price: seatPrice,
-                                      status: status,
-                                      is_accessible: isAccessible,
-                                    });
-                                  }}
-                                  onMouseLeave={() => setHoveredSeat(null)}
-                                  onKeyDown={(e) => handleGridArrowNavigation(e, s, seatsInRow, seatId)}
-                                  className={`h-9 w-9 sm:h-10 sm:w-10 min-w-[36px] min-h-[36px] rounded-xl border-2 text-sm font-bold flex items-center justify-center transition-all duration-150 relative touch-manipulation before:absolute before:-inset-1 before:min-w-[44px] before:min-h-[44px] before:content-[''] focus-visible:ring-4 focus-visible:ring-[#C8102E] focus-visible:ring-offset-2 outline-none ${bgClass} ${
-                                    isFocused ? 'ring-2 ring-[#C8102E]' : ''
-                                  } ${tier.category === 'premier' ? 'rounded-2xl' : ''}`}
-                                  data-testid={`seat-2d-${seatId}`}
-                                  data-seat-id={seatId}
-                                  data-status={isSelected ? 'selected' : status}
-                                  data-score={score}
-                                >
-                                  {isSelected ? '✓' : (isBooked ? '✕' : (isHeld ? '⏳' : (isHeatmapActive ? Math.round(score) : s.number)))}
-                                  {isAccessible && !isSelected && (
-                                    <span
-                                      title="Wheelchair Accessible Seat"
-                                      className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white font-bold ring-1 ring-white"
-                                    >
-                                      ♿
-                                    </span>
-                                  )}
-                                  {isRecliner && !isAccessible && !isSelected && (
-                                    <span
-                                      title={`Recliner Pair with ${partnerId}`}
-                                      className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#9F1239] text-[8px] text-white font-black ring-1 ring-white"
-                                    >
-                                      2
-                                    </span>
-                                  )}
-                                  {s.is_companion && !isSelected && (
-                                    <span
-                                      title="Companion Seat"
-                                      className="absolute -top-1.5 -left-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-purple-600 text-[9px] text-white font-bold ring-1 ring-white"
-                                    >
-                                      C
-                                    </span>
-                                  )}
-                                  {groupMember && (
-                                    <span
-                                      title={`Seat selected by ${groupMember.userName}`}
-                                      data-testid={`group-seat-badge-${seatId}`}
-                                      className="absolute -bottom-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black text-white ring-1 ring-white shadow-sm"
-                                      style={{ backgroundColor: groupMember.color }}
-                                    >
-                                      {groupMember.initials}
-                                    </span>
-                                  )}
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Right Row Label */}
-                        <span className="w-8 shrink-0 text-center text-sm font-black text-slate-500">
-                          {row}
-                        </span>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ))}
+
+                      {/* Seats in Row */}
+                      <div className="flex items-center">
+                        {seatsInRow.map((s) => {
+                          const seatId = s.seat_id;
+                          const inv = seatInventoryMap.get(seatId);
+                          const rawStatus = (seatStatuses[seatId] || inv?.status || 'AVAILABLE').toString().toLowerCase();
+                          const status = rawStatus === 'payment_pending' ? 'held' : rawStatus;
+                          const isSelected = selectedSeats.includes(seatId);
+                          const isHeld = status === 'held';
+                          const isBooked = status === 'booked';
+                          const isFocused = focusedSeatId === seatId;
+                          const isAccessible = s.seat_id in accessibleSeatsList || accessibleSeatsList.includes(s.seat_id) || inv?.is_accessible;
+                          const partnerId = reclinerPairMap.get(seatId);
+                          const isRecliner = !!partnerId;
+
+                          // Compute comfort score for this seat
+                          const scored = viewScore(s);
+                          const score = scored.score;
+                          const seatPrice = inv?.price ?? (tier?.price || 380);
+
+                          let bgClass = 'border-[#E6DCD2] bg-[#FAF6F0] text-[#1B1320] hover:border-[#C8102E] hover:bg-rose-50';
+                          if (isSelected) {
+                            bgClass = 'border-[#C8102E] bg-[#C8102E] text-white shadow-md scale-105 font-black ring-2 ring-rose-300';
+                          } else if (isHeatmapActive) {
+                            if (score >= 80) {
+                              bgClass = 'border-emerald-700 bg-emerald-600 text-white font-black shadow-sm';
+                            } else if (score >= 65) {
+                              bgClass = 'border-amber-600 bg-amber-500 text-white font-black shadow-sm';
+                            } else {
+                              bgClass = 'border-orange-600 bg-orange-500 text-white font-black shadow-sm';
+                            }
+                          } else if (isHeld) {
+                            bgClass = 'border-amber-400 bg-amber-100 text-amber-900 cursor-not-allowed opacity-80';
+                          } else if (isBooked) {
+                            bgClass = 'border-slate-200 bg-slate-200 text-slate-400 cursor-not-allowed opacity-60';
+                          }
+
+                          // Curved arc vertical sag (dipping down at edges for realism)
+                          const arcOffset = isRowCurved && midIndex > 0 ? Math.round(Math.pow((s.number - midIndex) / midIndex, 2) * 14) : 0;
+
+                          // Aisle gap margin
+                          const hasAisleAfter = aisles.includes(s.number);
+
+                          // Motion pod grouping
+                          const podId = isMotionHall ? seatToPodMap.get(seatId) : null;
+                          const sIndexInRow = seatsInRow.indexOf(s);
+                          const nextSeat = sIndexInRow < seatsInRow.length - 1 ? seatsInRow[sIndexInRow + 1] : null;
+                          const nextPodId = nextSeat && isMotionHall ? seatToPodMap.get(nextSeat.seat_id) : null;
+                          const isPodEnd = Boolean(podId && nextPodId && podId !== nextPodId);
+
+                          const groupMember = seatGroupMemberMap.get(seatId);
+
+                          const statusWord = isSelected ? 'selected' : (isBooked ? 'booked' : (isHeld ? 'held' : 'available'));
+                          const accessibleKind = isAccessible ? ', accessible wheelchair space' : (s.is_companion ? ', companion seat' : '');
+                          const reclinerKind = isRecliner ? `, recliner pair with ${partnerId}` : '';
+                          const motionKind = podId ? `, Motion pod ${podId}` : '';
+                          const accessibleName = `Row ${s.row}, seat ${s.number}, ${tier?.name || 'Standard'}, ${Math.round(seatPrice)} rupees, ${statusWord}${accessibleKind}${reclinerKind}${motionKind}`;
+
+                          return (
+                            <div
+                              key={seatId}
+                              role="gridcell"
+                              aria-selected={isSelected}
+                              style={arcOffset ? { transform: `translateY(${arcOffset}px)` } : undefined}
+                              className={`relative flex items-center justify-center p-1 ${
+                                hasAisleAfter
+                                  ? 'mr-5 sm:mr-8 md:mr-10'
+                                  : isPodEnd
+                                    ? 'mr-3.5 sm:mr-5 md:mr-6'
+                                    : ''
+                              } ${isMotionHall && podId ? 'rounded-lg bg-cyan-950/5' : ''}`}
+                            >
+                              <button
+                                type="button"
+                                aria-pressed={isSelected}
+                                aria-disabled={isBooked || isHeld}
+                                aria-label={accessibleName}
+                                onClick={() => {
+                                  focusedSeatIdRef.current = seatId;
+                                  setFocusedSeatId(seatId);
+                                  handleSeatToggle(seatId);
+                                }}
+                                onFocus={(e) => {
+                                  focusedSeatIdRef.current = seatId;
+                                  setFocusedSeatId(seatId);
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top });
+                                  setHoveredSeat({
+                                    seat_id: seatId,
+                                    row: s.row,
+                                    number: s.number,
+                                    category: s.category || tier?.name || 'Standard',
+                                    price: seatPrice,
+                                    status: status,
+                                    is_accessible: isAccessible,
+                                  });
+                                }}
+                                onMouseEnter={(e) => {
+                                  focusedSeatIdRef.current = seatId;
+                                  setFocusedSeatId(seatId);
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setTooltipPos({ x: rect.left + rect.width / 2, y: rect.top });
+                                  setHoveredSeat({
+                                    seat_id: seatId,
+                                    row: s.row,
+                                    number: s.number,
+                                    category: s.category || tier?.name || 'Standard',
+                                    price: seatPrice,
+                                    status: status,
+                                    is_accessible: isAccessible,
+                                  });
+                                }}
+                                onMouseLeave={() => setHoveredSeat(null)}
+                                onKeyDown={(e) => handleGridArrowNavigation(e, s, seatsInRow, seatId)}
+                                className={`h-9 w-9 sm:h-10 sm:w-10 min-w-[36px] min-h-[36px] rounded-xl border-2 text-sm font-bold flex items-center justify-center transition-all duration-150 relative touch-manipulation before:absolute before:-inset-1 before:min-w-[44px] before:min-h-[44px] before:content-[''] focus-visible:ring-4 focus-visible:ring-[#C8102E] focus-visible:ring-offset-2 outline-none ${bgClass} ${
+                                  isFocused ? 'ring-2 ring-[#C8102E]' : ''
+                                } ${tier?.category === 'premier' && isRecliner ? 'rounded-2xl' : ''}`}
+                                data-testid={`seat-2d-${seatId}`}
+                                data-seat-id={seatId}
+                                data-status={isSelected ? 'selected' : status}
+                                data-score={score}
+                              >
+                                {isSelected ? '✓' : (isBooked ? '✕' : (isHeld ? '⏳' : (isHeatmapActive ? Math.round(score) : s.number)))}
+                                {isAccessible && !isSelected && (
+                                  <span
+                                    title="Wheelchair Accessible Seat"
+                                    className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-600 text-[10px] text-white font-bold ring-1 ring-white"
+                                  >
+                                    ♿
+                                  </span>
+                                )}
+                                {isRecliner && !isAccessible && !isSelected && (
+                                  <span
+                                    title={`Recliner Pair with ${partnerId}`}
+                                    className="absolute -top-1.5 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#9F1239] text-[8px] text-white font-black ring-1 ring-white"
+                                  >
+                                    2
+                                  </span>
+                                )}
+                                {s.is_companion && !isSelected && (
+                                  <span
+                                    title="Companion Seat"
+                                    className="absolute -top-1.5 -left-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-purple-600 text-[9px] text-white font-bold ring-1 ring-white"
+                                  >
+                                    C
+                                  </span>
+                                )}
+                                {groupMember && (
+                                  <span
+                                    title={`Seat selected by ${groupMember.userName}`}
+                                    data-testid={`group-seat-badge-${seatId}`}
+                                    className="absolute -bottom-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full text-[9px] font-black text-white ring-1 ring-white shadow-sm"
+                                    style={{ backgroundColor: groupMember.color }}
+                                  >
+                                    {groupMember.initials}
+                                  </span>
+                                )}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Right Row Label with Category Color Strip */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span
+                          data-testid={`row-label-right-${row}`}
+                          className="w-7 text-center text-sm font-black text-slate-600 flex items-center justify-center gap-1"
+                        >
+                          {row}
+                          {isBalconyRow && <span className="text-[9px] text-amber-700 font-black">B</span>}
+                        </span>
+                        <span
+                          className={`w-1 h-7 rounded-full ${tier?.stripColor || 'bg-slate-300'}`}
+                          title={`${tier?.name || 'Standard'} Category`}
+                        />
+                      </div>
+                    </div>
+                  </React.Fragment>
+                );
+              })}
+            </div>
           </div>
         </div>
 

@@ -53,13 +53,13 @@ PROJECTION_TYPES_DATA = [
 # Each tuple: (screen_format_name, sound_system_name, projection_type_name, confirmed_with_cinema)
 CITY_FORMAT_DISTRIBUTION: Dict[str, List[Tuple[str, str, str, bool]]] = {
     "bengaluru": [
-        ("IMAX 3D", "Dolby Atmos", "RGB Laser", True),
-        ("Dolby Cinema", "Dolby Atmos", "RGB Laser", True),
-        ("4DX 3D", "Dolby Atmos", "4K Laser", True),
-        ("P[XL]", "DTS:X", "4K Laser", True),
-        ("ScreenX", "Dolby Atmos", "4K Laser", False),
-        ("ICE 3D", "Dolby Atmos", "4K Laser", False),
-        ("IMAX 3D", "Dolby Atmos", "RGB Laser", True),
+        ("3D", "Dolby Atmos", "4K Laser", True),             # Aud 1: Screen 1 — Compact Hall (100 seats)
+        ("Dolby Cinema", "Dolby Atmos", "RGB Laser", True),  # Aud 2: Screen 2 (252 seats, recliners)
+        ("4DX 3D", "Dolby Atmos", "4K Laser", True),        # Aud 3: Screen 3 (208 seats, motion pods)
+        ("IMAX 3D", "Dolby Atmos", "RGB Laser", True),       # Aud 4: Screen 4 (522 seats, flagship IMAX)
+        ("ScreenX", "Dolby Atmos", "4K Laser", False),       # Aud 5: Screen 1
+        ("ICE 3D", "Dolby Atmos", "4K Laser", False),        # Aud 6: Screen 2
+        ("P[XL]", "DTS:X", "4K Laser", True),                # Aud 7: Screen 3
         ("4DX 3D", "Dolby Atmos", "4K Laser", True),
         ("3D", "Dolby 7.1", "4K Laser", True),
         ("3D", "Dolby 7.1", "Standard digital", False),

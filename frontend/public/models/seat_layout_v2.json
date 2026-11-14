@@ -32,6 +32,9 @@
     "eye_forward_of_backrest_units": 0.45,
     "disclaimer": "Geometric estimate for a seated adult. Not a measurement of a physical cinema. No obstruction (heads, rails) is modelled."
   },
+  "aisles": [5],
+  "blocks_pattern": [5, 5],
+  "arrangement_pattern": "single_aisle",
   "categories": {
     "front": {
       "label": "Front",

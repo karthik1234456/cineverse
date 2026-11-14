@@ -38,6 +38,22 @@ export function AuditoriumInfoPanel() {
   const layout = auditoriumLayout || (layoutData as unknown as SeatLayoutFile);
 
   const displayTiers = React.useMemo(() => {
+    // 1. Authoritative server tiers from showtime API (guarantees 100% price truth between 2D and 3D)
+    if (storeTiers && storeTiers.length > 0) {
+      return storeTiers.map((t) => ({
+        name: t.name,
+        category: t.category,
+        rows: t.rows.length === 1 ? `Row ${t.rows[0]}` : `Rows ${t.rows[0]}–${t.rows[t.rows.length - 1]}`,
+        price: t.price,
+        colorClass:
+          t.category.toLowerCase() === 'premier'
+            ? 'border-rose-300 bg-rose-50 text-[#9F1239]'
+            : t.category.toLowerCase() === 'front'
+            ? 'border-amber-300 bg-amber-50 text-[#8D5B28]'
+            : 'border-blue-300 bg-blue-50 text-[#1E40AF]',
+      }));
+    }
+
     if (layout.seats && layout.seats.length > 0) {
       const allRows = Array.from(new Set(layout.seats.map((s) => s.row))).sort();
       const rowToCat = new Map<string, string>();
@@ -89,20 +105,6 @@ export function AuditoriumInfoPanel() {
       if (result.length > 0) return result;
     }
 
-    if (storeTiers && storeTiers.length > 0) {
-      return storeTiers.map((t) => ({
-        name: t.name,
-        category: t.category,
-        rows: t.rows.length > 0 ? `Rows ${t.rows[0]}–${t.rows[t.rows.length - 1]}` : '',
-        price: t.price,
-        colorClass:
-          t.category.toLowerCase() === 'premier'
-            ? 'border-rose-300 bg-rose-50 text-[#9F1239]'
-            : t.category.toLowerCase() === 'front'
-            ? 'border-amber-300 bg-amber-50 text-[#8D5B28]'
-            : 'border-blue-300 bg-blue-50 text-[#1E40AF]',
-      }));
-    }
     return [
       { name: 'Front', category: 'front', rows: 'Rows A–C', price: 280, colorClass: 'border-amber-300 bg-amber-50 text-[#8D5B28]' },
       { name: 'Prime', category: 'prime', rows: 'Rows D–G', price: 380, colorClass: 'border-blue-300 bg-blue-50 text-[#1E40AF]' },
@@ -182,7 +184,10 @@ export function AuditoriumInfoPanel() {
         className="pointer-events-none fixed left-4 top-16 z-20 hidden w-80 max-h-[calc(100dvh-5rem)] flex-col gap-3 overflow-y-auto transition-opacity duration-300 md:flex"
       >
         {/* Theatre Title & Screen Spec Card */}
-        <div className="pointer-events-auto rounded-3xl border border-[#E6DCD2] bg-white/95 p-5 shadow-2xl backdrop-blur-md text-[#1B1320]">
+        <div
+          data-testid="auditorium-info-panel"
+          className="pointer-events-auto rounded-3xl border border-[#E6DCD2] bg-white/95 p-5 shadow-2xl backdrop-blur-md text-[#1B1320]"
+        >
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
@@ -316,7 +321,11 @@ export function AuditoriumInfoPanel() {
             </div>
             <div className="grid grid-cols-3 gap-2 text-center text-sm">
               {displayTiers.map((tier) => (
-                <div key={tier.name} className={`rounded-xl border py-2 ${tier.colorClass}`}>
+                <div
+                  key={tier.name}
+                  data-testid={`tier-card-${tier.category.toLowerCase()}`}
+                  className={`rounded-xl border py-2 ${tier.colorClass}`}
+                >
                   <div className="font-bold">{tier.name}</div>
                   <div className="text-sm text-slate-500">{tier.rows}</div>
                   <div className="mt-0.5 font-black text-sm">₹{Math.round(tier.price)}</div>

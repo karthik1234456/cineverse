@@ -142,7 +142,7 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
     label: 'Compact 3D Hall (Reference)',
     targetSeats: [100, 100],
     typicalSeats: 100,
-    arrangementPattern: 'triple_block',
+    arrangementPattern: 'single_aisle',
     ceilingDesign: {
       structure: 'coffered_grid',
       cloudsCount: 6,

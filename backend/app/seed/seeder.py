@@ -1312,15 +1312,15 @@ def generate_auditorium_layout(
 
         rows = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]
         seats_per_row = 10
-        aisles = [3, 7]
+        aisles = [5]  # Two blocks of 5 seats with 1 centre aisle
         accessible = ["A01", "A02"]
 
         layout_data = {
             "theatre_type": "compact",
             "theatre_type_label": "Compact 3D Hall (Reference)",
             "layout_signature": "compact_reference",
-            "arrangement_pattern": "triple_block",
-            "blocks_pattern": [3, 4, 3],
+            "arrangement_pattern": "single_aisle",
+            "blocks_pattern": [5, 5],
             "rows": rows,
             "seats_per_row": seats_per_row,
             "aisles": aisles,

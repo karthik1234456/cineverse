@@ -33,7 +33,7 @@ FORMAT_SPECS: Dict[str, Dict[str, Any]] = {
         ]
     },
     "3D": {
-        "min_seats": 220,
+        "min_seats": 100,
         "max_seats": 260,
         "theatre_type": "standard",
         "seat_family": "standard",
@@ -48,6 +48,7 @@ FORMAT_SPECS: Dict[str, Dict[str, Any]] = {
         "ambient_lighting": "standard",
         "confirmation_note": None,
         "variants": [
+            {"bl": 5, "br": 5, "rows": 10},   # 100 seats (Compact Reference Hall)
             {"bl": 8, "br": 8, "rows": 15},   # 240 seats
             {"bl": 9, "br": 9, "rows": 14},   # 252 seats
             {"bl": 10, "br": 10, "rows": 11}, # 220 seats
@@ -442,7 +443,7 @@ def generate_format_layout(
     spec = FORMAT_SPECS.get(screen_format, FORMAT_SPECS["2D"])
     variants = spec["variants"]
     # Deterministic variant selection using cinema_id and variant_idx to guarantee unique signature in cinema
-    chosen_variant = variants[(variant_idx + cinema_id) % len(variants)]
+    chosen_variant = variants[variant_idx % len(variants)]
     
     bl = chosen_variant["bl"]
     br = chosen_variant["br"]
@@ -486,11 +487,16 @@ def generate_format_layout(
     row_a_y = 1.365
 
     # Category Bands (Front: ~25%, Prime: ~50%, Premier: ~25%)
-    front_cutoff = max(2, int(num_rows * 0.25))
-    prime_cutoff = max(front_cutoff + 2, int(num_rows * 0.70))
-    front_rows = rows[:front_cutoff]
-    prime_rows = rows[front_cutoff:prime_cutoff]
-    premier_rows = rows[prime_cutoff:]
+    if num_rows == 10:
+        front_rows = rows[:3]    # A, B, C (30 seats)
+        prime_rows = rows[3:7]   # D, E, F, G (40 seats)
+        premier_rows = rows[7:]  # H, I, J (30 seats)
+    else:
+        front_cutoff = max(2, int(num_rows * 0.25))
+        prime_cutoff = max(front_cutoff + 2, int(num_rows * 0.70))
+        front_rows = rows[:front_cutoff]
+        prime_rows = rows[front_cutoff:prime_cutoff]
+        premier_rows = rows[prime_cutoff:]
 
     category_bands = [
         {"category": "Front", "rows": front_rows, "price_multiplier": 0.8},

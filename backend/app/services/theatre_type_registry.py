@@ -25,7 +25,7 @@ THEATRE_TYPES = {
         "label": "Compact 3D Hall (Reference)",
         "target_seats": (100, 100),
         "typical_seats": 100,
-        "arrangement": "triple_block",
+        "arrangement": "single_aisle",
         "real_world": {
             "seat_width_m": 0.55,
             "row_pitch_m": 1.05,
