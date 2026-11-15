@@ -43,6 +43,7 @@ from app.api.v1.insights import router as insights_router
 from app.api.v1.problem_reports import router as problem_reports_router
 from app.api.v1.admin_security import router as admin_security_router
 from app.api.v1.invoices import router as invoices_router
+from app.api.v1.operator_schedule import router as operator_schedule_router
 from app.api.v1.dev import router as dev_router
 from app.api.websockets.showtimes import router as ws_router
 
@@ -231,6 +232,7 @@ def create_app() -> FastAPI:
     application.include_router(dev_router, prefix="/api/dev", tags=["Developer Diagnostics"])
     application.include_router(problem_reports_router, prefix=f"{v1}", tags=["Problem Reports"])
     application.include_router(invoices_router, prefix=f"{v1}", tags=["Tax Invoices"])
+    application.include_router(operator_schedule_router, prefix=f"{v1}", tags=["Operator Schedule"])
     application.include_router(ws_router, tags=["WebSockets"])
 
     # 6. Static files mount for trailers, posters, backdrops with byte-range support

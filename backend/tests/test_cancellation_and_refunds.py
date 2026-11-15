@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from httpx import AsyncClient
 from sqlalchemy import select
 
+from app.models.auth import User, RoleEnum
 from app.models.booking import Booking, BookingSeat, BookingAddon, Ticket, BookingStatusEnum
 from app.models.showtime import Showtime, SeatInventory, SeatStatusEnum
 from app.models.payment import Payment, PaymentStatusEnum, Refund
@@ -281,10 +282,23 @@ async def test_cancel_idor_unauthorized_user_denied(client: AsyncClient, db_sess
     db_session.add(showtime)
     await db_session.flush()
 
+    # Get or create two customers
+    cust_res = await db_session.execute(select(User).where(User.role == RoleEnum.CUSTOMER).limit(2))
+    custs = cust_res.scalars().all()
+    if len(custs) >= 2:
+        owner, attacker = custs[0], custs[1]
+    else:
+        owner = User(email="owner@cineverse.in", role=RoleEnum.CUSTOMER, is_active=True)
+        attacker = User(email="attacker@cineverse.in", role=RoleEnum.CUSTOMER, is_active=True)
+        db_session.add_all([owner, attacker])
+        await db_session.commit()
+        await db_session.refresh(owner)
+        await db_session.refresh(attacker)
+
     booking = Booking(
         id=99904,
         booking_code="CV-IDOR-04",
-        user_id=3,  # Owned by User 3
+        user_id=owner.id,  # Owned by owner
         showtime_id=showtime.id,
         status=BookingStatusEnum.CONFIRMED,
         total_ticket_amount=400.0,
@@ -293,8 +307,8 @@ async def test_cancel_idor_unauthorized_user_denied(client: AsyncClient, db_sess
     db_session.add(booking)
     await db_session.commit()
 
-    # User 4 tries to cancel User 3's booking
-    attacker_token = create_access_token({"sub": "4", "email": "other@cineverse.in", "role": "CUSTOMER"})
+    # Attacker tries to cancel Owner's booking
+    attacker_token = create_access_token({"sub": str(attacker.id), "email": attacker.email, "role": "CUSTOMER"})
     headers = {"Authorization": f"Bearer {attacker_token}"}
 
     cancel_resp = await client.post(f"/api/v1/bookings/{booking.id}/cancel", headers=headers)
@@ -509,7 +523,11 @@ async def test_admin_stuck_refunds_and_retry(client: AsyncClient, db_session):
     db_session.add(stuck_refund)
     await db_session.commit()
 
-    admin_token = create_access_token({"sub": "1", "email": "admin@cineverse.in", "role": "ADMIN"})
+    admin_res = await db_session.execute(select(User).where(User.role == RoleEnum.ADMIN).limit(1))
+    admin_user = admin_res.scalars().first()
+    assert admin_user is not None
+
+    admin_token = create_access_token({"sub": str(admin_user.id), "email": admin_user.email, "role": "ADMIN"})
     admin_headers = {"Authorization": f"Bearer {admin_token}"}
 
     # Admin lists stuck refunds

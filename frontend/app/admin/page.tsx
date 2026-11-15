@@ -70,6 +70,13 @@ export default function AdminDashboardPage() {
 
         <div className="flex items-center gap-3">
           <Link
+            href="/admin/schedule"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-950/40 hover:bg-indigo-900/50 text-xs font-semibold text-indigo-300 border border-indigo-800/50 transition"
+          >
+            <Calendar className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Operator Scheduling & Pricing</span>
+          </Link>
+          <Link
             href="/admin/security"
             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-950/40 hover:bg-red-900/50 text-xs font-semibold text-rose-300 border border-rose-800/50 transition"
           >

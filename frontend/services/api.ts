@@ -1266,3 +1266,263 @@ export async function unblockSecurityTarget(target_type: 'ip' | 'user', target: 
   });
 }
 
+// ---------------- OPERATOR SCHEDULING & PRICING ----------------
+export interface OperatorCinema {
+  id: number;
+  name: string;
+  city_id?: number;
+  address?: string;
+  total_screens: number;
+}
+
+export interface OperatorTimelineResponse {
+  cinema: { id: number; name: string };
+  date: string;
+  auditoriums: Array<{
+    id: number;
+    name: string;
+    screen_type?: string;
+    total_seats: number;
+  }>;
+  showtimes: Array<{
+    id: number;
+    movie_id: number;
+    movie_title: string;
+    movie_duration: number;
+    movie_poster?: string;
+    auditorium_id: number;
+    auditorium_name: string;
+    start_time: string;
+    end_time: string;
+    cleaning_gap_minutes: number;
+    effective_end_time: string;
+    format: string;
+    language: string;
+    status: string;
+    cancellation_reason?: string;
+    price_rules: Record<string, number>;
+  }>;
+  movies: Array<{
+    id: number;
+    title: string;
+    duration_minutes: number;
+    poster_url?: string;
+    certification?: string;
+    language?: string;
+  }>;
+}
+
+export interface SeatPriceMapPreview {
+  showtime_id: number;
+  movie_title: string;
+  cinema_name: string;
+  auditorium_name: string;
+  start_time: string;
+  format: string;
+  language: string;
+  category_base_prices: Record<string, number>;
+  total_seats: number;
+  seat_map: Array<{
+    seat_id: string;
+    row: string;
+    number: number;
+    category: string;
+    base_price: number;
+    effective_price: number;
+    effective_price_paise: number;
+  }>;
+}
+
+export interface ShowCancelDryRun {
+  dry_run: boolean;
+  showtime_id: number;
+  movie_title: string;
+  cinema_name: string;
+  screen_name: string;
+  start_time: string;
+  status: string;
+  affected_bookings_count: number;
+  affected_tickets_count: number;
+  total_refund_paise: number;
+  total_refund_rupees: number;
+  affected_bookings: Array<{
+    booking_id: number;
+    booking_code: string;
+    customer_name: string;
+    customer_email: string;
+    customer_phone: string;
+    ticket_count: number;
+    seats: string[];
+    final_total_paise: number;
+    refund_amount_paise: number;
+    refund_amount_rupees: number;
+  }>;
+}
+
+export interface CSVPreviewResult {
+  entity_type: string;
+  total_rows: number;
+  valid_rows_count: number;
+  invalid_rows_count: number;
+  is_valid: boolean;
+  error_report: Array<{
+    row: number;
+    column: string;
+    value?: string;
+    error: string;
+  }>;
+  preview_samples: Array<Record<string, any>>;
+}
+
+export interface ImportBatchSummary {
+  batch_id: string;
+  entity_type: string;
+  filename: string;
+  total_rows: number;
+  valid_rows: number;
+  invalid_rows: number;
+  status: string;
+  created_at: string | null;
+  undone_at: string | null;
+}
+
+export interface DynamicPricingRuleItem {
+  id: number;
+  name: string;
+  category?: string;
+  cinema_id?: number;
+  format?: string;
+  floor_price: number;
+  ceiling_price: number;
+  price_multiplier: number;
+  flat_adjustment: number;
+  min_occupancy_pct: number;
+  max_occupancy_pct: number;
+  version: number;
+  status: string;
+  updated_at?: string;
+}
+
+export async function getAccessibleCinemas(): Promise<OperatorCinema[]> {
+  return apiFetch<OperatorCinema[]>('/admin/schedule/cinemas');
+}
+
+export async function getScheduleTimeline(cinemaId: number, date: string): Promise<OperatorTimelineResponse> {
+  return apiFetch<OperatorTimelineResponse>(`/admin/schedule/timeline?cinema_id=${cinemaId}&date=${date}`);
+}
+
+export async function checkScheduleConflict(params: {
+  auditorium_id: number;
+  start_time: string;
+  duration_minutes: number;
+  cleaning_gap_minutes?: number;
+  exclude_showtime_id?: number;
+}) {
+  const query = new URLSearchParams({
+    auditorium_id: String(params.auditorium_id),
+    start_time: params.start_time,
+    duration_minutes: String(params.duration_minutes),
+    cleaning_gap_minutes: String(params.cleaning_gap_minutes || 20),
+  });
+  if (params.exclude_showtime_id) query.append('exclude_showtime_id', String(params.exclude_showtime_id));
+  return apiFetch<any>(`/admin/schedule/conflict-check?${query.toString()}`);
+}
+
+export async function createScheduleSlot(payload: {
+  cinema_id: number;
+  auditorium_id: number;
+  movie_id: number;
+  start_time: string;
+  format_type?: string;
+  language?: string;
+  cleaning_gap_minutes?: number;
+  price_tier_rules?: Record<string, number>;
+}) {
+  return apiFetch<any>('/admin/schedule/slots', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function bulkCopySchedule(payload: {
+  cinema_id: number;
+  source_date: string;
+  target_dates: string[];
+  copy_mode?: 'SKIP_CONFLICTS' | 'FAIL_ON_CONFLICT';
+}) {
+  return apiFetch<any>('/admin/schedule/bulk-copy', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getSeatPriceMapPreview(showtimeId: number): Promise<SeatPriceMapPreview> {
+  return apiFetch<SeatPriceMapPreview>(`/admin/schedule/showtimes/${showtimeId}/price-map-preview`);
+}
+
+export async function dryRunCancelShow(showtimeId: number): Promise<ShowCancelDryRun> {
+  return apiFetch<ShowCancelDryRun>(`/admin/schedule/showtimes/${showtimeId}/cancel-dry-run`, {
+    method: 'POST',
+  });
+}
+
+export async function executeCancelShow(showtimeId: number, mfaCode: string, reason?: string) {
+  return apiFetch<any>(`/admin/schedule/showtimes/${showtimeId}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ mfa_code: mfaCode, reason: reason || 'Cinema operational cancellation' }),
+  });
+}
+
+export async function previewCsvImport(csvText: string, entityType: string = 'SHOWTIMES'): Promise<CSVPreviewResult> {
+  return apiFetch<CSVPreviewResult>('/admin/schedule/import/preview', {
+    method: 'POST',
+    body: JSON.stringify({ csv_text: csvText, entity_type: entityType }),
+  });
+}
+
+export async function executeCsvImport(csvText: string, entityType: string = 'SHOWTIMES', filename: string = 'import.csv') {
+  return apiFetch<any>('/admin/schedule/import/execute', {
+    method: 'POST',
+    body: JSON.stringify({ csv_text: csvText, entity_type: entityType, filename }),
+  });
+}
+
+export async function undoCsvImport(batchId: string) {
+  return apiFetch<any>(`/admin/schedule/import/${batchId}/undo`, {
+    method: 'POST',
+  });
+}
+
+export async function listImportBatches(): Promise<ImportBatchSummary[]> {
+  return apiFetch<ImportBatchSummary[]>('/admin/schedule/import/batches');
+}
+
+export async function getPricingRules(cinemaId?: number): Promise<{
+  rules: DynamicPricingRuleItem[];
+  audit_logs: any[];
+}> {
+  const q = cinemaId ? `?cinema_id=${cinemaId}` : '';
+  return apiFetch<any>(`/admin/schedule/pricing-rules${q}`);
+}
+
+export async function upsertPricingRule(payload: {
+  name: string;
+  floor_price: number;
+  ceiling_price: number;
+  price_multiplier?: number;
+  flat_adjustment?: number;
+  category?: string;
+  cinema_id?: number;
+  format_type?: string;
+  min_occupancy_pct?: number;
+  max_occupancy_pct?: number;
+  rule_id?: number;
+  reason?: string;
+}) {
+  return apiFetch<any>('/admin/schedule/pricing-rules', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+

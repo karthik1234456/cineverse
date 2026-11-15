@@ -198,6 +198,45 @@ async def init_db():
                 except Exception:
                     pass
 
+        # Check showtimes columns
+        try:
+            res = await conn.execute(text("PRAGMA table_info(showtimes)"))
+            existing_st_cols = [r[1] for r in res.fetchall()]
+        except Exception:
+            existing_st_cols = []
+
+        st_cols = [
+            ("status", "VARCHAR(20) DEFAULT 'SCHEDULED'"),
+            ("cancellation_reason", "VARCHAR(255)"),
+            ("cleaning_gap_minutes", "INTEGER DEFAULT 20"),
+            ("import_batch_id", "VARCHAR(64)"),
+        ]
+        for col_name, col_def in st_cols:
+            if existing_st_cols and col_name not in existing_st_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE showtimes ADD COLUMN {col_name} {col_def}"))
+                except Exception:
+                    pass
+
+        # Check dynamic pricing rules columns
+        try:
+            res = await conn.execute(text("PRAGMA table_info(dynamic_pricing_rules)"))
+            existing_dpr_cols = [r[1] for r in res.fetchall()]
+        except Exception:
+            existing_dpr_cols = []
+
+        dpr_cols = [
+            ("version", "INTEGER DEFAULT 1"),
+            ("category", "VARCHAR(50)"),
+            ("description", "VARCHAR(255)"),
+        ]
+        for col_name, col_def in dpr_cols:
+            if existing_dpr_cols and col_name not in existing_dpr_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE dynamic_pricing_rules ADD COLUMN {col_name} {col_def}"))
+                except Exception:
+                    pass
+
 
 async def reset_db():
     import app.models  # Ensure all models are registered on Base.metadata

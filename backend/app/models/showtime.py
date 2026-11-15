@@ -28,6 +28,10 @@ class Showtime(Base):
     format = Column(String(50), default="IMAX 3D", index=True)
     language = Column(String(50), default="English")
     cancellation_cutoff_minutes = Column(Integer, default=120)
+    status = Column(String(20), default="SCHEDULED", nullable=False, index=True)  # SCHEDULED, CANCELLED, COMPLETED
+    cancellation_reason = Column(String(255), nullable=True)
+    cleaning_gap_minutes = Column(Integer, default=20, nullable=False)
+    import_batch_id = Column(String(64), nullable=True, index=True)
 
     movie = relationship("Movie", back_populates="showtimes")
     auditorium = relationship("Auditorium", back_populates="showtimes")
