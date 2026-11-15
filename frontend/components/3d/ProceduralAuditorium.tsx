@@ -23,15 +23,15 @@ function createCarpetCanvasTexture(): THREE.CanvasTexture | null {
   canvas.height = 128;
   const ctx = canvas.getContext('2d');
   if (!ctx) return null;
-  ctx.fillStyle = '#141316';
+  ctx.fillStyle = '#222026';
   ctx.fillRect(0, 0, 128, 128);
   for (let y = 0; y < 128; y += 2) {
     for (let x = 0; x < 128; x += 2) {
       const isWeave = (x + y) % 4 === 0;
       const noise = (Math.random() - 0.5) * 8;
-      const r = Math.min(255, Math.max(0, Math.round(20 + (isWeave ? 4 : -3) + noise)));
-      const g = Math.min(255, Math.max(0, Math.round(19 + (isWeave ? 4 : -3) + noise)));
-      const b = Math.min(255, Math.max(0, Math.round(22 + (isWeave ? 5 : -3) + noise)));
+      const r = Math.min(255, Math.max(0, Math.round(34 + (isWeave ? 5 : -4) + noise)));
+      const g = Math.min(255, Math.max(0, Math.round(32 + (isWeave ? 5 : -4) + noise)));
+      const b = Math.min(255, Math.max(0, Math.round(38 + (isWeave ? 6 : -4) + noise)));
       ctx.fillStyle = `rgb(${r},${g},${b})`;
       ctx.fillRect(x, y, 2, 2);
     }
@@ -364,7 +364,7 @@ export function ProceduralAuditorium({
   const floorMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(theatreDef.palette?.carpetColor || '#141316'),
+        color: new THREE.Color(theatreDef.palette?.carpetColor || '#222026'),
         roughness: 0.90,
         metalness: 0.01,
         map: carpetTextures?.albedo || null,
@@ -376,7 +376,7 @@ export function ProceduralAuditorium({
   const tierMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(theatreDef.palette?.carpetColor || '#141316'),
+        color: new THREE.Color(theatreDef.palette?.carpetColor || '#222026'),
         roughness: 0.90,
         metalness: 0.01,
         map: carpetTextures?.albedo || null,
@@ -388,7 +388,7 @@ export function ProceduralAuditorium({
   const treadMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(theatreDef.palette?.runnerColor || '#1a191d'),
+        color: new THREE.Color(theatreDef.palette?.runnerColor || '#2c2a32'),
         roughness: 0.88,
         metalness: 0.01,
         map: carpetTextures?.albedo || null,
@@ -400,7 +400,7 @@ export function ProceduralAuditorium({
   const wallMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(theatreDef.palette?.wallColor || '#1C1E24'),
+        color: new THREE.Color(theatreDef.palette?.wallColor || '#272B34'),
         roughness: 0.80,
         metalness: 0.02,
         transparent: true,
@@ -414,8 +414,8 @@ export function ProceduralAuditorium({
   const frontScreenWallMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color('#0E0F12'),
-        roughness: 0.90,
+        color: new THREE.Color('#181b22'),
+        roughness: 0.88,
         metalness: 0.02,
         side: isOverview ? THREE.BackSide : THREE.DoubleSide,
       }),
@@ -989,13 +989,75 @@ export function ProceduralAuditorium({
   const speakerGeom = useMemo(() => new THREE.BoxGeometry(0.35, 0.22, 0.28), []);
   const exitSignGeom = useMemo(() => new THREE.BoxGeometry(0.65, 0.3, 0.08), []);
 
-  // Initialize InstancedMesh positions
+  // 3D Seat Watchdog State
+  const watchdogFailureTime = useRef<number | null>(null);
+  const watchdogRebuildCount = useRef<number>(0);
+  const [readinessWarning, setReadinessWarning] = React.useState<string | null>(null);
+
+  // Compute union bounding box & sphere across all seat items for an instanced mesh to prevent culling
+  const computeInstancedBounds = useCallback((
+    mesh: THREE.InstancedMesh | null,
+    items: { seat: SeatRecord }[]
+  ) => {
+    if (!mesh || items.length === 0) return;
+    mesh.frustumCulled = false;
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    for (let i = 0; i < items.length; i++) {
+      const b = items[i].seat.bounds_gltf_y_up;
+      if (b) {
+        if (b.min[0] < minX) minX = b.min[0];
+        if (b.min[1] < minY) minY = b.min[1];
+        if (b.min[2] < minZ) minZ = b.min[2];
+        if (b.max[0] > maxX) maxX = b.max[0];
+        if (b.max[1] > maxY) maxY = b.max[1];
+        if (b.max[2] > maxZ) maxZ = b.max[2];
+      }
+    }
+    if (minX !== Infinity && mesh.geometry) {
+      const box = new THREE.Box3(
+        new THREE.Vector3(minX - 0.5, minY - 0.5, minZ - 0.5),
+        new THREE.Vector3(maxX + 0.5, maxY + 0.5, maxZ + 0.5)
+      );
+      const sphere = new THREE.Sphere();
+      box.getBoundingSphere(sphere);
+      mesh.geometry.boundingBox = box;
+      mesh.geometry.boundingSphere = sphere;
+    }
+  }, []);
+
+  const initSeatMesh = useCallback((
+    mesh: THREE.InstancedMesh | null,
+    items: { seat: SeatRecord; index: number }[]
+  ) => {
+    if (!mesh || items.length === 0) return;
+    mesh.frustumCulled = false;
+    const dummy = new THREE.Object3D();
+    items.forEach((item, idx) => {
+      const { min, max } = item.seat.bounds_gltf_y_up;
+      const posX = (min[0] + max[0]) / 2;
+      const posY = min[1];
+      const posZ = (min[2] + max[2]) / 2;
+      const angleY = Math.atan2(-posX, SCREEN_Z - posZ);
+
+      dummy.position.set(posX, posY, posZ);
+      dummy.rotation.set(0, angleY, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(idx, dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    computeInstancedBounds(mesh, items);
+  }, [computeInstancedBounds]);
+
+  // Initialize InstancedMesh positions & true bounding extents
   useEffect(() => {
     const dummy = new THREE.Object3D();
 
     // 1. Seats & contact shadows
     if (shadowMeshRef.current) {
       const shadowMesh = shadowMeshRef.current;
+      shadowMesh.frustumCulled = false;
       seats.forEach((seat, idx) => {
         const { min, max } = seat.bounds_gltf_y_up;
         const posX = (min[0] + max[0]) / 2;
@@ -1009,25 +1071,8 @@ export function ProceduralAuditorium({
         shadowMesh.setMatrixAt(idx, dummy.matrix);
       });
       shadowMesh.instanceMatrix.needsUpdate = true;
+      computeInstancedBounds(shadowMesh, seats.map((seat) => ({ seat })));
     }
-
-    const initSeatMesh = (mesh: THREE.InstancedMesh | null, items: { seat: SeatRecord; index: number }[]) => {
-      if (!mesh) return;
-      items.forEach((item, idx) => {
-        const { min, max } = item.seat.bounds_gltf_y_up;
-        const posX = (min[0] + max[0]) / 2;
-        const posY = min[1];
-        const posZ = (min[2] + max[2]) / 2;
-        const angleY = Math.atan2(-posX, SCREEN_Z - posZ);
-
-        dummy.position.set(posX, posY, posZ);
-        dummy.rotation.set(0, angleY, 0);
-        dummy.scale.set(1, 1, 1);
-        dummy.updateMatrix();
-        mesh.setMatrixAt(idx, dummy.matrix);
-      });
-      mesh.instanceMatrix.needsUpdate = true;
-    };
 
     initSeatMesh(standardMeshRef.current, standardSeats);
     initSeatMesh(reclinerMeshRef.current, reclinerSeats);
@@ -1036,6 +1081,8 @@ export function ProceduralAuditorium({
 
     // 2. Acoustic panels & trims
     if (panelsMeshRef.current && trimMeshRef.current && geometry.acousticPanels.length > 0) {
+      panelsMeshRef.current.frustumCulled = false;
+      trimMeshRef.current.frustumCulled = false;
       geometry.acousticPanels.forEach((p, idx) => {
         dummy.position.set(...p.position);
         dummy.rotation.set(0, p.rotationY, 0);
@@ -1050,6 +1097,7 @@ export function ProceduralAuditorium({
 
     // 3. Sconces
     if (sconcesMeshRef.current && geometry.sconces.length > 0) {
+      sconcesMeshRef.current.frustumCulled = false;
       geometry.sconces.forEach((sc, idx) => {
         dummy.position.set(...sc.position);
         dummy.rotation.set(0, 0, 0);
@@ -1062,6 +1110,7 @@ export function ProceduralAuditorium({
 
     // 4. Step lights
     if (stepLightsMeshRef.current && geometry.stepLights.length > 0) {
+      stepLightsMeshRef.current.frustumCulled = false;
       geometry.stepLights.forEach((sl, idx) => {
         dummy.position.set(...sl.position);
         dummy.rotation.set(0, 0, 0);
@@ -1074,6 +1123,7 @@ export function ProceduralAuditorium({
 
     // 5. Wooden slats
     if (slatsMeshRef.current && geometry.woodenSlats && geometry.woodenSlats.length > 0) {
+      slatsMeshRef.current.frustumCulled = false;
       geometry.woodenSlats.forEach((sl, idx) => {
         dummy.position.set(...sl.position);
         dummy.rotation.set(0, sl.rotationY, 0);
@@ -1086,6 +1136,7 @@ export function ProceduralAuditorium({
 
     // 6. Ceiling downlights
     if (downlightsMeshRef.current && geometry.ceilingDownlights && geometry.ceilingDownlights.length > 0) {
+      downlightsMeshRef.current.frustumCulled = false;
       geometry.ceilingDownlights.forEach((dl, idx) => {
         dummy.position.set(...dl.position);
         dummy.rotation.set(0, 0, 0);
@@ -1098,6 +1149,7 @@ export function ProceduralAuditorium({
 
     // 7. Atmos speakers
     if (atmosSpeakersMeshRef.current && geometry.atmosSpeakers && geometry.atmosSpeakers.length > 0) {
+      atmosSpeakersMeshRef.current.frustumCulled = false;
       geometry.atmosSpeakers.forEach((spk, idx) => {
         dummy.position.set(...spk.position);
         dummy.rotation.set(0, 0, 0);
@@ -1107,7 +1159,7 @@ export function ProceduralAuditorium({
       });
       atmosSpeakersMeshRef.current.instanceMatrix.needsUpdate = true;
     }
-  }, [seats, geometry]);
+  }, [seats, geometry, standardGeometry, reclinerGeometry, sofaGeometry, initSeatMesh, computeInstancedBounds]);
 
   // Per-frame color & state updates for instanced seats and dynamic surface fading
   useFrame(({ camera }) => {
@@ -1186,9 +1238,9 @@ export function ProceduralAuditorium({
           hexColor = '#FF9E2C';
         } else {
           if (familyType === 'sofa' || theatreDef.features.motion_seats || theatreDef.features.is_4dx || auditoriumLayout?.layout_signature === 'motion_pods') {
-            hexColor = '#262930'; // Deep slate leather
+            hexColor = theatreDef.palette?.fabricPrimary || '#3A3F4A'; // Deep slate leather (+40% lightness)
           } else if (familyType === 'recliner' || theatreDef.id === 'luxury_recliner') {
-            hexColor = '#4A2818'; // Cognac leather
+            hexColor = theatreDef.palette?.fabricPrimary || '#663822'; // Cognac leather (+35% lightness)
           } else {
             const cat = (seat.category || 'prime').toLowerCase();
             hexColor =
@@ -1196,7 +1248,7 @@ export function ProceduralAuditorium({
                 ? (theatreDef.palette?.fabricSecondary || currentLook.seats.premier)
                 : cat === 'front'
                 ? currentLook.seats.front
-                : (theatreDef.palette?.fabricPrimary || currentLook.seats.prime); // Classic velvet red #6E141A
+                : (theatreDef.palette?.fabricPrimary || currentLook.seats.prime); // Classic velvet red #8D1C24
           }
         }
 
@@ -1255,6 +1307,43 @@ export function ProceduralAuditorium({
     updateSeatMeshGroup(standardMeshRef.current, standardSeats, 'standard');
     updateSeatMeshGroup(reclinerMeshRef.current, reclinerSeats, 'recliner');
     updateSeatMeshGroup(sofaMeshRef.current, sofaSeats, 'sofa');
+
+    // 3D Seat Watchdog: Monitor drawn seats vs expected seats
+    const drawnSeatCount =
+      (standardMeshRef.current && standardSeats.length > 0 ? standardSeats.length : 0) +
+      (reclinerMeshRef.current && reclinerSeats.length > 0 ? reclinerSeats.length : 0) +
+      (sofaMeshRef.current && sofaSeats.length > 0 ? sofaSeats.length : 0);
+    const expectedSeatCount = seats.length;
+
+    if (drawnSeatCount < expectedSeatCount && (standardGeometry || reclinerGeometry || sofaGeometry)) {
+      if (watchdogFailureTime.current === null) {
+        watchdogFailureTime.current = performance.now();
+      } else if (performance.now() - watchdogFailureTime.current > 2000) {
+        console.warn(
+          `[3D Watchdog] Missing seat instances detected (${drawnSeatCount}/${expectedSeatCount}) for > 2s. Rebuilding instance matrices...`
+        );
+        watchdogRebuildCount.current += 1;
+        initSeatMesh(standardMeshRef.current, standardSeats);
+        initSeatMesh(reclinerMeshRef.current, reclinerSeats);
+        initSeatMesh(sofaMeshRef.current, sofaSeats);
+        seatStateCache.current.clear();
+        watchdogFailureTime.current = null;
+        if (watchdogRebuildCount.current >= 2) {
+          setReadinessWarning('Notice: Synchronizing 3D seat geometry. Click Reload 3D if hall appears incomplete.');
+        }
+      }
+    } else {
+      watchdogFailureTime.current = null;
+    }
+
+    if (typeof window !== 'undefined') {
+      (window as any).__cineverse_watchdog = {
+        drawnSeatCount,
+        expectedSeatCount,
+        rebuildCount: watchdogRebuildCount.current,
+        warning: readinessWarning,
+      };
+    }
 
     // Smoothly update volumetric projector beam opacity based on equipment profile
     const hasBeam = geometry.screenMesh.hasProjectorBeam !== false;
@@ -2022,11 +2111,13 @@ export function ProceduralAuditorium({
             ref={panelsMeshRef}
             args={[panelGeom, acousticPanelMaterial, geometry.acousticPanels.length]}
             name="InstancedAcousticPanels"
+            frustumCulled={false}
           />
           <instancedMesh
             ref={trimMeshRef}
             args={[trimGeom, panelTrimMaterial, geometry.acousticPanels.length]}
             name="InstancedPanelTrims"
+            frustumCulled={false}
           />
         </group>
       )}
@@ -2036,6 +2127,7 @@ export function ProceduralAuditorium({
           ref={slatsMeshRef}
           args={[slatGeom, woodSlatMaterial, geometry.woodenSlats.length]}
           name="InstancedWoodenSlats"
+          frustumCulled={false}
         />
       )}
 
@@ -2044,6 +2136,7 @@ export function ProceduralAuditorium({
           ref={sconcesMeshRef}
           args={[sconceGeom, sconceGlowMaterial, geometry.sconces.length]}
           name="InstancedArchitecturalSconces"
+          frustumCulled={false}
         />
       )}
 
@@ -2053,6 +2146,7 @@ export function ProceduralAuditorium({
           ref={stepLightsMeshRef}
           args={[stepLightGeom, stepLightMaterial, geometry.stepLights.length]}
           name="InstancedAisleStepLights"
+          frustumCulled={false}
         />
       )}
 
@@ -2061,6 +2155,7 @@ export function ProceduralAuditorium({
           ref={downlightsMeshRef}
           args={[downlightGeom, downlightMaterial, geometry.ceilingDownlights.length]}
           name="InstancedCeilingDownlights"
+          frustumCulled={false}
         />
       )}
 
@@ -2069,6 +2164,7 @@ export function ProceduralAuditorium({
           ref={atmosSpeakersMeshRef}
           args={[speakerGeom, speakerMaterial, geometry.atmosSpeakers.length]}
           name="InstancedDolbyAtmosSpeakers"
+          frustumCulled={false}
         />
       )}
 
@@ -2089,12 +2185,14 @@ export function ProceduralAuditorium({
           ref={shadowMeshRef}
           args={[shadowGeometry, shadowMaterial, seats.length]}
           name="InstancedContactShadows"
+          frustumCulled={false}
         />
         {standardGeometry && standardSeats.length > 0 && (
           <instancedMesh
             ref={standardMeshRef}
             args={[standardGeometry, standardMaterial, standardSeats.length]}
             name="InstancedStandardSeats"
+            frustumCulled={false}
             onClick={createClickHandler(standardSeats)}
             onDoubleClick={createDoubleClickHandler(standardSeats)}
             onPointerMove={createPointerMoveHandler(standardSeats)}
@@ -2106,6 +2204,7 @@ export function ProceduralAuditorium({
             ref={reclinerMeshRef}
             args={[reclinerGeometry, reclinerMaterial, reclinerSeats.length]}
             name="InstancedReclinerSeats"
+            frustumCulled={false}
             onClick={createClickHandler(reclinerSeats)}
             onDoubleClick={createDoubleClickHandler(reclinerSeats)}
             onPointerMove={createPointerMoveHandler(reclinerSeats)}
@@ -2117,6 +2216,7 @@ export function ProceduralAuditorium({
             ref={sofaMeshRef}
             args={[sofaGeometry, sofaMaterial, sofaSeats.length]}
             name="InstancedSofaSeats"
+            frustumCulled={false}
             onClick={createClickHandler(sofaSeats)}
             onDoubleClick={createDoubleClickHandler(sofaSeats)}
             onPointerMove={createPointerMoveHandler(sofaSeats)}

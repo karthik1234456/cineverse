@@ -335,6 +335,13 @@ declare global {
       getStore: () => any;
       getVisibleProxiesCount: () => number;
       getShadowCastersCount: () => number;
+      getWatchdogStatus?: () => {
+        drawnSeatCount: number;
+        expectedSeatCount: number;
+        rebuildCount: number;
+        warning: string | null;
+      };
+      getDrawnSeatCount?: () => number;
     };
   }
 }

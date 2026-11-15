@@ -600,12 +600,14 @@ export function AuditoriumModel() {
             ref={shadowMeshRef}
             args={[shadowGeometry, shadowMaterial, seats.length]}
             name="InstancedContactShadows"
+            frustumCulled={false}
           />
           {standardGeometry && (
             <instancedMesh
               ref={standardMeshRef}
               args={[standardGeometry, standardMaterial, standardSeats.length]}
               name="InstancedStandardSeats"
+              frustumCulled={false}
             />
           )}
           {reclinerGeometry && (
@@ -613,6 +615,7 @@ export function AuditoriumModel() {
               ref={reclinerMeshRef}
               args={[reclinerGeometry, reclinerMaterial, reclinerSeats.length]}
               name="InstancedReclinerSeats"
+              frustumCulled={false}
             />
           )}
           {/* Floating 3D State Markers (✓ for selected, ✕ for booked, gold rim glow on hover) */}

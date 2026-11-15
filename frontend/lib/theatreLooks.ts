@@ -32,26 +32,26 @@ export const THEATRE_LOOKS: Record<TheatreLookId, TheatreLookPalette> = {
   a: {
     id: 'a',
     name: 'Classic Velvet Red',
-    subtitle: 'Classic velvet red seats (#6E141A), oxblood acoustic panels (#3B1318) & dark espresso carpet (#141316)',
-    floorColor: '#141316', // Dark espresso carpet
-    tierColor: '#17181c',
-    treadColor: '#1a191d', // Slightly contrasting aisle runner
-    wallColor: '#1C1E24', // Side acoustic walls
-    acousticPanelColor: '#3B1318', // Oxblood accent panels
-    panelTrimColor: '#18191C', // Gunmetal trim
-    ceilingColor: '#0E0F12', // Screen wall & ceiling
-    screenFrameColor: '#0E0F12',
-    stageLipColor: '#141316',
-    railColor: '#18191C', // Gunmetal railings
+    subtitle: 'Classic velvet red seats (#8D1C24), oxblood acoustic panels (#3B1318) & dark espresso carpet (#222026)',
+    floorColor: '#222026', // Dark espresso carpet (+40% lightness lift)
+    tierColor: '#25242b',
+    treadColor: '#2c2a32', // Contrasting aisle runner
+    wallColor: '#272B34', // Side acoustic walls
+    acousticPanelColor: '#4A181F', // Oxblood accent panels
+    panelTrimColor: '#1F2024', // Gunmetal trim
+    ceilingColor: '#121318', // Screen wall & ceiling
+    screenFrameColor: '#121318',
+    stageLipColor: '#222026',
+    railColor: '#1F2024', // Gunmetal railings
     sconceGlowColor: '#FF9E2C', // Warm amber
     stepLightColor: '#FF9E2C', // Warm amber step LEDs
     seats: {
-      premier: '#6E141A', // Classic velvet red
-      prime: '#6E141A',
-      front: '#5c1116',
+      premier: '#8D1C24', // Classic velvet red (+30% lightness)
+      prime: '#8D1C24',
+      front: '#75171e',
       selected: '#22C55E', // Selected emerald green
       held: '#F59E0B', // Held amber
-      booked: '#3F424A', // Booked desaturated grey
+      booked: '#4C505A', // Booked desaturated grey
       selectedEmissive: '#22C55E',
     },
   },
@@ -60,26 +60,26 @@ export const THEATRE_LOOKS: Record<TheatreLookId, TheatreLookPalette> = {
   b: {
     id: 'b',
     name: 'Midnight Navy & Cognac Leather',
-    subtitle: 'Midnight navy acoustic panels (#141D2B), cognac leather seats (#4A2818) & dark espresso carpet (#141316)',
-    floorColor: '#141316', // Dark espresso carpet
-    tierColor: '#17181c',
-    treadColor: '#1a191d', // Aisle runner
-    wallColor: '#1C1E24', // Matte fabric side walls
-    acousticPanelColor: '#141D2B', // Midnight navy accent panels
-    panelTrimColor: '#18191C', // Gunmetal trim
-    ceilingColor: '#0E0F12',
-    screenFrameColor: '#0E0F12',
-    stageLipColor: '#141316',
-    railColor: '#18191C',
+    subtitle: 'Midnight navy acoustic panels (#141D2B), cognac leather seats (#663822) & dark espresso carpet (#222026)',
+    floorColor: '#222026', // Dark espresso carpet
+    tierColor: '#25242b',
+    treadColor: '#2c2a32', // Aisle runner
+    wallColor: '#272B34', // Matte fabric side walls
+    acousticPanelColor: '#1B263B', // Midnight navy accent panels
+    panelTrimColor: '#1F2024', // Gunmetal trim
+    ceilingColor: '#121318',
+    screenFrameColor: '#121318',
+    stageLipColor: '#222026',
+    railColor: '#1F2024',
     sconceGlowColor: '#FF9E2C', // Warm amber
     stepLightColor: '#FF9E2C',
     seats: {
-      premier: '#4A2818', // Cognac leather
-      prime: '#4A2818',
-      front: '#3d2013',
+      premier: '#663822', // Cognac leather (+35% lightness)
+      prime: '#663822',
+      front: '#542d1b',
       selected: '#22C55E', // Selected emerald green
       held: '#F59E0B', // Held amber
-      booked: '#3F424A', // Booked desaturated grey
+      booked: '#4C505A', // Booked desaturated grey
       selectedEmissive: '#22C55E',
     },
   },
@@ -88,26 +88,26 @@ export const THEATRE_LOOKS: Record<TheatreLookId, TheatreLookPalette> = {
   c: {
     id: 'c',
     name: 'Midnight Navy & Deep Slate',
-    subtitle: 'Midnight navy panels (#141D2B), deep slate leather seats (#262930) & soft blue LEDs (#388BFF)',
-    floorColor: '#141316', // Dark espresso carpet
-    tierColor: '#17181c',
-    treadColor: '#1a191d',
-    wallColor: '#1C1E24',
-    acousticPanelColor: '#141D2B', // Midnight navy
-    panelTrimColor: '#18191C',
-    ceilingColor: '#0E0F12',
-    screenFrameColor: '#0E0F12',
-    stageLipColor: '#141316',
-    railColor: '#18191C',
+    subtitle: 'Midnight navy panels (#141D2B), deep slate leather seats (#3A3F4A) & soft blue LEDs (#388BFF)',
+    floorColor: '#222026', // Dark espresso carpet
+    tierColor: '#25242b',
+    treadColor: '#2c2a32',
+    wallColor: '#272B34',
+    acousticPanelColor: '#1B263B', // Midnight navy
+    panelTrimColor: '#1F2024',
+    ceilingColor: '#121318',
+    screenFrameColor: '#121318',
+    stageLipColor: '#222026',
+    railColor: '#1F2024',
     sconceGlowColor: '#388BFF', // Soft blue LEDs
     stepLightColor: '#388BFF',
     seats: {
-      premier: '#262930', // Deep slate leather
-      prime: '#262930',
-      front: '#1e2026',
+      premier: '#3A3F4A', // Deep slate leather (+40% lightness)
+      prime: '#3A3F4A',
+      front: '#2f343d',
       selected: '#22C55E', // Selected emerald green
       held: '#F59E0B', // Held amber
-      booked: '#3F424A', // Booked desaturated grey
+      booked: '#4C505A', // Booked desaturated grey
       selectedEmissive: '#22C55E',
     },
   },

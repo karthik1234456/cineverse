@@ -563,9 +563,9 @@ export function CinemaScreen({
       } else {
         // Mode E: Generated Title Card with Specular Light Sweep (Always reliable)
         const bgGrad = ctx.createLinearGradient(0, 0, w, h);
-        bgGrad.addColorStop(0, '#060a12');
-        bgGrad.addColorStop(0.5, '#0d1527');
-        bgGrad.addColorStop(1, '#05080e');
+        bgGrad.addColorStop(0, '#162238');
+        bgGrad.addColorStop(0.5, '#253554');
+        bgGrad.addColorStop(1, '#18243a');
         ctx.fillStyle = bgGrad;
         ctx.fillRect(0, 0, w, h);
 

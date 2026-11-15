@@ -33,9 +33,10 @@ export function CinemaWorld({
   const [canvasError, setCanvasError] = useState<string | null>(null);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
   const houseLights = useCinemaStore((s) => s.houseLights);
+  const lightLevel = useCinemaStore((s) => s.lightLevel || 'normal');
   const proceduralResult = useCinemaStore((s) => s.proceduralResult);
 
-  // Check WebGL availability
+  // Check WebGL availability and register context loss / restore handlers
   useEffect(() => {
     try {
       const canvas = document.createElement('canvas');
@@ -51,6 +52,35 @@ export function CinemaWorld({
     }
   }, []);
 
+  // WebGL context loss listeners on canvas
+  const handleCreated = ({ gl, scene }: { gl: THREE.WebGLRenderer; scene: THREE.Scene }) => {
+    if (overrideScreenMode === 'youtube_css3d') {
+      gl.setClearColor('#000000', 0.0);
+      scene.background = null;
+    } else {
+      gl.setClearColor('#0E0F12', 1.0);
+      scene.background = new THREE.Color('#0E0F12');
+    }
+
+    const canvas = gl.domElement;
+    if (canvas) {
+      canvas.addEventListener('webglcontextlost', (e: Event) => {
+        e.preventDefault();
+        console.warn('[CineVerse 3D] WebGL context lost. Attempting recovery...');
+        setCanvasError('Graphics context temporarily interrupted. Restoring 3D theatre...');
+      }, false);
+
+      canvas.addEventListener('webglcontextrestored', () => {
+        console.info('[CineVerse 3D] WebGL context restored successfully.');
+        setCanvasError(null);
+        useCinemaStore.getState().setContinuousRendering(true);
+        setTimeout(() => {
+          useCinemaStore.getState().setContinuousRendering(false);
+        }, 600);
+      }, false);
+    }
+  };
+
   if (!hasWebGL) {
     return <WebGLFallback />;
   }
@@ -62,7 +92,7 @@ export function CinemaWorld({
           position: [6.5, 8.5, -22.5],
           fov: 60,
           near: 0.05,
-          far: 90,
+          far: 140,
         }}
         gl={{
           antialias: true,
@@ -70,19 +100,11 @@ export function CinemaWorld({
           preserveDrawingBuffer: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: houseLights === 'show' ? 0.90 : 1.05,
+          toneMappingExposure: houseLights === 'show' ? 0.90 : (lightLevel === 'bright' ? 1.50 : 1.28),
         }}
         dpr={qualityMode === 'smooth' ? 1.0 : [1, 1.5]}
         frameloop="always" // Dynamically managed by AdaptiveFrameloopController
-        onCreated={({ gl, scene }) => {
-          if (overrideScreenMode === 'youtube_css3d') {
-            gl.setClearColor('#000000', 0.0);
-            scene.background = null;
-          } else {
-            gl.setClearColor('#0E0F12', 1.0);
-            scene.background = new THREE.Color('#0E0F12');
-          }
-        }}
+        onCreated={handleCreated}
       >
         {overrideScreenMode !== 'youtube_css3d' && (
           <fog
@@ -149,23 +171,25 @@ function AdaptiveFrameloopController() {
   const seatStatuses = useCinemaStore((s) => s.seatStatuses);
   const hoveredSeatId = useCinemaStore((s) => s.hoveredSeatId);
   const houseLights = useCinemaStore((s) => s.houseLights);
+  const lightLevel = useCinemaStore((s) => s.lightLevel || 'normal');
+  const lightIntensity = useCinemaStore((s) => s.lightIntensity);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
   const theatreLook = useCinemaStore((s) => s.theatreLook);
 
   // Synchronize tone mapping exposure and background color on lighting switch
   useEffect(() => {
-    gl.toneMappingExposure = houseLights === 'show' ? 0.90 : 1.05;
+    gl.toneMappingExposure = houseLights === 'show' ? 0.90 : (lightLevel === 'bright' ? 1.50 : 1.28);
     gl.setClearColor('#0E0F12', 1.0);
     if (scene) {
       scene.background = new THREE.Color('#0E0F12');
     }
     invalidate();
-  }, [gl, scene, houseLights, invalidate]);
+  }, [gl, scene, houseLights, lightLevel, invalidate]);
 
   // Invalidate and render frame whenever interactive state changes
   useEffect(() => {
     invalidate();
-  }, [hoveredSeatId, selectedSeats, seatStatuses, houseLights, qualityMode, theatreLook, invalidate]);
+  }, [hoveredSeatId, selectedSeats, seatStatuses, houseLights, lightLevel, lightIntensity, qualityMode, theatreLook, invalidate]);
 
   // Manage dynamic continuous vs demand frameloop
   useEffect(() => {
@@ -416,6 +440,22 @@ function DevBridge() {
           }
         });
         return count;
+      },
+      getWatchdogStatus: () => (window as any).__cineverse_watchdog || {
+        drawnSeatCount: 0,
+        expectedSeatCount: 0,
+        rebuildCount: 0,
+        warning: null,
+      },
+      getDrawnSeatCount: () => {
+        let total = 0;
+        const stdMesh = scene.getObjectByName('InstancedStandardSeats') as THREE.InstancedMesh | null;
+        const recMesh = scene.getObjectByName('InstancedReclinerSeats') as THREE.InstancedMesh | null;
+        const sofaMesh = scene.getObjectByName('InstancedSofaSeats') as THREE.InstancedMesh | null;
+        if (stdMesh && stdMesh.count) total += stdMesh.count;
+        if (recMesh && recMesh.count) total += recMesh.count;
+        if (sofaMesh && sofaMesh.count) total += sofaMesh.count;
+        return total;
       },
     };
     (window as any).useCinemaStore = useCinemaStore;

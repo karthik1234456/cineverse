@@ -75,13 +75,22 @@ export class CanvasErrorBoundary extends Component<Props, State> {
                 {this.state.error.message}
               </pre>
             )}
-            <button
-              type="button"
-              onClick={this.handleBackToSeatMap}
-              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-gradient-to-r from-red-600 to-rose-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-red-600/30 transition-all hover:from-red-500 hover:to-rose-600 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2 focus:ring-offset-slate-900"
-            >
-              Back to seat map
-            </button>
+            <div className="flex flex-wrap gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-600/30 transition-all hover:from-blue-500 hover:to-indigo-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-slate-900"
+              >
+                Reload 3D
+              </button>
+              <button
+                type="button"
+                onClick={this.handleBackToSeatMap}
+                className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl bg-slate-800 border border-slate-700 px-6 py-3 text-sm font-semibold text-slate-200 transition-all hover:bg-slate-700 hover:text-white focus:outline-none focus:ring-2 focus:ring-slate-500"
+              >
+                Back to seat map
+              </button>
+            </div>
           </div>
         </div>
       );
