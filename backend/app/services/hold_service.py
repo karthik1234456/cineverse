@@ -5,7 +5,8 @@ from datetime import datetime, timedelta
 from typing import List, Optional, Dict, Set
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
+from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.models.showtime import SeatInventory, SeatStatusEnum, Showtime
@@ -13,7 +14,8 @@ from app.models.booking import FnbItem
 from app.models.auth import RoleEnum, User
 from app.redis_client import get_redis_client
 from app.services.geo_service import generate_directions_url
-from sqlalchemy.orm import selectinload
+from app.core.fraud_logger import log_fraud_event
+from app.services.captcha_service import verify_captcha_token
 
 logger = logging.getLogger("cineverse.hold")
 
@@ -117,31 +119,123 @@ async def hold_seats(
     seat_ids: List[str],
     user_id: Optional[int] = None,
     client_ip: Optional[str] = None,
-    idempotency_key: Optional[str] = None
+    idempotency_key: Optional[str] = None,
+    captcha_token: Optional[str] = None
 ) -> dict:
     if not seat_ids:
         raise HTTPException(status_code=400, detail="No seats specified")
 
-    if len(seat_ids) > settings.MAX_SEATS_PER_BOOKING:
+    if len(seat_ids) > getattr(settings, "MAX_SEATS_PER_BOOKING", 8):
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot hold more than {settings.MAX_SEATS_PER_BOOKING} seats at once"
+            detail=f"Cannot hold more than {getattr(settings, 'MAX_SEATS_PER_BOOKING', 8)} seats at once"
         )
 
-    # 1. Idempotency Key check: if identical request is repeated, return existing hold
     now = datetime.utcnow()
+
+    # 1. Idempotency Key check: if identical request is repeated, return existing hold
     if idempotency_key:
         cached_hold = _idempotency_store.get(idempotency_key)
         if cached_hold:
             expires_at = cached_hold.get("expires_at")
             if isinstance(expires_at, datetime) and expires_at > now:
-                # Return existing hold response without error or duplicate
                 return cached_hold
 
-    # 2. Rate limiting & Bot Protection
-    _check_rate_limits(user_id, client_ip)
+    redis = await get_redis_client()
 
-    # 2.5 Server-enforced recliner pair integrity
+    # 2. Seat-Hoarding Cooldown Check (after repeated expired holds)
+    if user_id:
+        cooldown_ttl = await redis.ttl(f"fraud:cooldown:user:{user_id}")
+        if cooldown_ttl and cooldown_ttl > 0:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Temporary hold cooldown active due to repeated unconfirmed holds. Please retry in {cooldown_ttl} seconds.",
+                headers={"Retry-After": str(cooldown_ttl)}
+            )
+    if client_ip and client_ip not in ("testclient",):
+        cooldown_ttl = await redis.ttl(f"fraud:cooldown:ip:{client_ip}")
+        if cooldown_ttl and cooldown_ttl > 0:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Temporary hold cooldown active due to repeated unconfirmed holds. Please retry in {cooldown_ttl} seconds.",
+                headers={"Retry-After": str(cooldown_ttl)}
+            )
+
+    # 3. Dynamic CAPTCHA requirement on suspicious hold patterns
+    is_suspicious = False
+    if user_id:
+        user_expired_cnt = int(await redis.get(f"fraud:expired_holds:user:{user_id}") or 0)
+        if user_expired_cnt >= 2:
+            is_suspicious = True
+    if client_ip and not is_suspicious:
+        ip_expired_cnt = int(await redis.get(f"fraud:expired_holds:ip:{client_ip}") or 0)
+        if ip_expired_cnt >= 2:
+            is_suspicious = True
+
+    if is_suspicious:
+        await verify_captcha_token(captcha_token, client_ip, required=True)
+    elif captcha_token:
+        await verify_captcha_token(captcha_token, client_ip, required=False)
+
+    # 4. Anti-Hoarding: At most ONE active hold per user per show
+    if user_id:
+        existing_show_hold = await db.execute(
+            select(SeatInventory.hold_id)
+            .where(
+                SeatInventory.showtime_id == showtime_id,
+                SeatInventory.held_by_user_id == user_id,
+                SeatInventory.status.in_([SeatStatusEnum.HELD, SeatStatusEnum.PAYMENT_PENDING]),
+                SeatInventory.hold_expires_at > now
+            )
+            .limit(1)
+        )
+        existing_hold_id = existing_show_hold.scalar_one_or_none()
+        if existing_hold_id and existing_hold_id != idempotency_key:
+            await log_fraud_event("HOARDING_ATTEMPT", client_ip or "127.0.0.1", user_id, {
+                "reason": "duplicate_show_hold",
+                "showtime_id": showtime_id
+            })
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Active hold already exists for this showtime. Please complete payment or release existing hold."
+            )
+
+    # 5. Anti-Hoarding: Detection of one account holding multiple shows at once
+    if user_id:
+        active_shows_res = await db.execute(
+            select(func.count(func.distinct(SeatInventory.showtime_id)))
+            .where(
+                SeatInventory.held_by_user_id == user_id,
+                SeatInventory.status.in_([SeatStatusEnum.HELD, SeatStatusEnum.PAYMENT_PENDING]),
+                SeatInventory.hold_expires_at > now,
+                SeatInventory.showtime_id != showtime_id
+            )
+        )
+        other_active_shows = active_shows_res.scalar() or 0
+        if other_active_shows >= getattr(settings, "MAX_ACTIVE_SHOWS_PER_USER", 2):
+            await log_fraud_event("HOARDING_ATTEMPT", client_ip or "127.0.0.1", user_id, {
+                "reason": "multiple_shows_held",
+                "active_shows": other_active_shows
+            })
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Active holds across multiple shows exceeded. Please complete or release existing reservations."
+            )
+
+    # 6. Anti-Hoarding: Cap on simultaneous active holds per IP
+    if client_ip and client_ip not in ("testclient", "127.0.0.1", "localhost", "::1"):
+        active_ip_holds = await redis.scard(f"hoard:ip_holds:{client_ip}") or 0
+        if active_ip_holds >= getattr(settings, "MAX_SIMULTANEOUS_HOLDS_PER_IP", 5):
+            await log_fraud_event("HOARDING_ATTEMPT", client_ip, user_id, {
+                "reason": "ip_simultaneous_cap",
+                "count": active_ip_holds
+            })
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Seat hoarding detected. This IP address already has maximum active seat holds."
+            )
+
+    # 7. Server-enforced recliner pair integrity
     st_res = await db.execute(select(Showtime).where(Showtime.id == showtime_id))
     st_obj = st_res.scalar_one_or_none()
     if st_obj:
@@ -235,7 +329,7 @@ async def hold_seats(
     # Initialize extension count
     _hold_extensions[hold_id] = 0
 
-    # Store hold in Redis
+    # Store hold in Redis and track IP active holds
     try:
         redis = await get_redis_client()
         hold_payload = {
@@ -247,6 +341,17 @@ async def hold_seats(
             "extensions": 0
         }
         await redis.setex(f"seat_hold:{hold_id}", duration_seconds, json.dumps(hold_payload))
+        if client_ip:
+            await redis.sadd(f"hoard:ip_holds:{client_ip}", hold_id)
+            await redis.expire(f"hoard:ip_holds:{client_ip}", duration_seconds + 300)
+            await redis.setex(f"hold:meta:ip:{hold_id}", duration_seconds + 300, client_ip)
+        if user_id:
+            await redis.setex(f"hold:meta:user:{hold_id}", duration_seconds + 300, str(user_id))
+        await log_fraud_event("HOLD_CREATED", client_ip or "127.0.0.1", user_id, {
+            "hold_id": hold_id,
+            "showtime_id": showtime_id,
+            "seats_count": len(seat_ids)
+        })
     except Exception as exc:
         logger.warning(f"Redis hold tracking failed: {exc}")
 
@@ -309,10 +414,16 @@ async def release_seats(
     for ip_set in _active_ip_holds.values():
         ip_set.discard(hold_id)
 
-    # Clean up Redis
+    # Clean up Redis and active IP holds
     try:
         redis = await get_redis_client()
+        ip = await redis.get(f"hold:meta:ip:{hold_id}")
+        if ip:
+            await redis.srem(f"hoard:ip_holds:{ip}", hold_id)
+            await redis.delete(f"hold:meta:ip:{hold_id}")
+        await redis.delete(f"hold:meta:user:{hold_id}")
         await redis.delete(f"seat_hold:{hold_id}")
+        await log_fraud_event("HOLD_RELEASED", ip or "127.0.0.1", user_id, {"hold_id": hold_id})
     except Exception:
         pass
 

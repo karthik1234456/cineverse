@@ -13,16 +13,19 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    captcha_token: Optional[str] = None
 
 
 class UserLogin(BaseModel):
     email: Optional[str] = None
     phone: Optional[str] = None
     password: str
+    captcha_token: Optional[str] = None
 
 
 class OtpSendRequest(BaseModel):
     phone: str
+    captcha_token: Optional[str] = None
 
 
 class OtpVerifyRequest(BaseModel):

@@ -68,6 +68,18 @@ class Settings(BaseSettings):
     ENABLE_TICKET_TRANSFERS: bool = True  # Can be toggled to false via ENABLE_TICKET_TRANSFERS=false for state compliance
     ENABLE_BUG_REPORTING: bool = os.getenv("ENABLE_BUG_REPORTING", "true").lower() in ("true", "1", "yes")
 
+    # Anti-Bot, Abuse & CAPTCHA Settings
+    ENABLE_RATE_LIMITING: bool = os.getenv("ENABLE_RATE_LIMITING", "true").lower() in ("true", "1", "yes")
+    TURNSTILE_SECRET_KEY: str = os.getenv("TURNSTILE_SECRET_KEY", "1x0000000000000000000000000000000AA")
+    TURNSTILE_SITE_KEY: str = os.getenv("TURNSTILE_SITE_KEY", "1x0000000000000000000000000000000AA")
+    CAPTCHA_BYPASS_DEV: bool = os.getenv("CAPTCHA_BYPASS_DEV", "true").lower() in ("true", "1", "yes")
+    MAX_ACTIVE_HOLDS_PER_USER_PER_SHOW: int = 1
+    MAX_ACTIVE_SHOWS_PER_USER: int = 2
+    MAX_SIMULTANEOUS_HOLDS_PER_IP: int = 5
+    EXPIRED_HOLDS_COOLDOWN_THRESHOLD: int = 3
+    EXPIRED_HOLDS_WINDOW_SECONDS: int = 1800
+    COOLDOWN_DURATION_SECONDS: int = 900
+
     # Catalog Source & TMDB Settings (accepts both v3 32-hex api_key and v4 Bearer token)
     CATALOG_SOURCE: str = os.getenv("CATALOG_SOURCE", "local")  # "local" or "tmdb"
     TMDB_API_KEY: str = os.getenv("TMDB_API_KEY", "")

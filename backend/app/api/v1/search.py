@@ -13,30 +13,9 @@ from app.models.showtime import Showtime
 from app.models.technical_specs import ScreenFormat, SoundSystem, ProjectionType
 from app.schemas.movie import MovieResponse
 from app.schemas.cinema import CinemaResponse
+from app.core.rate_limiter import check_rate_limit
 
 router = APIRouter()
-
-# In-memory sliding window rate limiter: max 60 requests per minute per IP
-SEARCH_RATE_LIMIT = 60
-SEARCH_WINDOW_SECONDS = 60
-_search_request_history: Dict[str, List[float]] = defaultdict(list)
-
-
-def check_search_rate_limit(request: Request):
-    client_ip = request.client.host if request.client else "unknown"
-    now = time.time()
-    cutoff = now - SEARCH_WINDOW_SECONDS
-    
-    # Filter out timestamps older than window
-    timestamps = [t for t in _search_request_history[client_ip] if t > cutoff]
-    if len(timestamps) >= SEARCH_RATE_LIMIT:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Rate limit exceeded for search. Please wait before searching again.",
-            headers={"Retry-After": str(SEARCH_WINDOW_SECONDS)}
-        )
-    timestamps.append(now)
-    _search_request_history[client_ip] = timestamps
 
 
 @router.get("")
@@ -47,7 +26,7 @@ async def global_search(
     limit: int = Query(10, ge=1, le=50),
     db: AsyncSession = Depends(get_db)
 ):
-    check_search_rate_limit(request)
+    await check_rate_limit("search", request)
 
     # Sanitize search term against dangerous wildcards/escapes
     clean_q = q.strip().replace("%", "\\%").replace("_", "\\_")

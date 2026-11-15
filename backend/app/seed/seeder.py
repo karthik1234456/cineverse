@@ -2010,6 +2010,7 @@ async def seed_database(force: bool = False):
         print("Seeding Users...")
         test_users = [
             User(email="admin@cineverse.com", hashed_password=hash_password("Admin@123"), full_name="CineVerse Administrator", role=RoleEnum.ADMIN, is_active=True),
+            User(email="admin@cineverse.in", hashed_password=hash_password("Admin@123"), full_name="CineVerse Administrator", role=RoleEnum.ADMIN, is_active=True),
             User(email="manager@cineverse.com", hashed_password=hash_password("Manager@123"), full_name="City Cinema Manager", role=RoleEnum.CINEMA_MANAGER, is_active=True),
             User(email="manager@cineverse.in", hashed_password=hash_password("Manager@123"), full_name="City Cinema Manager", role=RoleEnum.CINEMA_MANAGER, is_active=True),
             User(email="patron@example.com", hashed_password=hash_password("Patron@123"), full_name="Aditya Sharma", role=RoleEnum.CUSTOMER, is_active=True),

@@ -68,10 +68,10 @@ async def _cleanup_database_state():
         await db.execute(delete(BookingSeat))
         await db.execute(delete(Booking))
 
-        # Reset Showtime 1 seat inventory for booking tests
+        # Reset Showtime 1, 2, 3 seat inventory for booking tests
         await db.execute(
             update(SeatInventory)
-            .where(SeatInventory.showtime_id == 1)
+            .where(SeatInventory.showtime_id.in_([1, 2, 3]))
             .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
         )
         await db.execute(

@@ -1,6 +1,6 @@
 import uuid
 from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,6 +13,7 @@ from app.agent.tools import TOOL_DEFINITIONS
 from app.agent.safety import get_audit_logs, log_audit
 from app.services.hold_service import hold_seats as db_hold_seats
 from app.services.payment_service import cancel_booking as db_cancel_booking
+from app.core.rate_limiter import check_rate_limit
 
 
 router = APIRouter()
@@ -51,8 +52,10 @@ _ACTION_TOKENS: Dict[str, Dict[str, Any]] = {}
 @router.post("/session", response_model=SessionResponse)
 async def create_agent_session(
     req: SessionCreateRequest,
+    request: Request,
     current_user: Optional[User] = Depends(get_current_user)
 ):
+    await check_rate_limit("assistant", request, user_id=current_user.id if current_user else None)
     session_id = f"sess_{uuid.uuid4().hex[:12]}"
     welcome = {
         "en": "Hello! I am CineVerse Voice Assistant. You can ask me to find movies, check showtimes, preview 3D seat views, or suggest the best seats.",
@@ -76,9 +79,11 @@ async def create_agent_session(
 @router.post("/message", response_model=AgentResponse)
 async def handle_agent_message(
     req: MessageRequest,
+    request: Request,
     current_user: Optional[User] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    await check_rate_limit("assistant", request, user_id=current_user.id if current_user else None)
     session = _SESSIONS.get(req.session_id)
     if not session:
         # Create session on the fly

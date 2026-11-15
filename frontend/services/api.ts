@@ -30,14 +30,28 @@ export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): 
 
     if (!response.ok) {
       let errorDetail = response.statusText;
+      let retryAfter: number | null = null;
       try {
         const errJson = await response.json();
-        errorDetail = errJson.detail || JSON.stringify(errJson);
+        errorDetail = errJson.detail || errJson.error?.message || JSON.stringify(errJson);
+        if (errJson.error?.retry_after) {
+          retryAfter = Number(errJson.error.retry_after);
+        }
       } catch {
         // ignore
       }
+      const rawHeader = response.headers.get('Retry-After');
+      if (rawHeader) {
+        const parsed = Number(rawHeader);
+        if (!isNaN(parsed)) retryAfter = parsed;
+      }
+      if (response.status === 429) {
+        const waitMsg = retryAfter ? ` Please wait ${retryAfter} seconds before trying again.` : ' Please wait a moment before trying again.';
+        errorDetail = `Too many requests.${waitMsg}`;
+      }
       const err = new Error(errorDetail || `API request failed with status ${response.status}`);
       (err as any).status = response.status;
+      (err as any).retryAfter = retryAfter;
       throw err;
     }
 
@@ -1114,6 +1128,55 @@ export async function transferTicket(ticketId: number, recipientEmail: string) {
   return apiFetch<any>(`/tickets/${ticketId}/transfer`, {
     method: 'POST',
     body: JSON.stringify({ recipient_email: recipientEmail }),
+  });
+}
+
+// ---------------- ADMIN SECURITY & ANTI-BOT ----------------
+export interface SecurityMetrics {
+  global_counters: Record<string, number>;
+  active_blocks_count: number;
+  blocked_targets: Array<{
+    target_type: string;
+    target: string;
+    masked_target: string;
+    reason: string;
+    ttl_seconds: number;
+    expires_in_minutes: number;
+  }>;
+  recent_alerts: Array<{
+    id: string;
+    severity: string;
+    reason: string;
+    client_ip: string;
+    masked_ip: string;
+    user_id: number | null;
+    timestamp: number;
+    status: string;
+  }>;
+  recent_events: Array<{
+    event_type: string;
+    masked_ip: string;
+    user_id: number | null;
+    timestamp: number;
+    metadata: Record<string, any>;
+  }>;
+}
+
+export async function getSecurityMetrics(): Promise<SecurityMetrics> {
+  return apiFetch<SecurityMetrics>('/admin/security/metrics');
+}
+
+export async function blockSecurityTarget(target_type: 'ip' | 'user', target: string, duration_minutes: number, reason: string) {
+  return apiFetch<any>('/admin/security/block', {
+    method: 'POST',
+    body: JSON.stringify({ target_type, target, duration_minutes, reason }),
+  });
+}
+
+export async function unblockSecurityTarget(target_type: 'ip' | 'user', target: string) {
+  return apiFetch<any>('/admin/security/unblock', {
+    method: 'POST',
+    body: JSON.stringify({ target_type, target }),
   });
 }
 

@@ -20,6 +20,7 @@ from app.schemas.problem_report import (
 )
 from app.services.auth_service import require_role
 from app.services.scrubber import scrub_data
+from app.core.rate_limiter import check_rate_limit, extract_client_ip
 
 router = APIRouter()
 
@@ -30,24 +31,9 @@ UPLOADS_DIR = os.path.join(_repo_dir, "frontend", "public", "bug_reports")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 
 # In-memory sliding window rate limiter: { ip: [timestamp, ...] }
-_rate_limits: Dict[str, List[float]] = {}
 RATE_LIMIT_WINDOW_SECONDS = 60
 RATE_LIMIT_MAX_REQUESTS = 10
 MAX_PAYLOAD_BYTES = 5 * 1024 * 1024  # 5MB
-
-
-def check_rate_limit(client_ip: str):
-    now = time.time()
-    timestamps = _rate_limits.get(client_ip, [])
-    # keep only within window
-    timestamps = [t for t in timestamps if now - t < RATE_LIMIT_WINDOW_SECONDS]
-    if len(timestamps) >= RATE_LIMIT_MAX_REQUESTS:
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Too many problem reports submitted from this IP. Please wait a minute."
-        )
-    timestamps.append(now)
-    _rate_limits[client_ip] = timestamps
 
 
 @router.post("/reports", status_code=status.HTTP_201_CREATED)
@@ -67,9 +53,9 @@ async def submit_problem_report(
             detail="Bug reporting feature is currently disabled."
         )
 
-    # 2. Rate Limiting Check
-    client_ip = request.client.host if request.client else "127.0.0.1"
-    check_rate_limit(client_ip)
+    # 2. Rate Limiting Check (Shared Redis sliding-window)
+    client_ip = extract_client_ip(request)
+    await check_rate_limit("problem_report", request)
 
     # 3. Screenshot processing and size limits
     screenshot_filename = None

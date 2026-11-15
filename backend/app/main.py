@@ -41,6 +41,7 @@ from app.api.v1.waitlist import router as waitlist_router
 from app.api.v1.pricing import router as pricing_router
 from app.api.v1.insights import router as insights_router
 from app.api.v1.problem_reports import router as problem_reports_router
+from app.api.v1.admin_security import router as admin_security_router
 from app.api.v1.dev import router as dev_router
 from app.api.websockets.showtimes import router as ws_router
 
@@ -116,14 +117,24 @@ def create_app() -> FastAPI:
         headers = dict(exc.headers) if exc.headers else {}
         if req_id:
             headers["X-Request-ID"] = req_id
+
+        err_code = "RATE_LIMIT_EXCEEDED" if exc.status_code == 429 else f"HTTP_{exc.status_code}"
+        error_content: dict = {
+            "code": err_code,
+            "message": str(exc.detail),
+            "request_id": req_id
+        }
+
+        if exc.status_code == 429 and "Retry-After" in headers:
+            try:
+                error_content["retry_after"] = int(headers["Retry-After"])
+            except ValueError:
+                error_content["retry_after"] = headers["Retry-After"]
+
         return JSONResponse(
             status_code=exc.status_code,
             content={
-                "error": {
-                    "code": f"HTTP_{exc.status_code}",
-                    "message": str(exc.detail),
-                    "request_id": req_id
-                },
+                "error": error_content,
                 "detail": exc.detail
             },
             headers=headers
@@ -204,6 +215,7 @@ def create_app() -> FastAPI:
     application.include_router(technical_specs_router, prefix=f"{v1}/technical-specs", tags=["Technical Specifications"])
     application.include_router(search_router, prefix=f"{v1}/search", tags=["Global Search"])
     application.include_router(admin_router, prefix=f"{v1}/admin", tags=["Admin"])
+    application.include_router(admin_security_router, prefix=f"{v1}", tags=["Admin Security & Abuse Protection"])
     application.include_router(pricing_router, prefix=f"{v1}/admin", tags=["Admin Dynamic Pricing"])
     application.include_router(insights_router, prefix=f"{v1}/admin", tags=["Admin Insights & Forecasting"])
     application.include_router(waitlist_router, prefix=f"{v1}", tags=["Waitlist"])

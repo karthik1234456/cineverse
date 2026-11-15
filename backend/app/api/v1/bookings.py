@@ -1,5 +1,5 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -7,6 +7,7 @@ from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models.booking import Booking, BookingSeat, BookingAddon, Ticket, BookingStatusEnum
 from app.models.showtime import Showtime
+from app.models.cinema import Auditorium
 from app.models.auth import User, RoleEnum
 from app.schemas.booking import (
     SeatHoldRequest, SeatHoldResponse, SeatReleaseRequest, SeatExtendRequest,
@@ -21,19 +22,24 @@ from app.services.hold_service import (
 from app.services.booking_service import create_booking
 from app.services.payment_service import cancel_booking
 from app.services.geo_service import generate_directions_url
+from app.core.rate_limiter import check_rate_limit
 
 router = APIRouter()
 
 
 @router.post("/hold", response_model=SeatHoldResponse)
 async def api_hold_seats(
-    showtime_id: int,
     req: SeatHoldRequest,
     request: Request,
+    showtime_id: Optional[int] = Query(None),
     x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key"),
     current_user: Optional[User] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    target_showtime_id = showtime_id or req.showtime_id
+    if not target_showtime_id:
+        raise HTTPException(status_code=400, detail="showtime_id must be provided")
+
     user_id = current_user.id if current_user else None
     
     forwarded = request.headers.get("X-Forwarded-For")
@@ -42,21 +48,32 @@ async def api_hold_seats(
     else:
         client_ip = request.client.host if request.client else "127.0.0.1"
 
+    # Enforce shared Redis sliding-window rate limit: 10/min per user, 30/min per IP
+    await check_rate_limit("hold_seats", request, user_id=user_id)
+
     idempotency_key = req.idempotency_key or x_idempotency_key
 
     result = await hold_seats(
         db,
-        showtime_id,
+        target_showtime_id,
         req.seat_ids,
         user_id=user_id,
         client_ip=client_ip,
-        idempotency_key=idempotency_key
+        idempotency_key=idempotency_key,
+        captcha_token=req.captcha_token
     )
     return SeatHoldResponse(**result)
 
 
 @router.post("/release")
-async def api_release_seats(req: SeatReleaseRequest, db: AsyncSession = Depends(get_db)):
+async def api_release_seats(
+    req: SeatReleaseRequest,
+    request: Request,
+    current_user: Optional[User] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    user_id = current_user.id if current_user else None
+    await check_rate_limit("release_seats", request, user_id=user_id)
     result = await release_seats(db, req.hold_id, req.seat_ids)
     return result
 
@@ -197,7 +214,9 @@ async def list_my_bookings(
             selectinload(Booking.addons),
             selectinload(Booking.showtime).selectinload(Showtime.movie),
             selectinload(Booking.showtime).selectinload(Showtime.cinema),
-            selectinload(Booking.showtime).selectinload(Showtime.auditorium),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.screen_format),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.sound_system),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.projection_type),
             selectinload(Booking.ticket)
         )
         .order_by(Booking.created_at.desc())
@@ -226,7 +245,9 @@ async def get_booking_details(
             selectinload(Booking.addons),
             selectinload(Booking.showtime).selectinload(Showtime.movie),
             selectinload(Booking.showtime).selectinload(Showtime.cinema),
-            selectinload(Booking.showtime).selectinload(Showtime.auditorium),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.screen_format),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.sound_system),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.projection_type),
             selectinload(Booking.ticket)
         )
     )
@@ -270,7 +291,9 @@ async def format_booking_response(booking: Booking, db: AsyncSession) -> Booking
             selectinload(Booking.ticket),
             selectinload(Booking.showtime).selectinload(Showtime.movie),
             selectinload(Booking.showtime).selectinload(Showtime.cinema),
-            selectinload(Booking.showtime).selectinload(Showtime.auditorium),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.screen_format),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.sound_system),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.projection_type),
         )
     )
     result = await db.execute(stmt)
@@ -329,7 +352,7 @@ async def format_booking_response(booking: Booking, db: AsyncSession) -> Booking
         sound_system=st.auditorium.sound_system_name if (st and st.auditorium) else "Dolby Atmos",
         projection_type=st.auditorium.projection_type_name if (st and st.auditorium) else "4K Laser",
         tech_specs_display=st.auditorium.tech_specs_display if (st and st.auditorium) else "Screen 1 · IMAX 3D · Dolby Atmos · 4K Laser",
-        requires_glasses=st.auditorium.screen_format.requires_glasses if (st and st.auditorium and st.auditorium.screen_format) else ("3D" in (st.auditorium.screen_type if (st and st.auditorium) else "")),
+        requires_glasses=st.auditorium.screen_format.requires_glasses if (st and st.auditorium and "screen_format" in st.auditorium.__dict__ and st.auditorium.screen_format) else ("3D" in (st.auditorium.screen_type if (st and st.auditorium) else "")),
         confirmed_with_cinema=st.auditorium.confirmed_with_cinema if (st and st.auditorium) else False,
         is_demo=st.auditorium.is_demo if (st and st.auditorium) else True,
         start_time=st.start_time if st else b.created_at,

@@ -26,14 +26,54 @@ async def sweep_expired_holds():
 
             # Group by showtime_id for websocket notification
             by_showtime = {}
+            holds_expired = set()
             for s in expired_seats:
                 by_showtime.setdefault(s.showtime_id, []).append(s.seat_id)
+                if s.hold_id:
+                    holds_expired.add((s.hold_id, s.held_by_user_id))
                 s.status = SeatStatusEnum.AVAILABLE
                 s.hold_id = None
                 s.hold_expires_at = None
                 s.held_by_user_id = None
 
             await db.commit()
+
+            # Track expired holds for hoarding cooldown & telemetry
+            try:
+                from app.redis_client import get_redis_client
+                from app.core.fraud_logger import log_fraud_event
+                from app.config import settings
+
+                redis = await get_redis_client()
+                for h_id, u_id in holds_expired:
+                    ip = await redis.get(f"hold:meta:ip:{h_id}")
+                    if ip:
+                        await redis.srem(f"hoard:ip_holds:{ip}", h_id)
+                        ip_exp_key = f"fraud:expired_holds:ip:{ip}"
+                        cnt = await redis.incr(ip_exp_key)
+                        await redis.expire(ip_exp_key, getattr(settings, "EXPIRED_HOLDS_WINDOW_SECONDS", 1800))
+                        if cnt >= getattr(settings, "EXPIRED_HOLDS_COOLDOWN_THRESHOLD", 3):
+                            await redis.setex(
+                                f"fraud:cooldown:ip:{ip}",
+                                getattr(settings, "COOLDOWN_DURATION_SECONDS", 900),
+                                "1"
+                            )
+                        await log_fraud_event("HOLD_EXPIRED", ip, u_id, {"hold_id": h_id})
+
+                    if u_id:
+                        user_exp_key = f"fraud:expired_holds:user:{u_id}"
+                        cnt = await redis.incr(user_exp_key)
+                        await redis.expire(user_exp_key, getattr(settings, "EXPIRED_HOLDS_WINDOW_SECONDS", 1800))
+                        if cnt >= getattr(settings, "EXPIRED_HOLDS_COOLDOWN_THRESHOLD", 3):
+                            await redis.setex(
+                                f"fraud:cooldown:user:{u_id}",
+                                getattr(settings, "COOLDOWN_DURATION_SECONDS", 900),
+                                "1"
+                            )
+                        if not ip:
+                            await log_fraud_event("HOLD_EXPIRED", "127.0.0.1", u_id, {"hold_id": h_id})
+            except Exception as exp_track_err:
+                logger.warning(f"Error updating expired hold tracking: {exp_track_err}")
 
             # Broadcast releases and process waitlist
             for showtime_id, seat_ids in by_showtime.items():

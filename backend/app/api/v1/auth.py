@@ -18,12 +18,23 @@ from app.services.auth_service import (
     set_auth_cookies, clear_auth_cookies
 )
 from app.redis_client import get_redis_client
+from app.core.rate_limiter import check_rate_limit, extract_client_ip
+from app.core.fraud_logger import log_fraud_event
+from app.services.captcha_service import verify_captcha_token
 
 router = APIRouter()
 
 
 @router.post("/register", response_model=TokenResponse)
-async def register(req: UserCreate, response: Response, db: AsyncSession = Depends(get_db)):
+async def register(req: UserCreate, request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+    client_ip = extract_client_ip(request)
+
+    # 1. Enforce shared Redis sliding-window rate limit (5 per 10m per IP)
+    await check_rate_limit("auth_register", request)
+
+    # 2. Enforce CAPTCHA on user registration
+    await verify_captcha_token(req.captcha_token, client_ip, required=True)
+
     if req.email:
         res = await db.execute(select(User).where(User.email == req.email))
         if res.scalars().first():
@@ -72,7 +83,23 @@ async def register(req: UserCreate, response: Response, db: AsyncSession = Depen
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(req: UserLogin, response: Response, db: AsyncSession = Depends(get_db)):
+async def login(req: UserLogin, request: Request, response: Response, db: AsyncSession = Depends(get_db)):
+    client_ip = extract_client_ip(request)
+    identifier = req.email or req.phone
+
+    # 1. Enforce shared Redis sliding-window rate limit (5 per 10m per account, 15 per 10m per IP)
+    await check_rate_limit("auth_login", request, custom_identifier=identifier)
+
+    redis = await get_redis_client()
+
+    # 2. Enforce CAPTCHA if account or IP has repeated failed login attempts (threshold: >= 2)
+    fail_key = f"auth:failures:{identifier or client_ip}"
+    fail_count = int(await redis.get(fail_key) or 0)
+    if fail_count >= 2:
+        await verify_captcha_token(req.captcha_token, client_ip, required=True)
+    elif req.captcha_token:
+        await verify_captcha_token(req.captcha_token, client_ip, required=False)
+
     stmt = select(User)
     if req.email:
         stmt = stmt.where(User.email == req.email)
@@ -85,10 +112,17 @@ async def login(req: UserLogin, response: Response, db: AsyncSession = Depends(g
     user = result.scalars().first()
 
     if not user or not user.hashed_password or not verify_password(req.password, user.hashed_password):
+        # Increment failure tracker in Redis (10 minute expiry)
+        await redis.incr(fail_key)
+        await redis.expire(fail_key, 600)
+        await log_fraud_event("AUTH_FAILED", client_ip, user.id if user else None, {"identifier": identifier})
         raise HTTPException(status_code=401, detail="Invalid email/phone or password")
 
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account is deactivated")
+
+    # Clear failed login counter on success
+    await redis.delete(fail_key)
 
     access_token = create_access_token({"sub": str(user.id), "role": user.role.value})
     refresh_token = create_refresh_token(user.id)
@@ -115,7 +149,25 @@ async def login(req: UserLogin, response: Response, db: AsyncSession = Depends(g
 
 
 @router.post("/otp/send")
-async def send_otp(req: OtpSendRequest):
+async def send_otp(req: OtpSendRequest, request: Request):
+    client_ip = extract_client_ip(request)
+
+    # 1. Enforce shared Redis sliding-window rate limit (3 per 10m per phone, 10 per hour per IP)
+    await check_rate_limit("otp_send", request, custom_identifier=req.phone)
+
+    redis = await get_redis_client()
+
+    # 2. Enforce CAPTCHA after repeated OTP requests (>= 2 within window)
+    otp_count_key = f"otp:request_count:{req.phone}"
+    req_count = int(await redis.get(otp_count_key) or 0)
+    if req_count >= 2:
+        await verify_captcha_token(req.captcha_token, client_ip, required=True)
+    elif req.captcha_token:
+        await verify_captcha_token(req.captcha_token, client_ip, required=False)
+
+    await redis.incr(otp_count_key)
+    await redis.expire(otp_count_key, 600)
+
     await send_sms_otp(req.phone)
     return {"message": "OTP sent successfully to phone", "phone": req.phone, "hint": "Use 123456 for test environment"}
 

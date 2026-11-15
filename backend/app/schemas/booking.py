@@ -5,8 +5,10 @@ from app.models.booking import BookingStatusEnum
 
 
 class SeatHoldRequest(BaseModel):
+    showtime_id: Optional[int] = None
     seat_ids: List[str]
     idempotency_key: Optional[str] = None
+    captcha_token: Optional[str] = None
 
 
 class SeatHoldResponse(BaseModel):

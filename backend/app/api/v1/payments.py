@@ -12,6 +12,10 @@ from app.services.payment_service import (
     create_razorpay_order, verify_payment, process_webhook
 )
 from app.api.v1.bookings import format_booking_response
+from app.core.rate_limiter import check_rate_limit
+
+from app.services.auth_service import get_current_user
+from app.models.auth import User
 
 router = APIRouter()
 
@@ -19,8 +23,13 @@ router = APIRouter()
 @router.post("/create-order", response_model=RazorpayOrderResponse)
 async def api_create_payment_order(
     req: RazorpayOrderCreateRequest,
+    request: Request,
+    current_user: Optional[User] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    user_id = current_user.id if current_user else None
+    # Enforce shared Redis sliding-window rate limit (5 per 10m per user, 10 per 10m per IP)
+    await check_rate_limit("payments", request, user_id=user_id)
     result = await create_razorpay_order(db, req.booking_id)
     return RazorpayOrderResponse(**result)
 
