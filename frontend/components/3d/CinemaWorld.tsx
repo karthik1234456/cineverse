@@ -96,7 +96,7 @@ export function CinemaWorld({
         }}
         gl={{
           antialias: true,
-          alpha: overrideScreenMode === 'youtube_css3d',
+          alpha: true,
           preserveDrawingBuffer: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,

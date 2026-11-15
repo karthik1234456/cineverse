@@ -127,9 +127,12 @@ export function useSeatData(showtimeId: string = '1') {
       setTrailerState({
         trailerUrl: data.trailer_url || '',
         posterUrl: data.poster_url || '',
+        bannerUrl: data.banner_url || data.poster_url || '',
         movieTitle: data.movie_title || '',
-        isPlaying: !!data.trailer_url,
-        isMuted: true,
+        isPlaying: false,
+        isMuted: false,
+        playbackStatus: 'ready',
+        isTheatreMode: false,
       });
     }
   }, [data, setSeatStatuses, setSeatPrices, setTiers, setTrailerState]);

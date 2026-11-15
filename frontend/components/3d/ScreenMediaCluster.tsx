@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Play, Pause, Volume2, VolumeX, Film, ChevronDown, Sparkles, ExternalLink, X, AlertCircle, Loader2, RotateCcw } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Film, ChevronDown, Sparkles, ExternalLink, X, AlertCircle, Loader2, RotateCcw, Maximize2 } from 'lucide-react';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import { useTrailerStore } from '@/store/useTrailerStore';
 
@@ -25,6 +25,8 @@ export function ScreenMediaCluster() {
   const toggleTrailerMute = useCinemaStore((s) => s.toggleTrailerMute);
   const restartTrailer = useCinemaStore((s) => s.restartTrailer);
   const setHouseLights = useCinemaStore((s) => s.setHouseLights);
+  const theatreModeOpen = useCinemaStore((s) => s.theatreModeOpen);
+  const setTheatreModeOpen = useCinemaStore((s) => s.setTheatreModeOpen);
   const openTrailer = useTrailerStore((s) => s.openTrailer);
 
   const [isMinimized, setIsMinimized] = useState(false);
@@ -40,6 +42,10 @@ export function ScreenMediaCluster() {
   const isTitleCard = activeStrategy === 'title_card' || activeStrategy === 'backdrop_motion';
 
   const handleStartPlayback = () => {
+    if (typeof (window as any).__cineverse_play_trailer === 'function') {
+      (window as any).__cineverse_play_trailer();
+      return;
+    }
     const vid = (window as any).__cineverse_video as HTMLVideoElement | undefined;
     if (vid) {
       vid.muted = false;
@@ -61,14 +67,13 @@ export function ScreenMediaCluster() {
         try {
           yt.unMute();
           yt.playVideo();
-          setTrailer({ isPlaying: true, isMuted: false, playbackStatus: 'playing' });
+          setTrailer({ isPlaying: true, isMuted: false, playbackStatus: 'loading' });
           setHouseLights('show');
         } catch {
-          setTrailer({ playbackStatus: 'blocked' });
+          setTheatreModeOpen(true);
         }
       } else {
-        setTrailer({ isPlaying: true, playbackStatus: 'playing' });
-        setHouseLights('show');
+        setTheatreModeOpen(true);
       }
     }
   };
@@ -122,6 +127,14 @@ export function ScreenMediaCluster() {
 
   // Determine true status indicator (§ Part D.2, D.4: never 'Loading...' before user presses play)
   const getStatusBadge = () => {
+    if (trailer.isTheatreMode) {
+      return (
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-rose-400">
+          <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+          <span>Playing in Theatre Mode</span>
+        </span>
+      );
+    }
     if (playbackStatus === 'ready' || (!trailer.isPlaying && playbackStatus !== 'loading' && playbackStatus !== 'blocked' && playbackStatus !== 'unavailable')) {
       return (
         <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
@@ -320,6 +333,18 @@ export function ScreenMediaCluster() {
               </div>
             )}
           </div>
+
+          {/* Theatre Mode Button */}
+          <button
+            onClick={() => setTheatreModeOpen(true)}
+            data-testid="open-theatre-mode-btn"
+            className="flex min-h-[38px] items-center gap-1 rounded-xl bg-white/10 hover:bg-white/20 px-2.5 py-1.5 text-xs font-semibold text-slate-300 transition"
+            title="Open Cinema Theatre Mode"
+            aria-label="Open Cinema Theatre Mode"
+          >
+            <Maximize2 className="h-3.5 w-3.5 text-rose-400" />
+            <span>Theatre Mode</span>
+          </button>
         </div>
       ) : (
         /* Blocked / Fallback Mode (Prompt Item 3, 4) */

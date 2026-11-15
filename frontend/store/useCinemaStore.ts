@@ -69,6 +69,7 @@ export interface TrailerState {
   youtubeErrorCode?: number | null;
   currentTime?: number;
   duration?: number;
+  isTheatreMode?: boolean;
 }
 
 export interface CinemaState {
@@ -99,6 +100,8 @@ export interface CinemaState {
 
   // Cinema Screen Trailer (§5c)
   trailer: TrailerState;
+  theatreModeOpen: boolean;
+  setTheatreModeOpen: (open: boolean) => void;
 
   // Environment & Realism
   houseLights: HouseLightsMode;
@@ -345,7 +348,15 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     hasSpill: true,
     playbackStatus: 'ready',
     activeStrategy: 'title_card',
+    isTheatreMode: false,
   },
+  theatreModeOpen: false,
+  setTheatreModeOpen: (open) =>
+    set((s) => ({
+      theatreModeOpen: open,
+      trailer: { ...s.trailer, isTheatreMode: open },
+      houseLights: open ? 'dim' : s.houseLights,
+    })),
 
   houseLights: 'full',
   lightLevel: initialLightLevel,

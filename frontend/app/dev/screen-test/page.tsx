@@ -23,7 +23,9 @@ import {
   Terminal,
 } from 'lucide-react';
 
-// Lazy-load CinemaWorld without SSR
+import { TheatreModePlayer } from '@/components/3d/TheatreModePlayer';
+
+export type MovieBenchmarkType = 'hosted' | 'youtube_allowed' | 'youtube_disabled' | 'no_trailer';
 const CinemaWorld = dynamic(
   () => import('@/components/3d/CinemaWorld').then((m) => m.CinemaWorld),
   {
@@ -89,6 +91,7 @@ interface TelemetryReport {
 
 export default function ScreenTestBenchPage() {
   const [activeMode, setActiveMode] = useState<ScreenStrategy>('solid_color');
+  const [selectedMovieType, setSelectedMovieType] = useState<MovieBenchmarkType>('hosted');
   const [solidColor, setSolidColor] = useState('#00f0ff');
   const [selectedHall, setSelectedHall] = useState<'standard' | 'flagship' | 'motion_seat' | 'dolby_atmos_4dx' | 'balcony'>('flagship');
   const [telemetry, setTelemetry] = useState<TelemetryReport | null>(null);
@@ -100,6 +103,62 @@ export default function ScreenTestBenchPage() {
   const sitAt = useCinemaStore((s) => s.sitAt);
   const setTrailerState = useCinemaStore((s) => s.setTrailerState);
   const setCameraPose = useCinemaStore((s) => s.setCameraPose);
+
+  // Switch Movie Benchmark Type
+  const handleSelectMovieType = useCallback((type: MovieBenchmarkType) => {
+    setSelectedMovieType(type);
+    if (type === 'hosted') {
+      setActiveMode('video_texture');
+      setTrailerState({
+        movieTitle: 'QUANTUM ODYSSEY (HOSTED MP4)',
+        trailerUrl: '/trailers/quantum-odyssey.mp4',
+        posterUrl: '/trailers/quantum-odyssey_poster.webp',
+        bannerUrl: '/trailers/quantum-odyssey_poster.webp',
+        isPlaying: true,
+        isMuted: true,
+        playbackStatus: 'playing',
+        isTheatreMode: false,
+      });
+    } else if (type === 'youtube_allowed') {
+      setActiveMode('youtube_css3d');
+      setTrailerState({
+        movieTitle: 'CHRONOS PARADOX (YOUTUBE ALLOWED)',
+        trailerUrl: 'https://www.youtube-nocookie.com/embed/EfluEyQ5QIA',
+        posterUrl: '/trailers/chronos-paradox_poster.webp',
+        bannerUrl: '/trailers/chronos-paradox_poster.webp',
+        isPlaying: true,
+        isMuted: true,
+        playbackStatus: 'playing',
+        isTheatreMode: false,
+      });
+    } else if (type === 'youtube_disabled') {
+      setActiveMode('title_card');
+      useCinemaStore.getState().setTheatreModeOpen(true);
+      setTrailerState({
+        movieTitle: 'SECRET PROTOCOL (YOUTUBE DISABLED)',
+        trailerUrl: 'https://www.youtube-nocookie.com/embed/disabled_error_150',
+        posterUrl: '/trailers/shadow-protocol_poster.webp',
+        bannerUrl: '/trailers/shadow-protocol_poster.webp',
+        isPlaying: true,
+        isMuted: false,
+        playbackStatus: 'playing',
+        isTheatreMode: true,
+      });
+    } else if (type === 'no_trailer') {
+      setActiveMode('title_card');
+      useCinemaStore.getState().setTheatreModeOpen(false);
+      setTrailerState({
+        movieTitle: 'STELLAR HORIZONS (NO TRAILER)',
+        trailerUrl: '',
+        posterUrl: '/trailers/solaris-reborn_poster.webp',
+        bannerUrl: '/trailers/solaris-reborn_poster.webp',
+        isPlaying: false,
+        isMuted: true,
+        playbackStatus: 'ready',
+        isTheatreMode: false,
+      });
+    }
+  }, [setTrailerState]);
 
   // Capture console messages for test bench logging
   useEffect(() => {
@@ -164,6 +223,7 @@ export default function ScreenTestBenchPage() {
       bannerUrl: '/trailers/quantum-odyssey_poster.webp',
       isPlaying: true,
       isMuted: true,
+      isTheatreMode: false,
     });
   }, [selectedHall, activeMode, setAuditoriumData, setTrailerState]);
 
@@ -280,6 +340,70 @@ export default function ScreenTestBenchPage() {
         </div>
       </header>
 
+      {/* Movie Type Benchmark Strip (Requirement 4) */}
+      <div className="flex items-center gap-2 border-b border-slate-800 bg-[#0e1422] px-4 py-2 overflow-x-auto">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-rose-400 shrink-0 flex items-center gap-1.5">
+          <Film className="h-3.5 w-3.5" />
+          <span>Benchmark Movie Type:</span>
+        </span>
+
+        {/* 1. Hosted Clip */}
+        <button
+          onClick={() => handleSelectMovieType('hosted')}
+          data-testid="bench-movie-hosted"
+          className={`flex items-center gap-1.5 rounded-xl px-3 py-1 text-xs font-bold transition shrink-0 ${
+            selectedMovieType === 'hosted'
+              ? 'bg-rose-600 text-white shadow-md'
+              : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <Video className="h-3 w-3" />
+          <span>(1) Hosted Video Clip</span>
+        </button>
+
+        {/* 2. YouTube Allowed */}
+        <button
+          onClick={() => handleSelectMovieType('youtube_allowed')}
+          data-testid="bench-movie-yt-allowed"
+          className={`flex items-center gap-1.5 rounded-xl px-3 py-1 text-xs font-bold transition shrink-0 ${
+            selectedMovieType === 'youtube_allowed'
+              ? 'bg-red-600 text-white shadow-md'
+              : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <Film className="h-3 w-3" />
+          <span>(2) YouTube Allowed</span>
+        </button>
+
+        {/* 3. YouTube Embed Disabled */}
+        <button
+          onClick={() => handleSelectMovieType('youtube_disabled')}
+          data-testid="bench-movie-yt-disabled"
+          className={`flex items-center gap-1.5 rounded-xl px-3 py-1 text-xs font-bold transition shrink-0 ${
+            selectedMovieType === 'youtube_disabled'
+              ? 'bg-amber-600 text-white shadow-md'
+              : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <AlertTriangle className="h-3 w-3 text-amber-200" />
+          <span>(3) YouTube Disabled (Theatre Mode Fallback)</span>
+        </button>
+
+        {/* 4. No Trailer */}
+        <button
+          onClick={() => handleSelectMovieType('no_trailer')}
+          data-testid="bench-movie-no-trailer"
+          className={`flex items-center gap-1.5 rounded-xl px-3 py-1 text-xs font-bold transition shrink-0 ${
+            selectedMovieType === 'no_trailer'
+              ? 'bg-purple-600 text-white shadow-md'
+              : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <Sparkles className="h-3 w-3" />
+          <span>(4) No Trailer (Animated Title Card)</span>
+        </button>
+      </div>
+
       {/* Mode Selector Strip */}
       <div className="flex items-center gap-2 border-b border-slate-800 bg-[#0a0e17] px-4 py-2 overflow-x-auto">
         <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
@@ -388,6 +512,9 @@ export default function ScreenTestBenchPage() {
             <span className="text-slate-500">|</span>
             <span className="text-emerald-400 font-bold">{telemetry?.status || 'RUNNING'}</span>
           </div>
+
+          {/* Theatre Mode Player Overlay */}
+          <TheatreModePlayer />
         </div>
 
         {/* Right: Comprehensive Telemetry & Diagnostics Inspector */}

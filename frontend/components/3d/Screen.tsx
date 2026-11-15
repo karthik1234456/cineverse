@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import { Play } from 'lucide-react';
 import * as THREE from 'three';
@@ -24,6 +24,8 @@ export function CinemaScreen({
   solidColor = '#00f0ff',
   onTelemetryUpdate,
 }: CinemaScreenProps) {
+  const { gl, scene } = useThree();
+
   const meshRef = useRef<THREE.Mesh>(null);
   const lightRef = useRef<THREE.SpotLight>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -41,6 +43,8 @@ export function CinemaScreen({
   const setTrailerStrategy = useCinemaStore((s) => s.setTrailerStrategy);
   const toggleTrailerPlay = useCinemaStore((s) => s.toggleTrailerPlay);
   const toggleTrailerMute = useCinemaStore((s) => s.toggleTrailerMute);
+  const theatreModeOpen = useCinemaStore((s) => s.theatreModeOpen);
+  const setTheatreModeOpen = useCinemaStore((s) => s.setTheatreModeOpen);
   const screenConfig = useCinemaStore((s) => s.auditoriumLayout.screen);
 
   const screenWidth = screenConfig?.width ?? 15.6;
@@ -77,12 +81,16 @@ export function CinemaScreen({
   const [youtubePlayerState, setYoutubePlayerState] = useState<number | null>(null);
   const [youtubeReady, setYoutubeReady] = useState(false);
   const [ytApiLoaded, setYtApiLoaded] = useState(false);
+  const [youtubeVerifiedPlaying, setYoutubeVerifiedPlaying] = useState(false);
   const ytPlayerRef = useRef<any>(null);
 
-  // Deterministic Strategy Selection (Prompt Item 4)
-  // 1. Hosted MP4 clip -> video_texture
-  // 2. YouTube URL -> test YouTube on screen; if error (101/150 or failure) -> title_card
-  // 3. Otherwise -> title_card (always reliable, never empty)
+  // Watchdog timer ref for 3s fallback to Theatre Mode
+  const watchdogTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Time advancing verification ref
+  const verifiedAdvancingRef = useRef<boolean>(false);
+  const lastAdvanceCheckRef = useRef<{ time: number; timestamp: number }>({ time: -1, timestamp: 0 });
+
+  // Deterministic Strategy Selection
   const isHostedVideo = Boolean(
     trailer.trailerUrl &&
       (trailer.trailerUrl.endsWith('.mp4') ||
@@ -138,7 +146,6 @@ export function CinemaScreen({
         backdropImgRef.current = bImg;
         bLoaded = true;
         setAssetsLoaded(true);
-        // Sample ambient spill
         try {
           const c = document.createElement('canvas');
           c.width = 1;
@@ -174,13 +181,12 @@ export function CinemaScreen({
     video.crossOrigin = 'anonymous';
     video.playsInline = true;
     video.muted = trailer.isMuted;
-    video.defaultMuted = true;
+    video.defaultMuted = false;
     video.loop = true;
     video.preload = 'auto';
-    video.autoplay = true;
+    video.autoplay = false;
     video.setAttribute('playsinline', '');
     video.setAttribute('webkit-playsinline', '');
-    video.setAttribute('muted', '');
     video.id = 'cineverse-trailer-video';
 
     video.style.position = 'fixed';
@@ -210,20 +216,9 @@ export function CinemaScreen({
     const handleReady = () => {
       setVideoLoaded(true);
       setVideoError(false);
-      if (trailer.isPlaying) {
-        setTrailerPlaybackStatus('playing');
-        if (video.paused) {
-          video.play().catch(() => {
-            setTrailerPlaybackStatus('blocked');
-          });
-        }
-      } else {
+      if (!trailer.isPlaying) {
         setTrailerPlaybackStatus('ready');
       }
-    };
-    const onPlay = () => {
-      setVideoLoaded(true);
-      setTrailerPlaybackStatus('playing');
     };
     const onPause = () => {
       setTrailerPlaybackStatus('paused');
@@ -235,29 +230,11 @@ export function CinemaScreen({
     };
 
     video.addEventListener('canplay', handleReady);
-    video.addEventListener('playing', onPlay);
     video.addEventListener('pause', onPause);
     video.addEventListener('error', onError);
 
-    if (trailer.isPlaying) {
-      const playPromise = video.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            setVideoLoaded(true);
-            setTrailerPlaybackStatus('playing');
-          })
-          .catch(() => {
-            setTrailerPlaybackStatus('blocked');
-          });
-      }
-    } else {
-      setTrailerPlaybackStatus('ready');
-    }
-
     return () => {
       video.removeEventListener('canplay', handleReady);
-      video.removeEventListener('playing', onPlay);
       video.removeEventListener('pause', onPause);
       video.removeEventListener('error', onError);
       video.pause();
@@ -275,7 +252,7 @@ export function CinemaScreen({
   useEffect(() => {
     if (!videoRef.current || activeStrategy !== 'video_texture') return;
     if (trailer.isPlaying && videoRef.current.paused) {
-      videoRef.current.play().then(() => setTrailerPlaybackStatus('playing')).catch(() => setTrailerPlaybackStatus('blocked'));
+      videoRef.current.play().catch(() => setTrailerPlaybackStatus('blocked'));
     } else if (!trailer.isPlaying && !videoRef.current.paused) {
       videoRef.current.pause();
       setTrailerPlaybackStatus('paused');
@@ -338,20 +315,20 @@ export function CinemaScreen({
           onStateChange: (e: any) => {
             const state = e.data;
             setYoutubePlayerState(state);
-            if (state === 1) {
-              setTrailerPlaybackStatus('playing');
-            } else if (state === 2) {
+            if (state === 2) {
               setTrailerPlaybackStatus('paused');
+              setYoutubeVerifiedPlaying(false);
             } else if (state === 3) {
               setTrailerPlaybackStatus('loading');
             }
           },
           onError: (e: any) => {
             const code = e.data;
-            console.warn(`[Screen] YouTube Player Error Code ${code}. Falling back to animated title card.`);
+            console.warn(`[Screen] YouTube Player Error Code ${code}. Transitioning to Theatre Mode.`);
             setYoutubeErrorCode(code);
             setTrailerState({ youtubeErrorCode: code });
-            setTrailerPlaybackStatus('unavailable');
+            setTheatreModeOpen(true);
+            setTrailerState({ isTheatreMode: true, isPlaying: true, playbackStatus: 'playing' });
           },
         },
       });
@@ -359,18 +336,19 @@ export function CinemaScreen({
     } catch (err) {
       console.warn('[Screen] Failed to attach YouTube player controller:', err);
     }
-  }, [rawYoutubeId, setTrailerPlaybackStatus, setTrailerState, trailer.isPlaying]);
+  }, [rawYoutubeId, setTrailerPlaybackStatus, setTrailerState, trailer.isPlaying, setTheatreModeOpen]);
 
   // User Gesture Handlers (§ Part D.1, D.3, D.4)
   const handleStartPlayback = useCallback(() => {
     // 1. Hosted video texture
     if (activeStrategy === 'video_texture' && videoRef.current) {
       videoRef.current.muted = false;
+      setTrailerPlaybackStatus('loading');
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
-            setTrailerState({ isPlaying: true, isMuted: false, playbackStatus: 'playing' });
+            setTrailerState({ isPlaying: true, isMuted: false });
             setHouseLights('show');
           })
           .catch(() => {
@@ -379,7 +357,7 @@ export function CinemaScreen({
               videoRef.current
                 .play()
                 .then(() => {
-                  setTrailerState({ isPlaying: true, isMuted: true, playbackStatus: 'playing' });
+                  setTrailerState({ isPlaying: true, isMuted: true });
                   setHouseLights('show');
                 })
                 .catch(() => {
@@ -388,23 +366,47 @@ export function CinemaScreen({
             }
           });
       }
-    } else if (activeStrategy === 'youtube_css3d' && ytPlayerRef.current) {
+    } else if (activeStrategy === 'youtube_css3d' && rawYoutubeId) {
       // 2. YouTube CSS3D Player
-      try {
-        ytPlayerRef.current.unMute();
-        ytPlayerRef.current.playVideo();
-        setTrailerState({ isPlaying: true, isMuted: false, playbackStatus: 'playing' });
-        setHouseLights('show');
-      } catch (err) {
-        console.warn('[Screen] YouTube play failed:', err);
-        setTrailerPlaybackStatus('blocked');
+      setTrailerState({ isPlaying: true, isMuted: false, playbackStatus: 'loading' });
+      setHouseLights('show');
+
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
+        try {
+          ytPlayerRef.current.unMute();
+          ytPlayerRef.current.playVideo();
+        } catch (err) {
+          console.warn('[Screen] Direct YouTube play failed, queuing watchdog:', err);
+        }
       }
+
+      // Start 3-second watchdog timer: if not verified advancing within 3s, open Theatre Mode
+      if (watchdogTimeoutRef.current) clearTimeout(watchdogTimeoutRef.current);
+      watchdogTimeoutRef.current = setTimeout(() => {
+        if (!verifiedAdvancingRef.current) {
+          console.info('[Screen] YouTube did not verify advancing frames within 3s. Opening Theatre Mode.');
+          setTheatreModeOpen(true);
+          setTrailerState({ isTheatreMode: true, isPlaying: true, playbackStatus: 'playing' });
+        }
+      }, 3000);
     } else {
-      // 3. Fallback / Title Card
+      // 3. Fallback / Title Card / No trailer
       setTrailerState({ isPlaying: true, playbackStatus: 'playing' });
       setHouseLights('show');
     }
-  }, [activeStrategy, setTrailerState, setHouseLights, setTrailerPlaybackStatus]);
+  }, [activeStrategy, rawYoutubeId, setTrailerState, setHouseLights, setTrailerPlaybackStatus, setTheatreModeOpen]);
+
+  // Expose global play handler for external clicks
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__cineverse_play_trailer = handleStartPlayback;
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        (window as any).__cineverse_play_trailer = null;
+      }
+    };
+  }, [handleStartPlayback]);
 
   const handleScreenClick = useCallback(() => {
     if (!trailer.isPlaying || trailer.playbackStatus !== 'playing') {
@@ -493,11 +495,34 @@ export function CinemaScreen({
     return geom;
   }, [isPanoramicWrap, sideWidth, sideHeight]);
 
-  // Frame Update Loop
+  // Frame Update Loop & 1.0s Truthful Playback Advancement Verification
   const lastVideoTime = useRef(-1);
   const frameCountRef = useRef(0);
   const lastFpsTimeRef = useRef(0);
   const currentFpsRef = useRef(60);
+
+  // Cut-out is only true when YouTube CSS 3D is actively confirmed playing and NOT in Theatre Mode!
+  const isCutout = Boolean(
+    activeStrategy === 'youtube_css3d' &&
+      trailer.isPlaying &&
+      !trailer.isTheatreMode &&
+      youtubeVerifiedPlaying
+  );
+
+  // Dynamically control canvas background: transparent ONLY when cutout is active!
+  useEffect(() => {
+    if (isCutout) {
+      scene.background = null;
+      gl.setClearColor('#000000', 0.0);
+    } else {
+      scene.background = new THREE.Color('#0E0F12');
+      gl.setClearColor('#0E0F12', 1.0);
+    }
+    return () => {
+      scene.background = new THREE.Color('#0E0F12');
+      gl.setClearColor('#0E0F12', 1.0);
+    };
+  }, [isCutout, gl, scene]);
 
   useFrame(({ clock, invalidate }) => {
     frameCountRef.current++;
@@ -508,7 +533,48 @@ export function CinemaScreen({
       lastFpsTimeRef.current = now;
     }
 
-    // 1. Video Texture Update (Mode B)
+    // 1. Playback Time Advancement Verification (Requirement 1: 1.0s verification)
+    const perfNow = performance.now();
+    if (perfNow - lastAdvanceCheckRef.current.timestamp >= 1000) {
+      let currentTime = -1;
+      let isAdvancing = false;
+
+      if (activeStrategy === 'video_texture' && videoRef.current) {
+        currentTime = videoRef.current.currentTime;
+        const delta = currentTime - lastAdvanceCheckRef.current.time;
+        if (lastAdvanceCheckRef.current.time >= 0 && !videoRef.current.paused && delta > 0.05) {
+          isAdvancing = true;
+          verifiedAdvancingRef.current = true;
+          if (trailer.playbackStatus !== 'playing') {
+            setTrailerPlaybackStatus('playing');
+          }
+        }
+      } else if (
+        activeStrategy === 'youtube_css3d' &&
+        ytPlayerRef.current &&
+        typeof ytPlayerRef.current.getCurrentTime === 'function'
+      ) {
+        try {
+          currentTime = ytPlayerRef.current.getCurrentTime();
+          const state = ytPlayerRef.current.getPlayerState();
+          const delta = currentTime - lastAdvanceCheckRef.current.time;
+          if (lastAdvanceCheckRef.current.time >= 0 && state === 1 && delta > 0.05) {
+            isAdvancing = true;
+            verifiedAdvancingRef.current = true;
+            setYoutubeVerifiedPlaying(true);
+            if (trailer.playbackStatus !== 'playing') {
+              setTrailerPlaybackStatus('playing');
+            }
+          }
+        } catch {
+          // ignore
+        }
+      }
+
+      lastAdvanceCheckRef.current = { time: currentTime, timestamp: perfNow };
+    }
+
+    // 2. Video Texture Update (Mode B)
     if (activeStrategy === 'video_texture') {
       const vid = videoRef.current;
       if (vid && (vid.currentTime > 0 || vid.readyState >= 2)) {
@@ -522,8 +588,8 @@ export function CinemaScreen({
       }
     }
 
-    // 2. Dynamic 2D Canvas Textures (Mode C: Backdrop Motion or Mode E: Title Card)
-    if (activeStrategy === 'title_card' || activeStrategy === 'backdrop_motion') {
+    // 3. Dynamic 2D Canvas Textures (Idle, Title Card, Theatre Mode, or Backdrop Motion)
+    if (!isCutout && activeStrategy !== 'solid_color') {
       if (!canvas || !fallbackTextureRef.current) return;
       const ctx = canvas.getContext('2d');
       if (!ctx) return;
@@ -532,7 +598,49 @@ export function CinemaScreen({
       const w = canvas.width;
       const h = canvas.height;
 
-      if (activeStrategy === 'backdrop_motion' && backdropImgRef.current) {
+      if (trailer.isTheatreMode) {
+        // Theatre Mode Canvas Background on 3D Screen:
+        if (backdropImgRef.current) {
+          ctx.drawImage(backdropImgRef.current, 0, 0, w, h);
+        } else if (posterImgRef.current) {
+          ctx.drawImage(posterImgRef.current, 0, 0, w, h);
+        } else {
+          ctx.fillStyle = '#0f1420';
+          ctx.fillRect(0, 0, w, h);
+        }
+        ctx.fillStyle = 'rgba(10, 14, 24, 0.75)';
+        ctx.fillRect(0, 0, w, h);
+
+        ctx.save();
+        ctx.textAlign = 'center';
+
+        // Glowing center visualizer circle
+        const pulse = Math.sin(t * 3) * 6;
+        ctx.fillStyle = 'rgba(225, 29, 72, 0.25)';
+        ctx.beginPath();
+        ctx.arc(w / 2, h / 2 - 25, 50 + pulse, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#e11d48';
+        ctx.beginPath();
+        ctx.arc(w / 2, h / 2 - 25, 38, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 30px sans-serif';
+        ctx.fillText('▶', w / 2 + 2, h / 2 - 14);
+
+        ctx.font = 'bold 34px "Cinzel", "Times New Roman", serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+        ctx.shadowBlur = 12;
+        ctx.fillText((trailer.movieTitle || 'NOW SHOWING').toUpperCase(), w / 2, h / 2 + 50);
+
+        ctx.font = 'bold 16px sans-serif';
+        ctx.fillStyle = '#38bdf8';
+        ctx.fillText('PLAYING IN THEATRE MODE', w / 2, h / 2 + 85);
+        ctx.restore();
+      } else if (activeStrategy === 'backdrop_motion' && backdropImgRef.current) {
         // Mode C: Ken Burns pan & zoom on backdrop
         const scale = 1.05 + Math.sin(t * 0.12) * 0.04;
         const panX = Math.sin(t * 0.08) * (w * 0.025);
@@ -561,7 +669,7 @@ export function CinemaScreen({
         ctx.fillText((trailer.movieTitle || 'NOW SHOWING').toUpperCase(), w / 2, h * 0.88);
         ctx.restore();
       } else {
-        // Mode E: Generated Title Card with Specular Light Sweep (Always reliable)
+        // Mode E or Idle Screen (Guaranteed Never Empty)
         const bgGrad = ctx.createLinearGradient(0, 0, w, h);
         bgGrad.addColorStop(0, '#162238');
         bgGrad.addColorStop(0.5, '#253554');
@@ -638,11 +746,11 @@ export function CinemaScreen({
 
         ctx.fillStyle = '#e2e8f0';
         ctx.font = 'bold 13px sans-serif';
-        ctx.fillText('Tap "Watch trailer" on the controls for full theatrical trailer', textX, badgeY + 186);
+        ctx.fillText('Press "Play trailer" on the screen for the full theatrical trailer', textX, badgeY + 186);
 
         ctx.restore();
 
-        // Animated Specular Light Sweep (Continuous Motion)
+        // Animated Specular Light Sweep (Continuous Motion Guarantee)
         const sweepProgress = (t * 0.45) % 1.5 - 0.25;
         const sweepX = sweepProgress * w;
         const sweepGrad = ctx.createLinearGradient(sweepX - 80, 0, sweepX + 80, h);
@@ -668,10 +776,10 @@ export function CinemaScreen({
         screenFacingAudience: true,
         zFightingProtected: true,
         renderer: {
-          alpha: activeStrategy === 'youtube_css3d',
-          clearAlpha: activeStrategy === 'youtube_css3d' ? 0.0 : 1.0,
-          hasSceneBackground: activeStrategy !== 'youtube_css3d',
-          fogActive: activeStrategy !== 'youtube_css3d',
+          alpha: isCutout,
+          clearAlpha: isCutout ? 0.0 : 1.0,
+          hasSceneBackground: !isCutout,
+          fogActive: !isCutout,
           toneMapping: 'ACESFilmicToneMapping',
           isOpaquePostProcessing: false,
         },
@@ -680,7 +788,7 @@ export function CinemaScreen({
           canvasPointerEvents: 'auto',
           canvasOpacity: '1.0',
           canvasDisplay: 'block',
-          iframeZIndex: activeStrategy === 'youtube_css3d' ? '1' : undefined,
+          iframeZIndex: isCutout ? '1' : undefined,
           iframePointerEvents: 'auto',
         },
         youtube: {
@@ -702,7 +810,7 @@ export function CinemaScreen({
                 ? `Error Code ${youtubeErrorCode}`
                 : undefined,
           embedAllowed: youtubeErrorCode === null,
-          autoplayResult: youtubePlayerState === 1 ? 'success' : 'pending',
+          autoplayResult: youtubeVerifiedPlaying ? 'success' : 'pending',
         },
         video: videoRef.current
           ? {
@@ -744,7 +852,6 @@ export function CinemaScreen({
       ? videoTextureRef.current
       : fallbackTexture;
 
-  const isCutout = activeStrategy === 'youtube_css3d' && trailer.isPlaying;
   const isSolidColor = activeStrategy === 'solid_color';
   const screenBrightness = houseLights === 'show' ? 1.0 : houseLights === 'dim' ? 0.92 : 0.82;
 
@@ -789,18 +896,18 @@ export function CinemaScreen({
         )}
       </mesh>
 
-      {/* Large Inviting Circular Play Button directly on 3D Screen (§ Part D.1) */}
-      {(!trailer.isPlaying || trailer.playbackStatus !== 'playing') && (
+      {/* Large Inviting Circular Play Button directly on 3D Screen (Requirement 2) */}
+      {(!trailer.isPlaying || trailer.playbackStatus !== 'playing') && !trailer.isTheatreMode && (
         <Html
           transform
-          position={[screenCenter[0], screenCenter[1], screenCenter[2] + 0.08]}
+          position={[screenCenter[0], screenCenter[1], screenCenter[2] + 0.1]}
           rotation={[0, Math.PI, 0]}
           scale={[-1, 1, 1]}
           style={{
             pointerEvents: 'auto',
           }}
         >
-          <div data-testid="screen-3d-play-button-container">
+          <div data-testid="screen-3d-play-button-container" className="flex flex-col items-center justify-center">
             <button
               type="button"
               onClick={(e) => {
@@ -808,14 +915,14 @@ export function CinemaScreen({
                 handleStartPlayback();
               }}
               data-testid="screen-3d-play-button"
-              className="group flex flex-col items-center justify-center gap-3 transition-transform hover:scale-105 active:scale-95 cursor-pointer focus:outline-none"
+              className="group flex flex-col items-center justify-center gap-3.5 transition-transform hover:scale-105 active:scale-95 cursor-pointer focus:outline-none"
               aria-label="Play trailer on screen"
             >
-              <div className="relative flex h-28 w-28 sm:h-36 sm:w-36 items-center justify-center rounded-full bg-gradient-to-tr from-rose-600 to-red-500 text-white shadow-[0_0_50px_rgba(225,29,72,0.85)] ring-4 ring-white/80 backdrop-blur-md transition-all group-hover:ring-white group-hover:shadow-[0_0_70px_rgba(225,29,72,1)]">
+              <div className="relative flex h-28 w-28 sm:h-36 sm:w-36 md:h-40 md:w-40 items-center justify-center rounded-full bg-gradient-to-tr from-rose-600 to-red-500 text-white shadow-[0_0_60px_rgba(225,29,72,0.9)] ring-4 ring-white/90 backdrop-blur-md transition-all group-hover:ring-white group-hover:shadow-[0_0_80px_rgba(225,29,72,1)]">
                 <span className="absolute inset-0 rounded-full animate-ping bg-rose-500/30 duration-1000" />
-                <Play className="h-14 w-14 sm:h-18 sm:w-18 fill-white translate-x-1 drop-shadow-lg" />
+                <Play className="h-14 w-14 sm:h-18 sm:w-18 md:h-20 md:w-20 fill-white translate-x-1 drop-shadow-xl" />
               </div>
-              <div className="rounded-full border border-white/20 bg-black/85 px-5 py-2 text-sm sm:text-base font-extrabold tracking-wider uppercase text-white shadow-2xl backdrop-blur-md group-hover:bg-black">
+              <div className="rounded-full border-2 border-white/40 bg-black/90 px-6 py-2.5 text-sm sm:text-base font-black tracking-widest uppercase text-white shadow-2xl backdrop-blur-md group-hover:bg-black group-hover:border-white">
                 Play trailer
               </div>
             </button>
@@ -840,7 +947,7 @@ export function CinemaScreen({
           <div data-testid="screen-youtube-player" className="w-full h-full">
             <iframe
               id="cineverse-screen-yt-iframe"
-              src={`https://www.youtube-nocookie.com/embed/${rawYoutubeId}?enablejsapi=1&autoplay=1&mute=1&controls=0&loop=1&playlist=${rawYoutubeId}&playsinline=1`}
+              src={`https://www.youtube-nocookie.com/embed/${rawYoutubeId}?enablejsapi=1&autoplay=1&mute=0&controls=1&loop=1&playlist=${rawYoutubeId}&playsinline=1`}
               className="w-full h-full border-0 bg-black rounded-sm"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen

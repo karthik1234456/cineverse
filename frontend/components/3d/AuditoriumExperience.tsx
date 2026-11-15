@@ -18,6 +18,7 @@ import { BoundaryNotice } from './BoundaryNotice';
 import { ToastNotification } from '../ui/ToastNotification';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import { CanvasErrorBoundary } from './CanvasErrorBoundary';
+import { TheatreModePlayer } from './TheatreModePlayer';
 
 // Lazy-load 3D Canvas with ssr: false as required in § 6
 const CinemaWorld = dynamic(
@@ -94,6 +95,7 @@ export function AuditoriumExperience({
       <CompareView />
       <MobileControls />
       <BoundaryNotice />
+      <TheatreModePlayer />
       <ToastNotification />
     </main>
   );
