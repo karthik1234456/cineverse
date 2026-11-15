@@ -8,11 +8,24 @@ try {
 }
 const buildTime = new Date().toISOString();
 
+// Parse allowed frontend origins from environment (unified with backend CORS)
+const rawAllowed = process.env.ALLOWED_ORIGINS || process.env.CORS_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001';
+let allowedOriginsList = ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'http://127.0.0.1:3001'];
+try {
+  allowedOriginsList = rawAllowed.startsWith('[')
+    ? JSON.parse(rawAllowed)
+    : rawAllowed.split(',').map(s => s.trim()).filter(Boolean);
+} catch {
+  // fallback to default list
+}
+const allowedOriginsStr = allowedOriginsList.join(' ');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   env: {
     NEXT_PUBLIC_GIT_COMMIT_SHA: commitHash,
     NEXT_PUBLIC_BUILD_TIME: buildTime,
+    NEXT_PUBLIC_ALLOWED_ORIGINS: allowedOriginsList.join(','),
   },
   images: {
     remotePatterns: [
@@ -61,7 +74,7 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com https://www.youtube.com https://s.ytimg.com",
-              "connect-src 'self' http://localhost:8000 http://127.0.0.1:8000 ws://localhost:8000 ws://127.0.0.1:8000 http://localhost:8002 http://127.0.0.1:8002 ws://localhost:8002 ws://127.0.0.1:8002 https://api.razorpay.com https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://www.youtube.com https://*.googlevideo.com blob: data:",
+              `connect-src 'self' ${allowedOriginsStr} http://localhost:8000 http://127.0.0.1:8000 ws://localhost:8000 ws://127.0.0.1:8000 http://localhost:8002 http://127.0.0.1:8002 ws://localhost:8002 ws://127.0.0.1:8002 https://api.razorpay.com https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://www.youtube.com https://*.googlevideo.com blob: data:`,
               "img-src 'self' data: blob: https://image.tmdb.org https://* https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://i.ytimg.com https://*.ytimg.com",
               "style-src 'self' 'unsafe-inline' https://unpkg.com",
               "font-src 'self' data:",

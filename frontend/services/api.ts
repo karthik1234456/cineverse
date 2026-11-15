@@ -18,28 +18,38 @@ function getHeaders(): HeadersInit {
 
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...getHeaders(),
-      ...(options.headers || {}),
-    },
-  });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      credentials: options.credentials || 'include',
+      headers: {
+        ...getHeaders(),
+        ...(options.headers || {}),
+      },
+    });
 
-  if (!response.ok) {
-    let errorDetail = response.statusText;
-    try {
-      const errJson = await response.json();
-      errorDetail = errJson.detail || JSON.stringify(errJson);
-    } catch {
-      // ignore
+    if (!response.ok) {
+      let errorDetail = response.statusText;
+      try {
+        const errJson = await response.json();
+        errorDetail = errJson.detail || JSON.stringify(errJson);
+      } catch {
+        // ignore
+      }
+      const err = new Error(errorDetail || `API request failed with status ${response.status}`);
+      (err as any).status = response.status;
+      throw err;
     }
-    const err = new Error(errorDetail || `API request failed with status ${response.status}`);
-    (err as any).status = response.status;
+
+    return response.json();
+  } catch (err: any) {
+    if (err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch')) {
+      const netErr = new Error('Network error. Unable to reach authentication server.');
+      (netErr as any).status = 0;
+      throw netErr;
+    }
     throw err;
   }
-
-  return response.json();
 }
 
 // ---------------- CITIES ----------------
@@ -832,11 +842,61 @@ export async function verifyOtp(phone: string, otp: string): Promise<TokenRespon
   return res;
 }
 
-export function logoutUser() {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('cineverse_token');
-    localStorage.removeItem('cineverse_user');
+export async function logoutUser(): Promise<void> {
+  try {
+    await apiFetch('/auth/logout', {
+      method: 'POST',
+    });
+  } catch {
+    // Ignore server error on logout to ensure client cleanup proceeds
+  } finally {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('cineverse_token');
+      localStorage.removeItem('cineverse_user');
+    }
   }
+}
+
+export async function refreshToken(providedRefreshToken?: string): Promise<TokenResponse> {
+  const res = await apiFetch<TokenResponse>('/auth/refresh', {
+    method: 'POST',
+    body: JSON.stringify(providedRefreshToken ? { refresh_token: providedRefreshToken } : {}),
+  });
+  if (res.access_token && typeof window !== 'undefined') {
+    localStorage.setItem('cineverse_token', res.access_token);
+    localStorage.setItem('cineverse_user', JSON.stringify(res));
+  }
+  return res;
+}
+
+export async function forgotPassword(emailOrPhone: string): Promise<{ message: string; hint?: string }> {
+  const isEmail = emailOrPhone.includes('@');
+  const payload = isEmail ? { email: emailOrPhone } : { phone: emailOrPhone };
+  return apiFetch('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function resetPassword(data: { emailOrPhone: string; tokenOrOtp: string; newPassword: string }): Promise<{ message: string }> {
+  const isEmail = data.emailOrPhone.includes('@');
+  const payload: any = {
+    new_password: data.newPassword,
+    token: data.tokenOrOtp,
+  };
+  if (isEmail) {
+    payload.email = data.emailOrPhone;
+  } else {
+    payload.phone = data.emailOrPhone;
+  }
+  return apiFetch('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getCurrentUser(): Promise<any> {
+  return apiFetch('/auth/me');
 }
 
 export function getStoredUser(): TokenResponse | null {

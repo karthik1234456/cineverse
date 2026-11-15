@@ -101,8 +101,8 @@ export default function ProfilePage() {
     }
   }
 
-  function handleLogout() {
-    logoutUser();
+  async function handleLogout() {
+    await logoutUser();
     router.push('/');
   }
 

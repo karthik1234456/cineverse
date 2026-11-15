@@ -1,6 +1,6 @@
 import os
 import re
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Union
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -81,13 +81,37 @@ class Settings(BaseSettings):
     RAZORPAY_KEY_SECRET: str = os.getenv("RAZORPAY_KEY_SECRET", "secret_cineverse_test_mode")
     RAZORPAY_WEBHOOK_SECRET: str = os.getenv("RAZORPAY_WEBHOOK_SECRET", "webhook_secret_cineverse_test")
 
-    # CORS
-    CORS_ORIGINS: List[str] = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001",
-    ]
+    # CORS & Allowed Origins (unified setting shared with frontend CSP)
+    ALLOWED_ORIGINS: Union[List[str], str] = os.getenv(
+        "ALLOWED_ORIGINS",
+        os.getenv(
+            "CORS_ORIGINS",
+            "http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001"
+        )
+    )
+    CORS_ORIGINS: Optional[Union[List[str], str]] = None
+
+    # Cookies
+    COOKIE_SECURE: Optional[bool] = None  # None: auto-detect based on ENVIRONMENT
+
+    @property
+    def is_cookie_secure(self) -> bool:
+        if self.COOKIE_SECURE is not None:
+            return bool(self.COOKIE_SECURE)
+        return self.ENVIRONMENT.lower() == "production"
+
+    def get_allowed_origins(self) -> List[str]:
+        raw = self.CORS_ORIGINS if self.CORS_ORIGINS is not None else self.ALLOWED_ORIGINS
+        if isinstance(raw, str):
+            raw = raw.strip()
+            if raw.startswith("[") and raw.endswith("]"):
+                import json
+                try:
+                    return [x.strip() for x in json.loads(raw) if x.strip()]
+                except Exception:
+                    pass
+            return [x.strip() for x in raw.split(",") if x.strip()]
+        return list(raw)
 
     model_config = SettingsConfigDict(
         env_file=(_backend_env, _root_env, ".env"),

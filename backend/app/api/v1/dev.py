@@ -13,6 +13,8 @@ from app.database import get_db
 from app.models.movie import Movie
 from app.models.cinema import City, Cinema, Auditorium
 from app.models.showtime import Showtime
+from app.models.auth import User, RoleEnum
+from app.services.auth_service import hash_password
 
 router = APIRouter()
 
@@ -546,6 +548,25 @@ async def get_developer_readiness(
         if m["trailer"]["type"] == "hosted" and m["trailer"]["status_ok"]
     ]
 
+    # Auth & CORS Diagnostics
+    res_users = await db.execute(select(User).where(User.email.in_([
+        "admin@cineverse.com", "patron@example.com", "manager@cineverse.com", "manager@cineverse.in", "karthik@cineverse.dev"
+    ])))
+    demo_users = res_users.scalars().all()
+    demo_count = len(demo_users)
+    allowed_origins = settings.get_allowed_origins()
+    auth_status = {
+        "status_ok": len(allowed_origins) > 0,
+        "allowed_origins": allowed_origins,
+        "cookie_secure": settings.is_cookie_secure,
+        "token_expire_minutes": settings.ACCESS_TOKEN_EXPIRE_MINUTES,
+        "refresh_token_expire_days": settings.REFRESH_TOKEN_EXPIRE_DAYS,
+        "demo_accounts_count": demo_count,
+        "demo_accounts": [u.email for u in demo_users],
+        "demo_accounts_removable": True,
+        "reason": f"CORS allowed for {len(allowed_origins)} origins; Cookies secure={settings.is_cookie_secure}; {demo_count} demo accounts active."
+    }
+
     # Seat Assets Diagnostic
     seat_models_dir = os.path.join(FRONTEND_PUBLIC_DIR, "models", "seats")
     seat_manifest_path = os.path.join(seat_models_dir, "manifest.json")
@@ -588,7 +609,7 @@ async def get_developer_readiness(
         seat_assets_reasons.append("manifest.json not found on disk")
 
     return {
-        "status": "ready" if not has_banner and seat_assets_ok else "degraded",
+        "status": "ready" if not has_banner and seat_assets_ok and auth_status["status_ok"] else "degraded",
         "environment": env_status,
         "metrics": {
             "total_movies": len(movie_reports),
@@ -602,7 +623,9 @@ async def get_developer_readiness(
             "total_city_hall_type_combinations": len(city_hall_type_reports),
             "city_hall_types_covered": len([r for r in city_hall_type_reports if r["status_ok"]]),
             "seat_assets_ok": seat_assets_ok,
+            "auth_ok": auth_status["status_ok"],
         },
+        "auth": auth_status,
         "seat_assets": {
             "status_ok": seat_assets_ok,
             "families": seat_assets_info,
@@ -626,3 +649,84 @@ async def trigger_tmdb_sync(db: AsyncSession = Depends(get_db)):
     provider = TMDBCatalogProvider()
     result = await provider.sync_catalog(db)
     return result
+
+
+DEMO_EMAILS = [
+    "admin@cineverse.com",
+    "manager@cineverse.com",
+    "manager@cineverse.in",
+    "patron@example.com",
+    "karthik@cineverse.dev",
+]
+
+
+@router.post("/auth/purge-demo-accounts")
+async def purge_demo_accounts(db: AsyncSession = Depends(get_db)):
+    """
+    Purges demo accounts from the database.
+    """
+    from sqlalchemy import delete
+    from app.models.auth import RefreshToken
+    from app.models.movie import Review
+    from app.models.booking import Booking, BookingSeat, BookingAddon, Ticket
+
+    res = await db.execute(select(User).where(User.email.in_(DEMO_EMAILS)))
+    users = res.scalars().all()
+    count = len(users)
+    user_ids = [u.id for u in users]
+
+    if user_ids:
+        await db.execute(delete(RefreshToken).where(RefreshToken.user_id.in_(user_ids)))
+        await db.execute(delete(Review).where(Review.user_id.in_(user_ids)))
+
+        b_res = await db.execute(select(Booking.id).where(Booking.user_id.in_(user_ids)))
+        booking_ids = b_res.scalars().all()
+        if booking_ids:
+            await db.execute(delete(Ticket).where(Ticket.booking_id.in_(booking_ids)))
+            await db.execute(delete(BookingSeat).where(BookingSeat.booking_id.in_(booking_ids)))
+            await db.execute(delete(BookingAddon).where(BookingAddon.booking_id.in_(booking_ids)))
+            await db.execute(delete(Booking).where(Booking.id.in_(booking_ids)))
+
+        for u in users:
+            await db.delete(u)
+        await db.commit()
+
+    return {"status": "ok", "purged_count": count, "purged_emails": DEMO_EMAILS}
+
+
+@router.post("/auth/seed-demo-accounts")
+async def seed_demo_accounts(db: AsyncSession = Depends(get_db)):
+    """
+    Re-seeds or ensures demo accounts exist with correct passwords and roles.
+    """
+    demo_specs = [
+        {"email": "admin@cineverse.com", "password": "Admin@123", "full_name": "CineVerse Administrator", "role": RoleEnum.ADMIN},
+        {"email": "manager@cineverse.com", "password": "Manager@123", "full_name": "City Cinema Manager", "role": RoleEnum.CINEMA_MANAGER},
+        {"email": "manager@cineverse.in", "password": "Manager@123", "full_name": "City Cinema Manager", "role": RoleEnum.CINEMA_MANAGER},
+        {"email": "patron@example.com", "password": "Patron@123", "full_name": "Aditya Sharma", "role": RoleEnum.CUSTOMER},
+        {"email": "karthik@cineverse.dev", "password": "Karthik@123", "full_name": "Karthik Patron", "role": RoleEnum.CUSTOMER},
+    ]
+    created = []
+    updated = []
+    for spec in demo_specs:
+        res = await db.execute(select(User).where(User.email == spec["email"]))
+        existing = res.scalars().first()
+        if existing:
+            existing.hashed_password = hash_password(spec["password"])
+            existing.is_active = True
+            existing.role = spec["role"]
+            existing.full_name = spec["full_name"]
+            updated.append(spec["email"])
+        else:
+            new_user = User(
+                email=spec["email"],
+                hashed_password=hash_password(spec["password"]),
+                full_name=spec["full_name"],
+                role=spec["role"],
+                is_active=True,
+            )
+            db.add(new_user)
+            created.append(spec["email"])
+    await db.commit()
+    return {"status": "ok", "created": created, "updated": updated}
+

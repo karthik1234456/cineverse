@@ -49,3 +49,24 @@ class UserResponse(UserBase):
     class Config:
         from_attributes = True
 
+
+class RefreshTokenRequest(BaseModel):
+    refresh_token: Optional[str] = None
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: Optional[str] = None
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class ResetPasswordRequest(BaseModel):
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    token: Optional[str] = None
+    otp: Optional[str] = None
+    new_password: str
+

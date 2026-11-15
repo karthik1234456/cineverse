@@ -1,0 +1,263 @@
+{
+  "port3000": {
+    "port": 3000,
+    "requests": [
+      {
+        "url": "http://localhost:3000/profile?_rsc=1wtp7",
+        "method": "GET",
+        "status": 200,
+        "responseBody": "[non-json status 200]"
+      },
+      {
+        "url": "http://localhost:3000/_next/static/chunks/app/profile/page-07b4f7b0e5df5444.js",
+        "method": "GET",
+        "status": 200,
+        "responseBody": "[non-json status 200]"
+      },
+      {
+        "url": "http://localhost:3000/api/v1/auth/register",
+        "method": "POST",
+        "status": 200,
+        "responseBody": "{\"access_token\":\"[REDACTED_ACCESS_TOKEN]\",\"token_type\":\"bearer\",\"refresh_token\":\"[REDACTED_REFRESH_TOKEN]\",\"user_id\":13,\"role\":\"customer\",\"full_name\":\"Test Patron\"}"
+      },
+      {
+        "url": "http://localhost:3000/api/v1/auth/login",
+        "method": "POST",
+        "status": 200,
+        "responseBody": "{\"access_token\":\"[REDACTED_ACCESS_TOKEN]\",\"token_type\":\"bearer\",\"refresh_token\":\"[REDACTED_REFRESH_TOKEN]\",\"user_id\":4,\"role\":\"customer\",\"full_name\":\"Aditya Sharma\"}"
+      },
+      {
+        "url": "http://localhost:3000/api/v1/auth/otp/send",
+        "method": "POST",
+        "status": 200,
+        "responseBody": "{\"message\":\"OTP sent successfully to phone\",\"phone\":\"9988776655\",\"hint\":\"Use 123456 for test environment\"}"
+      },
+      {
+        "url": "http://localhost:3000/api/v1/auth/refresh",
+        "method": "POST",
+        "status": 200,
+        "responseBody": "{\"access_token\":\"[REDACTED_ACCESS_TOKEN]\",\"token_type\":\"bearer\",\"refresh_token\":\"[REDACTED_REFRESH_TOKEN]\",\"user_id\":9,\"role\":\"customer\",\"full_name\":\"Patron 6655\"}"
+      },
+      {
+        "url": "http://localhost:3000/api/v1/auth/otp/verify",
+        "method": "POST",
+        "status": 200,
+        "responseBody": "{\"access_token\":\"[REDACTED_ACCESS_TOKEN]\",\"token_type\":\"bearer\",\"refresh_token\":\"[REDACTED_REFRESH_TOKEN]\",\"user_id\":9,\"role\":\"customer\",\"full_name\":\"Patron 6655\"}"
+      },
+      {
+        "url": "http://localhost:3000/profile?_rsc=1wtp7",
+        "method": "GET",
+        "status": 200,
+        "responseBody": "[non-json status 200]"
+      },
+      {
+        "url": "http://localhost:3000/_next/static/chunks/app/profile/page-07b4f7b0e5df5444.js",
+        "method": "GET",
+        "status": 200,
+        "responseBody": "[non-json status 200]"
+      },
+      {
+        "url": "http://localhost:3000/api/v1/auth/forgot-password",
+        "method": "POST",
+        "status": 200,
+        "responseBody": "[non-json status 200]"
+      },
+      {
+        "url": "http://localhost:3000/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "responseBody": "[non-json status 200]"
+      }
+    ],
+    "consoleErrors": [],
+    "cspOrCorsErrors": [
+      "FAILED: GET http://localhost:3000/movies/hope-1058424?_rsc=1wtp7 - net::ERR_ABORTED",
+      "FAILED: GET http://localhost:3000/movies/clayface-1400940?_rsc=1wtp7 - net::ERR_ABORTED",
+      "FAILED: GET http://localhost:3000/movies/wildwood-791523?_rsc=1wtp7 - net::ERR_ABORTED",
+      "FAILED: GET http://localhost:3000/movies/street-fighter-1153576?_rsc=1wtp7 - net::ERR_ABORTED",
+      "FAILED: GET http://localhost:3000/movies/clayface-1400940?_rsc=1wtp7 - net::ERR_ABORTED",
+      "FAILED: GET http://localhost:3000/movies/wildwood-791523?_rsc=1wtp7 - net::ERR_ABORTED",
+      "FAILED: GET http://localhost:3000/movies/street-fighter-1153576?_rsc=1wtp7 - net::ERR_ABORTED"
+    ],
+    "cookies": [
+      {
+        "name": "access_token",
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0Iiwicm9sZSI6ImN1c3RvbWVyIiwiZXhwIjoxNzk0NzM4OTg3LCJ0eXBlIjoiYWNjZXNzIn0.71Rk0EUxkNoOq6fG8ddgh3pueJo-sZreuQDB2CME_vw",
+        "domain": "localhost",
+        "path": "/",
+        "expires": 1794738987.05535,
+        "httpOnly": true,
+        "secure": false,
+        "sameSite": "Lax"
+      },
+      {
+        "name": "refresh_token",
+        "value": "d561fffd-92f0-4a9e-84b8-c865ac7e8243",
+        "domain": "localhost",
+        "path": "/",
+        "expires": 1795336587.055481,
+        "httpOnly": true,
+        "secure": false,
+        "sameSite": "Lax"
+      }
+    ],
+    "results": {
+      "register": {
+        "status": 200,
+        "ok": true
+      },
+      "emailLogin": {
+        "status": 200,
+        "ok": true,
+        "hasToken": true
+      },
+      "phoneOtpLogin": {
+        "sendOk": true,
+        "verifyOk": true,
+        "verifyStatus": 200
+      },
+      "refreshTokenRotation": {
+        "status": 200,
+        "ok": true,
+        "rotated": true
+      },
+      "forgotPassword": {
+        "status": 200,
+        "ok": true
+      },
+      "protectedAuthMe": {
+        "status": 200,
+        "ok": true
+      }
+    }
+  },
+  "port3001": {
+    "port": 3001,
+    "requests": [
+      {
+        "url": "http://localhost:3001/profile?_rsc=1wtp7",
+        "method": "GET",
+        "status": 200,
+        "responseBody": "[non-json status 200]"
+      },
+      {
+        "url": "http://localhost:3001/_next/static/chunks/app/profile/page-07b4f7b0e5df5444.js",
+        "method": "GET",
+        "status": 200,
+        "responseBody": "[non-json status 200]"
+      },
+      {
+        "url": "http://localhost:3001/api/v1/auth/register",
+        "method": "POST",
+        "status": 200,
+        "responseBody": "{\"access_token\":\"[REDACTED_ACCESS_TOKEN]\",\"token_type\":\"bearer\",\"refresh_token\":\"[REDACTED_REFRESH_TOKEN]\",\"user_id\":14,\"role\":\"customer\",\"full_name\":\"Test Patron\"}"
+      },
+      {
+        "url": "http://localhost:3001/api/v1/auth/login",
+        "method": "POST",
+        "status": 200,
+        "responseBody": "{\"access_token\":\"[REDACTED_ACCESS_TOKEN]\",\"token_type\":\"bearer\",\"refresh_token\":\"[REDACTED_REFRESH_TOKEN]\",\"user_id\":4,\"role\":\"customer\",\"full_name\":\"Aditya Sharma\"}"
+      },
+      {
+        "url": "http://localhost:3001/api/v1/auth/otp/send",
+        "method": "POST",
+        "status": 200,
+        "responseBody": "{\"message\":\"OTP sent successfully to phone\",\"phone\":\"9988776655\",\"hint\":\"Use 123456 for test environment\"}"
+      },
+      {
+        "url": "http://localhost:3001/api/v1/auth/refresh",
+        "method": "POST",
+        "status": 200,
+        "responseBody": "{\"access_token\":\"[REDACTED_ACCESS_TOKEN]\",\"token_type\":\"bearer\",\"refresh_token\":\"[REDACTED_REFRESH_TOKEN]\",\"user_id\":9,\"role\":\"customer\",\"full_name\":\"Patron 6655\"}"
+      },
+      {
+        "url": "http://localhost:3001/api/v1/auth/otp/verify",
+        "method": "POST",
+        "status": 200,
+        "responseBody": "{\"access_token\":\"[REDACTED_ACCESS_TOKEN]\",\"token_type\":\"bearer\",\"refresh_token\":\"[REDACTED_REFRESH_TOKEN]\",\"user_id\":9,\"role\":\"customer\",\"full_name\":\"Patron 6655\"}"
+      },
+      {
+        "url": "http://localhost:3001/profile?_rsc=1wtp7",
+        "method": "GET",
+        "status": 200,
+        "responseBody": "[non-json status 200]"
+      },
+      {
+        "url": "http://localhost:3001/_next/static/chunks/app/profile/page-07b4f7b0e5df5444.js",
+        "method": "GET",
+        "status": 200,
+        "responseBody": "[non-json status 200]"
+      },
+      {
+        "url": "http://localhost:3001/api/v1/auth/forgot-password",
+        "method": "POST",
+        "status": 200,
+        "responseBody": "[non-json status 200]"
+      },
+      {
+        "url": "http://localhost:3001/api/v1/auth/me",
+        "method": "GET",
+        "status": 200,
+        "responseBody": "[non-json status 200]"
+      }
+    ],
+    "consoleErrors": [],
+    "cspOrCorsErrors": [
+      "FAILED: GET http://localhost:3001/movies/hope-1058424?_rsc=1wtp7 - net::ERR_ABORTED",
+      "FAILED: GET http://localhost:3001/movies/clayface-1400940?_rsc=1wtp7 - net::ERR_ABORTED",
+      "FAILED: GET http://localhost:3001/movies/wildwood-791523?_rsc=1wtp7 - net::ERR_ABORTED",
+      "FAILED: GET http://localhost:3001/movies/street-fighter-1153576?_rsc=1wtp7 - net::ERR_ABORTED"
+    ],
+    "cookies": [
+      {
+        "name": "access_token",
+        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI0Iiwicm9sZSI6ImN1c3RvbWVyIiwiZXhwIjoxNzk0NzM4OTkwLCJ0eXBlIjoiYWNjZXNzIn0.nEqXMhwo33r0hbNWkkEDThF82BkF-kwTQJeuky563_c",
+        "domain": "localhost",
+        "path": "/",
+        "expires": 1794738990.438733,
+        "httpOnly": true,
+        "secure": false,
+        "sameSite": "Lax"
+      },
+      {
+        "name": "refresh_token",
+        "value": "de3f4fd3-3783-4273-8570-491238f72afa",
+        "domain": "localhost",
+        "path": "/",
+        "expires": 1795336590.438838,
+        "httpOnly": true,
+        "secure": false,
+        "sameSite": "Lax"
+      }
+    ],
+    "results": {
+      "register": {
+        "status": 200,
+        "ok": true
+      },
+      "emailLogin": {
+        "status": 200,
+        "ok": true,
+        "hasToken": true
+      },
+      "phoneOtpLogin": {
+        "sendOk": true,
+        "verifyOk": true,
+        "verifyStatus": 200
+      },
+      "refreshTokenRotation": {
+        "status": 200,
+        "ok": true,
+        "rotated": true
+      },
+      "forgotPassword": {
+        "status": 200,
+        "ok": true
+      },
+      "protectedAuthMe": {
+        "status": 200,
+        "ok": true
+      }
+    }
+  }
+}

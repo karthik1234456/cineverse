@@ -236,7 +236,7 @@ describe('PART C: Walk Mode Automated Path Check & Navigation', () => {
       };
 
       // 1. Walk entire length of all aisles (spawn to back tier)
-      const aisleXList = hall.walkNav.aisles.aisle_centers.length > 0
+      const aisleXList = (hall.walkNav.aisles?.aisle_centers && hall.walkNav.aisles.aisle_centers.length > 0)
         ? hall.walkNav.aisles.aisle_centers
         : [0.0];
 

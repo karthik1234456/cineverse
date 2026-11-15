@@ -48,7 +48,7 @@ manager = ConnectionManager()
 async def websocket_showtime_endpoint(websocket: WebSocket, showtime_id: int):
     # Origin verification
     origin = websocket.headers.get("origin")
-    allowed_origins = set(settings.CORS_ORIGINS) | {"http://localhost:3000", "http://127.0.0.1:3000"}
+    allowed_origins = set(settings.get_allowed_origins())
     if origin and origin not in allowed_origins and not origin.startswith("http://localhost:") and not origin.startswith("http://127.0.0.1:"):
         logger.warning(f"WebSocket connection rejected: invalid origin {origin}")
         await websocket.close(code=status.WS_1008_POLICY_VIOLATION)

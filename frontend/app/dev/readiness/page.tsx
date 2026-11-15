@@ -13,6 +13,9 @@ import {
   Search,
   Building2,
   Zap,
+  ShieldCheck,
+  Users,
+  Lock,
 } from 'lucide-react';
 
 interface MediaCheck {
@@ -134,6 +137,17 @@ interface ReadinessData {
     families: Record<string, any>;
     reason: string;
   };
+  auth?: {
+    status_ok: boolean;
+    allowed_origins: string[];
+    cookie_secure: boolean;
+    token_expire_minutes: number;
+    refresh_token_expire_days: number;
+    demo_accounts_count: number;
+    demo_accounts: string[];
+    demo_accounts_removable: boolean;
+    reason: string;
+  };
   movies: MovieReport[];
   halls: HallReport[];
   cities: CityReport[];
@@ -150,6 +164,10 @@ export default function DeveloperReadinessPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [testingTmdb, setTestingTmdb] = useState(false);
   const [tmdbTestResult, setTmdbTestResult] = useState<any>(null);
+  const [testingAuth, setTestingAuth] = useState(false);
+  const [authTestResult, setAuthTestResult] = useState<any>(null);
+  const [demoActionLoading, setDemoActionLoading] = useState(false);
+  const [demoActionNotice, setDemoActionNotice] = useState<string | null>(null);
 
   // Production disabling guard:
   // In production builds, this page must return 404 unless explicitly enabled via NEXT_PUBLIC_ENABLE_DEV_PAGES
@@ -201,6 +219,80 @@ export default function DeveloperReadinessPage() {
       });
     } finally {
       setTestingTmdb(false);
+    }
+  };
+
+  const testAuthLogin = async () => {
+    setTestingAuth(true);
+    setAuthTestResult(null);
+    try {
+      const backendUrl =
+        process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://127.0.0.1:8000';
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'unknown';
+      const t0 = performance.now();
+      const res = await fetch(`${backendUrl}/api/v1/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ email: 'patron@example.com', password: 'Patron@123' }),
+      });
+      const t1 = performance.now();
+      const resBody = await res.json();
+      setAuthTestResult({
+        origin,
+        status: res.status,
+        ok: res.ok,
+        time_ms: Math.round(t1 - t0),
+        data: res.ok ? { user_id: resBody.user_id, role: resBody.role, full_name: resBody.full_name, has_token: !!resBody.access_token } : resBody,
+      });
+    } catch (e: any) {
+      setAuthTestResult({
+        origin: typeof window !== 'undefined' ? window.location.origin : 'unknown',
+        status: 0,
+        ok: false,
+        time_ms: 0,
+        error: e.message || 'Network error',
+      });
+    } finally {
+      setTestingAuth(false);
+    }
+  };
+
+  const handlePurgeDemoAccounts = async () => {
+    setDemoActionLoading(true);
+    setDemoActionNotice(null);
+    try {
+      const backendUrl =
+        process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://127.0.0.1:8000';
+      const res = await fetch(`${backendUrl}/api/v1/dev/auth/purge-demo-accounts`, {
+        method: 'POST',
+      });
+      const json = await res.json();
+      setDemoActionNotice(`Purged ${json.purged_count} demo accounts.`);
+      fetchReadiness();
+    } catch (e: any) {
+      setDemoActionNotice(`Error: ${e.message}`);
+    } finally {
+      setDemoActionLoading(false);
+    }
+  };
+
+  const handleSeedDemoAccounts = async () => {
+    setDemoActionLoading(true);
+    setDemoActionNotice(null);
+    try {
+      const backendUrl =
+        process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') || 'http://127.0.0.1:8000';
+      const res = await fetch(`${backendUrl}/api/v1/dev/auth/seed-demo-accounts`, {
+        method: 'POST',
+      });
+      const json = await res.json();
+      setDemoActionNotice(`Seeded demo accounts (${json.created?.length || 0} created, ${json.updated?.length || 0} refreshed).`);
+      fetchReadiness();
+    } catch (e: any) {
+      setDemoActionNotice(`Error: ${e.message}`);
+    } finally {
+      setDemoActionLoading(false);
     }
   };
 
@@ -475,6 +567,115 @@ export default function DeveloperReadinessPage() {
               {data.seat_assets.reason} — Silent fallback to boxes is prohibited.
             </div>
           </div>
+        </div>
+      )}
+
+      {/* 3b. Auth, Session & CORS Readiness Card */}
+      {data.auth && (
+        <div data-testid="auth-readiness-card" className="rounded-2xl border border-[#E6DCD2] bg-white p-5 shadow-sm space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2.5">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-50 text-[#C8102E]">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-base font-bold text-[#1B1320]">Auth, Session & Origin Gateways</h3>
+                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${data.auth.status_ok ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>
+                    {data.auth.status_ok ? 'All Origins Ready' : 'Degraded'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-500">
+                  CORS headers, cookies (Secure={String(data.auth.cookie_secure)}), token rotation & removable demo accounts.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={testAuthLogin}
+                disabled={testingAuth}
+                data-testid="btn-test-auth-login"
+                className="flex items-center gap-1.5 rounded-xl bg-[#C8102E] px-3.5 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-red-700 transition disabled:opacity-50"
+              >
+                <Zap className={`h-3.5 w-3.5 ${testingAuth ? 'animate-bounce text-amber-300' : ''}`} />
+                <span>{testingAuth ? 'Testing Login...' : 'Test Login (Current Origin)'}</span>
+              </button>
+              <button
+                type="button"
+                onClick={handlePurgeDemoAccounts}
+                disabled={demoActionLoading}
+                data-testid="btn-purge-demo-accounts"
+                className="rounded-xl border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100 transition disabled:opacity-50"
+              >
+                Purge Demo Accounts
+              </button>
+              <button
+                type="button"
+                onClick={handleSeedDemoAccounts}
+                disabled={demoActionLoading}
+                data-testid="btn-seed-demo-accounts"
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 transition disabled:opacity-50"
+              >
+                Seed Demo Accounts
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
+              <div className="text-[11px] font-bold uppercase text-slate-500">Allowed CORS & CSP Origins</div>
+              <div className="mt-1 font-mono text-slate-700 text-[11px] flex flex-wrap gap-1">
+                {data.auth.allowed_origins.map((orig) => (
+                  <span key={orig} className="rounded bg-white border border-slate-200 px-1.5 py-0.5">
+                    {orig}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
+              <div className="text-[11px] font-bold uppercase text-slate-500">Cookie & Session Policy</div>
+              <div className="mt-1 text-slate-700 space-y-0.5">
+                <div>Secure: <span className="font-semibold">{data.auth.cookie_secure ? 'True (HTTPS)' : 'False (Dev HTTP OK)'}</span></div>
+                <div>SameSite: <span className="font-semibold">Lax</span>, HttpOnly: <span className="font-semibold">True</span></div>
+                <div>Access Token: <span className="font-semibold">{data.auth.token_expire_minutes}m</span>, Refresh: <span className="font-semibold">{data.auth.refresh_token_expire_days}d</span></div>
+              </div>
+            </div>
+
+            <div className="rounded-xl bg-slate-50 p-3 border border-slate-100">
+              <div className="text-[11px] font-bold uppercase text-slate-500">Active Demo Accounts ({data.auth.demo_accounts_count})</div>
+              <div className="mt-1 font-mono text-[11px] text-slate-700 space-y-0.5">
+                {data.auth.demo_accounts.map((email) => (
+                  <div key={email} className="truncate">• {email}</div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {demoActionNotice && (
+            <div className="rounded-xl border border-blue-200 bg-blue-50 p-2.5 text-xs text-blue-800">
+              {demoActionNotice}
+            </div>
+          )}
+
+          {authTestResult && (
+            <div
+              data-testid="auth-test-result-box"
+              className={`rounded-xl border p-3 text-xs ${
+                authTestResult.ok ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-red-200 bg-red-50 text-red-900'
+              }`}
+            >
+              <div className="flex items-center justify-between font-bold">
+                <span>Origin: {authTestResult.origin} → HTTP {authTestResult.status} ({authTestResult.time_ms}ms)</span>
+                <span>{authTestResult.ok ? 'AUTHENTICATION SUCCESSFUL' : 'FAILED'}</span>
+              </div>
+              <div className="mt-1 font-mono text-[11px]">
+                {JSON.stringify(authTestResult.data || authTestResult.error)}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

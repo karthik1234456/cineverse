@@ -117,8 +117,8 @@ export function Navbar() {
     }
   }
 
-  function handleLogout() {
-    logoutUser();
+  async function handleLogout() {
+    await logoutUser();
     setCurrentUser(null);
     router.refresh();
   }
