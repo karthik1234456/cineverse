@@ -712,7 +712,7 @@ export function generateProceduralAuditorium(
   for (let rIdx = 0; rIdx < rows.length; rIdx++) {
     const row = rows[rIdx];
     const isBalcony = balconyRowSet.has(row);
-    let rowY: number = rowYElevations[rIdx];
+    const rowY: number = rowYElevations[rIdx];
     let rowZ: number;
 
     if (isBalcony) {
@@ -734,7 +734,6 @@ export function generateProceduralAuditorium(
       const num = sIdx + 1;
       const seatId = `${row}${String(num).padStart(2, '0')}`;
       const posX = xPositions[sIdx];
-      const posY = rowY;
       const sagZ = curveRadius ? Math.round(((posX * posX) / (2 * curveRadius)) * 1000) / 1000 : 0.0;
       const posZ = Math.round((rowZ + sagZ) * 1000) / 1000;
 
@@ -1148,14 +1147,41 @@ export function generateProceduralAuditorium(
     }
   }
 
-  // Ceiling downlights along aisles
+  // Recessed downlight grid in warm white (2700 to 3000 K) over the aisles and seat blocks
   const ceilingDownlights: Array<{ id: string; position: [number, number, number] }> = [];
+  const dlZStep = 3.2;
+  const dlXStep = Math.max(2.4, Math.min(3.2, (halfWidth * 1.5) / Math.max(3, Math.round((halfWidth * 1.5) / 2.8))));
+  const usedDlCoords = new Set<string>();
+
+  // 1. Grid over seating blocks
+  for (let x = -halfWidth * 0.72; x <= halfWidth * 0.72 + 0.1; x += dlXStep) {
+    for (let z = -3.5; z >= zBack + 1.2; z -= dlZStep) {
+      const rx = Math.round(x * 10) / 10;
+      const rz = Math.round(z * 10) / 10;
+      const key = `${rx}_${rz}`;
+      if (!usedDlCoords.has(key)) {
+        usedDlCoords.add(key);
+        ceilingDownlights.push({
+          id: `downlight_grid_${ceilingDownlights.length}`,
+          position: [rx, Math.round((ceilingHeight - 0.15) * 100) / 100, rz],
+        });
+      }
+    }
+  }
+
+  // 2. Dedicated downlights along all aisles
   for (const acX of aisleCenters) {
-    for (let z = -4.0; z >= zBack + 1.0; z -= 3.2) {
-      ceilingDownlights.push({
-        id: `downlight_${acX.toFixed(1)}_${Math.abs(z).toFixed(0)}`,
-        position: [acX, ceilingHeight - 0.2, z],
-      });
+    for (let z = -3.5; z >= zBack + 1.2; z -= dlZStep) {
+      const rx = Math.round(acX * 10) / 10;
+      const rz = Math.round(z * 10) / 10;
+      const key = `${rx}_${rz}`;
+      if (!usedDlCoords.has(key)) {
+        usedDlCoords.add(key);
+        ceilingDownlights.push({
+          id: `downlight_aisle_${ceilingDownlights.length}`,
+          position: [rx, Math.round((ceilingHeight - 0.15) * 100) / 100, rz],
+        });
+      }
     }
   }
 
@@ -1370,8 +1396,49 @@ export function generateProceduralAuditorium(
     }
   }
 
-  // Motion hall and luxury recliner decorative overlays (removed for classic cinema aesthetic)
+  // Motion hall ceiling LED bars in steady blue, red, and white (no flashing)
+  const isMotionSeatHall = Boolean(
+    (input.screen_format && (input.screen_format.includes('4DX') || input.screen_format.includes('MX4D'))) ||
+    theatreDef.id === 'motion_seat' ||
+    theatreDef.id === 'dolby_atmos_4dx'
+  );
   const motionLedBars: ProceduralGeometryData['motionLedBars'] = [];
+  if (isMotionSeatHall) {
+    const barZSpan = Math.abs(zBack) - 6.0;
+    const barRows = Math.max(3, Math.min(6, Math.round(barZSpan / 4.2)));
+    const zStep = barZSpan / (barRows + 1);
+    const colors: Array<'blue' | 'white' | 'red'> = ['blue', 'white', 'red'];
+
+    for (let br = 1; br <= barRows; br++) {
+      const bZ = Math.round((-3.0 - br * zStep) * 100) / 100;
+      const col = colors[(br - 1) % colors.length];
+      // Left longitudinal ceiling bar
+      motionLedBars.push({
+        id: `motion_led_l_${br}`,
+        position: [Math.round(-halfWidth * 0.52 * 100) / 100, Math.round((ceilingHeight - 0.28) * 100) / 100, bZ],
+        size: [0.12, 0.06, 2.6],
+        rotation: [0, 0, 0],
+        colorType: col,
+      });
+      // Right longitudinal ceiling bar
+      motionLedBars.push({
+        id: `motion_led_r_${br}`,
+        position: [Math.round(halfWidth * 0.52 * 100) / 100, Math.round((ceilingHeight - 0.28) * 100) / 100, bZ],
+        size: [0.12, 0.06, 2.6],
+        rotation: [0, 0, 0],
+        colorType: col,
+      });
+      // Center transverse ceiling accent
+      motionLedBars.push({
+        id: `motion_led_c_${br}`,
+        position: [0, Math.round((ceilingHeight - 0.28) * 100) / 100, bZ],
+        size: [2.2, 0.06, 0.12],
+        rotation: [0, 0, 0],
+        colorType: col,
+      });
+    }
+  }
+
   const amberOutlinePanels: ProceduralGeometryData['amberOutlinePanels'] = [];
 
   // 8c. Suspended Acoustic Ceiling Clouds & Roof Structural Trusses
@@ -1501,6 +1568,23 @@ export function generateProceduralAuditorium(
     bounds: {
       min: [-screenWidth / 2 - 0.8, Math.round((screenCenterY + screenHeight / 2 + 0.75) * 1000) / 1000, SCREEN_Z - 0.22],
       max: [screenWidth / 2 + 0.8, Math.round((screenCenterY + screenHeight / 2 + 0.95) * 1000) / 1000, SCREEN_Z - 0.05],
+    },
+    color: theatreDef.palette.coveColor,
+  });
+  // Screen proscenium left and right edge cove strips
+  coveLightStrips.push({
+    id: 'cove_screen_left',
+    bounds: {
+      min: [Math.round((-screenWidth / 2 - 0.85) * 1000) / 1000, Math.round((screenCenterY - screenHeight / 2 - 0.2) * 1000) / 1000, SCREEN_Z - 0.22],
+      max: [Math.round((-screenWidth / 2 - 0.65) * 1000) / 1000, Math.round((screenCenterY + screenHeight / 2 + 0.8) * 1000) / 1000, SCREEN_Z - 0.05],
+    },
+    color: theatreDef.palette.coveColor,
+  });
+  coveLightStrips.push({
+    id: 'cove_screen_right',
+    bounds: {
+      min: [Math.round((screenWidth / 2 + 0.65) * 1000) / 1000, Math.round((screenCenterY - screenHeight / 2 - 0.2) * 1000) / 1000, SCREEN_Z - 0.22],
+      max: [Math.round((screenWidth / 2 + 0.85) * 1000) / 1000, Math.round((screenCenterY + screenHeight / 2 + 0.8) * 1000) / 1000, SCREEN_Z - 0.05],
     },
     color: theatreDef.palette.coveColor,
   });

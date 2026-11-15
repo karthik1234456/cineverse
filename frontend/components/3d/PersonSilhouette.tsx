@@ -8,6 +8,7 @@ import { METERS_TO_SCENE } from '@/lib/theatreTypeRegistry';
 interface PersonSilhouetteProps {
   position?: [number, number, number];
   visible?: boolean;
+  label?: string;
 }
 
 /**
@@ -19,6 +20,7 @@ interface PersonSilhouetteProps {
 export function PersonSilhouette({
   position = [0.0, 0.22, -10.0],
   visible = true,
+  label,
 }: PersonSilhouetteProps) {
   const silhouetteMaterial = useMemo(
     () =>
@@ -60,7 +62,7 @@ export function PersonSilhouette({
       <Html position={[0, 3.75, 0]} center distanceFactor={15}>
         <div className="flex flex-col items-center pointer-events-none select-none">
           <span className="px-2 py-0.5 rounded bg-sky-950/90 text-sky-300 border border-sky-400 text-[10px] font-mono font-bold whitespace-nowrap shadow-lg">
-            1.75 m (3.50 scene units · scale 1m = 2u)
+            {label || '1.75 m (3.50 scene units · scale 1m = 2u)'}
           </span>
           <div className="w-0.5 h-3 bg-sky-400" />
         </div>

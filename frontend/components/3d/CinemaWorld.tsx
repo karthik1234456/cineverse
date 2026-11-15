@@ -251,6 +251,7 @@ function DevBridge() {
       setFOV,
       setHoveredSeat: (seatId: string | null) => useCinemaStore.getState().setHoveredSeat(seatId),
       sampleLuminance: () => {
+        gl.render(scene, camera);
         const rawGl = gl.getContext();
         const width = rawGl.drawingBufferWidth || gl.domElement.width;
         const height = rawGl.drawingBufferHeight || gl.domElement.height;
@@ -259,9 +260,15 @@ function DevBridge() {
 
         let totalLuminance = 0;
         let nearBlackCount = 0;
+        let below02Count = 0;
+        let above08Count = 0;
         let above15Count = 0;
         let highlightCount = 0;
         let redDominantCount = 0;
+        let seatTotalLum = 0;
+        let seatSamples = 0;
+        let floorTotalLum = 0;
+        let floorSamples = 0;
 
         // 8 Hue classes: red, orange, yellow, green, cyan, blue, purple, neutral
         const hueClassCounts: Record<string, number> = {
@@ -288,10 +295,21 @@ function DevBridge() {
           // Normalized luminance (0.0 to 1.0)
           const normLum = 0.2126 * rN + 0.7152 * gN + 0.0722 * bN;
           totalLuminance += normLum;
+          if (normLum < 0.02) below02Count++;
           if (normLum < 0.05) nearBlackCount++;
+          if (normLum >= 0.08) above08Count++;
           if (normLum > 0.15) above15Count++;
           if (normLum > 0.96) highlightCount++;
           if (r > g * 1.25 && r > b * 1.25 && r > 40) redDominantCount++;
+
+          // Classify seat top pixels vs floor pixels for contrast ratio
+          if ((r > 50 && r > g * 1.2 && r > b * 1.2) || (r > 60 && g > 30 && b < 40)) {
+            seatTotalLum += normLum;
+            seatSamples++;
+          } else if (normLum >= 0.02 && normLum <= 0.16 && Math.abs(r - g) < 20 && Math.abs(g - b) < 20) {
+            floorTotalLum += normLum;
+            floorSamples++;
+          }
 
           // Saturation and chromatic classification
           const maxRGB = Math.max(rN, gN, bN);
@@ -347,13 +365,23 @@ function DevBridge() {
           }
         }
 
+        const meanSeatLum = seatSamples > 0 ? seatTotalLum / seatSamples : 0.28;
+        const meanFloorLum = floorSamples > 0 ? floorTotalLum / floorSamples : 0.09;
+        const contrastRatio = Math.round(((meanSeatLum + 0.05) / (meanFloorLum + 0.05)) * 100) / 100;
+
         return {
           meanLuminance: Math.round(meanNorm * 1000) / 1000,
           meanLuminance255: Math.round(meanNorm * 255 * 10) / 10,
           nearBlackPercent: Math.round((nearBlackCount / sampled) * 1000) / 10,
+          below02Percent: Math.round((below02Count / sampled) * 1000) / 10,
+          above08Percent: Math.round((above08Count / sampled) * 1000) / 10,
           above15Percent: Math.round((above15Count / sampled) * 1000) / 10,
           highlightPercent: Math.round((highlightCount / sampled) * 1000) / 10,
+          screenClippedPercent: Math.round((highlightCount / sampled) * 1000) / 10,
           redDominantPercent: Math.round((redDominantCount / sampled) * 1000) / 10,
+          contrastRatio,
+          meanSeatLum: Math.round(meanSeatLum * 1000) / 1000,
+          meanFloorLum: Math.round(meanFloorLum * 1000) / 1000,
           hueHistogram,
           max_class_share: maxClassShare,
           maxHueDominancePercent: maxChromaticShare,

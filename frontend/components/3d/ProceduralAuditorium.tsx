@@ -153,6 +153,7 @@ export function ProceduralAuditorium({
   const toggleSeat = useCinemaStore((s) => s.toggleSeat);
   const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
   const houseLights = useCinemaStore((s) => s.houseLights);
+  const lightLevel = useCinemaStore((s) => s.lightLevel || 'normal');
   const lightIntensity = useCinemaStore((s) => s.lightIntensity);
 
   const theatreDef = useMemo(
@@ -549,11 +550,11 @@ export function ProceduralAuditorium({
       new THREE.MeshStandardMaterial({
         color: '#ffffff',
         emissive: new THREE.Color('#fff4e0'),
-        emissiveIntensity: lightIntensity === 'brighter' ? 4.2 : 3.2,
+        emissiveIntensity: lightLevel === 'bright' ? 4.8 : lightLevel === 'dim' ? 2.4 : 3.6,
         roughness: 0.15,
         metalness: 0.1,
       }),
-    [lightIntensity]
+    [lightLevel, lightIntensity]
   );
 
   const speakerMaterial = useMemo(

@@ -52,7 +52,7 @@ export interface WalkSettings {
   headBob: boolean;
 }
 
-export type TrailerPlaybackStatus = 'loading' | 'playing' | 'paused' | 'blocked' | 'unavailable';
+export type TrailerPlaybackStatus = 'ready' | 'loading' | 'playing' | 'paused' | 'blocked' | 'unavailable';
 export type ScreenStrategy = 'video_texture' | 'youtube_css3d' | 'backdrop_motion' | 'title_card' | 'solid_color';
 
 export interface TrailerState {
@@ -102,6 +102,8 @@ export interface CinemaState {
 
   // Environment & Realism
   houseLights: HouseLightsMode;
+  lightLevel: 'dim' | 'normal' | 'bright';
+  setLightLevel: (level: 'dim' | 'normal' | 'bright') => void;
   lightIntensity: 'normal' | 'brighter';
   setLightIntensity: (intensity: 'normal' | 'brighter') => void;
   qualityTier: QualityTier;
@@ -269,6 +271,21 @@ function getInitialQualityMode(): QualityMode {
 
 const initialQuality = getInitialQualityMode();
 
+function getInitialLightLevel(): 'dim' | 'normal' | 'bright' {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    const paramLevel = params.get('lightLevel')?.toLowerCase();
+    if (paramLevel === 'dim' || paramLevel === 'normal' || paramLevel === 'bright') {
+      return paramLevel as 'dim' | 'normal' | 'bright';
+    }
+    const fromStorage = localStorage.getItem('cineverse_light_level');
+    if (fromStorage === 'dim' || fromStorage === 'normal' || fromStorage === 'bright') {
+      return fromStorage as 'dim' | 'normal' | 'bright';
+    }
+  }
+  return 'normal';
+}
+
 function getInitialLightIntensity(): 'normal' | 'brighter' {
   if (typeof window !== 'undefined') {
     const fromStorage = localStorage.getItem('cineverse_light_intensity');
@@ -279,7 +296,8 @@ function getInitialLightIntensity(): 'normal' | 'brighter' {
   return 'normal';
 }
 
-const initialLightIntensity = getInitialLightIntensity();
+const initialLightLevel = getInitialLightLevel();
+const initialLightIntensity = initialLightLevel === 'bright' ? 'brighter' : getInitialLightIntensity();
 
 export const useCinemaStore = create<CinemaState>((set, get) => ({
   seatStatuses: {},
@@ -324,11 +342,21 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     volume: 0.75,
     trailerUrl: '',
     hasSpill: true,
-    playbackStatus: 'loading',
+    playbackStatus: 'ready',
     activeStrategy: 'title_card',
   },
 
   houseLights: 'full',
+  lightLevel: initialLightLevel,
+  setLightLevel: (level) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('cineverse_light_level', level);
+      } catch (e) {}
+    }
+    const mappedIntensity = level === 'bright' ? 'brighter' : 'normal';
+    set({ lightLevel: level, lightIntensity: mappedIntensity });
+  },
   lightIntensity: initialLightIntensity,
   setLightIntensity: (intensity) => {
     if (typeof window !== 'undefined') {
@@ -336,7 +364,8 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
         localStorage.setItem('cineverse_light_intensity', intensity);
       } catch (e) {}
     }
-    set({ lightIntensity: intensity });
+    const mappedLevel = intensity === 'brighter' ? 'bright' : 'normal';
+    set({ lightIntensity: intensity, lightLevel: mappedLevel });
   },
   theatreLook: (typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('look') as 'a' | 'b' | 'c') || 'a' : 'a'),
   setTheatreLook: (look) => set({ theatreLook: look }),

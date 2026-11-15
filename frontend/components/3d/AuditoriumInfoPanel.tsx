@@ -16,6 +16,8 @@ export function AuditoriumInfoPanel() {
   const selectedSeats = useCinemaStore((s) => s.selectedSeats);
   const houseLights = useCinemaStore((s) => s.houseLights);
   const setHouseLights = useCinemaStore((s) => s.setHouseLights);
+  const lightLevel = useCinemaStore((s) => s.lightLevel || 'normal');
+  const setLightLevel = useCinemaStore((s) => s.setLightLevel);
   const qualityTier = useCinemaStore((s) => s.qualityTier);
   const setQualityTier = useCinemaStore((s) => s.setQualityTier);
   const useHqModel = useCinemaStore((s) => s.useHqModel);
@@ -364,7 +366,7 @@ export function AuditoriumInfoPanel() {
           </div>
 
           {/* Quick Environment Controls */}
-          <div className="mt-4 flex items-center justify-between border-t border-[#E6DCD2] pt-3 text-sm">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[#E6DCD2] pt-3 text-sm">
             <button
               onClick={() => setHouseLights(houseLights === 'full' ? 'show' : 'full')}
               className="flex min-h-[44px] items-center gap-1.5 rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3.5 py-2 text-slate-700 font-bold transition hover:bg-slate-100"
@@ -381,6 +383,25 @@ export function AuditoriumInfoPanel() {
                 </>
               )}
             </button>
+
+            {/* Light Level Setting: Dim, Normal, Bright */}
+            <div className="flex items-center gap-1 rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] p-1 text-xs font-semibold">
+              <span className="px-1.5 text-slate-500 font-medium">Light:</span>
+              {(['dim', 'normal', 'bright'] as const).map((lvl) => (
+                <button
+                  key={lvl}
+                  onClick={() => setLightLevel(lvl)}
+                  data-testid={`light-level-${lvl}`}
+                  className={`rounded-lg px-2 py-1 capitalize transition ${
+                    lightLevel === lvl
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {lvl}
+                </button>
+              ))}
+            </div>
 
             {/* Dev Tools: only visible when ?debug=1 in dev */}
             {isDebugMode && (

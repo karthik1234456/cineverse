@@ -313,10 +313,19 @@ declare global {
       setLightIntensity: (intensity: 'normal' | 'brighter') => void;
       sampleLuminance: () => {
         meanLuminance: number;
+        meanLuminance255?: number;
         nearBlackPercent: number;
+        below02Percent?: number;
+        above08Percent?: number;
+        above15Percent?: number;
         highlightPercent: number;
+        screenClippedPercent?: number;
+        contrastRatio?: number;
+        meanSeatLum?: number;
+        meanFloorLum?: number;
         width: number;
         height: number;
+        hueHistogram?: Record<string, number>;
       };
       setTheatreLook: (look: 'a' | 'b' | 'c') => void;
       setQualityTier: (tier: QualityTier) => void;
