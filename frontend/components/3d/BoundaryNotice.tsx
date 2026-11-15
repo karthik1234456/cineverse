@@ -12,7 +12,7 @@ export function BoundaryNotice() {
     setVisible(true);
     const timer = setTimeout(() => {
       setVisible(false);
-    }, 1800);
+    }, 1500);
     return () => clearTimeout(timer);
   }, [lastNoticeTime]);
 
@@ -23,7 +23,7 @@ export function BoundaryNotice() {
       data-testid="boundary-notice"
       role="status"
       aria-live="polite"
-      className="pointer-events-none fixed top-20 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full border border-amber-500/40 bg-slate-900/90 px-4 py-2 text-xs font-semibold tracking-wide text-amber-200 shadow-2xl backdrop-blur-md transition-opacity duration-300"
+      className="pointer-events-none fixed top-32 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 rounded-full border border-amber-500/40 bg-slate-900/90 px-4 py-2 text-xs font-semibold tracking-wide text-amber-200 shadow-2xl backdrop-blur-md transition-opacity duration-300"
     >
       <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_8px_#fbbf24] animate-ping" />
       <span>Edge of the theatre</span>

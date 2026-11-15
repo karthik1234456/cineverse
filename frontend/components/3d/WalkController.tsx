@@ -31,6 +31,7 @@ export function WalkController() {
 
   const auditoriumWalkNav = useCinemaStore((s) => s.auditoriumWalkNav);
   const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
+  const proceduralResult = useCinemaStore((s) => s.proceduralResult);
 
   const walkables = (auditoriumWalkNav?.walkable || walkNavData.walkable) as unknown as WalkableSurface[];
   const colliders = (auditoriumWalkNav?.colliders || walkNavData.colliders) as unknown as Collider[];
@@ -54,6 +55,7 @@ export function WalkController() {
 
   // Velocity smoothing
   const velRef = useRef<THREE.Vector2>(new THREE.Vector2());
+  const pushTimerRef = useRef<number>(0);
 
   // Mouse look state
   const isPointerLocked = useRef<boolean>(false);
@@ -281,23 +283,42 @@ export function WalkController() {
       posRef.current.set(stepRes.newPos.x, stepRes.newPos.y, stepRes.newPos.z);
     }
 
-    // Boundary clamp with margin for walk player + edge notice
+    // Dynamic room boundaries derived from actual hall geometry (§ Part B.1)
+    const dims = proceduralResult?.geometry?.dimensions;
+    const halfWidth = dims?.halfWidth ?? 9.5;
+    const zBack = dims?.zBack ?? -24.5;
+    const zFront = dims?.zFront ?? 0.0;
+    const playerRadius = playerCfg?.radius ?? 0.35;
+
+    // Room boundaries giving full access to aisles, cross-aisles, front apron, and row ends
     const walkBounds = {
-      minX: -9.2,
-      maxX: 9.2,
-      minZ: -24.2,
-      maxZ: -2.2,
+      minX: -halfWidth + playerRadius + 0.1,
+      maxX: halfWidth - (playerRadius + 0.1),
+      minZ: zBack + playerRadius + 0.1,
+      maxZ: Math.min(-1.5, zFront - 1.5),
     };
-    if (
-      posRef.current.x < walkBounds.minX ||
-      posRef.current.x > walkBounds.maxX ||
-      posRef.current.z < walkBounds.minZ ||
-      posRef.current.z > walkBounds.maxZ
-    ) {
-      useCinemaStore.getState().triggerBoundaryNotice();
-      posRef.current.x = THREE.MathUtils.clamp(posRef.current.x, walkBounds.minX, walkBounds.maxX);
-      posRef.current.z = THREE.MathUtils.clamp(posRef.current.z, walkBounds.minZ, walkBounds.maxZ);
+
+    // Check if player is actively pushing into an outer boundary (§ Part B.2)
+    // Only count when player has deliberate movement input trying to cross the boundary
+    const isPushingLeft = posRef.current.x <= walkBounds.minX + 0.05 && velRef.current.x < -0.1;
+    const isPushingRight = posRef.current.x >= walkBounds.maxX - 0.05 && velRef.current.x > 0.1;
+    const isPushingBack = posRef.current.z <= walkBounds.minZ + 0.05 && velRef.current.y < -0.1;
+    const isPushingFront = posRef.current.z >= walkBounds.maxZ - 0.05 && velRef.current.y > 0.1;
+    const isPushingBoundary = isPushingLeft || isPushingRight || isPushingBack || isPushingFront;
+
+    if (isPushingBoundary) {
+      pushTimerRef.current += clampedDelta;
+      // Trigger notice only after actively pushing into outer boundary for > 0.4s (ignoring momentary touches)
+      if (pushTimerRef.current >= 0.4) {
+        useCinemaStore.getState().triggerBoundaryNotice();
+      }
+    } else {
+      pushTimerRef.current = 0;
     }
+
+    // Clamp player position to room bounds
+    posRef.current.x = THREE.MathUtils.clamp(posRef.current.x, walkBounds.minX, walkBounds.maxX);
+    posRef.current.z = THREE.MathUtils.clamp(posRef.current.z, walkBounds.minZ, walkBounds.maxZ);
 
     // 4. Smooth eye height over tiers
     const targetEyeY = posRef.current.y + playerCfg.standing_eye_height;

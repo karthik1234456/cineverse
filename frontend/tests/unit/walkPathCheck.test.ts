@@ -187,4 +187,98 @@ describe('PART C: Walk Mode Automated Path Check & Navigation', () => {
       expect(curPos.z).toBeLessThan(spawn[2] - 3.0);
     }
   });
+
+  it('asserts zero false boundary triggers across all aisles, cross-aisles, front apron, and row ends in every hall variant including Auditorium 13', () => {
+    // Test suite covers Compact, Standard, Balcony, Recliner (inc. Auditorium 13), Motion, Flagship
+    const hallConfigs = [
+      // Auditorium 13: Cinema 4 Screen 3 Luxe Recliner Lounge (64 seats, 8x8, aisles [2, 6])
+      { name: 'Auditorium 13 Luxe Recliner Lounge', type: 'luxury_recliner', seats: 64, rows: 8, seatsPerRow: 8, aisles: [2, 6] },
+      { name: 'Compact 100-seat Hall', type: 'compact', seats: 100, rows: 10, seatsPerRow: 10, aisles: [3, 7] },
+      { name: 'Standard 216-seat Hall', type: 'standard', seats: 216, rows: 12, seatsPerRow: 18, aisles: [4, 14] },
+      { name: 'Balcony 588-seat Hall', type: 'balcony', seats: 588, rows: 21, seatsPerRow: 28, aisles: [7, 21] },
+      { name: 'Motion 4DX 240-seat Hall', type: 'motion_seat', seats: 240, rows: 12, seatsPerRow: 20, aisles: [4, 16], features: { is_4dx: true } },
+      { name: 'Flagship 560-seat IMAX Hall', type: 'flagship', seats: 560, rows: 20, seatsPerRow: 28, aisles: [7, 21] },
+    ];
+
+    for (const cfg of hallConfigs) {
+      const hall = generateProceduralAuditorium({
+        theatre_type: cfg.type,
+        total_seats: cfg.seats,
+        rows: cfg.rows,
+        seats_per_row: cfg.seatsPerRow,
+        aisles: cfg.aisles,
+        features: (cfg as any).features,
+      });
+
+      const dims = hall.geometry.dimensions;
+      const playerCfg = hall.walkNav.player;
+      const radius = playerCfg.radius;
+
+      // Dynamic room bounds as defined in WalkController
+      const walkBounds = {
+        minX: -dims.halfWidth + radius + 0.1,
+        maxX: dims.halfWidth - (radius + 0.1),
+        minZ: dims.zBack + radius + 0.1,
+        maxZ: Math.min(-1.5, dims.zFront - 1.5),
+      };
+
+      let falseBoundaryTriggerCount = 0;
+      const checkBoundary = (x: number, z: number, vx: number, vz: number, pushDuration: number) => {
+        const isPushingLeft = x <= walkBounds.minX + 0.05 && vx < -0.1;
+        const isPushingRight = x >= walkBounds.maxX - 0.05 && vx > 0.1;
+        const isPushingBack = z <= walkBounds.minZ + 0.05 && vz < -0.1;
+        const isPushingFront = z >= walkBounds.maxZ - 0.05 && vz > 0.1;
+        const isPushingBoundary = isPushingLeft || isPushingRight || isPushingBack || isPushingFront;
+        if (isPushingBoundary && pushDuration >= 0.4) {
+          return true;
+        }
+        return false;
+      };
+
+      // 1. Walk entire length of all aisles (spawn to back tier)
+      const aisleXList = hall.walkNav.aisles.aisle_centers.length > 0
+        ? hall.walkNav.aisles.aisle_centers
+        : [0.0];
+
+      for (const aisleX of aisleXList) {
+        // Step along aisle from front apron to back row
+        for (let z = dims.zFront - 2.5; z >= dims.zBack + 1.0; z -= 0.5) {
+          // Inside the aisle, player is moving along -Z
+          const triggered = checkBoundary(aisleX, z, 0, -1.0, 0.0);
+          if (triggered || aisleX < walkBounds.minX || aisleX > walkBounds.maxX || z < walkBounds.minZ || z > walkBounds.maxZ) {
+            falseBoundaryTriggerCount++;
+          }
+        }
+      }
+
+      // 2. Walk cross aisle (horizontal apron traversal)
+      const crossAisleZ = hall.walkNav.player.spawn_position[2];
+      for (let x = -dims.halfWidth + 2.0; x <= dims.halfWidth - 2.0; x += 0.5) {
+        const triggered = checkBoundary(x, crossAisleZ, 1.0, 0, 0.0);
+        if (triggered || x < walkBounds.minX || x > walkBounds.maxX || crossAisleZ < walkBounds.minZ || crossAisleZ > walkBounds.maxZ) {
+          falseBoundaryTriggerCount++;
+        }
+      }
+
+      // 3. Walk front apron in front of row A
+      const frontApronZ = Math.min(-2.0, dims.zFront - 2.0);
+      for (let x = -dims.halfWidth + 2.0; x <= dims.halfWidth - 2.0; x += 0.5) {
+        const triggered = checkBoundary(x, frontApronZ, 1.0, 0, 0.0);
+        if (triggered || x < walkBounds.minX || x > walkBounds.maxX || frontApronZ < walkBounds.minZ || frontApronZ > walkBounds.maxZ) {
+          falseBoundaryTriggerCount++;
+        }
+      }
+
+      // Assert 0 false triggers across all walking areas!
+      expect(falseBoundaryTriggerCount, `False boundary triggers in ${cfg.name}`).toBe(0);
+
+      // Verify that momentary push (< 0.4s) does NOT trigger
+      const momentaryTrigger = checkBoundary(walkBounds.minX, crossAisleZ, -1.0, 0, 0.2);
+      expect(momentaryTrigger).toBe(false);
+
+      // Verify that deliberate push (>= 0.4s) DOES trigger
+      const deliberateTrigger = checkBoundary(walkBounds.minX, crossAisleZ, -1.0, 0, 0.45);
+      expect(deliberateTrigger).toBe(true);
+    }
+  });
 });

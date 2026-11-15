@@ -102,12 +102,25 @@ export function WalkHUD() {
           <p className="text-sm font-medium text-slate-200">
             <span className="font-bold text-[#C8102E]">First-Person Walk Mode:</span> Click canvas to lock mouse view. Use <kbd className="rounded bg-white/20 px-2 py-0.5 text-sm font-mono font-bold">W</kbd> <kbd className="rounded bg-white/20 px-2 py-0.5 text-sm font-mono font-bold">A</kbd> <kbd className="rounded bg-white/20 px-2 py-0.5 text-sm font-mono font-bold">S</kbd> <kbd className="rounded bg-white/20 px-2 py-0.5 text-sm font-mono font-bold">D</kbd> or arrow keys to walk up the aisle.
           </p>
-          <button
-            onClick={() => setHasDismissedHint(true)}
-            className="mt-2.5 text-sm font-semibold text-slate-300 underline hover:text-white"
-          >
-            Got it, dismiss
-          </button>
+          <div className="mt-3 flex items-center justify-center gap-3">
+            <button
+              onClick={() => {
+                const spawnPos = auditoriumWalkNav?.player?.spawn_position || [0.0, 0.05, -6.5];
+                teleportWalkPlayer(spawnPos);
+              }}
+              data-testid="walk-hint-reset-position-btn"
+              className="rounded-lg border border-red-500/40 bg-red-500/20 px-3 py-1 text-xs font-semibold text-rose-200 hover:bg-red-500/40 hover:text-white transition"
+              title="Reset player position to spawn point in aisle"
+            >
+              Reset position
+            </button>
+            <button
+              onClick={() => setHasDismissedHint(true)}
+              className="text-xs font-semibold text-slate-300 underline hover:text-white"
+            >
+              Got it, dismiss
+            </button>
+          </div>
         </div>
       )}
 

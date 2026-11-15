@@ -422,7 +422,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   lastBoundaryNoticeTime: 0,
   triggerBoundaryNotice: () => {
     const now = Date.now();
-    if (now - get().lastBoundaryNoticeTime > 1400) {
+    if (now - get().lastBoundaryNoticeTime > 1500) {
       set({ lastBoundaryNoticeTime: now });
     }
   },
