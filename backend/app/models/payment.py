@@ -1,6 +1,6 @@
 import enum
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, Enum, ForeignKey, JSON
+from sqlalchemy import Column, Integer, String, Float, DateTime, Enum, ForeignKey, JSON, Boolean
 from sqlalchemy.orm import relationship
 from app.database import Base
 
@@ -48,9 +48,25 @@ class Refund(Base):
     payment_id = Column(Integer, ForeignKey("payments.id", ondelete="CASCADE"), nullable=False, index=True)
     refund_amount = Column(Float, nullable=False)
     cancellation_fee = Column(Float, default=0.0)
+
+    # Server-side integer paise accounting (1 INR = 100 paise)
+    amount_paise = Column(Integer, default=0, nullable=False)
+    cancellation_fee_paise = Column(Integer, default=0, nullable=False)
+    ticket_amount_paise = Column(Integer, default=0, nullable=False)
+    addons_amount_paise = Column(Integer, default=0, nullable=False)
+    convenience_fee_paise = Column(Integer, default=0, nullable=False)
+    gst_amount_paise = Column(Integer, default=0, nullable=False)
+
+    gateway_refund_id = Column(String(100), nullable=True, index=True)
     reason = Column(String(255), default="Customer cancellation")
-    status = Column(String(50), default="PROCESSED")
+    status = Column(String(50), default="REQUESTED", index=True)  # REQUESTED, PROCESSING, REFUNDED, FAILED
+    timeline = Column(JSON, default=list)  # list of {"status": str, "timestamp": str, "note": str}
+    is_stuck = Column(Boolean, default=False, index=True)
+    error_message = Column(String(500), nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     payment = relationship("Payment", back_populates="refund")
+    booking = relationship("Booking", back_populates="refund")
 

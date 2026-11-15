@@ -165,10 +165,77 @@ class TicketResponse(BaseModel):
     qr_data: str
     qr_code_url: Optional[str] = None
     hmac_signature: str
-    issued_at: datetime
+    issued_at: Optional[datetime] = None
+    is_used: bool = False
+    used_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
+
+
+class RefundBreakdownPaise(BaseModel):
+    ticket_amount_paise: int
+    ticket_refund_paise: int
+    addons_amount_paise: int
+    addons_refund_paise: int
+    convenience_fee_paise: int
+    convenience_fee_refund_paise: int
+    gst_amount_paise: int
+    gst_refund_paise: int
+    discount_amount_paise: int
+    cancellation_fee_paise: int
+    total_paid_paise: int
+    total_refund_paise: int
+
+    ticket_amount_display: str
+    ticket_refund_display: str
+    addons_amount_display: str
+    addons_refund_display: str
+    convenience_fee_display: str
+    gst_amount_display: str
+    cancellation_fee_display: str
+    total_paid_display: str
+    total_refund_display: str
+
+
+class RefundTimelineItem(BaseModel):
+    status: str  # REQUESTED, PROCESSING, REFUNDED, FAILED
+    timestamp: str
+    note: str
+
+
+class RefundResponse(BaseModel):
+    id: int
+    booking_id: int
+    payment_id: Optional[int] = None
+    refund_amount: float
+    cancellation_fee: float
+    amount_paise: int
+    amount_display: str
+    cancellation_fee_paise: int
+    cancellation_fee_display: str
+    status: str
+    timeline: List[RefundTimelineItem] = []
+    is_stuck: bool = False
+    error_message: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class CancellationQuoteResponse(BaseModel):
+    booking_id: int
+    booking_code: str
+    can_cancel: bool
+    cancellation_cutoff_minutes: int
+    cutoff_time: datetime
+    is_late: bool
+    is_used: bool
+    reason_ineligible: Optional[str] = None
+    policy_text: str
+    breakdown: RefundBreakdownPaise
 
 
 class BookingResponse(BaseModel):
@@ -215,6 +282,13 @@ class BookingResponse(BaseModel):
     contact_phone: Optional[str] = None
     created_at: datetime
     ticket: Optional[TicketResponse] = None
+
+    # Customer cancellation & refund fields
+    can_cancel: bool = False
+    cancellation_policy: Optional[str] = None
+    cancellation_cutoff_time: Optional[datetime] = None
+    refund_breakdown: Optional[RefundBreakdownPaise] = None
+    refund: Optional[RefundResponse] = None
 
     class Config:
         from_attributes = True

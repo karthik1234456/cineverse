@@ -50,6 +50,7 @@ class Booking(Base):
     addons = relationship("BookingAddon", back_populates="booking", cascade="all, delete-orphan")
     payment = relationship("Payment", back_populates="booking", uselist=False)
     ticket = relationship("Ticket", back_populates="booking", uselist=False)
+    refund = relationship("Refund", back_populates="booking", uselist=False, cascade="all, delete-orphan")
 
 
 class BookingSeat(Base):

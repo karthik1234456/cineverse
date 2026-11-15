@@ -5,14 +5,22 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   TrendingUp, Users, Ticket, BarChart3,
-  Calendar, ShieldCheck, Film, ArrowRight
+  Calendar, ShieldCheck, Film, RotateCcw, RefreshCw
 } from 'lucide-react';
-import { getAdminAnalytics, getStoredUser, type AdminAnalytics } from '@/services/api';
+import {
+  getAdminAnalytics, getStuckRefunds, retryStuckRefund,
+  type AdminAnalytics
+} from '@/services/api';
 
 export default function AdminDashboardPage() {
   const [analytics, setAnalytics] = useState<AdminAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Stuck refunds state
+  const [stuckRefunds, setStuckRefunds] = useState<any[]>([]);
+  const [retryingId, setRetryingId] = useState<number | null>(null);
+  const [retryNotice, setRetryNotice] = useState<string | null>(null);
 
   useEffect(() => {
     getAdminAnalytics()
@@ -21,7 +29,31 @@ export default function AdminDashboardPage() {
         setError(err.message || 'Access restricted. Admin credentials required.');
       })
       .finally(() => setLoading(false));
+
+    loadStuckRefunds();
   }, []);
+
+  async function loadStuckRefunds() {
+    try {
+      const data = await getStuckRefunds();
+      setStuckRefunds(data || []);
+    } catch {
+      // ignore
+    }
+  }
+
+  async function handleRetry(refundId: number) {
+    setRetryingId(refundId);
+    try {
+      const res = await retryStuckRefund(refundId);
+      setRetryNotice(res.message || `Refund #${refundId} retried.`);
+      await loadStuckRefunds();
+    } catch (err: any) {
+      alert(err.message || 'Failed to retry refund');
+    } finally {
+      setRetryingId(null);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 w-full text-white space-y-8">
@@ -169,6 +201,98 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
             </div>
+          </div>
+
+          {/* Stuck & Delayed Customer Refunds Inspection Module */}
+          <div className="rounded-2xl border border-white/5 bg-[#12131a] p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-white/5 pb-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-base text-white">Stuck & Delayed Refunds</span>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                    stuckRefunds.length > 0
+                      ? 'bg-amber-900/40 text-amber-300 border border-amber-700/50'
+                      : 'bg-emerald-900/40 text-emerald-300 border border-emerald-700/50'
+                  }`}>
+                    {stuckRefunds.length} {stuckRefunds.length === 1 ? 'case' : 'cases'}
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 mt-0.5">
+                  Automated webhook failure detection and manual gateway retry controls
+                </p>
+              </div>
+
+              <button
+                onClick={loadStuckRefunds}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs font-semibold text-zinc-300 transition"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Refresh Queue</span>
+              </button>
+            </div>
+
+            {retryNotice && (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/30 p-3 text-xs text-emerald-300 flex items-center justify-between">
+                <span>{retryNotice}</span>
+                <button onClick={() => setRetryNotice(null)} className="text-[10px] underline">Dismiss</button>
+              </div>
+            )}
+
+            {stuckRefunds.length === 0 ? (
+              <div className="py-8 text-center text-xs text-zinc-500">
+                All customer refund dispatches are operating smoothly. No stuck or failed refunds detected.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {stuckRefunds.map((r) => (
+                  <div
+                    key={r.id}
+                    className="flex flex-col sm:flex-row items-start sm:items-center justify-between rounded-xl border border-amber-900/30 bg-amber-950/10 p-4 gap-3 text-xs"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-bold text-amber-400">{r.booking_code}</span>
+                        <span className="text-zinc-300 font-medium">{r.customer_name} ({r.customer_email})</span>
+                        <span className="px-2 py-0.5 rounded bg-rose-950 text-rose-300 border border-rose-800 text-[10px] font-bold uppercase">
+                          {r.status}
+                        </span>
+                      </div>
+                      <p className="text-zinc-400 text-[11px]">
+                        Reason: <span className="text-amber-200">{r.error_message}</span>
+                      </p>
+                      <p className="text-zinc-500 text-[10px] font-mono">
+                        Gateway ID: {r.gateway_refund_id || 'N/A'} • Created: {r.created_at ? new Date(r.created_at).toLocaleString() : ''}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-4 w-full sm:w-auto justify-between sm:justify-end">
+                      <div className="text-right">
+                        <span className="text-base font-black text-white">{r.amount_display}</span>
+                        <span className="text-[10px] text-zinc-500 block font-mono">({r.amount_paise} paise)</span>
+                      </div>
+
+                      <button
+                        onClick={() => handleRetry(r.id)}
+                        disabled={retryingId === r.id}
+                        className="inline-flex min-h-[36px] items-center gap-1.5 px-4 py-1.5 rounded-xl bg-amber-600 hover:bg-amber-500 text-xs font-bold text-white transition disabled:opacity-50"
+                      >
+                        {retryingId === r.id ? (
+                          <>
+                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            <span>Retrying...</span>
+                          </>
+                        ) : (
+                          <>
+                            <RotateCcw className="w-3.5 h-3.5" />
+                            <span>Retry Dispatch</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       ) : null}

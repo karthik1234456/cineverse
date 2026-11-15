@@ -151,6 +151,34 @@ async def init_db():
                     pass
 
 
+        # Check refunds columns
+        try:
+            res = await conn.execute(text("PRAGMA table_info(refunds)"))
+            existing_refund_cols = [r[1] for r in res.fetchall()]
+        except Exception:
+            existing_refund_cols = []
+
+        refund_cols = [
+            ("amount_paise", "INTEGER DEFAULT 0"),
+            ("cancellation_fee_paise", "INTEGER DEFAULT 0"),
+            ("ticket_amount_paise", "INTEGER DEFAULT 0"),
+            ("addons_amount_paise", "INTEGER DEFAULT 0"),
+            ("convenience_fee_paise", "INTEGER DEFAULT 0"),
+            ("gst_amount_paise", "INTEGER DEFAULT 0"),
+            ("gateway_refund_id", "VARCHAR(100)"),
+            ("timeline", "JSON"),
+            ("is_stuck", "BOOLEAN DEFAULT 0"),
+            ("error_message", "VARCHAR(500)"),
+            ("updated_at", "DATETIME"),
+        ]
+        for col_name, col_def in refund_cols:
+            if existing_refund_cols and col_name not in existing_refund_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE refunds ADD COLUMN {col_name} {col_def}"))
+                except Exception:
+                    pass
+
+
 async def reset_db():
     import app.models  # Ensure all models are registered on Base.metadata
     async with engine.begin() as conn:

@@ -585,6 +585,67 @@ export async function validateCoupon(code: string, orderAmount: number): Promise
   });
 }
 
+export interface RefundBreakdownPaise {
+  ticket_amount_paise: number;
+  ticket_refund_paise: number;
+  addons_amount_paise: number;
+  addons_refund_paise: number;
+  convenience_fee_paise: number;
+  convenience_fee_refund_paise: number;
+  gst_amount_paise: number;
+  gst_refund_paise: number;
+  discount_amount_paise: number;
+  cancellation_fee_paise: number;
+  total_paid_paise: number;
+  total_refund_paise: number;
+  ticket_amount_display: string;
+  ticket_refund_display: string;
+  addons_amount_display: string;
+  addons_refund_display: string;
+  convenience_fee_display: string;
+  gst_amount_display: string;
+  cancellation_fee_display: string;
+  total_paid_display: string;
+  total_refund_display: string;
+}
+
+export interface RefundTimelineItem {
+  status: 'REQUESTED' | 'PROCESSING' | 'REFUNDED' | 'FAILED' | string;
+  timestamp: string;
+  note: string;
+}
+
+export interface RefundResponse {
+  id: number;
+  booking_id: number;
+  payment_id?: number | null;
+  refund_amount: number;
+  cancellation_fee: number;
+  amount_paise: number;
+  amount_display: string;
+  cancellation_fee_paise: number;
+  cancellation_fee_display: string;
+  status: 'REQUESTED' | 'PROCESSING' | 'REFUNDED' | 'FAILED' | string;
+  timeline: RefundTimelineItem[];
+  is_stuck: boolean;
+  error_message?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+}
+
+export interface CancellationQuoteResponse {
+  booking_id: number;
+  booking_code: string;
+  can_cancel: boolean;
+  cancellation_cutoff_minutes: number;
+  cutoff_time: string;
+  is_late: boolean;
+  is_used: boolean;
+  reason_ineligible?: string | null;
+  policy_text: string;
+  breakdown: RefundBreakdownPaise;
+}
+
 export interface BookingResponse {
   id: number;
   booking_code: string;
@@ -634,7 +695,14 @@ export interface BookingResponse {
     qr_code_url: string;
     hmac_signature: string;
     issued_at: string;
+    is_used?: boolean;
+    used_at?: string | null;
   };
+  can_cancel?: boolean;
+  cancellation_policy?: string | null;
+  cancellation_cutoff_time?: string | null;
+  refund_breakdown?: RefundBreakdownPaise | null;
+  refund?: RefundResponse | null;
 }
 
 export interface HoldSeatQuote {
@@ -751,13 +819,31 @@ export async function getBooking(id: number | string): Promise<BookingResponse> 
   return apiFetch<BookingResponse>(`/bookings/${id}`);
 }
 
+export async function getCancellationQuote(id: number | string): Promise<CancellationQuoteResponse> {
+  return apiFetch<CancellationQuoteResponse>(`/bookings/${id}/cancellation-quote`);
+}
+
 export async function cancelBooking(id: number | string): Promise<{
   booking_id: number;
   status: string;
   refund_amount: number;
+  amount_paise: number;
+  cancellation_fee: number;
+  cancellation_fee_paise: number;
+  timeline: RefundTimelineItem[];
+  breakdown?: RefundBreakdownPaise;
   message: string;
+  already_cancelled?: boolean;
 }> {
   return apiFetch(`/bookings/${id}/cancel`, { method: 'POST' });
+}
+
+export async function getStuckRefunds(): Promise<any[]> {
+  return apiFetch<any[]>('/admin/refunds/stuck');
+}
+
+export async function retryStuckRefund(id: number | string): Promise<any> {
+  return apiFetch<any>(`/admin/refunds/${id}/retry`, { method: 'POST' });
 }
 
 export async function getMyBookings(): Promise<BookingResponse[]> {

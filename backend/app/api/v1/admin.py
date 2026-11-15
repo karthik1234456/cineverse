@@ -22,6 +22,7 @@ from app.schemas.technical_specs import (
 )
 from app.services.auth_service import require_role
 from app.services.geo_service import generate_directions_url
+from app.services.payment_service import get_stuck_refunds, retry_stuck_refund
 
 router = APIRouter()
 
@@ -702,6 +703,30 @@ async def admin_update_auditorium_specs(
         confirmed_with_cinema=aud.confirmed_with_cinema,
         is_demo=aud.is_demo,
     )
+
+
+@router.get("/refunds/stuck")
+async def api_get_stuck_refunds(
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Returns stuck or failed customer refunds for administrator inspection and manual retry.
+    """
+    return await get_stuck_refunds(db)
+
+
+@router.post("/refunds/{refund_id}/retry")
+async def api_retry_stuck_refund(
+    refund_id: int,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Manually retries a stuck or failed refund.
+    """
+    return await retry_stuck_refund(db, refund_id)
+
 
 
 
