@@ -7,7 +7,9 @@ import * as THREE from 'three';
 import { useCinemaStore, DEFAULT_CAMERA_TARGET, DEFAULT_CAMERA_POS } from '@/store/useCinemaStore';
 import type { OrbitControls as OrbitControlsImpl } from 'three-stdlib';
 import layoutData from '@/public/models/seat_layout_v2.json';
+import walkNavData from '@/public/models/walk_nav_v2.json';
 import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
+import { getGroundHeightAt, type WalkableSurface, type Collider } from '@/lib/walkCollision';
 import { WalkController } from './WalkController';
 
 // Safe boundary box inside auditorium interior to prevent clipping through geometry
@@ -29,10 +31,108 @@ export const TARGET_BOUNDS = {
   maxZ: -3.0,
 };
 
+export function getLocalBarrierHeight(
+  x: number,
+  z: number,
+  walkables?: WalkableSurface[],
+  colliders?: Collider[],
+  tiers?: Array<{ bounds: { min: [number, number, number]; max: [number, number, number] } }>,
+  seats?: SeatRecord[]
+): number {
+  let highest = 0.0;
+
+  // 1. Check walkables (floor, tiers, steps)
+  if (walkables && walkables.length > 0) {
+    const ground = getGroundHeightAt(x, z, walkables, 0.0, 0.45);
+    if (ground !== null && ground > highest) {
+      highest = ground;
+    }
+  }
+
+  // 2. Check tiers directly
+  if (tiers && tiers.length > 0) {
+    for (const t of tiers) {
+      const b = t.bounds;
+      if (
+        x >= b.min[0] - 0.45 &&
+        x <= b.max[0] + 0.45 &&
+        z >= b.min[2] - 0.45 &&
+        z <= b.max[2] + 0.45
+      ) {
+        if (b.max[1] > highest) {
+          highest = b.max[1];
+        }
+      }
+    }
+  }
+
+  // 3. Check seat and obstacle colliders
+  if (colliders && colliders.length > 0) {
+    for (const c of colliders) {
+      if (c.type === 'seat' || c.name.startsWith('seat_') || c.type === 'obstacle') {
+        const b = c.bounds;
+        if (
+          x >= b.min[0] - 0.35 &&
+          x <= b.max[0] + 0.35 &&
+          z >= b.min[2] - 0.35 &&
+          z <= b.max[2] + 0.35
+        ) {
+          if (b.max[1] > highest) {
+            highest = b.max[1];
+          }
+        }
+      }
+    }
+  }
+
+  // 4. Check seat positions directly if available
+  if (seats && seats.length > 0) {
+    for (const s of seats) {
+      const [sx, sy, sz] = s.position_gltf_y_up;
+      if (Math.abs(x - sx) <= 0.6 && Math.abs(z - sz) <= 0.6) {
+        // Seat top is approx 0.95m above seat base position
+        const seatTop = sy + 0.95;
+        if (seatTop > highest) {
+          highest = seatTop;
+        }
+      }
+    }
+  }
+
+  return highest;
+}
+
+export function solveFloorBarrier(
+  camPos: THREE.Vector3,
+  localBarrierY: number,
+  minClearance: number = 1.0
+): { position: THREE.Vector3; slidAlongBarrier: boolean } {
+  const minAllowedY = localBarrierY + minClearance;
+  const result = camPos.clone();
+  if (result.y < minAllowedY) {
+    result.y = minAllowedY;
+    return { position: result, slidAlongBarrier: true };
+  }
+  return { position: result, slidAlongBarrier: false };
+}
+
 function clampToAuditorium(pos: THREE.Vector3) {
-  const bounds = useCinemaStore.getState().cameraBounds || AUDITORIUM_BOUNDS;
+  const store = useCinemaStore.getState();
+  const bounds = store.cameraBounds || AUDITORIUM_BOUNDS;
+  const walkables = (store.auditoriumWalkNav?.walkable || walkNavData.walkable) as unknown as WalkableSurface[];
+  const colliders = (store.auditoriumWalkNav?.colliders || walkNavData.colliders) as unknown as Collider[];
+  const localBarrierY = getLocalBarrierHeight(
+    pos.x,
+    pos.z,
+    walkables,
+    colliders,
+    store.proceduralResult?.geometry?.tiers,
+    store.auditoriumLayout?.seats
+  );
+  const effectiveMinY = Math.max(bounds.minY, localBarrierY + 1.0);
+
   pos.x = THREE.MathUtils.clamp(pos.x, bounds.minX, bounds.maxX);
-  pos.y = THREE.MathUtils.clamp(pos.y, bounds.minY, bounds.maxY);
+  pos.y = THREE.MathUtils.clamp(pos.y, effectiveMinY, bounds.maxY);
   pos.z = THREE.MathUtils.clamp(pos.z, bounds.minZ, bounds.maxZ);
 }
 
@@ -61,7 +161,11 @@ export function CameraController() {
   const toggleCompare = useCinemaStore((s) => s.toggleCompare);
 
   const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
+  const auditoriumWalkNav = useCinemaStore((s) => s.auditoriumWalkNav);
+  const proceduralResult = useCinemaStore((s) => s.proceduralResult);
   const seats = auditoriumLayout.seats;
+  const walkables = (auditoriumWalkNav?.walkable || walkNavData.walkable) as unknown as WalkableSurface[];
+  const colliders = (auditoriumWalkNav?.colliders || walkNavData.colliders) as unknown as Collider[];
   const screenCenter = useMemo(
     () => new THREE.Vector3(...auditoriumLayout.screen.center_gltf_y_up),
     [auditoriumLayout.screen.center_gltf_y_up]
@@ -413,11 +517,34 @@ export function CameraController() {
       }
     }
 
-    // Hard boundary safety clamp: camera NEVER leaves the interior volume
+    // Dynamic floor & seat top collision barrier (§ Part C.1)
+    const localBarrierY = getLocalBarrierHeight(
+      persCam.position.x,
+      persCam.position.z,
+      walkables,
+      colliders,
+      proceduralResult?.geometry?.tiers,
+      seats
+    );
+    const minAllowedY = localBarrierY + 1.0;
+
+    // Hard boundary safety clamp: camera NEVER leaves interior volume or dips below floor/seats
     const margin = 0.25;
     persCam.position.x = THREE.MathUtils.clamp(persCam.position.x, bounds.minX + margin, bounds.maxX - margin);
-    persCam.position.y = THREE.MathUtils.clamp(persCam.position.y, bounds.minY + margin, bounds.maxY - margin);
+    const effectiveMinY = Math.max(bounds.minY + margin, minAllowedY);
+    persCam.position.y = THREE.MathUtils.clamp(persCam.position.y, effectiveMinY, bounds.maxY - margin);
     persCam.position.z = THREE.MathUtils.clamp(persCam.position.z, bounds.minZ + margin, bounds.maxZ - margin);
+
+    // Minimum pitch limit so dragging down slides along barrier instead of flipping into ground (§ Part C.2)
+    const lookVector = new THREE.Vector3().subVectors(tgt, persCam.position);
+    const horizDist = Math.hypot(lookVector.x, lookVector.z);
+    if (horizDist > 0.1) {
+      const minPitchLimit = -0.45; // ~ -25.8 deg maximum downward dip
+      const curPitch = Math.atan2(lookVector.y, horizDist);
+      if (curPitch < minPitchLimit) {
+        tgt.y = persCam.position.y + horizDist * Math.tan(minPitchLimit);
+      }
+    }
 
     if (typeof window !== 'undefined') {
       (window as any).__cineverse_cam_pos = {
@@ -441,7 +568,7 @@ export function CameraController() {
         enforceInteriorSpringArm();
       };
     }
-  }, [camera, cameraBounds, targetBounds]);
+  }, [camera, cameraBounds, targetBounds, walkables, colliders, proceduralResult, seats]);
 
   // Frame tick: transitions, head-look, boundary clamps
   useFrame(({ invalidate }, delta) => {
@@ -537,7 +664,7 @@ export function CameraController() {
           minDistance={2.0}
           maxDistance={55.0}
           minPolarAngle={(8 * Math.PI) / 180}
-          maxPolarAngle={(85 * Math.PI) / 180}
+          maxPolarAngle={(82 * Math.PI) / 180}
           mouseButtons={{
             LEFT: THREE.MOUSE.ROTATE,
             MIDDLE: THREE.MOUSE.DOLLY,

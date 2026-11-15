@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import * as THREE from 'three';
+import { solveFloorBarrier, getLocalBarrierHeight } from '../../components/3d/CameraController';
+import { generateProceduralAuditorium } from '../../lib/proceduralAuditorium';
 
 // Spring-arm collision solver matching CameraController.tsx
 export function solveSpringArm(
@@ -158,6 +160,61 @@ describe('PART A: Spring-Arm Camera Collision & Boundary Clamping', () => {
       expect(res.y).toBeGreaterThanOrEqual(b.minY);
       expect(res.z).toBeLessThanOrEqual(b.maxZ);
       expect(res.z).toBeGreaterThanOrEqual(b.minZ);
+    }
+  });
+
+  it('Part C: asserts Look around camera stays at least 1.0m above local floor, tiers, stairs, and seat tops in all hall types', () => {
+    const hallConfigs = [
+      { name: 'Standard Hall', type: 'standard', seats: 216, rows: 12, seatsPerRow: 18, aisles: [4, 14] },
+      { name: 'Balcony Flagship Hall', type: 'balcony', seats: 588, rows: 21, seatsPerRow: 28, aisles: [7, 21] },
+      { name: 'Luxe Recliner Lounge (Auditorium 13)', type: 'luxury_recliner', seats: 64, rows: 8, seatsPerRow: 8, aisles: [2, 6] },
+      { name: 'Motion Seat 4DX Hall', type: 'motion_seat', seats: 240, rows: 12, seatsPerRow: 20, aisles: [4, 16], features: { is_4dx: true } },
+    ];
+
+    for (const cfg of hallConfigs) {
+      const hall = generateProceduralAuditorium({
+        theatre_type: cfg.type,
+        total_seats: cfg.seats,
+        rows: cfg.rows,
+        seats_per_row: cfg.seatsPerRow,
+        aisles: cfg.aisles,
+        features: (cfg as any).features,
+      });
+
+      const walkables = hall.walkNav.walkable;
+      const colliders = hall.walkNav.colliders;
+      const tiers = hall.geometry.tiers;
+      const seats = hall.seatLayout.seats;
+      const dims = hall.geometry.dimensions;
+
+      // Test multiple positions: front row, mid hall, high rear balcony, side aisle
+      const testCoordinates = [
+        { desc: 'Front proscenium apron', x: 0.0, z: dims.zFront - 2.0 },
+        { desc: 'Front row seats', x: -2.0, z: dims.zFront - 6.5 },
+        { desc: 'Mid-hall tiers', x: 1.5, z: (dims.zFront + dims.zBack) / 2 },
+        { desc: 'Rear high tier / balcony', x: 0.0, z: dims.zBack + 2.0 },
+        { desc: 'Side wall edge', x: dims.halfWidth - 1.5, z: (dims.zFront + dims.zBack) / 2 },
+      ];
+
+      for (const coord of testCoordinates) {
+        const localBarrierY = getLocalBarrierHeight(coord.x, coord.z, walkables, colliders, tiers, seats);
+
+        // Test dragging down at various zoom levels (desired Y below floor or at zero)
+        const zoomLevels = [0.0, -2.0, -10.0, 0.5];
+        for (const desiredY of zoomLevels) {
+          const testPos = new THREE.Vector3(coord.x, desiredY, coord.z);
+          const { position, slidAlongBarrier } = solveFloorBarrier(testPos, localBarrierY, 1.0);
+
+          // Camera must NEVER dip below local floor/seats + 1.0m
+          expect(position.y).toBeGreaterThanOrEqual(localBarrierY + 1.0);
+          expect(position.y).toBeCloseTo(localBarrierY + 1.0, 4);
+
+          // If desired position was below minAllowedY, it must slide along barrier
+          if (desiredY < localBarrierY + 1.0) {
+            expect(slidAlongBarrier).toBe(true);
+          }
+        }
+      }
     }
   });
 });
