@@ -1,3 +1,4 @@
+import os
 import asyncio
 import time
 import uuid
@@ -54,10 +55,11 @@ logger = logging.getLogger("cineverse.main")
 async def lifespan(app: FastAPI):
     logger.info("Initializing database...")
     await init_db()
-    try:
-        await seed_database()
-    except Exception as exc:
-        logger.warning(f"Seed step notice: {exc}")
+    if os.environ.get("RUN_SEEDER", "0") == "1":
+        try:
+            await seed_database()
+        except Exception as exc:
+            logger.warning(f"Seed step notice: {exc}")
 
     # Launch background sweeper task for expired holds
     sweeper_task = asyncio.create_task(start_sweeper_task(interval_seconds=10))

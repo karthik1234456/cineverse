@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Play, Pause, Volume2, VolumeX, Film, ChevronDown, Sparkles, ExternalLink, X, AlertCircle, Loader2 } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, Film, ChevronDown, Sparkles, ExternalLink, X, AlertCircle, Loader2, RotateCcw } from 'lucide-react';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import { useTrailerStore } from '@/store/useTrailerStore';
 
@@ -23,6 +23,8 @@ export function ScreenMediaCluster() {
   const setTrailer = useCinemaStore((s) => s.setTrailerState);
   const toggleTrailerPlay = useCinemaStore((s) => s.toggleTrailerPlay);
   const toggleTrailerMute = useCinemaStore((s) => s.toggleTrailerMute);
+  const restartTrailer = useCinemaStore((s) => s.restartTrailer);
+  const setHouseLights = useCinemaStore((s) => s.setHouseLights);
   const openTrailer = useTrailerStore((s) => s.openTrailer);
 
   const [isMinimized, setIsMinimized] = useState(false);
@@ -31,11 +33,45 @@ export function ScreenMediaCluster() {
   const [volumeLevel, setVolumeLevel] = useState(80);
 
   const activeStrategy = trailer.activeStrategy || 'title_card';
-  const playbackStatus = trailer.playbackStatus || 'loading';
+  const playbackStatus = trailer.playbackStatus || 'ready';
 
   const isVideoTexture = activeStrategy === 'video_texture';
   const isYouTubeCSS3D = activeStrategy === 'youtube_css3d';
   const isTitleCard = activeStrategy === 'title_card' || activeStrategy === 'backdrop_motion';
+
+  const handleStartPlayback = () => {
+    const vid = (window as any).__cineverse_video as HTMLVideoElement | undefined;
+    if (vid) {
+      vid.muted = false;
+      vid.play().then(() => {
+        setTrailer({ isPlaying: true, isMuted: false, playbackStatus: 'playing' });
+        setHouseLights('show');
+      }).catch(() => {
+        vid.muted = true;
+        vid.play().then(() => {
+          setTrailer({ isPlaying: true, isMuted: true, playbackStatus: 'playing' });
+          setHouseLights('show');
+        }).catch(() => {
+          setTrailer({ playbackStatus: 'blocked' });
+        });
+      });
+    } else {
+      const yt = (window as any).__cineverse_yt_player;
+      if (yt && typeof yt.playVideo === 'function') {
+        try {
+          yt.unMute();
+          yt.playVideo();
+          setTrailer({ isPlaying: true, isMuted: false, playbackStatus: 'playing' });
+          setHouseLights('show');
+        } catch {
+          setTrailer({ playbackStatus: 'blocked' });
+        }
+      } else {
+        setTrailer({ isPlaying: true, playbackStatus: 'playing' });
+        setHouseLights('show');
+      }
+    }
+  };
 
   const handleSelectClip = (clip: MovieClipOption) => {
     setShowClipMenu(false);
@@ -44,8 +80,9 @@ export function ScreenMediaCluster() {
       isPlaying: true,
       isMuted: trailer.isMuted,
       activeStrategy: 'video_texture',
-      playbackStatus: 'loading',
+      playbackStatus: 'playing',
     });
+    setHouseLights('show');
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -83,8 +120,16 @@ export function ScreenMediaCluster() {
     );
   }
 
-  // Determine true status indicator
+  // Determine true status indicator (§ Part D.2, D.4: never 'Loading...' before user presses play)
   const getStatusBadge = () => {
+    if (playbackStatus === 'ready' || (!trailer.isPlaying && playbackStatus !== 'loading' && playbackStatus !== 'blocked' && playbackStatus !== 'unavailable')) {
+      return (
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
+          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+          <span>Ready, press play on the screen</span>
+        </span>
+      );
+    }
     if (playbackStatus === 'loading') {
       return (
         <span className="flex items-center gap-1 text-[11px] font-semibold text-sky-400">
@@ -119,7 +164,8 @@ export function ScreenMediaCluster() {
     }
     return (
       <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-400">
-        <span>Title Card Motion</span>
+        <AlertCircle className="h-3 w-3 text-slate-400" />
+        <span>Unavailable</span>
       </span>
     );
   };
@@ -152,8 +198,23 @@ export function ScreenMediaCluster() {
         </div>
       </div>
 
-      {/* Main control row */}
-      {isVideoTexture ? (
+      {/* Main control row (§ Part D.1, D.4) */}
+      {!trailer.isPlaying && playbackStatus === 'ready' ? (
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <span className="text-xs text-slate-300 font-medium">
+            Ready, press play on the screen
+          </span>
+          <button
+            onClick={handleStartPlayback}
+            data-testid="trailer-play-toggle"
+            className="flex min-h-[38px] items-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-red-600/30 hover:from-red-500 hover:to-rose-500 transition"
+            aria-label="Play trailer"
+          >
+            <Play className="h-3.5 w-3.5 fill-current" />
+            <span>Play trailer</span>
+          </button>
+        </div>
+      ) : isVideoTexture || trailer.isPlaying || playbackStatus === 'playing' || playbackStatus === 'paused' ? (
         <div className="flex flex-wrap items-center gap-2 pt-1">
           {/* Play/Pause */}
           <button
@@ -197,6 +258,18 @@ export function ScreenMediaCluster() {
                 <span>Sound On</span>
               </>
             )}
+          </button>
+
+          {/* Restart */}
+          <button
+            onClick={restartTrailer}
+            data-testid="trailer-restart-btn"
+            className="flex min-h-[38px] items-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-bold transition text-slate-300 hover:text-white"
+            title="Restart trailer"
+            aria-label="Restart trailer"
+          >
+            <RotateCcw className="h-3.5 w-3.5 text-slate-300" />
+            <span>Restart</span>
           </button>
 
           {/* Volume slider */}
@@ -249,16 +322,14 @@ export function ScreenMediaCluster() {
           </div>
         </div>
       ) : (
-        /* Title Card / Backdrop Mode / YouTube Fallback (Prompt Item 4) */
+        /* Blocked / Fallback Mode (Prompt Item 3, 4) */
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
           <div className="flex flex-col">
             <span className="text-xs text-slate-300 font-medium">
-              {isTitleCard
-                ? 'Dynamic Title Card & Light Sweep Active'
-                : '3D Screen Active'}
+              {playbackStatus === 'blocked' ? 'Autoplay was restricted by browser' : 'Dynamic Title Card Active'}
             </span>
             <span className="text-[11px] text-slate-400">
-              {trailer.trailerUrl ? 'High-definition theatrical trailer available.' : 'Now showing in selected theatres.'}
+              {trailer.trailerUrl ? 'High-definition theatrical trailer ready to view.' : 'Now showing in selected theatres.'}
             </span>
           </div>
 

@@ -231,6 +231,7 @@ export interface CinemaState {
   setTrailerStrategy: (strategy: ScreenStrategy) => void;
   toggleTrailerPlay: () => void;
   toggleTrailerMute: () => void;
+  restartTrailer: () => void;
 
   enterPOV: (seatId: string) => void;
   exitPOV: () => void;
@@ -839,6 +840,27 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     set((s) => ({
       trailer: { ...s.trailer, isMuted: !s.trailer.isMuted },
     })),
+
+  restartTrailer: () => {
+    if (typeof window !== 'undefined') {
+      const vid = (window as any).__cineverse_video as HTMLVideoElement | undefined;
+      if (vid) {
+        vid.currentTime = 0;
+        vid.play().catch(() => {});
+      }
+      const yt = (window as any).__cineverse_yt_player;
+      if (yt && typeof yt.seekTo === 'function') {
+        try {
+          yt.seekTo(0, true);
+          yt.playVideo();
+        } catch {}
+      }
+    }
+    set((s) => ({
+      trailer: { ...s.trailer, isPlaying: true, playbackStatus: 'playing' },
+      houseLights: 'show',
+    }));
+  },
 
   enterPOV: (seatId) => {
     const currentMode = get().cameraMode;

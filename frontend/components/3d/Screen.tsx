@@ -3,6 +3,7 @@
 import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
+import { Play } from 'lucide-react';
 import * as THREE from 'three';
 import { useCinemaStore, ScreenStrategy, TrailerPlaybackStatus } from '@/store/useCinemaStore';
 
@@ -31,6 +32,7 @@ export function CinemaScreen({
   const fallbackTextureRef = useRef<THREE.CanvasTexture | null>(null);
 
   const houseLights = useCinemaStore((s) => s.houseLights);
+  const setHouseLights = useCinemaStore((s) => s.setHouseLights);
   const qualityTier = useCinemaStore((s) => s.qualityTier);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
   const trailer = useCinemaStore((s) => s.trailer);
@@ -208,11 +210,15 @@ export function CinemaScreen({
     const handleReady = () => {
       setVideoLoaded(true);
       setVideoError(false);
-      setTrailerPlaybackStatus('playing');
-      if (trailer.isPlaying && video.paused) {
-        video.play().catch(() => {
-          setTrailerPlaybackStatus('blocked');
-        });
+      if (trailer.isPlaying) {
+        setTrailerPlaybackStatus('playing');
+        if (video.paused) {
+          video.play().catch(() => {
+            setTrailerPlaybackStatus('blocked');
+          });
+        }
+      } else {
+        setTrailerPlaybackStatus('ready');
       }
     };
     const onPlay = () => {
@@ -233,16 +239,20 @@ export function CinemaScreen({
     video.addEventListener('pause', onPause);
     video.addEventListener('error', onError);
 
-    const playPromise = video.play();
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          setVideoLoaded(true);
-          setTrailerPlaybackStatus('playing');
-        })
-        .catch(() => {
-          setTrailerPlaybackStatus('blocked');
-        });
+    if (trailer.isPlaying) {
+      const playPromise = video.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setVideoLoaded(true);
+            setTrailerPlaybackStatus('playing');
+          })
+          .catch(() => {
+            setTrailerPlaybackStatus('blocked');
+          });
+      }
+    } else {
+      setTrailerPlaybackStatus('ready');
     }
 
     return () => {
@@ -313,11 +323,17 @@ export function CinemaScreen({
         events: {
           onReady: (e: any) => {
             ytPlayerRef.current = e.target;
+            if (typeof window !== 'undefined') {
+              (window as any).__cineverse_yt_player = e.target;
+            }
             setYoutubeReady(true);
-            try {
-              e.target.mute();
-              e.target.playVideo();
-            } catch {}
+            if (trailer.isPlaying) {
+              try {
+                e.target.playVideo();
+              } catch {}
+            } else {
+              setTrailerPlaybackStatus('ready');
+            }
           },
           onStateChange: (e: any) => {
             const state = e.data;
@@ -343,7 +359,73 @@ export function CinemaScreen({
     } catch (err) {
       console.warn('[Screen] Failed to attach YouTube player controller:', err);
     }
-  }, [rawYoutubeId, setTrailerPlaybackStatus, setTrailerState]);
+  }, [rawYoutubeId, setTrailerPlaybackStatus, setTrailerState, trailer.isPlaying]);
+
+  // User Gesture Handlers (§ Part D.1, D.3, D.4)
+  const handleStartPlayback = useCallback(() => {
+    // 1. Hosted video texture
+    if (activeStrategy === 'video_texture' && videoRef.current) {
+      videoRef.current.muted = false;
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setTrailerState({ isPlaying: true, isMuted: false, playbackStatus: 'playing' });
+            setHouseLights('show');
+          })
+          .catch(() => {
+            if (videoRef.current) {
+              videoRef.current.muted = true;
+              videoRef.current
+                .play()
+                .then(() => {
+                  setTrailerState({ isPlaying: true, isMuted: true, playbackStatus: 'playing' });
+                  setHouseLights('show');
+                })
+                .catch(() => {
+                  setTrailerPlaybackStatus('blocked');
+                });
+            }
+          });
+      }
+    } else if (activeStrategy === 'youtube_css3d' && ytPlayerRef.current) {
+      // 2. YouTube CSS3D Player
+      try {
+        ytPlayerRef.current.unMute();
+        ytPlayerRef.current.playVideo();
+        setTrailerState({ isPlaying: true, isMuted: false, playbackStatus: 'playing' });
+        setHouseLights('show');
+      } catch (err) {
+        console.warn('[Screen] YouTube play failed:', err);
+        setTrailerPlaybackStatus('blocked');
+      }
+    } else {
+      // 3. Fallback / Title Card
+      setTrailerState({ isPlaying: true, playbackStatus: 'playing' });
+      setHouseLights('show');
+    }
+  }, [activeStrategy, setTrailerState, setHouseLights, setTrailerPlaybackStatus]);
+
+  const handleScreenClick = useCallback(() => {
+    if (!trailer.isPlaying || trailer.playbackStatus !== 'playing') {
+      handleStartPlayback();
+    } else {
+      toggleTrailerPlay();
+    }
+  }, [trailer.isPlaying, trailer.playbackStatus, handleStartPlayback, toggleTrailerPlay]);
+
+  // Space key listener for play/pause (§ Part D.1)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement)?.tagName)) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        handleScreenClick();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleScreenClick]);
 
   // Fallback procedural canvas for Title Card (Mode E) & Backdrop Motion (Mode C)
   const canvas = useMemo(() => {
@@ -658,11 +740,11 @@ export function CinemaScreen({
   });
 
   const activeTexture =
-    activeStrategy === 'video_texture' && videoLoaded && !videoError
+    activeStrategy === 'video_texture' && videoLoaded && !videoError && trailer.isPlaying
       ? videoTextureRef.current
       : fallbackTexture;
 
-  const isCutout = activeStrategy === 'youtube_css3d';
+  const isCutout = activeStrategy === 'youtube_css3d' && trailer.isPlaying;
   const isSolidColor = activeStrategy === 'solid_color';
   const screenBrightness = houseLights === 'show' ? 1.0 : houseLights === 'dim' ? 0.92 : 0.82;
 
@@ -673,6 +755,10 @@ export function CinemaScreen({
         name="DynamicScreenOverlay"
         geometry={screenGeometry}
         position={screenCenter}
+        onClick={(e) => {
+          e.stopPropagation();
+          handleScreenClick();
+        }}
       >
         {isCutout ? (
           <meshBasicMaterial
@@ -703,6 +789,40 @@ export function CinemaScreen({
         )}
       </mesh>
 
+      {/* Large Inviting Circular Play Button directly on 3D Screen (§ Part D.1) */}
+      {(!trailer.isPlaying || trailer.playbackStatus !== 'playing') && (
+        <Html
+          transform
+          position={[screenCenter[0], screenCenter[1], screenCenter[2] + 0.08]}
+          rotation={[0, Math.PI, 0]}
+          scale={[-1, 1, 1]}
+          style={{
+            pointerEvents: 'auto',
+          }}
+        >
+          <div data-testid="screen-3d-play-button-container">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStartPlayback();
+              }}
+              data-testid="screen-3d-play-button"
+              className="group flex flex-col items-center justify-center gap-3 transition-transform hover:scale-105 active:scale-95 cursor-pointer focus:outline-none"
+              aria-label="Play trailer on screen"
+            >
+              <div className="relative flex h-28 w-28 sm:h-36 sm:w-36 items-center justify-center rounded-full bg-gradient-to-tr from-rose-600 to-red-500 text-white shadow-[0_0_50px_rgba(225,29,72,0.85)] ring-4 ring-white/80 backdrop-blur-md transition-all group-hover:ring-white group-hover:shadow-[0_0_70px_rgba(225,29,72,1)]">
+                <span className="absolute inset-0 rounded-full animate-ping bg-rose-500/30 duration-1000" />
+                <Play className="h-14 w-14 sm:h-18 sm:w-18 fill-white translate-x-1 drop-shadow-lg" />
+              </div>
+              <div className="rounded-full border border-white/20 bg-black/85 px-5 py-2 text-sm sm:text-base font-extrabold tracking-wider uppercase text-white shadow-2xl backdrop-blur-md group-hover:bg-black">
+                Play trailer
+              </div>
+            </button>
+          </div>
+        </Html>
+      )}
+
       {/* Official YouTube Player placed directly on 3D Screen via CSS 3D with canvas cut-out */}
       {isCutout && rawYoutubeId && (
         <Html
@@ -716,16 +836,17 @@ export function CinemaScreen({
             transform: `scale(${1 / 75})`,
             pointerEvents: 'auto',
           }}
-          data-testid="screen-youtube-player"
         >
-          <iframe
-            id="cineverse-screen-yt-iframe"
-            src={`https://www.youtube-nocookie.com/embed/${rawYoutubeId}?enablejsapi=1&autoplay=1&mute=1&controls=0&loop=1&playlist=${rawYoutubeId}&playsinline=1`}
-            className="w-full h-full border-0 bg-black rounded-sm"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            onLoad={handleIframeLoaded}
-          />
+          <div data-testid="screen-youtube-player" className="w-full h-full">
+            <iframe
+              id="cineverse-screen-yt-iframe"
+              src={`https://www.youtube-nocookie.com/embed/${rawYoutubeId}?enablejsapi=1&autoplay=1&mute=1&controls=0&loop=1&playlist=${rawYoutubeId}&playsinline=1`}
+              className="w-full h-full border-0 bg-black rounded-sm"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              onLoad={handleIframeLoaded}
+            />
+          </div>
         </Html>
       )}
 
