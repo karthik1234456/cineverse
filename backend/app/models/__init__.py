@@ -16,6 +16,10 @@ from app.models.operations import (
 from app.models.waitlist import WaitlistEntry, WaitlistStatusEnum
 from app.models.dynamic_pricing import DynamicPricingRule, PricingRuleStatusEnum, PriceAuditLog
 from app.models.problem_report import ProblemReport
+from app.models.tax import (
+    TaxRule, TaxEntity, TaxSetting, InvoiceSequence, Invoice, InvoiceItem,
+    TaxItemTypeEnum, SupplierModelEnum, InvoiceTypeEnum
+)
 
 __all__ = [
     "User", "RoleEnum", "RefreshToken",
@@ -34,5 +38,7 @@ __all__ = [
     "WaitlistEntry", "WaitlistStatusEnum",
     "DynamicPricingRule", "PricingRuleStatusEnum", "PriceAuditLog",
     "ProblemReport",
+    "TaxRule", "TaxEntity", "TaxSetting", "InvoiceSequence", "Invoice", "InvoiceItem",
+    "TaxItemTypeEnum", "SupplierModelEnum", "InvoiceTypeEnum",
 ]
 

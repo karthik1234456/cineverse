@@ -41,6 +41,10 @@ class Booking(Base):
     final_total_amount = Column(Float, default=0.0)
     contact_email = Column(String(255), nullable=True)
     contact_phone = Column(String(50), nullable=True)
+    customer_gstin = Column(String(15), nullable=True)
+    customer_business_name = Column(String(255), nullable=True)
+    customer_business_address = Column(String(500), nullable=True)
+    customer_state_code = Column(String(2), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

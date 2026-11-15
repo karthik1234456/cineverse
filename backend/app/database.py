@@ -178,6 +178,26 @@ async def init_db():
                 except Exception:
                     pass
 
+        # Check bookings columns for customer GSTIN
+        try:
+            res = await conn.execute(text("PRAGMA table_info(bookings)"))
+            existing_booking_cols = [r[1] for r in res.fetchall()]
+        except Exception:
+            existing_booking_cols = []
+
+        booking_cols = [
+            ("customer_gstin", "VARCHAR(15)"),
+            ("customer_business_name", "VARCHAR(255)"),
+            ("customer_business_address", "VARCHAR(500)"),
+            ("customer_state_code", "VARCHAR(2)"),
+        ]
+        for col_name, col_def in booking_cols:
+            if existing_booking_cols and col_name not in existing_booking_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE bookings ADD COLUMN {col_name} {col_def}"))
+                except Exception:
+                    pass
+
 
 async def reset_db():
     import app.models  # Ensure all models are registered on Base.metadata
