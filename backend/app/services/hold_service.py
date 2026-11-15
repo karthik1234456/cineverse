@@ -10,6 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.config import settings
 from app.models.showtime import SeatInventory, SeatStatusEnum, Showtime
+from app.models.cinema import Auditorium
 from app.models.booking import FnbItem
 from app.models.auth import RoleEnum, User
 from app.redis_client import get_redis_client
@@ -524,7 +525,9 @@ async def get_hold_quote(db: AsyncSession, hold_id: str, current_user: User) -> 
         .options(
             selectinload(Showtime.movie),
             selectinload(Showtime.cinema),
-            selectinload(Showtime.auditorium)
+            selectinload(Showtime.auditorium).selectinload(Auditorium.screen_format),
+            selectinload(Showtime.auditorium).selectinload(Auditorium.sound_system),
+            selectinload(Showtime.auditorium).selectinload(Auditorium.projection_type),
         )
     )
     st_res = await db.execute(st_stmt)
@@ -621,7 +624,11 @@ async def get_hold_quote(db: AsyncSession, hold_id: str, current_user: User) -> 
         "sound_system": showtime.auditorium.sound_system_name if showtime.auditorium else "Standard 5.1",
         "projection_type": showtime.auditorium.projection_type_name if showtime.auditorium else "Standard digital",
         "tech_specs_display": showtime.auditorium.tech_specs_display if showtime.auditorium else "Standard · Standard 5.1 · Standard digital",
-        "requires_glasses": showtime.auditorium.screen_format.requires_glasses if (showtime.auditorium and showtime.auditorium.screen_format) else ("3D" in (showtime.auditorium.screen_type if showtime.auditorium else "")),
+        "requires_glasses": (
+            showtime.auditorium.screen_format.requires_glasses
+            if (showtime.auditorium and "screen_format" in showtime.auditorium.__dict__ and showtime.auditorium.screen_format)
+            else ("3D" in ((showtime.auditorium.screen_type if showtime.auditorium else "") or ""))
+        ),
         "confirmed_with_cinema": showtime.auditorium.confirmed_with_cinema if showtime.auditorium else False,
         "is_demo": showtime.auditorium.is_demo if showtime.auditorium else True,
         "start_time": showtime.start_time,
