@@ -17,7 +17,7 @@ import { useCinemaStore } from '@/store/useCinemaStore';
 
 function getYouTubeId(url: string | null | undefined): string | null {
   if (!url) return null;
-  const m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  const m = url.match(/(?:youtu\.be\/|(?:youtube\.com|youtube-nocookie\.com)\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
   return m ? m[1] : null;
 }
 

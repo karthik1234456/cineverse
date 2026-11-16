@@ -53,7 +53,7 @@ export interface WalkSettings {
 }
 
 export type TrailerPlaybackStatus = 'ready' | 'loading' | 'playing' | 'paused' | 'blocked' | 'unavailable';
-export type ScreenStrategy = 'video_texture' | 'youtube_css3d' | 'backdrop_motion' | 'title_card' | 'solid_color';
+export type ScreenStrategy = 'video_texture' | 'youtube_css3d' | 'backdrop_motion' | 'title_card' | 'solid_color' | 'test_card';
 
 export interface TrailerState {
   isPlaying: boolean;

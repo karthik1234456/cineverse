@@ -1448,8 +1448,6 @@ export function SeatMap2D({
                                 className={`h-9 w-9 sm:h-10 sm:w-10 min-w-[36px] min-h-[36px] rounded-xl border-2 text-sm font-bold flex items-center justify-center transition-all duration-150 relative touch-manipulation before:absolute before:-inset-1 before:min-w-[44px] before:min-h-[44px] before:content-[''] focus-visible:ring-4 focus-visible:ring-[#C8102E] focus-visible:ring-offset-2 outline-none ${bgClass} ${
                                   isFocused ? 'ring-2 ring-[#C8102E]' : ''
                                 } ${tier?.category === 'premier' && isRecliner ? 'rounded-2xl' : ''}`}
-                                data-testid={`seat-2d-${seatId}`}
-                                data-seat-id={seatId}
                                 data-status={isSelected ? 'selected' : status}
                                 data-score={score}
                               >

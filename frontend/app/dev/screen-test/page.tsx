@@ -480,6 +480,20 @@ export default function ScreenTestBenchPage() {
           <span>(e) Generated Title Card</span>
         </button>
 
+        {/* Mode F: Test Card (Orientation & Directionality Verification) */}
+        <button
+          onClick={() => setActiveMode('test_card')}
+          data-testid="mode-test_card"
+          className={`flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shrink-0 ${
+            activeMode === 'test_card'
+              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20'
+              : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+          }`}
+        >
+          <Compass className="h-3.5 w-3.5" />
+          <span>(f) Orientation Test Card</span>
+        </button>
+
         {activeMode === 'solid_color' && (
           <div className="flex items-center gap-1 ml-auto shrink-0">
             <span className="text-[10px] text-slate-400">Tint:</span>
