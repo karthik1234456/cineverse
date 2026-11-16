@@ -70,20 +70,23 @@ class Auditorium(Base):
 
     @property
     def screen_format_name(self) -> str:
-        if "screen_format" in self.__dict__ and self.screen_format and self.screen_format.name:
-            return self.screen_format.name
+        sf = self.__dict__.get("screen_format")
+        if sf and getattr(sf, "name", None):
+            return sf.name
         return self.screen_type or "2D"
 
     @property
     def sound_system_name(self) -> str:
-        if "sound_system" in self.__dict__ and self.sound_system and self.sound_system.name:
-            return self.sound_system.name
+        ss = self.__dict__.get("sound_system")
+        if ss and getattr(ss, "name", None):
+            return ss.name
         return "Dolby Atmos" if "atmos" in (self.screen_type or "").lower() else "Standard 5.1"
 
     @property
     def projection_type_name(self) -> str:
-        if "projection_type" in self.__dict__ and self.projection_type and self.projection_type.name:
-            return self.projection_type.name
+        pt = self.__dict__.get("projection_type")
+        if pt and getattr(pt, "name", None):
+            return pt.name
         return "4K Laser" if ("imax" in (self.screen_type or "").lower() or "laser" in (self.screen_type or "").lower()) else "Standard digital"
 
     @property

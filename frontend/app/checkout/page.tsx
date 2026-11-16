@@ -103,7 +103,12 @@ function CheckoutContent() {
         setErrorCode(404);
         setErrorMessage('Your seat hold has expired or is invalid. Please select your seats again.');
       } else {
-        setErrorMessage(err.message || 'Failed to load reservation details.');
+        setErrorCode(status || 500);
+        setErrorMessage(
+          status === 500 || msg.includes('500') || msg.includes('internal server error')
+            ? 'We were unable to retrieve your reservation quote due to a temporary server issue. Please refresh or try again.'
+            : (err.message || 'Failed to load reservation details.')
+        );
       }
     } finally {
       setLoading(false);

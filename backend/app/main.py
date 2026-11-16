@@ -142,6 +142,23 @@ def create_app() -> FastAPI:
             headers=headers
         )
 
+    @application.exception_handler(Exception)
+    async def global_unhandled_exception_handler(request: Request, exc: Exception):
+        req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+        logger.exception(f"[REQ {req_id}] Unhandled server error: {exc}")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "error": {
+                    "code": "INTERNAL_SERVER_ERROR",
+                    "message": "An unexpected server error occurred while processing your reservation. Please try again.",
+                    "request_id": req_id,
+                },
+                "detail": "An unexpected server error occurred while processing your reservation."
+            },
+            headers={"X-Request-ID": req_id}
+        )
+
     # 4. Health & Readiness Probes
     @application.get("/", tags=["Health & Observability"])
     async def root_probe():

@@ -1,7 +1,8 @@
 // frontend/services/api.ts
 // Complete API client for CineVerse FastAPI backend.
 
-const API_BASE = '/api/v1';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+const API_BASE = typeof window !== 'undefined' ? '/api/v1' : `${BACKEND_URL}/api/v1`;
 
 function getHeaders(): HeadersInit {
   const headers: HeadersInit = {

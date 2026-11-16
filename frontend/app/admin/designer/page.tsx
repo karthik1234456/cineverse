@@ -115,7 +115,7 @@ export default function HallDesignerPage() {
       formData.append('version_label', '3.0');
       formData.append('seat_layout_json', JSON.stringify(layoutData));
 
-      const res = await fetch(`http://127.0.0.1:8002/api/v1/admin/onboarding/publish?auditorium_id=${selectedAuditoriumId}`, {
+      const res = await fetch(`/api/v1/admin/onboarding/publish?auditorium_id=${selectedAuditoriumId}`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${localStorage.getItem('cineverse_token') || ''}`,

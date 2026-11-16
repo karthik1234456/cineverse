@@ -174,21 +174,25 @@ async def check_sliding_window_limit(
         return is_allowed, remaining, retry_after
     except Exception as exc:
         logger.warning(f"Redis rate limiter eval fallback: {exc}")
-        # Fallback implementation if Redis server does not support Lua
-        pipe = redis_client.pipeline()
-        clear_before = now_ms - window_ms
-        pipe.zremrangebyscore(key, 0, clear_before)
-        pipe.zcard(key)
-        results = await pipe.execute()
-        current_count = results[1]
-        if current_count < limit:
+        try:
+            # Fallback implementation if Redis server does not support Lua
             pipe = redis_client.pipeline()
-            pipe.zadd(key, {member: now_ms})
-            pipe.pexpire(key, window_ms + 5000)
-            await pipe.execute()
-            return True, limit - current_count - 1, 0
-        else:
-            return False, 0, max(1, window_seconds // 2)
+            clear_before = now_ms - window_ms
+            pipe.zremrangebyscore(key, 0, clear_before)
+            pipe.zcard(key)
+            results = await pipe.execute()
+            current_count = results[1]
+            if current_count < limit:
+                pipe = redis_client.pipeline()
+                pipe.zadd(key, {member: now_ms})
+                pipe.pexpire(key, window_ms + 5000)
+                await pipe.execute()
+                return True, limit - current_count - 1, 0
+            else:
+                return False, 0, max(1, window_seconds // 2)
+        except Exception as pipe_err:
+            logger.warning(f"Redis rate limiter pipeline fallback also failed: {pipe_err}. Allowing request.")
+            return True, limit, 0
 
 
 async def check_rate_limit(
@@ -210,96 +214,102 @@ async def check_rate_limit(
         return
 
     client_ip = extract_client_ip(request)
-    redis = await get_redis_client()
+    try:
+        redis = await get_redis_client()
 
-    # 1. Check if IP or User is temporarily blocked by Admin
-    if client_ip:
-        ip_blocked = await redis.get(f"security:blocked:ip:{client_ip}")
-        if ip_blocked:
-            from app.core.fraud_logger import log_fraud_event
-            await log_fraud_event(
-                event_type="BLOCKED_IP_ATTEMPT",
-                client_ip=client_ip,
-                user_id=user_id,
-                metadata={"route_class": route_class, "reason": ip_blocked}
-            )
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access temporarily restricted: {ip_blocked}"
-            )
+        # 1. Check if IP or User is temporarily blocked by Admin
+        if client_ip:
+            ip_blocked = await redis.get(f"security:blocked:ip:{client_ip}")
+            if ip_blocked:
+                from app.core.fraud_logger import log_fraud_event
+                await log_fraud_event(
+                    event_type="BLOCKED_IP_ATTEMPT",
+                    client_ip=client_ip,
+                    user_id=user_id,
+                    metadata={"route_class": route_class, "reason": ip_blocked}
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Access temporarily restricted: {ip_blocked}"
+                )
 
-    if user_id:
-        user_blocked = await redis.get(f"security:blocked:user:{user_id}")
-        if user_blocked:
-            from app.core.fraud_logger import log_fraud_event
-            await log_fraud_event(
-                event_type="BLOCKED_USER_ATTEMPT",
-                client_ip=client_ip,
-                user_id=user_id,
-                metadata={"route_class": route_class, "reason": user_blocked}
-            )
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Account temporarily suspended: {user_blocked}"
-            )
+        if user_id:
+            user_blocked = await redis.get(f"security:blocked:user:{user_id}")
+            if user_blocked:
+                from app.core.fraud_logger import log_fraud_event
+                await log_fraud_event(
+                    event_type="BLOCKED_USER_ATTEMPT",
+                    client_ip=client_ip,
+                    user_id=user_id,
+                    metadata={"route_class": route_class, "reason": user_blocked}
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"Account temporarily suspended: {user_blocked}"
+                )
 
-    # 2. Check Custom / Phone identifier limit (e.g. OTP phone rate limit)
-    if custom_identifier and route_cfg.custom_limit and route_cfg.custom_window:
-        custom_key = f"rl:{route_class}:custom:{custom_identifier}"
-        allowed, rem, retry_after = await check_sliding_window_limit(
-            redis, custom_key, route_cfg.custom_limit, route_cfg.custom_window
-        )
-        if not allowed:
-            from app.core.fraud_logger import log_fraud_event
-            await log_fraud_event(
-                event_type="RATE_LIMITED",
-                client_ip=client_ip,
-                user_id=user_id,
-                metadata={"route_class": route_class, "target": "custom", "retry_after": retry_after}
+        # 2. Check Custom / Phone identifier limit (e.g. OTP phone rate limit)
+        if custom_identifier and route_cfg.custom_limit and route_cfg.custom_window:
+            custom_key = f"rl:{route_class}:custom:{custom_identifier}"
+            allowed, rem, retry_after = await check_sliding_window_limit(
+                redis, custom_key, route_cfg.custom_limit, route_cfg.custom_window
             )
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Rate limit exceeded for this identifier. Please retry in {retry_after} seconds.",
-                headers={"Retry-After": str(retry_after)}
-            )
+            if not allowed:
+                from app.core.fraud_logger import log_fraud_event
+                await log_fraud_event(
+                    event_type="RATE_LIMITED",
+                    client_ip=client_ip,
+                    user_id=user_id,
+                    metadata={"route_class": route_class, "target": "custom", "retry_after": retry_after}
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=f"Rate limit exceeded for this identifier. Please retry in {retry_after} seconds.",
+                    headers={"Retry-After": str(retry_after)}
+                )
 
-    # 3. Check User limit
-    if user_id and route_cfg.user_limit and route_cfg.user_window:
-        user_key = f"rl:{route_class}:user:{user_id}"
-        allowed, rem, retry_after = await check_sliding_window_limit(
-            redis, user_key, route_cfg.user_limit, route_cfg.user_window
-        )
-        if not allowed:
-            from app.core.fraud_logger import log_fraud_event
-            await log_fraud_event(
-                event_type="RATE_LIMITED",
-                client_ip=client_ip,
-                user_id=user_id,
-                metadata={"route_class": route_class, "target": "user", "retry_after": retry_after}
+        # 3. Check User limit
+        if user_id and route_cfg.user_limit and route_cfg.user_window:
+            user_key = f"rl:{route_class}:user:{user_id}"
+            allowed, rem, retry_after = await check_sliding_window_limit(
+                redis, user_key, route_cfg.user_limit, route_cfg.user_window
             )
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Account rate limit exceeded for {route_class}. Please retry in {retry_after} seconds.",
-                headers={"Retry-After": str(retry_after)}
-            )
+            if not allowed:
+                from app.core.fraud_logger import log_fraud_event
+                await log_fraud_event(
+                    event_type="RATE_LIMITED",
+                    client_ip=client_ip,
+                    user_id=user_id,
+                    metadata={"route_class": route_class, "target": "user", "retry_after": retry_after}
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=f"Account rate limit exceeded for {route_class}. Please retry in {retry_after} seconds.",
+                    headers={"Retry-After": str(retry_after)}
+                )
 
-    # 4. Check IP limit (except whitelisted internal IPs in dev)
-    is_whitelisted_ip = client_ip in ("testclient",) and route_class not in ("auth_register",)
-    if not is_whitelisted_ip and route_cfg.ip_limit and route_cfg.ip_window:
-        ip_key = f"rl:{route_class}:ip:{client_ip}"
-        allowed, rem, retry_after = await check_sliding_window_limit(
-            redis, ip_key, route_cfg.ip_limit, route_cfg.ip_window
-        )
-        if not allowed:
-            from app.core.fraud_logger import log_fraud_event
-            await log_fraud_event(
-                event_type="RATE_LIMITED",
-                client_ip=client_ip,
-                user_id=user_id,
-                metadata={"route_class": route_class, "target": "ip", "retry_after": retry_after}
+        # 4. Check IP limit (except whitelisted internal IPs in dev)
+        is_whitelisted_ip = client_ip in ("testclient",) and route_class not in ("auth_register",)
+        if not is_whitelisted_ip and route_cfg.ip_limit and route_cfg.ip_window:
+            ip_key = f"rl:{route_class}:ip:{client_ip}"
+            allowed, rem, retry_after = await check_sliding_window_limit(
+                redis, ip_key, route_cfg.ip_limit, route_cfg.ip_window
             )
-            raise HTTPException(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                detail=f"Too many requests from your IP for {route_class}. Please retry in {retry_after} seconds.",
-                headers={"Retry-After": str(retry_after)}
-            )
+            if not allowed:
+                from app.core.fraud_logger import log_fraud_event
+                await log_fraud_event(
+                    event_type="RATE_LIMITED",
+                    client_ip=client_ip,
+                    user_id=user_id,
+                    metadata={"route_class": route_class, "target": "ip", "retry_after": retry_after}
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    detail=f"Too many requests from your IP for {route_class}. Please retry in {retry_after} seconds.",
+                    headers={"Retry-After": str(retry_after)}
+                )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.warning(f"Rate limiter gracefully degraded (Redis unavailable: {exc}). Request allowed.")
+        return

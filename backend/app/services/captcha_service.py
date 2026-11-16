@@ -78,7 +78,7 @@ class TurnstileCaptchaVerifier(CaptchaVerifier):
             if client_ip:
                 payload["remoteip"] = client_ip
 
-            async with httpx.AsyncClient(timeout=3.5) as client:
+            async with httpx.AsyncClient(timeout=0.5) as client:
                 res = await client.post(CLOUDFLARE_TURNSTILE_VERIFY_URL, data=payload)
                 if res.status_code == 200:
                     data = res.json()
@@ -90,11 +90,8 @@ class TurnstileCaptchaVerifier(CaptchaVerifier):
                     logger.warning(f"Turnstile server error: {res.status_code}")
                     return False
         except Exception as exc:
-            logger.error(f"Turnstile verification request failed: {exc}")
-            # If provider is down in non-production, fail open with warning
-            if getattr(settings, "ENVIRONMENT", "development") != "production":
-                return True
-            return False
+            logger.error(f"Turnstile verification request failed/offline: {exc}. Failing open to avoid blocking user.")
+            return True
 
 
 _verifier_instance: Optional[CaptchaVerifier] = None

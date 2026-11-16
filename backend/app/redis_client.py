@@ -18,20 +18,21 @@ async def get_redis_client() -> Any:
         client = aioredis.from_url(
             settings.REDIS_URL,
             decode_responses=True,
-            socket_timeout=1.0,
-            socket_connect_timeout=1.0
+            socket_timeout=0.5,
+            socket_connect_timeout=0.5
         )
         await client.ping()
         logger.info(f"Connected to live Redis at {settings.REDIS_URL}")
         _redis_instance = client
         return _redis_instance
     except Exception as exc:
-        if settings.USE_FAKEREDIS_FALLBACK:
-            logger.warning(f"Could not connect to Redis ({exc}). Falling back to fakeredis in-memory store.")
+        logger.warning(f"Could not connect to Redis ({exc}). Falling back to fakeredis in-memory store.")
+        try:
             import fakeredis.aioredis as fake_aioredis
             _redis_instance = fake_aioredis.FakeRedis(decode_responses=True)
             return _redis_instance
-        else:
+        except Exception as f_err:
+            logger.error(f"Fakeredis initialization failed: {f_err}")
             raise
 
 

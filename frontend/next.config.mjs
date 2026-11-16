@@ -8,6 +8,18 @@ try {
 }
 const buildTime = new Date().toISOString();
 
+// Single source of truth for backend URL across the entire frontend
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+
+// Ensure dev server never silently picks another port
+if (process.argv.includes('dev')) {
+  try {
+    execSync('node ./scripts/ensure-port.cjs 3000', { stdio: 'inherit' });
+  } catch (e) {
+    process.exit(1);
+  }
+}
+
 // Parse allowed frontend origins from environment (unified with backend CORS)
 const rawAllowed = process.env.ALLOWED_ORIGINS || process.env.CORS_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001';
 let allowedOriginsList = ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'http://127.0.0.1:3001'];
@@ -25,6 +37,7 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_GIT_COMMIT_SHA: commitHash,
     NEXT_PUBLIC_BUILD_TIME: buildTime,
+    NEXT_PUBLIC_BACKEND_URL: backendUrl,
     NEXT_PUBLIC_ALLOWED_ORIGINS: allowedOriginsList.join(','),
   },
   images: {

@@ -319,6 +319,15 @@ export function SeatMap2D({
     }));
   }, [showtimeDetails?.seats]);
 
+  // Precompute view scores for all seats to ensure instant (<100ms) seat clicks even on 522-seat halls
+  const seatScoreMap = useMemo(() => {
+    const map = new Map<string, ReturnType<typeof viewScore>>();
+    for (const s of seatsList) {
+      map.set(s.seat_id, viewScore(s));
+    }
+    return map;
+  }, [seatsList]);
+
   // Map of seat_id -> server inventory item
   const seatInventoryMap = useMemo(() => {
     const map = new Map<string, SeatInventoryItem>();
@@ -406,6 +415,8 @@ export function SeatMap2D({
     }
     return ['A01', 'A02'];
   }, [showtimeDetails?.layout_data]);
+
+  const accessibleSeatsSet = useMemo(() => new Set<string>(accessibleSeatsList), [accessibleSeatsList]);
 
   // Build Dynamic Category Tiers from layout_data.category_bands or showtimeDetails.tiers
   const categoryTiers = useMemo(() => {
@@ -796,13 +807,20 @@ export function SeatMap2D({
     if (selectedSeats.length === 0) return;
     setHolding(true);
     setErrorMessage(null);
+    const seatsToHold = [...selectedSeats];
     try {
-      const res = await holdSeats(showtimeNum, selectedSeats);
+      const res = await holdSeats(showtimeNum, seatsToHold);
       setActiveHoldId(res.hold_id);
       setIsFnbModalOpen(true);
     } catch (err: any) {
       console.warn('Hold error:', err);
-      setErrorMessage(err.message || 'Failed to hold seats. Someone may have just reserved them.');
+      const isConflict = err.status === 409 || err.message?.includes('409') || err.message?.includes('no longer available');
+      const friendlyMsg = isConflict
+        ? 'One or more selected seats were just taken. Your seat map has been updated.'
+        : (err.message || 'Failed to hold seats. Please select available seats.');
+      setErrorMessage(friendlyMsg);
+      // Refresh seat statuses from server to rollback unavailable seats
+      getShowtimeSeats(showtimeId).then((data) => setShowtimeDetails(data)).catch(() => {});
     } finally {
       setHolding(false);
     }
@@ -1318,12 +1336,12 @@ export function SeatMap2D({
                           const isHeld = status === 'held';
                           const isBooked = status === 'booked';
                           const isFocused = focusedSeatId === seatId;
-                          const isAccessible = s.seat_id in accessibleSeatsList || accessibleSeatsList.includes(s.seat_id) || inv?.is_accessible;
+                          const isAccessible = accessibleSeatsSet.has(seatId) || Boolean(inv?.is_accessible);
                           const partnerId = reclinerPairMap.get(seatId);
                           const isRecliner = !!partnerId;
 
-                          // Compute comfort score for this seat
-                          const scored = viewScore(s);
+                          // Compute comfort score for this seat from precomputed map
+                          const scored = seatScoreMap.get(seatId) || viewScore(s);
                           const score = scored.score;
                           const seatPrice = inv?.price ?? (tier?.price || 380);
 
@@ -1381,13 +1399,19 @@ export function SeatMap2D({
                             >
                               <button
                                 type="button"
+                                data-seat-id={seatId}
+                                data-testid={`seat-btn-${seatId}`}
                                 aria-pressed={isSelected}
                                 aria-disabled={isBooked || isHeld}
                                 aria-label={accessibleName}
                                 onClick={() => {
+                                  const t0 = performance.now();
                                   focusedSeatIdRef.current = seatId;
                                   setFocusedSeatId(seatId);
                                   handleSeatToggle(seatId);
+                                  if (typeof window !== 'undefined') {
+                                    (window as any).__lastSeatClickMs = performance.now() - t0;
+                                  }
                                 }}
                                 onFocus={(e) => {
                                   focusedSeatIdRef.current = seatId;
