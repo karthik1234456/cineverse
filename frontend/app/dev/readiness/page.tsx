@@ -113,6 +113,7 @@ interface ReadinessData {
     tmdb_synced_movies_count: number;
     catalog_source: string;
     banner?: string | null;
+    last_sync_time?: string | null;
     auth_mode?: string;
     http_status?: number;
     env_file_loaded?: string;
@@ -212,10 +213,12 @@ export default function DeveloperReadinessPage() {
       fetchReadiness();
     } catch (e: any) {
       setTmdbTestResult({
-        status: 'network_error',
+        status: 'tmdb_unreachable',
         is_valid: false,
-        reason: e.message,
-        banner: 'Real posters unavailable: network error',
+        reason: e.message || 'TMDB unreachable',
+        banner: data?.environment.last_sync_time
+          ? `Real posters unavailable: TMDB unreachable (Last sync: ${data.environment.last_sync_time})`
+          : 'Real posters unavailable: TMDB unreachable',
       });
     } finally {
       setTestingTmdb(false);

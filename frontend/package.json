@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "dev:all": "node ../scripts/dev-all.cjs",
+    "dev:stop": "node ../scripts/dev-stop.cjs",
     "predev": "node ./scripts/ensure-port.cjs 3000",
     "dev": "next dev -p 3000",
     "typecheck": "tsc --noEmit",

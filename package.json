@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "dev:all": "node scripts/dev-all.cjs",
+    "dev:stop": "node scripts/dev-stop.cjs",
     "dev:frontend": "npm --prefix frontend run dev",
     "dev:backend": "powershell -Command \"$env:PYTHONPATH='backend'; .\\backend\\.venv\\Scripts\\uvicorn.exe app.main:app --reload --port 8000\"",
     "build:frontend": "npm --prefix frontend run build",

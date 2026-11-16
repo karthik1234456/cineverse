@@ -181,6 +181,9 @@ async def get_movies_catalog_info():
         "sample_notice": "Sample showtimes for demonstration",
         "tmdb_key_set": key_status.get("is_set", False),
         "tmdb_key_valid": key_status.get("is_valid", False),
+        "status": key_status.get("status"),
+        "reason": key_status.get("reason"),
+        "last_sync_time": key_status.get("last_sync_time"),
         "readiness_banner": banner,
     }
 

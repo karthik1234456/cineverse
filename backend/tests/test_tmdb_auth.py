@@ -97,7 +97,10 @@ async def test_check_tmdb_key_status_missing(mock_auth):
     status = await check_tmdb_key_status(force_fresh=True)
     assert status["status"] == "key_missing"
     assert status["is_valid"] is False
-    assert status["banner"] == "Real posters unavailable: TMDB key missing"
+    assert status["reason"] == "key missing"
+    assert "Real posters unavailable: key missing" in status["banner"]
+    assert "Last sync:" in status["banner"]
+    assert "last_sync_time" in status
 
 
 @patch("httpx.AsyncClient.get")
@@ -120,12 +123,14 @@ async def test_check_tmdb_key_status_rejected_401(mock_auth, mock_get):
     assert status["status"] == "key_rejected"
     assert status["is_valid"] is False
     assert status["http_status"] == 401
-    assert status["banner"] == "Real posters unavailable: TMDB key rejected (HTTP 401)"
+    assert "Real posters unavailable: key rejected" in status["banner"]
+    assert "Last sync:" in status["banner"]
 
 
+@patch("app.services.catalog.tmdb._execute_tmdb_curl")
 @patch("httpx.AsyncClient.get")
 @patch("app.services.catalog.tmdb.get_tmdb_auth_details")
-async def test_check_tmdb_key_status_network_error(mock_auth, mock_get):
+async def test_check_tmdb_key_status_network_error(mock_auth, mock_get, mock_curl):
     mock_auth.return_value = {
         "mode": "v4 bearer token",
         "token": "dummy",
@@ -136,11 +141,14 @@ async def test_check_tmdb_key_status_network_error(mock_auth, mock_get):
         "headers": {"Authorization": "Bearer dummy"},
     }
     mock_get.side_effect = httpx.ConnectError("Connection timed out")
+    mock_curl.return_value = None
 
     status = await check_tmdb_key_status(force_fresh=True)
-    assert status["status"] == "network_error"
+    assert status["status"] == "tmdb_unreachable"
     assert status["is_valid"] is False
-    assert status["banner"] == "Real posters unavailable: network error"
+    assert status["reason"] == "TMDB unreachable"
+    assert "Real posters unavailable: TMDB unreachable" in status["banner"]
+    assert "Last sync:" in status["banner"]
 
 
 @patch("httpx.AsyncClient.get")

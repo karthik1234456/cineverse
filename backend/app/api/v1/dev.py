@@ -225,6 +225,7 @@ async def get_developer_readiness(
         "tmdb_synced_movies_count": tmdb_synced_count,
         "catalog_source": settings.CATALOG_SOURCE,
         "banner": banner_message,
+        "last_sync_time": key_status.get("last_sync_time"),
         "auth_mode": key_status.get("auth_mode", "missing"),
         "http_status": key_status.get("http_status"),
         "env_file_loaded": key_status.get("env_file_loaded"),

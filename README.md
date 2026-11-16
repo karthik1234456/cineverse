@@ -46,7 +46,30 @@ cp .env.example .env
 ```
 All available configuration flags (database connection, Redis URL, JWT secret, booking hold duration, Razorpay sandbox credentials) are documented with safe default values in [`.env.example`](./.env.example).
 
-### Option A: Docker Compose (Single Command)
+### Option A: One-Command Start & Stop (Recommended for Windows & Local Dev)
+
+Start both frontend and backend on fixed ports with a single command that automatically frees occupied ports, polls health checks, and signals readiness:
+
+```bash
+# Start both servers on fixed ports (Backend: 8000, Frontend: 3000)
+npm run dev:all
+```
+
+- **Frontend**: [http://localhost:3000](http://localhost:3000)
+- **Backend API**: [http://127.0.0.1:8000](http://127.0.0.1:8000)
+- **Interactive API Docs (Swagger)**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- **Developer Readiness Probe**: [http://localhost:3000/dev/readiness](http://localhost:3000/dev/readiness)
+
+To cleanly stop running development instances and ensure all ports are freed:
+```bash
+npm run dev:stop
+```
+
+*Note: If any port is held by an external application, `npm run dev:all` prints a clear message identifying the busy port and PID, refusing to start on incorrect ports.*
+
+---
+
+### Option B: Docker Compose (Single Command)
 
 ```bash
 docker compose up --build
@@ -56,7 +79,7 @@ docker compose up --build
 
 ---
 
-### Option B: Standalone Execution
+### Option C: Split-Terminal Manual Execution
 
 #### 1. Backend Setup (FastAPI)
 ```bash

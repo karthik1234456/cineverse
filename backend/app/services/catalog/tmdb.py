@@ -60,9 +60,46 @@ def slugify(text: str) -> str:
 
 
 _KEY_CHECK_CACHE: Dict[str, Any] = {"expires_at": 0, "result": None}
+_LAST_SYNC_TIMESTAMP: Optional[str] = None
 
 
-def _execute_tmdb_curl(endpoint: str, params: Optional[Dict[str, Any]] = None, retries: int = 2) -> Optional[Dict[str, Any]]:
+def get_tmdb_last_sync_time() -> str:
+    """
+    Returns the UTC timestamp of the last successful TMDB catalog sync,
+    or 'Never' if no sync has occurred.
+    """
+    global _LAST_SYNC_TIMESTAMP
+    if _LAST_SYNC_TIMESTAMP:
+        return _LAST_SYNC_TIMESTAMP
+
+    # Check disk cache file modification time
+    if os.path.exists(CACHE_FILE_PATH):
+        try:
+            mtime = os.path.getmtime(CACHE_FILE_PATH)
+            from datetime import timezone
+            dt = datetime.fromtimestamp(mtime, tz=timezone.utc)
+            _LAST_SYNC_TIMESTAMP = dt.strftime("%Y-%m-%d %H:%M UTC")
+            return _LAST_SYNC_TIMESTAMP
+        except Exception:
+            pass
+
+    return "Never"
+
+
+def record_tmdb_sync_time() -> str:
+    """Records a new successful TMDB sync timestamp."""
+    global _LAST_SYNC_TIMESTAMP
+    from datetime import timezone
+    _LAST_SYNC_TIMESTAMP = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    return _LAST_SYNC_TIMESTAMP
+
+
+def _execute_tmdb_curl(
+    endpoint: str,
+    params: Optional[Dict[str, Any]] = None,
+    retries: int = 1,
+    timeout: float = 2.0,
+) -> Optional[Dict[str, Any]]:
     """
     Executes TMDB API request using curl with TLS 1.3 and DNS-over-HTTPS.
     Bypasses local ISP SNI filtering and connection resets in India.
@@ -70,6 +107,7 @@ def _execute_tmdb_curl(endpoint: str, params: Optional[Dict[str, Any]] = None, r
       - 32-character hex key via ?api_key=...
       - Long JWT token via Authorization: Bearer ...
     Never prints or logs the API key or token.
+    Uses short timeout to never block callers.
     """
     auth = get_tmdb_auth_details()
     if auth["mode"] == "missing":
@@ -90,6 +128,8 @@ def _execute_tmdb_curl(endpoint: str, params: Optional[Dict[str, Any]] = None, r
         "curl.exe",
         "-4",
         "-s",
+        "--max-time",
+        str(timeout),
         "--tlsv1.3",
         "--ssl-no-revoke",
         "--doh-url",
@@ -101,7 +141,7 @@ def _execute_tmdb_curl(endpoint: str, params: Optional[Dict[str, Any]] = None, r
 
     for attempt in range(retries):
         try:
-            res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout + 0.5)
             if res.returncode == 0 and res.stdout:
                 parsed = json.loads(res.stdout)
                 return parsed
@@ -116,8 +156,9 @@ async def check_tmdb_key_status(force_fresh: bool = False) -> Dict[str, Any]:
     Categorizes the result precisely:
       - "key_missing": Key or token not provided
       - "key_rejected": TMDB returned HTTP 401 / 403 / 4xx with status code
-      - "network_error": DNS, timeout, or connection failure
+      - "tmdb_unreachable": DNS, timeout, or connection failure
       - "ok": TMDB returned HTTP 200 OK (banner is None)
+    Short timeout (<2.5s) and cached for five minutes (300 seconds).
     Never prints or logs the key or token.
     """
     import time as time_mod
@@ -129,6 +170,8 @@ async def check_tmdb_key_status(force_fresh: bool = False) -> Dict[str, Any]:
     mode = auth["mode"]
     token = auth["token"]
     val_len = auth["value_length"]
+    last_sync = get_tmdb_last_sync_time()
+    sync_suffix = f" (Last sync: {last_sync})"
 
     if mode == "missing" or val_len == 0:
         res = {
@@ -137,24 +180,25 @@ async def check_tmdb_key_status(force_fresh: bool = False) -> Dict[str, Any]:
             "status": "key_missing",
             "http_status": None,
             "auth_mode": "missing",
-            "reason": "TMDB key or token is missing from environment",
-            "banner": "Real posters unavailable: TMDB key missing",
+            "reason": "key missing",
+            "banner": f"Real posters unavailable: key missing{sync_suffix}",
+            "last_sync_time": last_sync,
             "env_file_loaded": auth.get("env_file_loaded"),
             "working_dir": auth.get("working_dir"),
             "value_length": 0,
             "latency_ms": 0.0,
         }
-        _KEY_CHECK_CACHE["expires_at"] = now + 5
+        _KEY_CHECK_CACHE["expires_at"] = now + 300  # 5 minutes cache
         _KEY_CHECK_CACHE["result"] = res
         return res
 
-    # Perform real call to TMDB configuration endpoint
+    # Perform real call to TMDB configuration endpoint with short 2.0s timeout
     start_time = time_mod.time()
     http_status: Optional[int] = None
     is_valid = False
     validation_reason = ""
-    status_label = "network_error"
-    banner_message = "Real posters unavailable: network error"
+    status_label = "tmdb_unreachable"
+    banner_message = f"Real posters unavailable: TMDB unreachable{sync_suffix}"
 
     try:
         headers = {}
@@ -164,7 +208,7 @@ async def check_tmdb_key_status(force_fresh: bool = False) -> Dict[str, Any]:
         elif mode == "v3 api_key":
             params["api_key"] = token
 
-        async with httpx.AsyncClient(timeout=6.0) as client:
+        async with httpx.AsyncClient(timeout=2.0) as client:
             resp = await client.get(
                 f"{settings.TMDB_BASE_URL}/configuration",
                 headers=headers,
@@ -180,16 +224,16 @@ async def check_tmdb_key_status(force_fresh: bool = False) -> Dict[str, Any]:
             elif http_status in (401, 403, 404):
                 is_valid = False
                 status_label = "key_rejected"
-                validation_reason = f"TMDB rejected API key (HTTP {http_status})"
-                banner_message = f"Real posters unavailable: TMDB key rejected (HTTP {http_status})"
+                validation_reason = f"key rejected (HTTP {http_status})"
+                banner_message = f"Real posters unavailable: key rejected (HTTP {http_status}){sync_suffix}"
             else:
                 is_valid = False
                 status_label = "key_rejected"
-                validation_reason = f"TMDB returned HTTP {http_status}"
-                banner_message = f"Real posters unavailable: TMDB key rejected (HTTP {http_status})"
+                validation_reason = f"key rejected (HTTP {http_status})"
+                banner_message = f"Real posters unavailable: key rejected (HTTP {http_status}){sync_suffix}"
     except Exception as ex:
-        # Fallback to DoH cURL if local DNS / ISP is resetting connections
-        curl_res = _execute_tmdb_curl("/configuration")
+        # Fallback to DoH cURL with short 2.0s timeout if local DNS / ISP is resetting connections
+        curl_res = _execute_tmdb_curl("/configuration", retries=1, timeout=2.0)
         if curl_res and "images" in curl_res:
             is_valid = True
             http_status = 200
@@ -200,13 +244,13 @@ async def check_tmdb_key_status(force_fresh: bool = False) -> Dict[str, Any]:
             is_valid = False
             http_status = 401
             status_label = "key_rejected"
-            validation_reason = f"TMDB rejected API key ({curl_res.get('status_message', 'Invalid key')})"
-            banner_message = "Real posters unavailable: TMDB key rejected (HTTP 401)"
+            validation_reason = "key rejected (HTTP 401)"
+            banner_message = f"Real posters unavailable: key rejected (HTTP 401){sync_suffix}"
         else:
             is_valid = False
-            status_label = "network_error"
-            validation_reason = f"Network error connecting to TMDB: {str(ex)[:80]}"
-            banner_message = "Real posters unavailable: network error"
+            status_label = "tmdb_unreachable"
+            validation_reason = "TMDB unreachable"
+            banner_message = f"Real posters unavailable: TMDB unreachable{sync_suffix}"
 
     latency_ms = round((time_mod.time() - start_time) * 1000, 2)
 
@@ -218,14 +262,15 @@ async def check_tmdb_key_status(force_fresh: bool = False) -> Dict[str, Any]:
         "auth_mode": mode,
         "reason": validation_reason,
         "banner": banner_message,
+        "last_sync_time": last_sync,
         "env_file_loaded": auth.get("env_file_loaded"),
         "working_dir": auth.get("working_dir"),
         "value_length": val_len,
         "latency_ms": latency_ms,
     }
 
-    cache_ttl = 3600 if is_valid else 5
-    _KEY_CHECK_CACHE["expires_at"] = now + cache_ttl
+    # Cache check for 5 minutes (300s) for both success and failure
+    _KEY_CHECK_CACHE["expires_at"] = now + 300
     _KEY_CHECK_CACHE["result"] = res
     return res
 
@@ -398,6 +443,7 @@ class TMDBCatalogProvider(CatalogProvider):
         try:
             with open(CACHE_FILE_PATH, "w", encoding="utf-8") as f:
                 json.dump(cached_export_list, f, indent=2, ensure_ascii=False)
+            record_tmdb_sync_time()
         except Exception as e:
             logger.warning(f"Could not persist TMDB cache: {e}")
 
