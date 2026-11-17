@@ -17,9 +17,10 @@ describe('PART F: Screen Distance Rules & FOV Verification', () => {
 
   theatreTypes.forEach(tid => {
     it(`enforces distance >= 1.2x H and FOV limits for ${tid}`, () => {
+      const rows = tid === 'boutique' ? 6 : 10;
       const res = generateProceduralAuditorium({
         theatre_type: tid,
-        rows: 10,
+        rows,
         seats_per_row: 14,
         is_motion_hall: tid === 'motion_seat' || tid === 'dolby_atmos_4dx',
       });

@@ -1,0 +1,111 @@
+{
+  "test": "Task 4: Real GPU Luminance Benchmark across 4 Halls",
+  "executedAt": "2026-11-17T17:45:54.616Z",
+  "passCriteria": {
+    "normalMeanRange": [
+      0.22,
+      0.35
+    ],
+    "minBrightPixelsShare": 0.6,
+    "maxDarkPixelsShare": 0.08
+  },
+  "allNormalPassed": true,
+  "results": [
+    {
+      "hall": "Screen 2: Standard Flat Hall",
+      "slug": "screen_2_st737",
+      "url": "http://localhost:3002/cinemas/11/auditorium/36?showtime=737&mode=3d",
+      "normal": {
+        "width": 1280,
+        "height": 800,
+        "totalPixels": 1024000,
+        "meanLuminance": 0.261,
+        "darkShare": 0,
+        "brightShare": 0.9862,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\brightness_screen_2_st737_normal.png",
+        "passed": true
+      },
+      "bright": {
+        "width": 1280,
+        "height": 800,
+        "totalPixels": 1024000,
+        "meanLuminance": 0.3782,
+        "darkShare": 0,
+        "brightShare": 0.9996,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\brightness_screen_2_st737_bright.png"
+      }
+    },
+    {
+      "hall": "Screen 1: Standard Wide Hall",
+      "slug": "screen_1_st732",
+      "url": "http://localhost:3002/cinemas/11/auditorium/35?showtime=732&mode=3d",
+      "normal": {
+        "width": 1280,
+        "height": 800,
+        "totalPixels": 1024000,
+        "meanLuminance": 0.2368,
+        "darkShare": 0.0014,
+        "brightShare": 0.8379,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\brightness_screen_1_st732_normal.png",
+        "passed": true
+      },
+      "bright": {
+        "width": 1280,
+        "height": 800,
+        "totalPixels": 1024000,
+        "meanLuminance": 0.3311,
+        "darkShare": 0,
+        "brightShare": 0.9937,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\brightness_screen_1_st732_bright.png"
+      }
+    },
+    {
+      "hall": "Big Hall Flagship: Large Curved Hall",
+      "slug": "flagship_st1875",
+      "url": "http://localhost:3002/cinemas/12/auditorium/39?showtime=1875&mode=3d",
+      "normal": {
+        "width": 1280,
+        "height": 800,
+        "totalPixels": 1024000,
+        "meanLuminance": 0.2591,
+        "darkShare": 0,
+        "brightShare": 0.9798,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\brightness_flagship_st1875_normal.png",
+        "passed": true
+      },
+      "bright": {
+        "width": 1280,
+        "height": 800,
+        "totalPixels": 1024000,
+        "meanLuminance": 0.3759,
+        "darkShare": 0,
+        "brightShare": 0.9995,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\brightness_flagship_st1875_bright.png"
+      }
+    },
+    {
+      "hall": "Original 100-Seat Boutique Hall",
+      "slug": "original_100_st61",
+      "url": "http://localhost:3002/cinemas/4/auditorium/13?showtime=61&mode=3d",
+      "normal": {
+        "width": 1280,
+        "height": 800,
+        "totalPixels": 1024000,
+        "meanLuminance": 0.263,
+        "darkShare": 0,
+        "brightShare": 0.983,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\brightness_original_100_st61_normal.png",
+        "passed": true
+      },
+      "bright": {
+        "width": 1280,
+        "height": 800,
+        "totalPixels": 1024000,
+        "meanLuminance": 0.3799,
+        "darkShare": 0,
+        "brightShare": 0.9998,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\brightness_original_100_st61_bright.png"
+      }
+    }
+  ]
+}

@@ -16,7 +16,7 @@ const BACKEND_DIR = path.join(ROOT_DIR, 'backend');
 const FRONTEND_DIR = path.join(ROOT_DIR, 'frontend');
 
 const BACKEND_PORT = 8000;
-const FRONTEND_PORT = 3000;
+const FRONTEND_PORT = parseInt(process.env.FRONTEND_PORT || process.env.PORT || '3002', 10);
 
 const BACKEND_PROBE_URL = `http://127.0.0.1:${BACKEND_PORT}/api/v1/movies/catalog-info`;
 const FRONTEND_PROBE_URL = `http://localhost:${FRONTEND_PORT}`;
@@ -25,9 +25,10 @@ const FRONTEND_PROBE_URL = `http://localhost:${FRONTEND_PORT}`;
 console.log('==============================================================');
 console.log(' Starting CineVerse Development Environment (Windows / Node)');
 console.log('==============================================================');
-console.log('[dev:all] Checking and freeing ports 8000 and 3000...');
+console.log(`[dev:all] Checking and freeing ports: 8000, 3000, 3001, 3002...`);
 
-for (const port of [BACKEND_PORT, FRONTEND_PORT]) {
+const PORTS_TO_CHECK = Array.from(new Set([BACKEND_PORT, FRONTEND_PORT, 3000, 3001, 3002]));
+for (const port of PORTS_TO_CHECK) {
   const freed = freePort(port);
   if (!freed) {
     const pids = getListeningPids(port);
@@ -60,7 +61,7 @@ console.log('--------------------------------------------------------------\n');
 console.log(`[dev:all] Launching backend (FastAPI/Uvicorn on port ${BACKEND_PORT})...`);
 const backendProc = spawn(
   pythonExe,
-  ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(BACKEND_PORT)],
+  ['-m', 'uvicorn', 'app.main:app', '--host', '127.0.0.1', '--port', String(BACKEND_PORT), '--reload'],
   {
     cwd: BACKEND_DIR,
     env: { ...process.env, PYTHONPATH: 'backend' },
@@ -100,12 +101,48 @@ frontendProc.stderr.on('data', (d) => {
   if (text) console.error(`[frontend-err] ${text}`);
 });
 
-// 6. Cleanup handler
+// 6. Optional Forwarder on port 3000
+let proxyServer = null;
+function startForwarderIfPossible() {
+  if (FRONTEND_PORT !== 3000 && !proxyServer) {
+    try {
+      proxyServer = http.createServer((req, res) => {
+        const options = {
+          hostname: '127.0.0.1',
+          port: FRONTEND_PORT,
+          path: req.url,
+          method: req.method,
+          headers: req.headers
+        };
+        const proxyReq = http.request(options, (proxyRes) => {
+          res.writeHead(proxyRes.statusCode, proxyRes.headers);
+          proxyRes.pipe(res, { end: true });
+        });
+        proxyReq.on('error', () => {
+          res.writeHead(502);
+          res.end(`Forwarder connecting to port ${FRONTEND_PORT}...`);
+        });
+        req.pipe(proxyReq, { end: true });
+      });
+      proxyServer.listen(3000, '0.0.0.0', () => {
+        console.log(`[dev:all] Port 3000 forwarder active -> proxying to http://localhost:${FRONTEND_PORT}`);
+      });
+    } catch (err) {
+      // Non-fatal if 3000 cannot be bound
+    }
+  }
+}
+
+// 7. Cleanup handler
 let cleaningUp = false;
 function cleanup() {
   if (cleaningUp) return;
   cleaningUp = true;
   console.log('\n[dev:all] Shutting down development servers...');
+
+  if (proxyServer) {
+    try { proxyServer.close(); } catch (e) {}
+  }
 
   const killProc = (proc, name) => {
     if (proc && !proc.killed) {
@@ -124,8 +161,9 @@ function cleanup() {
   killProc(backendProc, 'backend');
   killProc(frontendProc, 'frontend');
 
-  freePort(BACKEND_PORT);
-  freePort(FRONTEND_PORT);
+  for (const port of PORTS_TO_CHECK) {
+    freePort(port);
+  }
 
   console.log('[dev:all] All servers stopped and ports freed.');
   process.exit(0);
@@ -173,6 +211,7 @@ async function waitForBothReady() {
     }
 
     if (backendReady && frontendReady) {
+      startForwarderIfPossible();
       console.log('\n==============================================================');
       console.log(' \x1b[1m\x1b[32m>>> CineVerse is READY! <<<\x1b[0m');
       console.log(' Both Backend and Frontend answered health checks successfully.');

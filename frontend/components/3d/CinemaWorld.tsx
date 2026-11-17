@@ -100,7 +100,7 @@ export function CinemaWorld({
           preserveDrawingBuffer: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: houseLights === 'show' ? 0.90 : (lightLevel === 'bright' ? 1.50 : 1.28),
+          toneMappingExposure: houseLights === 'show' ? 0.90 : (lightLevel === 'bright' ? 1.70 : 1.48),
         }}
         dpr={qualityMode === 'smooth' ? 1.0 : [1, 1.5]}
         frameloop="always" // Dynamically managed by AdaptiveFrameloopController
@@ -178,7 +178,7 @@ function AdaptiveFrameloopController() {
 
   // Synchronize tone mapping exposure and background color on lighting switch
   useEffect(() => {
-    gl.toneMappingExposure = houseLights === 'show' ? 0.90 : (lightLevel === 'bright' ? 1.50 : 1.28);
+    gl.toneMappingExposure = houseLights === 'show' ? 0.90 : (lightLevel === 'bright' ? 1.70 : 1.48);
     gl.setClearColor('#0E0F12', 1.0);
     if (scene) {
       scene.background = new THREE.Color('#0E0F12');
@@ -229,6 +229,10 @@ function DevBridge() {
   // Expose dev-only window.__cineverse for Playwright E2E and diagnostics
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    (window as any).__threeCamera = camera;
+    (window as any).__threeScene = scene;
+    (window as any).THREE = THREE;
 
     window.__cineverse = {
       getState: () => {
@@ -462,6 +466,9 @@ function DevBridge() {
 
     return () => {
       delete window.__cineverse;
+      delete (window as any).__threeCamera;
+      delete (window as any).__threeScene;
+      delete (window as any).THREE;
       delete (window as any).useCinemaStore;
     };
   }, [

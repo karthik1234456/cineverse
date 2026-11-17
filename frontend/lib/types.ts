@@ -72,6 +72,8 @@ export interface ScreenConfig {
   screen_type_id?: string;
   screen_type_name?: string;
   is_curved?: boolean;
+  screen_width_m?: number;
+  screen_height_m?: number;
   has_projector_beam?: boolean;
   panoramic_wrap?: {
     sideAngleDeg: number;

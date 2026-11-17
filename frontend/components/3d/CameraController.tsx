@@ -183,12 +183,19 @@ export function CameraController() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    (window as any).THREE = THREE;
+    (window as any).__threeCamera = camera;
+    (window as any).__getLocalBarrierHeight = getLocalBarrierHeight;
     const media = window.matchMedia('(prefers-reduced-motion: reduce)');
     setPrefersReducedMotion(media.matches);
     const listener = () => setPrefersReducedMotion(media.matches);
     media.addEventListener('change', listener);
-    return () => media.removeEventListener('change', listener);
-  }, []);
+    return () => {
+      media.removeEventListener('change', listener);
+      delete (window as any).__threeCamera;
+      delete (window as any).__getLocalBarrierHeight;
+    };
+  }, [camera]);
 
   // Transition state
   const transitionRef = useRef<{

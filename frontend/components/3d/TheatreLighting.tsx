@@ -92,15 +92,15 @@ export function TheatreLighting() {
     // Lights on Normal mean luminance: 0.22 to 0.35, >=60% pixels > 0.08, <=8% pixels < 0.02
     // Bright level: +25% luminance (~0.27 to 0.44)
     // Show mode target: 0.04 to 0.09 with glowing screen
-    const targetAmbient = isShow ? 0.05 : isDim ? 1.60 : 3.20 * intensityMultiplier;
-    const targetHemi = isShow ? 0.06 : isDim ? 1.80 : 3.60 * intensityMultiplier;
+    const targetAmbient = isShow ? 0.05 : isDim ? 1.60 : 3.80 * intensityMultiplier;
+    const targetHemi = isShow ? 0.06 : isDim ? 1.80 : 4.40 * intensityMultiplier;
     const targetScreenSpill = isShow ? 3.50 : isDim ? 1.40 : 0.40;
-    const targetSeatRim = isShow ? 0.02 : isDim ? 0.65 : 1.35 * intensityMultiplier;
-    const targetCeiling = isShow ? 0.02 : isDim ? 2.20 : 4.60 * intensityMultiplier;
-    const targetProscenium = isShow ? 0.02 : isDim ? 1.80 : 3.80 * intensityMultiplier;
-    const targetWallWash = isShow ? 0.03 : isDim ? 1.60 : 3.40 * intensityMultiplier;
-    const targetRearFill = isShow ? 0.03 : isDim ? 1.40 : 2.80 * intensityMultiplier;
-    const targetStepLight = isShow ? 0.35 : isDim ? 1.80 : 3.20 * intensityMultiplier;
+    const targetSeatRim = isShow ? 0.02 : isDim ? 0.65 : 1.60 * intensityMultiplier;
+    const targetCeiling = isShow ? 0.02 : isDim ? 2.20 : 5.40 * intensityMultiplier;
+    const targetProscenium = isShow ? 0.02 : isDim ? 1.80 : 4.40 * intensityMultiplier;
+    const targetWallWash = isShow ? 0.03 : isDim ? 1.60 : 4.00 * intensityMultiplier;
+    const targetRearFill = isShow ? 0.03 : isDim ? 1.40 : 3.40 * intensityMultiplier;
+    const targetStepLight = isShow ? 0.35 : isDim ? 1.80 : 3.60 * intensityMultiplier;
 
     const curAmbient = ambientRef.current?.intensity ?? targetAmbient;
     const needsTransition = Math.abs(curAmbient - targetAmbient) > 0.005;

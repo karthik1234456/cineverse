@@ -41,6 +41,7 @@ interface SourceChainInfo {
   has_hosted_clip: boolean;
   is_youtube_only: boolean;
   official_player_supported: boolean;
+  trailer_embeddable?: boolean;
   popup_modal_available?: boolean;
 }
 

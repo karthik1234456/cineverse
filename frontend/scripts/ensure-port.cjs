@@ -1,7 +1,7 @@
 const net = require('net');
 const { execSync } = require('child_process');
 
-const targetPort = parseInt(process.argv[2] || '3000', 10);
+const targetPort = parseInt(process.argv[2] || process.env.PORT || '3002', 10);
 
 function getProcessOnPort(port) {
   try {

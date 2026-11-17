@@ -495,24 +495,11 @@ export function generateProceduralAuditorium(
   let screenHeight = input.screen_height;
   let screenCenterY = 5.55;
 
-  if (isLegacyMode || totalSeatsEstimate === 100) {
-    if (defaultSeatsPerRow <= 12 && rows.length <= 8) {
-      screenWidth = screenWidth ?? 13.5;
-      screenHeight = screenHeight ?? 6.28;
-      screenCenterY = 5.0;
-    } else if (defaultSeatsPerRow >= 24 || rows.length >= 14) {
-      screenWidth = screenWidth ?? Math.min(27.0, Math.max(18.0, halfWidth * 1.35));
-      screenHeight = screenHeight ?? (screenWidth / 2.15);
-      screenCenterY = 5.55 + (screenWidth - 15.6) * 0.22;
-    } else if (defaultSeatsPerRow >= 16) {
-      screenWidth = screenWidth ?? 21.0;
-      screenHeight = screenHeight ?? 9.77;
-      screenCenterY = 6.6;
-    } else {
-      screenWidth = screenWidth ?? 15.6;
-      screenHeight = screenHeight ?? 7.25;
-      screenCenterY = 5.55;
-    }
+  if (totalSeatsEstimate === 100 && !input.theatre_type) {
+    // 100-seat reference hall uses bespoke 15.6 x 7.25 scene units (7.8m x 3.6m metric)
+    screenWidth = screenWidth ?? 15.6;
+    screenHeight = screenHeight ?? 7.25;
+    screenCenterY = 5.55;
   } else {
     screenWidth = screenWidth ?? theatreDef.sceneDimensions.screenWidth;
     screenHeight = screenHeight ?? theatreDef.sceneDimensions.screenHeight;

@@ -6,7 +6,7 @@
 
 const { execSync } = require('child_process');
 
-const TARGET_PORTS = [8000, 3000];
+const TARGET_PORTS = [8000, 3000, 3001, 3002];
 
 function getListeningPids(port) {
   try {

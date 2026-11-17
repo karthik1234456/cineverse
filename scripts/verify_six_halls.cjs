@@ -179,7 +179,7 @@ const HALLS = [
         const strat = window.__cineverse_store?.getState?.().trailer?.activeStrategy;
         if (strat !== 'youtube_css3d') return true;
         return Boolean(window.__cineverse_yt_player);
-      }, { timeout: 8000 }).catch(() => {});
+      }, { timeout: 8000 }).catch(() => { });
 
       const playBtn = page.locator('[data-testid="screen-3d-play-button"]');
       const btnVisible = await playBtn.isVisible();

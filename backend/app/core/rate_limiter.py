@@ -288,8 +288,12 @@ async def check_rate_limit(
                     headers={"Retry-After": str(retry_after)}
                 )
 
-        # 4. Check IP limit (except whitelisted internal IPs in dev)
-        is_whitelisted_ip = client_ip in ("testclient",) and route_class not in ("auth_register",)
+        # 4. Check IP limit (whitelisted internal IPs in development)
+        is_whitelisted_ip = (
+            client_ip in ("testclient", "127.0.0.1", "localhost", "::1")
+            if getattr(settings, "ENVIRONMENT", "development") == "development"
+            else (client_ip in ("testclient",) and route_class not in ("auth_register",))
+        )
         if not is_whitelisted_ip and route_cfg.ip_limit and route_cfg.ip_window:
             ip_key = f"rl:{route_class}:ip:{client_ip}"
             allowed, rem, retry_after = await check_sliding_window_limit(
