@@ -99,12 +99,15 @@ export function CinemaScreen({
         trailer.trailerUrl.includes('googleapis.com'))
   );
 
+  const storeOverrideStrategy = useCinemaStore((s) => s.trailer.activeStrategy);
+
   const activeStrategy: ScreenStrategy = useMemo(() => {
     if (overrideMode) return overrideMode;
+    if (storeOverrideStrategy === 'test_card' || storeOverrideStrategy === 'solid_color') return storeOverrideStrategy;
     if (isHostedVideo) return 'video_texture';
     if (rawYoutubeId && youtubeErrorCode === null) return 'youtube_css3d';
     return 'title_card';
-  }, [overrideMode, isHostedVideo, rawYoutubeId, youtubeErrorCode]);
+  }, [overrideMode, storeOverrideStrategy, isHostedVideo, rawYoutubeId, youtubeErrorCode]);
 
   useEffect(() => {
     setTrailerStrategy(activeStrategy);
@@ -272,29 +275,59 @@ export function CinemaScreen({
 
     let isMounted = true;
 
-    if (!(window as any).YT) {
+    const checkReady = () => {
+      if (!isMounted) return false;
+      if ((window as any).YT && (window as any).YT.Player) {
+        setYtApiLoaded(true);
+        return true;
+      }
+      return false;
+    };
+
+    if (checkReady()) return;
+
+    if ((window as any).YT && typeof (window as any).YT.ready === 'function') {
+      (window as any).YT.ready(() => {
+        if (isMounted) setYtApiLoaded(true);
+      });
+    }
+
+    if (!document.getElementById('youtube-iframe-api-script')) {
       const tag = document.createElement('script');
       tag.src = 'https://www.youtube.com/iframe_api';
       tag.id = 'youtube-iframe-api-script';
       const firstScriptTag = document.getElementsByTagName('script')[0];
       firstScriptTag?.parentNode?.insertBefore(tag, firstScriptTag);
-
-      (window as any).onYouTubeIframeAPIReady = () => {
-        if (!isMounted) return;
-        setYtApiLoaded(true);
-      };
-    } else {
-      setYtApiLoaded(true);
     }
+
+    const prevOnReady = (window as any).onYouTubeIframeAPIReady;
+    (window as any).onYouTubeIframeAPIReady = () => {
+      if (typeof prevOnReady === 'function') {
+        try { prevOnReady(); } catch {}
+      }
+      if (isMounted) setYtApiLoaded(true);
+    };
+
+    const pollInterval = setInterval(() => {
+      if (checkReady()) {
+        clearInterval(pollInterval);
+      }
+    }, 150);
 
     return () => {
       isMounted = false;
+      clearInterval(pollInterval);
     };
   }, [activeStrategy, rawYoutubeId]);
 
-  // Initialize YT.Player on iframe mount
-  const handleIframeLoaded = useCallback(() => {
-    if (!(window as any).YT || !rawYoutubeId) return;
+  // Initialize YT.Player on iframe mount or when API is ready
+  const initPlayer = useCallback(() => {
+    if (typeof window === 'undefined') return;
+    if (!(window as any).YT || !(window as any).YT.Player) return;
+    if (!rawYoutubeId || ytPlayerRef.current) return;
+    const iframeEl = document.getElementById('cineverse-screen-yt-iframe');
+    if (!iframeEl) return;
+
     try {
       const player = new (window as any).YT.Player('cineverse-screen-yt-iframe', {
         events: {
@@ -315,11 +348,26 @@ export function CinemaScreen({
           onStateChange: (e: any) => {
             const state = e.data;
             setYoutubePlayerState(state);
-            if (state === 2) {
+            if (state === 1) {
+              // YT.PlayerState.PLAYING
+              setTrailerPlaybackStatus('playing');
+              setYoutubeVerifiedPlaying(true);
+              verifiedAdvancingRef.current = true;
+              if (watchdogTimeoutRef.current) {
+                clearTimeout(watchdogTimeoutRef.current);
+                watchdogTimeoutRef.current = null;
+              }
+            } else if (state === 2) {
+              // YT.PlayerState.PAUSED
               setTrailerPlaybackStatus('paused');
               setYoutubeVerifiedPlaying(false);
             } else if (state === 3) {
+              // YT.PlayerState.BUFFERING
               setTrailerPlaybackStatus('loading');
+            } else if (state === 0) {
+              // YT.PlayerState.ENDED
+              setTrailerPlaybackStatus('paused');
+              setYoutubeVerifiedPlaying(false);
             }
           },
           onError: (e: any) => {
@@ -337,6 +385,41 @@ export function CinemaScreen({
       console.warn('[Screen] Failed to attach YouTube player controller:', err);
     }
   }, [rawYoutubeId, setTrailerPlaybackStatus, setTrailerState, trailer.isPlaying, setTheatreModeOpen]);
+
+  useEffect(() => {
+    if (ytApiLoaded && activeStrategy === 'youtube_css3d') {
+      initPlayer();
+    }
+  }, [ytApiLoaded, activeStrategy, initPlayer]);
+
+  // Sync YouTube Controls (Play/Pause/Mute)
+  useEffect(() => {
+    if (activeStrategy !== 'youtube_css3d' || !ytPlayerRef.current) return;
+    try {
+      if (trailer.isPlaying && typeof ytPlayerRef.current.playVideo === 'function') {
+        const state = typeof ytPlayerRef.current.getPlayerState === 'function' ? ytPlayerRef.current.getPlayerState() : -1;
+        if (state !== 1) {
+          ytPlayerRef.current.playVideo();
+        }
+      } else if (!trailer.isPlaying && typeof ytPlayerRef.current.pauseVideo === 'function') {
+        const state = typeof ytPlayerRef.current.getPlayerState === 'function' ? ytPlayerRef.current.getPlayerState() : -1;
+        if (state === 1) {
+          ytPlayerRef.current.pauseVideo();
+        }
+      }
+    } catch {}
+  }, [trailer.isPlaying, activeStrategy]);
+
+  useEffect(() => {
+    if (activeStrategy !== 'youtube_css3d' || !ytPlayerRef.current) return;
+    try {
+      if (trailer.isMuted && typeof ytPlayerRef.current.mute === 'function') {
+        ytPlayerRef.current.mute();
+      } else if (!trailer.isMuted && typeof ytPlayerRef.current.unMute === 'function') {
+        ytPlayerRef.current.unMute();
+      }
+    } catch {}
+  }, [trailer.isMuted, activeStrategy]);
 
   // User Gesture Handlers (§ Part D.1, D.3, D.4)
   const handleStartPlayback = useCallback(() => {
@@ -411,10 +494,10 @@ export function CinemaScreen({
   const handleScreenClick = useCallback(() => {
     if (!trailer.isPlaying || trailer.playbackStatus !== 'playing') {
       handleStartPlayback();
-    } else {
+    } else if (activeStrategy !== 'youtube_css3d') {
       toggleTrailerPlay();
     }
-  }, [trailer.isPlaying, trailer.playbackStatus, handleStartPlayback, toggleTrailerPlay]);
+  }, [trailer.isPlaying, trailer.playbackStatus, handleStartPlayback, toggleTrailerPlay, activeStrategy]);
 
   // Space key listener for play/pause (§ Part D.1)
   useEffect(() => {
@@ -501,12 +584,11 @@ export function CinemaScreen({
   const lastFpsTimeRef = useRef(0);
   const currentFpsRef = useRef(60);
 
-  // Cut-out is only true when YouTube CSS 3D is actively confirmed playing and NOT in Theatre Mode!
+  // Cut-out is true when YouTube CSS 3D is active, playing, and NOT in Theatre Mode!
   const isCutout = Boolean(
     activeStrategy === 'youtube_css3d' &&
       trailer.isPlaying &&
-      !trailer.isTheatreMode &&
-      youtubeVerifiedPlaying
+      !trailer.isTheatreMode
   );
 
   // Dynamically control canvas background: transparent ONLY when cutout is active!
@@ -993,10 +1075,40 @@ export function CinemaScreen({
         )}
       </mesh>
 
+      {/* Official YouTube Player placed directly on 3D Screen via CSS 3D */}
+      {activeStrategy === 'youtube_css3d' && rawYoutubeId && !trailer.isTheatreMode && (
+        <Html
+          transform
+          pointerEvents={trailer.isPlaying ? 'auto' : 'none'}
+          distanceFactor={400 / (1280 / screenWidth)}
+          position={[screenCenter[0], screenCenter[1], screenCenter[2] + 0.02]}
+          rotation={[0, Math.PI, 0]}
+          style={{
+            width: '1280px',
+            height: `${Math.round(1280 / (screenWidth / screenHeight))}px`,
+            pointerEvents: trailer.isPlaying ? 'auto' : 'none',
+            opacity: trailer.isPlaying ? 1 : 0,
+            transition: 'opacity 0.25s ease-in-out',
+          }}
+        >
+          <div data-testid="screen-youtube-player" className="w-full h-full">
+            <iframe
+              id="cineverse-screen-yt-iframe"
+              src={`https://www.youtube-nocookie.com/embed/${rawYoutubeId}?enablejsapi=1&autoplay=1&mute=0&controls=1&loop=1&playlist=${rawYoutubeId}&playsinline=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : 'http://localhost:3000')}`}
+              className="w-full h-full border-0 bg-black rounded-sm"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              onLoad={initPlayer}
+            />
+          </div>
+        </Html>
+      )}
+
       {/* Large Inviting Circular Play Button directly on 3D Screen (Requirement 2) */}
       {(!trailer.isPlaying || trailer.playbackStatus !== 'playing') && !trailer.isTheatreMode && (
         <Html
           transform
+          pointerEvents="auto"
           position={[screenCenter[0], screenCenter[1], screenCenter[2] + 0.1]}
           rotation={[0, Math.PI, 0]}
           scale={[1, 1, 1]}
@@ -1023,33 +1135,6 @@ export function CinemaScreen({
                 Play trailer
               </div>
             </button>
-          </div>
-        </Html>
-      )}
-
-      {/* Official YouTube Player placed directly on 3D Screen via CSS 3D with canvas cut-out */}
-      {isCutout && rawYoutubeId && (
-        <Html
-          transform
-          position={[screenCenter[0], screenCenter[1], screenCenter[2] + 0.02]}
-          rotation={[0, Math.PI, 0]}
-          scale={[1, 1, 1]}
-          style={{
-            width: `${Math.round(screenWidth * 75)}px`,
-            height: `${Math.round(screenHeight * 75)}px`,
-            transform: `scale(${1 / 75})`,
-            pointerEvents: 'auto',
-          }}
-        >
-          <div data-testid="screen-youtube-player" className="w-full h-full">
-            <iframe
-              id="cineverse-screen-yt-iframe"
-              src={`https://www.youtube-nocookie.com/embed/${rawYoutubeId}?enablejsapi=1&autoplay=1&mute=0&controls=1&loop=1&playlist=${rawYoutubeId}&playsinline=1`}
-              className="w-full h-full border-0 bg-black rounded-sm"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-              allowFullScreen
-              onLoad={handleIframeLoaded}
-            />
           </div>
         </Html>
       )}

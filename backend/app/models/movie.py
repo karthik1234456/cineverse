@@ -39,6 +39,7 @@ class Movie(Base):
     is_showcase = Column(Boolean, default=False)
     source = Column(String(50), default="tmdb")
     youtube_trailer_id = Column(String(50), nullable=True)
+    trailer_embeddable = Column(Boolean, default=False, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     cast_members = relationship("MovieCast", back_populates="movie", cascade="all, delete-orphan")

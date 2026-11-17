@@ -89,6 +89,8 @@ class ShowtimeSeatsResponse(BaseModel):
     glb_path: str = "/models/cineverse_auditorium_v2.web.glb"
     layout_path: str = "/models/seat_layout_v2.json"
     trailer_url: Optional[str] = None
+    trailer_embeddable: Optional[bool] = False
+    youtube_trailer_id: Optional[str] = None
     poster_url: Optional[str] = None
     banner_url: Optional[str] = None
     dominant_color: Optional[str] = None

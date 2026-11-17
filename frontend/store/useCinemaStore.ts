@@ -1049,4 +1049,5 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
 if (typeof window !== 'undefined') {
   (window as any).useCinemaStore = useCinemaStore;
+  (window as any).__cineverse_store = useCinemaStore;
 }

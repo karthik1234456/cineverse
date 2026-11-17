@@ -80,6 +80,7 @@ class MovieResponse(BaseModel):
     is_showcase: Optional[bool] = False
     source: Optional[str] = "tmdb"
     youtube_trailer_id: Optional[str] = None
+    trailer_embeddable: Optional[bool] = False
 
     class Config:
         from_attributes = True
