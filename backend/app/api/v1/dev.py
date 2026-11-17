@@ -322,26 +322,32 @@ async def get_developer_readiness(
                     "reason": effects_reason,
                 }
 
-                # Source chain determination (Phase 3 requirements)
+                # Source chain determination (Phase 3 & 4 requirements)
                 is_youtube = bool(trailer_url and ("youtube" in trailer_url.lower() or "youtu.be" in trailer_url.lower()))
                 has_hosted_trailer = bool(trailer_url and trailer_url.startswith("/trailers/"))
                 has_hosted_glimpse = bool(glimpse_url and glimpse_url.startswith("/trailers/"))
+                is_embeddable = bool(getattr(m, "trailer_embeddable", False))
 
                 if has_hosted_trailer:
                     screen_3d_source = "Hosted Video Texture"
                     screen_3d_strategy = "hosted_video_texture"
                     screen_3d_desc = "Direct WebGL video texture streaming hosted MP4 clip with audio-reactive room spill"
                     screen_guarantee = "Guaranteed Local Video Stream"
-                elif is_youtube:
-                    screen_3d_source = "YouTube CSS 3D -> Title Card Fallback"
+                elif is_youtube and is_embeddable:
+                    screen_3d_source = "YouTube CSS 3D (Embeddable)"
                     screen_3d_strategy = "youtube_css3d"
-                    screen_3d_desc = "CSS 3D official player with canvas cut-out; auto-falls back to animated Title Card if embed restricted (Error 150/101)"
-                    screen_guarantee = "Guaranteed Motion — Never Empty"
+                    screen_3d_desc = "Official YouTube player directly on 3D Screen; verified embeddable via oEmbed HTTP 200"
+                    screen_guarantee = "Playable On 3D Screen"
+                elif is_youtube:
+                    screen_3d_source = "Theatre Mode Only (Restricted Embed)"
+                    screen_3d_strategy = "theatre_mode"
+                    screen_3d_desc = "Embedding restricted by copyright owner (Error 150/153); plays in large Theatre Mode popup"
+                    screen_guarantee = "Theatre Mode Fallback"
                 else:
                     screen_3d_source = "Generated Title Card Motion"
                     screen_3d_strategy = "title_card"
                     screen_3d_desc = "Procedural canvas title card with authentic poster, typography and continuous specular light sweep"
-                    screen_guarantee = "Guaranteed Motion — Never Empty"
+                    screen_guarantee = "Title Card Fallback"
 
                 if has_hosted_glimpse:
                     booking_bg_source = "Hosted Ambient Clip"
@@ -360,6 +366,7 @@ async def get_developer_readiness(
                     "has_hosted_clip": has_hosted_trailer or has_hosted_glimpse,
                     "is_youtube_only": is_youtube and not has_hosted_trailer,
                     "official_player_supported": is_youtube,
+                    "trailer_embeddable": is_embeddable,
                     "popup_modal_available": True,
                 }
 
@@ -549,6 +556,21 @@ async def get_developer_readiness(
         if m["trailer"]["type"] == "hosted" and m["trailer"]["status_ok"]
     ]
 
+    # Trailer Strategy Breakdown & Fallback Tracking
+    playable_on_screen = [
+        m for m in movie_reports
+        if m.get("source_chain", {}).get("screen_3d_strategy") in ("hosted_video_texture", "youtube_css3d")
+    ]
+    theatre_mode_only = [
+        m for m in movie_reports
+        if m.get("source_chain", {}).get("screen_3d_strategy") == "theatre_mode"
+    ]
+    title_card_only = [
+        m for m in movie_reports
+        if m.get("source_chain", {}).get("screen_3d_strategy") == "title_card"
+    ]
+    playable_on_screen_pct = round((len(playable_on_screen) / len(movie_reports)) * 100, 1) if movie_reports else 0.0
+
     # Auth & CORS Diagnostics
     res_users = await db.execute(select(User).where(User.email.in_([
         "admin@cineverse.com", "patron@example.com", "manager@cineverse.com", "manager@cineverse.in", "karthik@cineverse.dev"
@@ -619,6 +641,12 @@ async def get_developer_readiness(
             "non_showcase_movies_count": len(non_showcase),
             "non_showcase_tmdb_posters_200": len(non_showcase_tmdb_200),
             "non_showcase_tmdb_ratio": tmdb_poster_ratio,
+            "playable_on_screen_count": len(playable_on_screen),
+            "playable_on_screen_pct": playable_on_screen_pct,
+            "theatre_mode_only_count": len(theatre_mode_only),
+            "title_card_only_count": len(title_card_only),
+            "theatre_mode_only_titles": [m["title"] for m in theatre_mode_only],
+            "title_card_only_titles": [m["title"] for m in title_card_only],
             "total_halls": len(hall_reports),
             "total_cities": len(city_reports),
             "total_city_hall_type_combinations": len(city_hall_type_reports),

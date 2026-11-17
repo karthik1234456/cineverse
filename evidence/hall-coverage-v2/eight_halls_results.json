@@ -1,0 +1,450 @@
+[
+  {
+    "hallId": "compact",
+    "hallName": "Original 100-Seat Reference Hall",
+    "registryType": "standard_flat",
+    "movieTitle": "Ghost Soldier",
+    "youtubeId": "UKaWzMf9Ybc",
+    "cinemaId": 1,
+    "audId": 1,
+    "showtimeId": 3,
+    "sceneDimensions": "15.6u x 7.25u",
+    "metricDimensions": "7.8m x 3.6m",
+    "sidePanelText": "2.152:1 Aspect (7.8m × 3.6m)",
+    "screenCenter": [
+      0,
+      5.55,
+      -1.255
+    ],
+    "dynamicCameras": {
+      "centerCam": [
+        0,
+        5.2725,
+        -20.755
+      ],
+      "leftCam": [
+        -7.02,
+        5.2725,
+        -18.415
+      ],
+      "rightCam": [
+        7.02,
+        5.2725,
+        -18.415
+      ],
+      "target": [
+        0,
+        5.55,
+        -1.255
+      ]
+    },
+    "playButtonVisible": true,
+    "t1MediaTime": 0.194236,
+    "t2MediaTime": 2.708963,
+    "t1WallNow": 24575.3,
+    "t2WallNow": 27088.8,
+    "deltaWallSeconds": 2.514,
+    "deltaMediaSeconds": 2.515,
+    "playbackRatio": 1.0,
+    "passTiming": true,
+    "playerState": 1,
+    "isTheatreMode": false,
+    "t1Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\compact_trailer_t1.png",
+    "t2Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\compact_trailer_t2.png",
+    "testCardCenter": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\compact_testcard_center.png",
+    "testCardLeft": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\compact_testcard_left.png",
+    "testCardRight": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\compact_testcard_right.png"
+  },
+  {
+    "hallId": "standard",
+    "hallName": "Standard Multiplex Hall",
+    "registryType": "standard_flat",
+    "movieTitle": "Hope",
+    "youtubeId": "JNJ6luyhR2I",
+    "cinemaId": 4,
+    "audId": 12,
+    "showtimeId": 56,
+    "sceneDimensions": "28u x 13u",
+    "metricDimensions": "14m x 6.5m",
+    "sidePanelText": "2.154:1 Aspect (14m × 6.5m)",
+    "screenCenter": [
+      0,
+      7.7,
+      -1.255
+    ],
+    "dynamicCameras": {
+      "centerCam": [
+        0,
+        7.3149999999999995,
+        -36.255
+      ],
+      "leftCam": [
+        -12.6,
+        7.3149999999999995,
+        -32.05500000000001
+      ],
+      "rightCam": [
+        12.6,
+        7.3149999999999995,
+        -32.05500000000001
+      ],
+      "target": [
+        0,
+        7.7,
+        -1.255
+      ]
+    },
+    "playButtonVisible": true,
+    "t1MediaTime": 0.9912909332427978,
+    "t2MediaTime": 3.96511595803833,
+    "t1WallNow": 4903.9000000059605,
+    "t2WallNow": 7877.9000000059605,
+    "deltaWallSeconds": 2.974,
+    "deltaMediaSeconds": 2.974,
+    "playbackRatio": 1,
+    "passTiming": true,
+    "playerState": 1,
+    "isTheatreMode": false,
+    "t1Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\standard_trailer_t1.png",
+    "t2Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\standard_trailer_t2.png",
+    "testCardCenter": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\standard_testcard_center.png",
+    "testCardLeft": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\standard_testcard_left.png",
+    "testCardRight": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\standard_testcard_right.png"
+  },
+  {
+    "hallId": "large_curved",
+    "hallName": "Large Curved Screen (Dolby Cinema / Flagship)",
+    "registryType": "large_curved",
+    "movieTitle": "Ghost Soldier",
+    "youtubeId": "UKaWzMf9Ybc",
+    "cinemaId": 1,
+    "audId": 2,
+    "showtimeId": 8,
+    "sceneDimensions": "26u x 12u",
+    "metricDimensions": "13m x 6m",
+    "sidePanelText": "2.167:1 Aspect (13m × 6m)",
+    "screenCenter": [
+      0,
+      7.2,
+      -1.255
+    ],
+    "dynamicCameras": {
+      "centerCam": [
+        0,
+        6.84,
+        -33.755
+      ],
+      "leftCam": [
+        -11.700000000000001,
+        6.84,
+        -29.855
+      ],
+      "rightCam": [
+        11.700000000000001,
+        6.84,
+        -29.855
+      ],
+      "target": [
+        0,
+        7.2,
+        -1.255
+      ]
+    },
+    "playButtonVisible": true,
+    "t1MediaTime": 1.5384209408721923,
+    "t2MediaTime": 4.3120030324249266,
+    "t1WallNow": 5240.9000000059605,
+    "t2WallNow": 8014.600000008941,
+    "deltaWallSeconds": 2.774,
+    "deltaMediaSeconds": 2.774,
+    "playbackRatio": 1,
+    "passTiming": true,
+    "playerState": 1,
+    "isTheatreMode": false,
+    "t1Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\large_curved_trailer_t1.png",
+    "t2Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\large_curved_trailer_t2.png",
+    "testCardCenter": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\large_curved_testcard_center.png",
+    "testCardLeft": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\large_curved_testcard_left.png",
+    "testCardRight": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\large_curved_testcard_right.png"
+  },
+  {
+    "hallId": "premium_direct_view",
+    "hallName": "Premium Direct-View (Samsung Onyx LED)",
+    "registryType": "premium_direct_view",
+    "movieTitle": "Wildwood",
+    "youtubeId": "B2Cx_5_YLxQ",
+    "cinemaId": 6,
+    "audId": 20,
+    "showtimeId": 99,
+    "sceneDimensions": "28u x 13u",
+    "metricDimensions": "14m x 6.5m",
+    "sidePanelText": "2.154:1 Aspect (14m × 6.5m)",
+    "screenCenter": [
+      0,
+      7.7,
+      -1.255
+    ],
+    "dynamicCameras": {
+      "centerCam": [
+        0,
+        7.3149999999999995,
+        -36.255
+      ],
+      "leftCam": [
+        -12.6,
+        7.3149999999999995,
+        -32.05500000000001
+      ],
+      "rightCam": [
+        12.6,
+        7.3149999999999995,
+        -32.05500000000001
+      ],
+      "target": [
+        0,
+        7.7,
+        -1.255
+      ]
+    },
+    "playButtonVisible": true,
+    "t1MediaTime": 1.937081141143799,
+    "t2MediaTime": 5.033214977111816,
+    "t1WallNow": 5393.600000008941,
+    "t2WallNow": 8490.10000000894,
+    "deltaWallSeconds": 3.097,
+    "deltaMediaSeconds": 3.096,
+    "playbackRatio": 1,
+    "passTiming": true,
+    "playerState": 1,
+    "isTheatreMode": false,
+    "t1Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\premium_direct_view_trailer_t1.png",
+    "t2Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\premium_direct_view_trailer_t2.png",
+    "testCardCenter": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\premium_direct_view_testcard_center.png",
+    "testCardLeft": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\premium_direct_view_testcard_left.png",
+    "testCardRight": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\premium_direct_view_testcard_right.png"
+  },
+  {
+    "hallId": "boutique",
+    "hallName": "Boutique Plush Velvet Salon",
+    "registryType": "standard_flat",
+    "movieTitle": "Clayface",
+    "youtubeId": "F1jCd_tMEDM",
+    "cinemaId": 4,
+    "audId": 13,
+    "showtimeId": 65,
+    "sceneDimensions": "28u x 13u",
+    "metricDimensions": "14m x 6.5m",
+    "sidePanelText": "2.154:1 Aspect (14m × 6.5m)",
+    "screenCenter": [
+      0,
+      7.7,
+      -1.255
+    ],
+    "dynamicCameras": {
+      "centerCam": [
+        0,
+        7.3149999999999995,
+        -36.255
+      ],
+      "leftCam": [
+        -12.6,
+        7.3149999999999995,
+        -32.05500000000001
+      ],
+      "rightCam": [
+        12.6,
+        7.3149999999999995,
+        -32.05500000000001
+      ],
+      "target": [
+        0,
+        7.7,
+        -1.255
+      ]
+    },
+    "playButtonVisible": true,
+    "t1MediaTime": 1.8125628989105225,
+    "t2MediaTime": 4.73644697138977,
+    "t1WallNow": 5207.100000008941,
+    "t2WallNow": 8130.4000000059605,
+    "deltaWallSeconds": 2.923,
+    "deltaMediaSeconds": 2.924,
+    "playbackRatio": 1,
+    "passTiming": true,
+    "playerState": 1,
+    "isTheatreMode": false,
+    "t1Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\boutique_trailer_t1.png",
+    "t2Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\boutique_trailer_t2.png",
+    "testCardCenter": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\boutique_testcard_center.png",
+    "testCardLeft": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\boutique_testcard_left.png",
+    "testCardRight": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\boutique_testcard_right.png"
+  },
+  {
+    "hallId": "panoramic_wrap",
+    "hallName": "Motion-Seat Panoramic Wrap (ScreenX)",
+    "registryType": "panoramic_wrap",
+    "movieTitle": "Hope",
+    "youtubeId": "JNJ6luyhR2I",
+    "cinemaId": 2,
+    "audId": 5,
+    "showtimeId": 21,
+    "sceneDimensions": "28u x 13u",
+    "metricDimensions": "14m x 6.5m",
+    "sidePanelText": "2.154:1 Aspect (14m × 6.5m)",
+    "screenCenter": [
+      0,
+      7.7,
+      -1.255
+    ],
+    "dynamicCameras": {
+      "centerCam": [
+        0,
+        7.3149999999999995,
+        -36.255
+      ],
+      "leftCam": [
+        -12.6,
+        7.3149999999999995,
+        -32.05500000000001
+      ],
+      "rightCam": [
+        12.6,
+        7.3149999999999995,
+        -32.05500000000001
+      ],
+      "target": [
+        0,
+        7.7,
+        -1.255
+      ]
+    },
+    "playButtonVisible": true,
+    "t1MediaTime": 1.182202093460083,
+    "t2MediaTime": 4.16607208392334,
+    "t1WallNow": 4880,
+    "t2WallNow": 7863.199999988079,
+    "deltaWallSeconds": 2.983,
+    "deltaMediaSeconds": 2.984,
+    "playbackRatio": 1,
+    "passTiming": true,
+    "playerState": 1,
+    "isTheatreMode": false,
+    "t1Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\panoramic_wrap_trailer_t1.png",
+    "t2Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\panoramic_wrap_trailer_t2.png",
+    "testCardCenter": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\panoramic_wrap_testcard_center.png",
+    "testCardLeft": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\panoramic_wrap_testcard_left.png",
+    "testCardRight": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\panoramic_wrap_testcard_right.png"
+  },
+  {
+    "hallId": "4dx",
+    "hallName": "4DX Motion Effects Hall",
+    "registryType": "panoramic_wrap",
+    "movieTitle": "Clayface",
+    "youtubeId": "F1jCd_tMEDM",
+    "cinemaId": 1,
+    "audId": 3,
+    "showtimeId": 15,
+    "sceneDimensions": "32u x 15u",
+    "metricDimensions": "16m x 7.5m",
+    "sidePanelText": "2.133:1 Aspect (16m × 7.5m)",
+    "screenCenter": [
+      0,
+      8.7,
+      -1.255
+    ],
+    "dynamicCameras": {
+      "centerCam": [
+        0,
+        8.264999999999999,
+        -41.255
+      ],
+      "leftCam": [
+        -14.4,
+        8.264999999999999,
+        -36.455000000000005
+      ],
+      "rightCam": [
+        14.4,
+        8.264999999999999,
+        -36.455000000000005
+      ],
+      "target": [
+        0,
+        8.7,
+        -1.255
+      ]
+    },
+    "playButtonVisible": true,
+    "t1MediaTime": 1.770387015258789,
+    "t2MediaTime": 4.770044824523926,
+    "t1WallNow": 5247.0999999940395,
+    "t2WallNow": 8246.20000000298,
+    "deltaWallSeconds": 2.999,
+    "deltaMediaSeconds": 3,
+    "playbackRatio": 1,
+    "passTiming": true,
+    "playerState": 1,
+    "isTheatreMode": false,
+    "t1Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\4dx_trailer_t1.png",
+    "t2Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\4dx_trailer_t2.png",
+    "testCardCenter": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\4dx_testcard_center.png",
+    "testCardLeft": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\4dx_testcard_left.png",
+    "testCardRight": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\4dx_testcard_right.png"
+  },
+  {
+    "hallId": "motion_seat",
+    "hallName": "Dedicated Motion-Seat Arena",
+    "registryType": "panoramic_wrap",
+    "movieTitle": "Hope",
+    "youtubeId": "JNJ6luyhR2I",
+    "cinemaId": 6,
+    "audId": 19,
+    "showtimeId": 91,
+    "sceneDimensions": "32u x 15u",
+    "metricDimensions": "16m x 7.5m",
+    "sidePanelText": "2.133:1 Aspect (16m × 7.5m)",
+    "screenCenter": [
+      0,
+      8.7,
+      -1.255
+    ],
+    "dynamicCameras": {
+      "centerCam": [
+        0,
+        8.264999999999999,
+        -41.255
+      ],
+      "leftCam": [
+        -14.4,
+        8.264999999999999,
+        -36.455000000000005
+      ],
+      "rightCam": [
+        14.4,
+        8.264999999999999,
+        -36.455000000000005
+      ],
+      "target": [
+        0,
+        8.7,
+        -1.255
+      ]
+    },
+    "playButtonVisible": true,
+    "t1MediaTime": 0.3932831907348633,
+    "t2MediaTime": 3.3228769446868895,
+    "t1WallNow": 5678.399999991059,
+    "t2WallNow": 8589.29999999702,
+    "deltaWallSeconds": 2.911,
+    "deltaMediaSeconds": 2.93,
+    "playbackRatio": 1.006,
+    "passTiming": true,
+    "playerState": 1,
+    "isTheatreMode": false,
+    "t1Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\motion_seat_trailer_t1.png",
+    "t2Screenshot": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\motion_seat_trailer_t2.png",
+    "testCardCenter": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\motion_seat_testcard_center.png",
+    "testCardLeft": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\motion_seat_testcard_left.png",
+    "testCardRight": "D:\\projects\\CineVerse\\evidence\\hall-coverage-v2\\motion_seat_testcard_right.png"
+  }
+]

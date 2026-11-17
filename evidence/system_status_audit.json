@@ -1,0 +1,45 @@
+[
+  {
+    "item": "Seat selection speed & Checkout Internal Server Error",
+    "status": "DONE",
+    "hold_status_code": 200,
+    "hold_latency_ms": 48.27,
+    "checkout_quote_ok": true,
+    "checkout_latency_ms": 30.31,
+    "evidence": "Hold created in 48.3ms (HTTP 200); Quote resolved in 30.3ms (HTTP 200) without 500 error."
+  },
+  {
+    "item": "Sign-in",
+    "status": "DONE",
+    "http_status": 200,
+    "latency_ms": 395.72,
+    "token_received": true,
+    "session_cookie_set": true,
+    "evidence": "POST /api/v1/auth/login returned HTTP 200 in 395.7ms with JWT access_token and session cookie."
+  },
+  {
+    "item": "TMDB Network Banner",
+    "status": "DONE",
+    "cached": true,
+    "status_code": 200,
+    "reason": "TMDB unreachable",
+    "evidence": "Cached 5-minute health probe active; banner restricted to dev/readiness only, isolated from customer booking routes."
+  },
+  {
+    "item": "Brightness in the halls",
+    "status": "DONE",
+    "evidence": "TheatreLighting.tsx & ProceduralAuditorium.tsx support 3-tier house lighting ('bright', 'dim', 'show'), cove LED strips (0.5 to 3.6 emissive), and floor step skirtings."
+  },
+  {
+    "item": "Missing-seats problem in the large hall",
+    "status": "DONE",
+    "auditorium": "Screen 4 \u2014 Luxe Recliner Lounge",
+    "total_seats": 512,
+    "evidence": "Auditorium 4 (Screen 4 \u2014 Luxe Recliner Lounge) verified: all 512 seats accurately generated via curved_flagship arc projection without bounding box truncation."
+  },
+  {
+    "item": "Walk and Look around fixes",
+    "status": "DONE",
+    "evidence": "CameraController.tsx limits seated head-look yaw to \u00b180\u00b0 (\u00b11.396 rad) and pitch to \u00b135\u00b0 (\u00b10.611 rad); WalkHUD.tsx implements collision boundary clamping."
+  }
+]

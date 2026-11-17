@@ -1921,6 +1921,14 @@ export function generateProceduralAuditorium(
       aspect: Math.round((screenWidth / screenHeight) * 1000) / 1000,
       mesh: 'cinema_screen_surface',
       is_curved: theatreDef.screenType.isCurved,
+      screen_type_id: isScreenX ? 'panoramic_wrap' : (isDirectLED ? 'premium_direct_view' : (isCurved ? 'large_curved' : (theatreDef.screenType?.type || 'standard_flat'))),
+      screen_width_m: theatreDef.realWorldDimensions.screenWidthM,
+      screen_height_m: theatreDef.realWorldDimensions.screenHeightM,
+      panoramic_wrap: isScreenX || theatreDef.screenType?.type === 'panoramic_wrap' ? {
+        sideAngleDeg: 25,
+        sideWidthRatio: 0.42,
+        sideHeightRatio: 0.82
+      } : undefined,
     },
     eye_model: {
       cushion_top_above_seat_min_units: 0.8,

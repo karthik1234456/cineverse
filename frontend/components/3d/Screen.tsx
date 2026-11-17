@@ -93,10 +93,10 @@ export function CinemaScreen({
   // Deterministic Strategy Selection
   const isHostedVideo = Boolean(
     trailer.trailerUrl &&
-      (trailer.trailerUrl.endsWith('.mp4') ||
-        trailer.trailerUrl.endsWith('.webm') ||
-        trailer.trailerUrl.startsWith('/trailers/') ||
-        trailer.trailerUrl.includes('googleapis.com'))
+    (trailer.trailerUrl.endsWith('.mp4') ||
+      trailer.trailerUrl.endsWith('.webm') ||
+      trailer.trailerUrl.startsWith('/trailers/') ||
+      trailer.trailerUrl.includes('googleapis.com'))
   );
 
   const storeOverrideStrategy = useCinemaStore((s) => s.trailer.activeStrategy);
@@ -303,7 +303,7 @@ export function CinemaScreen({
     const prevOnReady = (window as any).onYouTubeIframeAPIReady;
     (window as any).onYouTubeIframeAPIReady = () => {
       if (typeof prevOnReady === 'function') {
-        try { prevOnReady(); } catch {}
+        try { prevOnReady(); } catch { }
       }
       if (isMounted) setYtApiLoaded(true);
     };
@@ -340,7 +340,7 @@ export function CinemaScreen({
             if (trailer.isPlaying) {
               try {
                 e.target.playVideo();
-              } catch {}
+              } catch { }
             } else {
               setTrailerPlaybackStatus('ready');
             }
@@ -407,7 +407,7 @@ export function CinemaScreen({
           ytPlayerRef.current.pauseVideo();
         }
       }
-    } catch {}
+    } catch { }
   }, [trailer.isPlaying, activeStrategy]);
 
   useEffect(() => {
@@ -418,7 +418,7 @@ export function CinemaScreen({
       } else if (!trailer.isMuted && typeof ytPlayerRef.current.unMute === 'function') {
         ytPlayerRef.current.unMute();
       }
-    } catch {}
+    } catch { }
   }, [trailer.isMuted, activeStrategy]);
 
   // User Gesture Handlers (§ Part D.1, D.3, D.4)
@@ -587,8 +587,8 @@ export function CinemaScreen({
   // Cut-out is true when YouTube CSS 3D is active, playing, and NOT in Theatre Mode!
   const isCutout = Boolean(
     activeStrategy === 'youtube_css3d' &&
-      trailer.isPlaying &&
-      !trailer.isTheatreMode
+    trailer.isPlaying &&
+    !trailer.isTheatreMode
   );
 
   // Dynamically control canvas background: transparent ONLY when cutout is active!
@@ -993,15 +993,15 @@ export function CinemaScreen({
         },
         video: videoRef.current
           ? {
-              src: videoRef.current.src,
-              readyState: videoRef.current.readyState,
-              paused: videoRef.current.paused,
-              currentTime: videoRef.current.currentTime,
-              duration: videoRef.current.duration || 0,
-              videoWidth: videoRef.current.videoWidth,
-              videoHeight: videoRef.current.videoHeight,
-              error: videoRef.current.error ? videoRef.current.error.message : null,
-            }
+            src: videoRef.current.src,
+            readyState: videoRef.current.readyState,
+            paused: videoRef.current.paused,
+            currentTime: videoRef.current.currentTime,
+            duration: videoRef.current.duration || 0,
+            videoWidth: videoRef.current.videoWidth,
+            videoHeight: videoRef.current.videoHeight,
+            error: videoRef.current.error ? videoRef.current.error.message : null,
+          }
           : undefined,
         motionProved: true,
         fps: currentFpsRef.current,
