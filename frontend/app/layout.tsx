@@ -35,6 +35,10 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
+        <link rel="preconnect" href="https://www.youtube-nocookie.com" />
+        <link rel="preconnect" href="https://i.ytimg.com" />
+        <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
+        <link rel="dns-prefetch" href="https://i.ytimg.com" />
       </head>
       <body className="bg-[#FFF8F1] text-[#1B1320] text-base antialiased min-h-screen flex flex-col font-sans">
         <QueryProvider>

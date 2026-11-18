@@ -404,12 +404,40 @@ export function computeRowXPositions(
   return xRel.map((xr) => Math.round((halfSpan - xr) * 1000) / 1000);
 }
 
+const _proceduralAuditoriumCache = new Map<string, ProceduralAuditoriumResult>();
+
+function getLayoutCacheKey(input: AuditoriumLayoutInput): string {
+  try {
+    return JSON.stringify({
+      rows: input.rows,
+      seats_per_row: input.seats_per_row,
+      aisles: input.aisles,
+      theatre_type: input.theatre_type,
+      screen_type: input.screen_type,
+      arrangement_pattern: input.arrangement_pattern,
+      blocks_pattern: input.blocks_pattern,
+      balcony_rows: input.balcony_rows,
+      recliner_pairs: input.recliner_pairs,
+      sofa_pairs: input.sofa_pairs,
+      row_definitions: input.row_definitions,
+      equipment_profile: input.equipment_profile,
+      documented_scale: input.documented_scale,
+    });
+  } catch {
+    return '';
+  }
+}
+
 /**
  * Procedurally generates the full 3D auditorium from layout data.
  */
 export function generateProceduralAuditorium(
   input: AuditoriumLayoutInput
 ): ProceduralAuditoriumResult {
+  const cacheKey = getLayoutCacheKey(input);
+  if (cacheKey && _proceduralAuditoriumCache.has(cacheKey)) {
+    return _proceduralAuditoriumCache.get(cacheKey)!;
+  }
   const rows: string[] = Array.isArray(input.rows)
     ? (input.rows.length > 0 ? input.rows : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
     : typeof input.rows === 'number'
@@ -2082,10 +2110,16 @@ export function generateProceduralAuditorium(
     cameraPresets,
   };
 
-  return {
+  const result: ProceduralAuditoriumResult = {
     seatLayout,
     walkNav,
     geometry,
   };
+
+  if (cacheKey) {
+    _proceduralAuditoriumCache.set(cacheKey, result);
+  }
+
+  return result;
 }
 

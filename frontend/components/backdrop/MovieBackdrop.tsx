@@ -178,6 +178,8 @@ export function MovieBackdrop() {
 
   const [r, g, b] = hexToRgb(displayedMovie?.dominant_color);
 
+  // Part B Requirement: Stop and unmount background video and blur on the 3D route (one media element rule)
+  if (isPausedBy3D) return null;
   if (!displayedMovie && !visible) return null;
 
   return (

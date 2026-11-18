@@ -1,0 +1,92 @@
+{
+  "buildType": "development",
+  "hasOtherTabs": true,
+  "pageLoadMs": 1296,
+  "topCosts": [
+    {
+      "category": "Scripting (V8 / JS Execution)",
+      "timeMs": 9748
+    },
+    {
+      "category": "GPU Tasks & WebGL Raster",
+      "timeMs": 354
+    },
+    {
+      "category": "Layout Reflow",
+      "timeMs": 347
+    },
+    {
+      "category": "Style Recalculation (CSS)",
+      "timeMs": 334
+    },
+    {
+      "category": "Paint & Rasterization",
+      "timeMs": 82
+    },
+    {
+      "category": "Compositing Layers",
+      "timeMs": 0
+    }
+  ],
+  "longTasksCount": 11,
+  "longestTaskMs": 4074,
+  "mainThreadBlockingTimeMs": 4662,
+  "inputLatencyINPMs": 300,
+  "avgFPS": 11,
+  "fpsSamples": [
+    60,
+    2,
+    7,
+    9,
+    8,
+    8,
+    9,
+    8,
+    11,
+    10,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9,
+    9
+  ],
+  "canvasesCount": 1,
+  "iframesCount": 1,
+  "iframes": [
+    {
+      "id": "cineverse-screen-yt-iframe",
+      "src": "https://www.youtube-nocookie.com/embed/5QwNaYwslzE?enablejsapi=1&autoplay=1&mute=0&controls=1&loop=1&playlist=5QwNaYwslzE&playsinline=1&origin=http%3A%2F%2Flocalhost%3A3002&widget_referrer=http%3A%2F%2Flocalhost%3A3002%2Fcinemas%2F23%2Fauditorium%2F74%3Fshowtime%3D2048%26mode%3D3d",
+      "width": 1280,
+      "height": 600
+    }
+  ],
+  "videoElementsCount": 1,
+  "videos": [
+    {
+      "id": "",
+      "src": "http://localhost:3002/trailers/glimpses/the-social-reckoning-1281331-480p.mp4",
+      "muted": true,
+      "paused": true,
+      "currentTime": 0
+    }
+  ],
+  "bgVideoRunning": true,
+  "bgBlurRunning": true,
+  "audioBeforePlayDetected": false,
+  "audioBeforePlayDetails": [],
+  "statusBadgeText": "Loading...",
+  "heapGrowthPct": "13.4%",
+  "startHeapMB": "102.8",
+  "endHeapMB": "116.5"
+}

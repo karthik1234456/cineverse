@@ -5,7 +5,7 @@ import os
 import re
 import subprocess
 from datetime import datetime, date, timedelta, time
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 import httpx
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, func, insert
@@ -94,29 +94,61 @@ def record_tmdb_sync_time() -> str:
     return _LAST_SYNC_TIMESTAMP
 
 
+def check_youtube_video_details(video_key: str) -> Tuple[bool, bool, int, int, str]:
+    """
+    Probes YouTube for embeddability, Shorts status, and aspect ratio.
+    Returns: (is_embeddable, is_short, width, height, title)
+    """
+    if not video_key:
+        return False, False, 0, 0, ""
+
+    is_short = False
+    try:
+        cmd_short = [
+            "curl.exe" if os.name == "nt" else "curl",
+            "-4", "-s", "-I",
+            "--max-time", "1.5",
+            f"https://www.youtube.com/shorts/{video_key}",
+        ]
+        res_short = subprocess.run(cmd_short, capture_output=True, text=True, timeout=2.0)
+        if "HTTP/1.1 200" in res_short.stdout or "HTTP/2 200" in res_short.stdout:
+            is_short = True
+    except Exception:
+        pass
+
+    is_embeddable = False
+    w = 0
+    h = 0
+    title = ""
+    try:
+        url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_key}&format=json"
+        cmd_oembed = [
+            "curl.exe" if os.name == "nt" else "curl",
+            "-4", "-s",
+            "--max-time", "2.0",
+            url,
+        ]
+        res_oembed = subprocess.run(cmd_oembed, capture_output=True, text=True, timeout=2.5)
+        text = res_oembed.stdout.strip()
+        if text.startswith("{"):
+            data = json.loads(text)
+            is_embeddable = True
+            w = int(data.get("width", 0))
+            h = int(data.get("height", 0))
+            title = data.get("title", "")
+    except Exception:
+        pass
+
+    return is_embeddable, is_short, w, h, title
+
+
 def check_youtube_embeddable(video_key: str) -> bool:
     """
     Checks if a YouTube video allows embedding by probing YouTube's public oEmbed endpoint.
     Returns True if HTTP 200, False if embedding disabled (HTTP 401/403/404) or on network error.
     """
-    if not video_key:
-        return False
-    try:
-        url = f"https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v={video_key}&format=json"
-        cmd = [
-            "curl.exe" if os.name == "nt" else "curl",
-            "-4",
-            "-s",
-            "-o", "NUL" if os.name == "nt" else "/dev/null",
-            "-w", "%{http_code}",
-            "--max-time", "2.0",
-            url,
-        ]
-        res = subprocess.run(cmd, capture_output=True, text=True, timeout=2.5)
-        return res.stdout.strip() == "200"
-    except Exception as e:
-        logger.debug(f"oEmbed check failed for {video_key}: {e}")
-        return False
+    is_emb, is_sh, w, h, _ = check_youtube_video_details(video_key)
+    return is_emb and not is_sh and (w >= h if (w > 0 and h > 0) else True)
 
 
 def _execute_tmdb_curl(
@@ -391,6 +423,9 @@ class TMDBCatalogProvider(CatalogProvider):
             logger.warning("TMDB key or token is not configured in environment. Checking local sync cache.")
             return await self._load_from_fallback_cache(db, skip_showtimes=skip_showtimes)
 
+        # Always sync all curated catalog movies from disk cache to ensure all existing titles (including The Social Reckoning) are up-to-date with strict trailer selection
+        await self._load_from_fallback_cache(db, skip_showtimes=True)
+
         target_langs = languages or INDIAN_DISCOVERY_LANGUAGES
         synced_movies: List[str] = []
         collected_tmdb_ids = set()
@@ -464,10 +499,22 @@ class TMDBCatalogProvider(CatalogProvider):
                 synced_movies.append(movie_rec.title)
                 cached_export_list.append(det_data)
 
-        # Save to disk cache for offline tolerance
+        # Save to disk cache for offline tolerance (merge with existing cache to preserve all curated titles)
         try:
+            existing_cache_map = {}
+            if os.path.exists(CACHE_FILE_PATH):
+                try:
+                    with open(CACHE_FILE_PATH, "r", encoding="utf-8") as f:
+                        old_items = json.load(f)
+                    if isinstance(old_items, list):
+                        existing_cache_map = {item.get("id"): item for item in old_items if item.get("id")}
+                except Exception:
+                    pass
+            for item in cached_export_list:
+                if item and item.get("id"):
+                    existing_cache_map[item["id"]] = item
             with open(CACHE_FILE_PATH, "w", encoding="utf-8") as f:
-                json.dump(cached_export_list, f, indent=2, ensure_ascii=False)
+                json.dump(list(existing_cache_map.values()), f, indent=2, ensure_ascii=False)
             record_tmdb_sync_time()
         except Exception as e:
             logger.warning(f"Could not persist TMDB cache: {e}")
@@ -597,12 +644,11 @@ class TMDBCatalogProvider(CatalogProvider):
             else (f"https://image.tmdb.org/t/p/w1280{poster_path}" if poster_path else "/backdrops/quantum-odyssey.webp")
         )
 
-        # Extract YouTube trailer with embeddability verification (§ Requirement 3)
+        # Extract YouTube trailer with strict verification (§ Part D)
+        # Prefer TMDB entries of type Trailer & marked official, 16:9 landscape, embeddable, plausible duration; then Teaser; never a Short
         raw_videos = data.get("videos", {}).get("results", [])
         yt_candidates = [v for v in raw_videos if v.get("site") == "YouTube" and v.get("key")]
 
-        # Candidate priority:
-        # 0: Official Trailer, 1: Any Trailer, 2: Official Teaser, 3: Any Teaser, 4: Other
         def _candidate_priority(v):
             v_type = v.get("type", "")
             is_off = bool(v.get("official", False))
@@ -614,26 +660,43 @@ class TMDBCatalogProvider(CatalogProvider):
                 return 2
             if v_type == "Teaser":
                 return 3
-            return 4
+            return 99
 
-        sorted_candidates = sorted(yt_candidates, key=_candidate_priority)
+        eligible_candidates = [v for v in yt_candidates if _candidate_priority(v) < 99]
+        sorted_candidates = sorted(eligible_candidates, key=_candidate_priority)
 
         youtube_key = None
         trailer_embeddable = False
+        trailer_reason = None
 
         for cand in sorted_candidates:
             key = cand.get("key")
-            if check_youtube_embeddable(key):
-                youtube_key = key
-                trailer_embeddable = True
-                break
+            name = cand.get("name", "")
+            if "#short" in name.lower() or "short" in name.lower():
+                continue
 
-        # Fallback to top candidate if none passed oEmbed check
-        if not youtube_key and sorted_candidates:
-            youtube_key = sorted_candidates[0].get("key")
+            is_emb, is_sh, w, h, yt_title = check_youtube_video_details(key)
+            if is_sh:
+                continue
+            if not is_emb:
+                continue
+            if h > 0 and w > 0 and h >= w:
+                continue
+
+            youtube_key = key
+            trailer_embeddable = True
+            v_type = cand.get("type", "Trailer")
+            is_off = cand.get("official", False)
+            trailer_reason = f"{'Official' if is_off else 'Public'} 16:9 {v_type} ({w}x{h}) — oEmbed 200 OK: '{yt_title or name}'"
+            break
+
+        if not youtube_key:
+            trailer_url = None
+            youtube_key = None
             trailer_embeddable = False
-
-        trailer_url = f"https://www.youtube-nocookie.com/embed/{youtube_key}" if youtube_key else None
+            trailer_reason = "No qualifying 16:9 landscape embeddable trailer found; using Title Card"
+        else:
+            trailer_url = f"https://www.youtube-nocookie.com/embed/{youtube_key}"
 
         # Extract Indian certification (CBFC)
         cert = "UA"
@@ -707,6 +770,7 @@ class TMDBCatalogProvider(CatalogProvider):
                 source="tmdb",
                 youtube_trailer_id=youtube_key,
                 trailer_embeddable=trailer_embeddable,
+                trailer_reason=trailer_reason,
                 dominant_color="#1B1320",
             )
             db.add(movie)
@@ -716,8 +780,7 @@ class TMDBCatalogProvider(CatalogProvider):
             movie.synopsis = overview
             movie.poster_url = poster_url
             movie.banner_url = banner_url
-            if trailer_url:
-                movie.trailer_url = trailer_url
+            movie.trailer_url = trailer_url
             movie.rating_avg = vote_avg
             movie.rating_count = vote_count
             movie.tmdb_vote_average = vote_avg
@@ -727,6 +790,7 @@ class TMDBCatalogProvider(CatalogProvider):
             movie.source = "tmdb"
             movie.youtube_trailer_id = youtube_key
             movie.trailer_embeddable = trailer_embeddable
+            movie.trailer_reason = trailer_reason
             movie.languages = all_langs
 
         # Cast members

@@ -253,6 +253,8 @@ async def get_movie(id_or_slug: str, db: AsyncSession = Depends(get_db)):
         is_showcase=movie.is_showcase,
         source=movie.source,
         youtube_trailer_id=movie.youtube_trailer_id,
+        trailer_embeddable=bool(getattr(movie, "trailer_embeddable", False)),
+        trailer_reason=getattr(movie, "trailer_reason", None),
         cast_members=movie.cast_members or [],
         reviews=review_responses
     )

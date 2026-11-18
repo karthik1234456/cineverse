@@ -81,6 +81,7 @@ class MovieResponse(BaseModel):
     source: Optional[str] = "tmdb"
     youtube_trailer_id: Optional[str] = None
     trailer_embeddable: Optional[bool] = False
+    trailer_reason: Optional[str] = None
 
     class Config:
         from_attributes = True

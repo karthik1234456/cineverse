@@ -202,6 +202,7 @@ async def get_showtime_seats(
         trailer_url=showtime.movie.trailer_url if showtime.movie else None,
         trailer_embeddable=bool(showtime.movie.trailer_embeddable) if showtime.movie else False,
         youtube_trailer_id=showtime.movie.youtube_trailer_id if showtime.movie else None,
+        trailer_reason=getattr(showtime.movie, 'trailer_reason', None) if showtime.movie else None,
         poster_url=showtime.movie.poster_url if showtime.movie else None,
         banner_url=showtime.movie.banner_url if showtime.movie else None,
         dominant_color=showtime.movie.dominant_color if showtime.movie else None,

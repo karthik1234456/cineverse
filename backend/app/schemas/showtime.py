@@ -91,6 +91,7 @@ class ShowtimeSeatsResponse(BaseModel):
     trailer_url: Optional[str] = None
     trailer_embeddable: Optional[bool] = False
     youtube_trailer_id: Optional[str] = None
+    trailer_reason: Optional[str] = None
     poster_url: Optional[str] = None
     banner_url: Optional[str] = None
     dominant_color: Optional[str] = None

@@ -2,7 +2,7 @@
 
 import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
+import { CameraGuardedCSS3D } from './CameraGuardedCSS3D';
 import { Play } from 'lucide-react';
 import * as THREE from 'three';
 import { useCinemaStore, ScreenStrategy, TrailerPlaybackStatus } from '@/store/useCinemaStore';
@@ -606,6 +606,254 @@ export function CinemaScreen({
     };
   }, [isCutout, gl, scene]);
 
+  
+  // Render static 2D canvas once on mount/data change instead of every frame (§ Part B)
+  const renderTitleCardCanvas = useCallback(() => {
+    if (!canvas || !fallbackTextureRef.current) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+
+    if (trailer.isTheatreMode) {
+      if (backdropImgRef.current) {
+        ctx.drawImage(backdropImgRef.current, 0, 0, w, h);
+      } else if (posterImgRef.current) {
+        ctx.drawImage(posterImgRef.current, 0, 0, w, h);
+      } else {
+        ctx.fillStyle = '#0f1420';
+        ctx.fillRect(0, 0, w, h);
+      }
+      ctx.fillStyle = 'rgba(10, 14, 24, 0.75)';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.save();
+      ctx.textAlign = 'center';
+
+      ctx.fillStyle = 'rgba(225, 29, 72, 0.25)';
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2 - 25, 50, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#e11d48';
+      ctx.beginPath();
+      ctx.arc(w / 2, h / 2 - 25, 38, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 30px sans-serif';
+      ctx.fillText('▶', w / 2 + 2, h / 2 - 14);
+
+      ctx.font = 'bold 34px "Cinzel", "Times New Roman", serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+      ctx.shadowBlur = 12;
+      ctx.fillText((trailer.movieTitle || 'NOW SHOWING').toUpperCase(), w / 2, h / 2 + 50);
+
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText('PLAYING IN THEATRE MODE', w / 2, h / 2 + 85);
+      ctx.restore();
+    } else if (activeStrategy === 'test_card' || overrideMode === 'test_card') {
+      ctx.fillStyle = '#080d1a';
+      ctx.fillRect(0, 0, w, h);
+
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < w; x += 64) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y < h; y += 64) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      ctx.fillStyle = '#06b6d4';
+      ctx.fillRect(32, 32, 200, 85);
+      ctx.fillStyle = '#042f2e';
+      ctx.font = '900 30px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('[LEFT]', 132, 85);
+
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(w - 232, 32, 200, 85);
+      ctx.fillStyle = '#422006';
+      ctx.font = '900 30px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('[RIGHT]', w - 132, 85);
+
+      ctx.fillStyle = '#10b981';
+      ctx.fillRect(w / 2 - 100, 16, 200, 48);
+      ctx.fillStyle = '#022c22';
+      ctx.font = '900 20px sans-serif';
+      ctx.fillText('[TOP / UP]', w / 2, 48);
+
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillRect(w / 2 - 100, h - 64, 200, 48);
+      ctx.fillStyle = '#4c0519';
+      ctx.fillText('[BOTTOM / DOWN]', w / 2, h - 32);
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(w / 2 - 40, h / 2);
+      ctx.lineTo(w / 2 + 40, h / 2);
+      ctx.moveTo(w / 2, h / 2 - 40);
+      ctx.lineTo(w / 2, h / 2 + 40);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.fillText('ORIENTATION & ALIGNMENT TEST CARD', w / 2, h / 2 - 60);
+      ctx.font = '14px monospace';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(`Screen: ${screenWidth.toFixed(2)}m x ${screenHeight.toFixed(2)}m | Center: [${screenCenter.map((v) => v.toFixed(2)).join(', ')}]`, w / 2, h / 2 + 70);
+    } else {
+      const bgGrad = ctx.createLinearGradient(0, 0, w, h);
+      bgGrad.addColorStop(0, '#162238');
+      bgGrad.addColorStop(0.5, '#253554');
+      bgGrad.addColorStop(1, '#18243a');
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, w, h);
+
+      const posterW = 210;
+      const posterH = 310;
+      const posterX = 64;
+      const posterY = (h - posterH) / 2;
+
+      if (posterImgRef.current) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+        ctx.shadowBlur = 24;
+        ctx.shadowOffsetX = 4;
+        ctx.shadowOffsetY = 8;
+        ctx.drawImage(posterImgRef.current, posterX, posterY, posterW, posterH);
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(posterX, posterY, posterW, posterH);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(posterX, posterY, posterW, posterH);
+        ctx.strokeStyle = '#38bdf8';
+        ctx.strokeRect(posterX, posterY, posterW, posterH);
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('POSTER', posterX + posterW / 2, posterY + posterH / 2);
+      }
+
+      const textX = 320;
+      ctx.save();
+      ctx.textAlign = 'left';
+
+      const badgeText = 'NOW SHOWING  •  EXPERIENCE IN 3D';
+      ctx.font = 'bold 14px sans-serif';
+      const badgeMetrics = ctx.measureText(badgeText);
+      const badgeW = badgeMetrics.width + 24;
+      const badgeY = posterY + 12;
+
+      ctx.fillStyle = 'rgba(200, 16, 46, 0.25)';
+      ctx.fillRect(textX, badgeY, badgeW, 26);
+      ctx.strokeStyle = '#C8102E';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(textX, badgeY, badgeW, 26);
+
+      ctx.fillStyle = '#fca5a5';
+      ctx.fillText(badgeText, textX + 12, badgeY + 18);
+
+      ctx.font = 'bold 42px "Cinzel", "Times New Roman", serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = 'rgba(56, 189, 248, 0.4)';
+      ctx.shadowBlur = 12;
+      const title = (trailer.movieTitle || 'QUANTUM ODYSSEY').toUpperCase();
+      if (title.length > 25) {
+        ctx.font = 'bold 30px "Cinzel", "Times New Roman", serif';
+      }
+      ctx.fillText(title, textX, badgeY + 70);
+
+      ctx.shadowBlur = 0;
+      ctx.font = '600 16px sans-serif';
+      ctx.fillStyle = '#94a3b8';
+      const formatLabel = screenConfig?.screen_type_name || 'IMAX Laser • Dolby Atmos • Precision Sightlines';
+      ctx.fillText(formatLabel, textX, badgeY + 115);
+
+      ctx.font = '500 14px sans-serif';
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText('Synchronized 3D Acoustics & House Lighting Active', textX, badgeY + 148);
+
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = 'bold 13px sans-serif';
+      ctx.fillText('Press "Play trailer" on the screen for the full theatrical trailer', textX, badgeY + 186);
+
+      ctx.restore();
+    }
+
+    fallbackTextureRef.current.needsUpdate = true;
+  }, [canvas, trailer.isTheatreMode, activeStrategy, overrideMode, screenWidth, screenHeight, screenCenter, trailer.movieTitle, screenConfig]);
+
+  useEffect(() => {
+    renderTitleCardCanvas();
+  }, [renderTitleCardCanvas, assetsLoaded]);
+
+  // Player polling at at most 4 times per second (250ms) (§ Part B, C)
+  useEffect(() => {
+    if (activeStrategy !== 'youtube_css3d' || !trailer.isPlaying || trailer.isTheatreMode) {
+      return;
+    }
+    const timer = setInterval(() => {
+      if (!ytPlayerRef.current) return;
+      try {
+        const state = typeof ytPlayerRef.current.getPlayerState === 'function' ? ytPlayerRef.current.getPlayerState() : -1;
+        const curTime = typeof ytPlayerRef.current.getCurrentTime === 'function' ? ytPlayerRef.current.getCurrentTime() : -1;
+        setYoutubePlayerState(state);
+
+        if (state === 1 && curTime > 0.05) {
+          if (trailer.playbackStatus !== 'playing') {
+            setTrailerPlaybackStatus('playing');
+          }
+          setYoutubeVerifiedPlaying(true);
+          verifiedAdvancingRef.current = true;
+          if (watchdogTimeoutRef.current) {
+            clearTimeout(watchdogTimeoutRef.current);
+            watchdogTimeoutRef.current = null;
+          }
+        } else if (state === 2 && trailer.playbackStatus === 'playing') {
+          setTrailerPlaybackStatus('paused');
+        } else if (state === 3 && trailer.playbackStatus !== 'loading') {
+          setTrailerPlaybackStatus('loading');
+        }
+      } catch {}
+    }, 250);
+
+    return () => clearInterval(timer);
+  }, [activeStrategy, trailer.isPlaying, trailer.isTheatreMode, trailer.playbackStatus, setTrailerPlaybackStatus]);
+
+  // Clean destruction of player and textures on unmount (§ Part B)
+  useEffect(() => {
+    return () => {
+      if (watchdogTimeoutRef.current) {
+        clearTimeout(watchdogTimeoutRef.current);
+        watchdogTimeoutRef.current = null;
+      }
+      try {
+        ytPlayerRef.current?.destroy?.();
+      } catch {}
+      ytPlayerRef.current = null;
+      videoTextureRef.current?.dispose();
+      fallbackTextureRef.current?.dispose();
+    };
+  }, []);
+
+  const lastTelemetryTimeRef = useRef<number>(0);
+
   useFrame(({ clock, invalidate }) => {
     frameCountRef.current++;
     const now = clock.getElapsedTime();
@@ -615,336 +863,17 @@ export function CinemaScreen({
       lastFpsTimeRef.current = now;
     }
 
-    // 1. Playback Time Advancement Verification & Watchdog Correction (Requirement 2)
-    const perfNow = performance.now();
-    if (perfNow - lastAdvanceCheckRef.current.timestamp >= 1000) {
-      let currentTime = -1;
-      let isAdvancing = false;
-
-      if (activeStrategy === 'video_texture' && videoRef.current) {
-        const vid = videoRef.current;
-        currentTime = vid.currentTime;
-        const delta = currentTime - lastAdvanceCheckRef.current.time;
-
-        if (vid.error) {
-          setTrailerPlaybackStatus('unavailable');
-          verifiedAdvancingRef.current = false;
-        } else if (vid.paused) {
-          if (trailer.isPlaying && trailer.playbackStatus === 'playing') {
-            setTrailerPlaybackStatus('paused');
-          }
-          verifiedAdvancingRef.current = false;
-        } else if (lastAdvanceCheckRef.current.time >= 0 && delta > 0.04) {
-          isAdvancing = true;
-          verifiedAdvancingRef.current = true;
-          if (trailer.playbackStatus !== 'playing') {
-            setTrailerPlaybackStatus('playing');
-          }
-        } else if (trailer.isPlaying && trailer.playbackStatus === 'playing' && delta <= 0.04) {
-          // One-second watchdog correction: media clock failed to advance over 1.0s
-          verifiedAdvancingRef.current = false;
-          if (vid.readyState < 3) {
-            setTrailerPlaybackStatus('loading');
-          } else {
-            setTrailerPlaybackStatus('loading');
-          }
-        }
-      } else if (
-        activeStrategy === 'youtube_css3d' &&
-        ytPlayerRef.current &&
-        typeof ytPlayerRef.current.getCurrentTime === 'function'
-      ) {
-        try {
-          currentTime = ytPlayerRef.current.getCurrentTime();
-          const state = ytPlayerRef.current.getPlayerState();
-          const delta = currentTime - lastAdvanceCheckRef.current.time;
-          if (lastAdvanceCheckRef.current.time >= 0 && state === 1 && delta > 0.04) {
-            isAdvancing = true;
-            verifiedAdvancingRef.current = true;
-            setYoutubeVerifiedPlaying(true);
-            if (trailer.playbackStatus !== 'playing') {
-              setTrailerPlaybackStatus('playing');
-            }
-          } else if (trailer.isPlaying && trailer.playbackStatus === 'playing' && delta <= 0.04) {
-            // One-second watchdog correction: YouTube stopped advancing
-            verifiedAdvancingRef.current = false;
-            if (state === 2) {
-              setTrailerPlaybackStatus('paused');
-            } else if (state === 3) {
-              setTrailerPlaybackStatus('loading');
-            } else {
-              setTrailerPlaybackStatus('loading');
-            }
-          }
-        } catch {
-          // ignore
-        }
-      }
-
-      lastAdvanceCheckRef.current = { time: currentTime, timestamp: perfNow };
-    }
-
-    // 2. Video Texture Update (Mode B)
+    // 1. Video Texture Update (only when video frame advances)
     if (activeStrategy === 'video_texture') {
       const vid = videoRef.current;
-      if (vid && (vid.currentTime > 0 || vid.readyState >= 2)) {
-        if (vid.currentTime !== lastVideoTime.current) {
-          lastVideoTime.current = vid.currentTime;
-          if (videoTextureRef.current) {
-            videoTextureRef.current.needsUpdate = true;
-          }
+      if (vid && !vid.paused && vid.currentTime !== lastVideoTime.current) {
+        lastVideoTime.current = vid.currentTime;
+        if (videoTextureRef.current) {
+          videoTextureRef.current.needsUpdate = true;
         }
         invalidate();
       }
     }
-
-    // 3. Dynamic 2D Canvas Textures (Idle, Title Card, Theatre Mode, or Backdrop Motion)
-    if (!isCutout && activeStrategy !== 'solid_color') {
-      if (!canvas || !fallbackTextureRef.current) return;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      const t = clock.getElapsedTime();
-      const w = canvas.width;
-      const h = canvas.height;
-
-      if (trailer.isTheatreMode) {
-        // Theatre Mode Canvas Background on 3D Screen:
-        if (backdropImgRef.current) {
-          ctx.drawImage(backdropImgRef.current, 0, 0, w, h);
-        } else if (posterImgRef.current) {
-          ctx.drawImage(posterImgRef.current, 0, 0, w, h);
-        } else {
-          ctx.fillStyle = '#0f1420';
-          ctx.fillRect(0, 0, w, h);
-        }
-        ctx.fillStyle = 'rgba(10, 14, 24, 0.75)';
-        ctx.fillRect(0, 0, w, h);
-
-        ctx.save();
-        ctx.textAlign = 'center';
-
-        // Glowing center visualizer circle
-        const pulse = Math.sin(t * 3) * 6;
-        ctx.fillStyle = 'rgba(225, 29, 72, 0.25)';
-        ctx.beginPath();
-        ctx.arc(w / 2, h / 2 - 25, 50 + pulse, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#e11d48';
-        ctx.beginPath();
-        ctx.arc(w / 2, h / 2 - 25, 38, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 30px sans-serif';
-        ctx.fillText('▶', w / 2 + 2, h / 2 - 14);
-
-        ctx.font = 'bold 34px "Cinzel", "Times New Roman", serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
-        ctx.shadowBlur = 12;
-        ctx.fillText((trailer.movieTitle || 'NOW SHOWING').toUpperCase(), w / 2, h / 2 + 50);
-
-        ctx.font = 'bold 16px sans-serif';
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillText('PLAYING IN THEATRE MODE', w / 2, h / 2 + 85);
-        ctx.restore();
-      } else if (activeStrategy === 'test_card' || overrideMode === 'test_card') {
-        // Mode F: High-Precision Orientation & Alignment Test Card (Requirement 1)
-        ctx.fillStyle = '#080d1a';
-        ctx.fillRect(0, 0, w, h);
-
-        // Alignment grid lines
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
-        ctx.lineWidth = 1;
-        for (let x = 0; x < w; x += 64) {
-          ctx.beginPath();
-          ctx.moveTo(x, 0);
-          ctx.lineTo(x, h);
-          ctx.stroke();
-        }
-        for (let y = 0; y < h; y += 64) {
-          ctx.beginPath();
-          ctx.moveTo(0, y);
-          ctx.lineTo(w, y);
-          ctx.stroke();
-        }
-
-        // Left Cyan Marker Block (Audience Left / World -X)
-        ctx.fillStyle = '#06b6d4';
-        ctx.fillRect(32, 32, 200, 85);
-        ctx.fillStyle = '#042f2e';
-        ctx.font = '900 30px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('[LEFT]', 132, 85);
-
-        // Right Yellow Marker Block (Audience Right / World +X)
-        ctx.fillStyle = '#eab308';
-        ctx.fillRect(w - 232, 32, 200, 85);
-        ctx.fillStyle = '#422006';
-        ctx.font = '900 30px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('[RIGHT]', w - 132, 85);
-
-        // Top & Bottom markers
-        ctx.fillStyle = '#94a3b8';
-        ctx.font = 'bold 18px sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText('TOP ▲', w / 2, 45);
-        ctx.fillText('BOTTOM ▼', w / 2, h - 95);
-
-        // Main Directional Header & Arrow
-        ctx.save();
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#ffffff';
-        ctx.font = 'bold 36px "Cinzel", "Times New Roman", serif';
-        ctx.fillText('CINEVERSE 3D TEST CARD', w / 2, h / 2 - 40);
-
-        ctx.font = '900 34px sans-serif';
-        ctx.fillStyle = '#10b981';
-        ctx.fillText('===> RIGHT ARROW ===>', w / 2, h / 2 + 15);
-
-        ctx.font = 'bold 22px sans-serif';
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillText('ORIENTATION: NORMAL (UNMIRRORED)', w / 2, h / 2 + 65);
-        ctx.restore();
-
-        // SMPTE Standard Color Bars
-        const barH = 45;
-        const barY = h - 65;
-        const colors = ['#ffffff', '#eab308', '#06b6d4', '#22c55e', '#ec4899', '#ef4444', '#3b82f6'];
-        const barW = (w - 64) / colors.length;
-        colors.forEach((col, idx) => {
-          ctx.fillStyle = col;
-          ctx.fillRect(32 + idx * barW, barY, barW, barH);
-        });
-      } else if (activeStrategy === 'backdrop_motion' && backdropImgRef.current) {
-        // Mode C: Ken Burns pan & zoom on backdrop
-        const scale = 1.05 + Math.sin(t * 0.12) * 0.04;
-        const panX = Math.sin(t * 0.08) * (w * 0.025);
-        const panY = Math.cos(t * 0.10) * (h * 0.015);
-
-        ctx.drawImage(
-          backdropImgRef.current,
-          -w * 0.025 + panX,
-          -h * 0.025 + panY,
-          w * 1.05 * scale,
-          h * 1.05 * scale
-        );
-
-        const vigGrad = ctx.createRadialGradient(w / 2, h / 2, w * 0.25, w / 2, h / 2, w * 0.72);
-        vigGrad.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        vigGrad.addColorStop(1, 'rgba(0, 0, 0, 0.65)');
-        ctx.fillStyle = vigGrad;
-        ctx.fillRect(0, 0, w, h);
-
-        ctx.save();
-        ctx.textAlign = 'center';
-        ctx.font = 'bold 36px "Cinzel", "Times New Roman", serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = 'rgba(0,0,0,0.8)';
-        ctx.shadowBlur = 10;
-        ctx.fillText((trailer.movieTitle || 'NOW SHOWING').toUpperCase(), w / 2, h * 0.88);
-        ctx.restore();
-      } else {
-        // Mode E or Idle Screen (Guaranteed Never Empty)
-        const bgGrad = ctx.createLinearGradient(0, 0, w, h);
-        bgGrad.addColorStop(0, '#162238');
-        bgGrad.addColorStop(0.5, '#253554');
-        bgGrad.addColorStop(1, '#18243a');
-        ctx.fillStyle = bgGrad;
-        ctx.fillRect(0, 0, w, h);
-
-        const posterW = 210;
-        const posterH = 310;
-        const posterX = 64;
-        const posterY = (h - posterH) / 2;
-
-        if (posterImgRef.current) {
-          ctx.save();
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
-          ctx.shadowBlur = 24;
-          ctx.shadowOffsetX = 4;
-          ctx.shadowOffsetY = 8;
-          ctx.drawImage(posterImgRef.current, posterX, posterY, posterW, posterH);
-
-          ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
-          ctx.lineWidth = 2;
-          ctx.strokeRect(posterX, posterY, posterW, posterH);
-          ctx.restore();
-        } else {
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(posterX, posterY, posterW, posterH);
-          ctx.strokeStyle = '#38bdf8';
-          ctx.strokeRect(posterX, posterY, posterW, posterH);
-          ctx.fillStyle = '#94a3b8';
-          ctx.font = 'bold 16px sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText('POSTER', posterX + posterW / 2, posterY + posterH / 2);
-        }
-
-        const textX = 320;
-        ctx.save();
-        ctx.textAlign = 'left';
-
-        const badgeText = 'NOW SHOWING  •  EXPERIENCE IN 3D';
-        ctx.font = 'bold 14px sans-serif';
-        const badgeMetrics = ctx.measureText(badgeText);
-        const badgeW = badgeMetrics.width + 24;
-        const badgeY = posterY + 12;
-
-        ctx.fillStyle = 'rgba(200, 16, 46, 0.25)';
-        ctx.fillRect(textX, badgeY, badgeW, 26);
-        ctx.strokeStyle = '#C8102E';
-        ctx.lineWidth = 1.5;
-        ctx.strokeRect(textX, badgeY, badgeW, 26);
-
-        ctx.fillStyle = '#fca5a5';
-        ctx.fillText(badgeText, textX + 12, badgeY + 18);
-
-        ctx.font = 'bold 42px "Cinzel", "Times New Roman", serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = 'rgba(56, 189, 248, 0.4)';
-        ctx.shadowBlur = 12;
-        const title = (trailer.movieTitle || 'QUANTUM ODYSSEY').toUpperCase();
-        if (title.length > 25) {
-          ctx.font = 'bold 30px "Cinzel", "Times New Roman", serif';
-        }
-        ctx.fillText(title, textX, badgeY + 70);
-
-        ctx.shadowBlur = 0;
-        ctx.font = '600 16px sans-serif';
-        ctx.fillStyle = '#94a3b8';
-        const formatLabel = screenConfig?.screen_type_name || 'IMAX Laser • Dolby Atmos • Precision Sightlines';
-        ctx.fillText(formatLabel, textX, badgeY + 115);
-
-        ctx.font = '500 14px sans-serif';
-        ctx.fillStyle = '#38bdf8';
-        ctx.fillText('Synchronized 3D Acoustics & House Lighting Active', textX, badgeY + 148);
-
-        ctx.fillStyle = '#e2e8f0';
-        ctx.font = 'bold 13px sans-serif';
-        ctx.fillText('Press "Play trailer" on the screen for the full theatrical trailer', textX, badgeY + 186);
-
-        ctx.restore();
-
-        // Animated Specular Light Sweep (Continuous Motion Guarantee)
-        const sweepProgress = (t * 0.45) % 1.5 - 0.25;
-        const sweepX = sweepProgress * w;
-        const sweepGrad = ctx.createLinearGradient(sweepX - 80, 0, sweepX + 80, h);
-        sweepGrad.addColorStop(0, 'rgba(255, 255, 255, 0)');
-        sweepGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.18)');
-        sweepGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-
-        ctx.fillStyle = sweepGrad;
-        ctx.fillRect(0, 0, w, h);
-      }
-
-      fallbackTextureRef.current.needsUpdate = true;
-      invalidate();
-    }
-
     // Telemetry Telecasting
     if (onTelemetryUpdate) {
       onTelemetryUpdate({
@@ -1075,21 +1004,16 @@ export function CinemaScreen({
         )}
       </mesh>
 
-      {/* Official YouTube Player placed directly on 3D Screen via CSS 3D */}
-      {activeStrategy === 'youtube_css3d' && rawYoutubeId && !trailer.isTheatreMode && (
-        <Html
-          transform
-          pointerEvents={trailer.isPlaying ? 'auto' : 'none'}
-          distanceFactor={400 / (1280 / screenWidth)}
+      {/* Official YouTube Player placed directly on 3D Screen via CameraGuardedCSS3D (§ Part B, C) */}
+      {activeStrategy === 'youtube_css3d' && rawYoutubeId && trailer.isPlaying && !trailer.isTheatreMode && (
+        <CameraGuardedCSS3D
           position={[screenCenter[0], screenCenter[1], screenCenter[2] + 0.02]}
           rotation={[0, Math.PI, 0]}
-          style={{
-            width: '1280px',
-            height: `${Math.round(1280 / (screenWidth / screenHeight))}px`,
-            pointerEvents: trailer.isPlaying ? 'auto' : 'none',
-            opacity: trailer.isPlaying ? 1 : 0,
-            transition: 'opacity 0.25s ease-in-out',
-          }}
+          distanceFactor={400 / (1280 / screenWidth)}
+          width={1280}
+          height={Math.round(1280 / (screenWidth / screenHeight))}
+          pointerEvents="auto"
+          zIndex={1}
         >
           <div data-testid="screen-youtube-player" className="w-full h-full">
             <iframe
@@ -1101,22 +1025,21 @@ export function CinemaScreen({
               onLoad={initPlayer}
             />
           </div>
-        </Html>
+        </CameraGuardedCSS3D>
       )}
 
-      {/* Large Inviting Circular Play Button directly on 3D Screen (Requirement 2) */}
+      {/* Large Inviting Circular Play Button directly on 3D Screen */}
       {(!trailer.isPlaying || trailer.playbackStatus !== 'playing') && !trailer.isTheatreMode && (
-        <Html
-          transform
-          pointerEvents="auto"
+        <CameraGuardedCSS3D
           position={[screenCenter[0], screenCenter[1], screenCenter[2] + 0.1]}
           rotation={[0, Math.PI, 0]}
-          scale={[1, 1, 1]}
-          style={{
-            pointerEvents: 'auto',
-          }}
+          distanceFactor={400}
+          width={320}
+          height={240}
+          pointerEvents="auto"
+          zIndex={2}
         >
-          <div data-testid="screen-3d-play-button-container" className="flex flex-col items-center justify-center">
+          <div data-testid="screen-3d-play-button-container" className="flex flex-col items-center justify-center w-full h-full">
             <button
               type="button"
               onClick={(e) => {
@@ -1136,7 +1059,7 @@ export function CinemaScreen({
               </div>
             </button>
           </div>
-        </Html>
+        </CameraGuardedCSS3D>
       )}
 
       {/* Proscenium Bezel Frame */}

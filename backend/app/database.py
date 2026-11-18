@@ -102,6 +102,7 @@ async def init_db():
             ("source", "VARCHAR(20) DEFAULT 'local'"),
             ("youtube_trailer_id", "VARCHAR(50)"),
             ("trailer_embeddable", "BOOLEAN DEFAULT 0"),
+            ("trailer_reason", "VARCHAR(255)"),
         ]
         for col_name, col_def in movie_cols:
             if existing_movie_cols and col_name not in existing_movie_cols:

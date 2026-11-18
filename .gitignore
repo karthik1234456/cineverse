@@ -22,8 +22,11 @@ __pycache__/
 *.sqlite
 *.sqlite3
 
-# Test artifacts & coverage
-test-results/
+# Large raw trace files
+evidence/perf-profile/trace_*.json
+*.trace
+*.heapsnapshot
+
 frontend/test-results/
 playwright-report/
 blob-report/

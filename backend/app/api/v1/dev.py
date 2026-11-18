@@ -258,22 +258,23 @@ async def get_developer_readiness(
 
                 # Check trailer
                 trailer_url = m.trailer_url
+                db_trailer_reason = getattr(m, "trailer_reason", None)
                 if trailer_url and trailer_url.startswith("/trailers/"):
                     t_file = _check_local_file(trailer_url, "trailers")
                     trailer_type = "hosted"
                     trailer_ok = t_file["exists"] and t_file["size_bytes"] > 1000
                     trailer_status = "available" if trailer_ok else "missing"
-                    trailer_reason = f"Hosted MP4 with fast-start 206 streaming ({t_file['size_formatted']})" if trailer_ok else "Trailer MP4 file missing on disk"
+                    trailer_reason = db_trailer_reason or (f"Hosted MP4 with fast-start 206 streaming ({t_file['size_formatted']})" if trailer_ok else "Trailer MP4 file missing on disk")
                 elif trailer_url and "youtube" in trailer_url:
                     trailer_type = "youtube"
                     trailer_ok = True
                     trailer_status = "youtube_embed"
-                    trailer_reason = "Official YouTube player fallback embed"
+                    trailer_reason = db_trailer_reason or "Official YouTube player fallback embed"
                 else:
                     trailer_type = "none"
                     trailer_ok = False
                     trailer_status = "none"
-                    trailer_reason = "No trailer URL configured"
+                    trailer_reason = db_trailer_reason or "No trailer URL configured; using Title Card"
 
                 trailer_info = {
                     "type": trailer_type,
@@ -367,6 +368,7 @@ async def get_developer_readiness(
                     "is_youtube_only": is_youtube and not has_hosted_trailer,
                     "official_player_supported": is_youtube,
                     "trailer_embeddable": is_embeddable,
+                    "trailer_reason": getattr(m, "trailer_reason", None),
                     "popup_modal_available": True,
                 }
 
