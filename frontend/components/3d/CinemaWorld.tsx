@@ -4,7 +4,9 @@ import React, { Suspense, useState, useEffect, useRef } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useCinemaStore } from '@/store/useCinemaStore';
-import { AuditoriumModel } from './AuditoriumModel';
+const AuditoriumModel = React.lazy(() =>
+  import('./AuditoriumModel').then((m) => ({ default: m.AuditoriumModel }))
+);
 import { SeatInteraction } from './SeatInteraction';
 import { ProceduralAuditorium } from './ProceduralAuditorium';
 import { CameraController } from './CameraController';
@@ -53,13 +55,18 @@ export function CinemaWorld({
   }, []);
 
   // WebGL context loss listeners on canvas
-  const handleCreated = ({ gl, scene }: { gl: THREE.WebGLRenderer; scene: THREE.Scene }) => {
+  const handleCreated = ({ gl, scene, camera }: { gl: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.Camera }) => {
     if (overrideScreenMode === 'youtube_css3d') {
       gl.setClearColor('#000000', 0.0);
       scene.background = null;
     } else {
       gl.setClearColor('#0E0F12', 1.0);
       scene.background = new THREE.Color('#0E0F12');
+    }
+
+    // Warm up shaders asynchronously via KHR_parallel_shader_compile without blocking main thread
+    if (typeof (gl as any).compileAsync === 'function') {
+      (gl as any).compileAsync(scene, camera).catch(() => {});
     }
 
     const canvas = gl.domElement;
@@ -103,7 +110,7 @@ export function CinemaWorld({
           toneMappingExposure: houseLights === 'show' ? 0.90 : (lightLevel === 'bright' ? 1.70 : 1.48),
         }}
         dpr={qualityMode === 'smooth' ? 1.0 : [1, 1.5]}
-        frameloop="always" // Dynamically managed by AdaptiveFrameloopController
+        frameloop="demand" // Dynamically managed by AdaptiveFrameloopController
         onCreated={handleCreated}
       >
         {overrideScreenMode !== 'youtube_css3d' && (

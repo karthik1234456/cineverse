@@ -1,0 +1,332 @@
+{
+  "totalCycles": 20,
+  "startHeapMb": 6.92,
+  "endHeapMb": 6.83,
+  "heapGrowthPct": -1.32,
+  "maxLeftoverCanvases": 0,
+  "maxLeftoverIframes": 0,
+  "isHeapGrowthBudgetPassed": true,
+  "isLeftoverResourcesClean": true,
+  "cycles": [
+    {
+      "cycle": 1,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 18.986719131469727
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.920926094055176,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 2,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 22.83108139038086
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.821503639221191,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 3,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 23.654983520507812
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 7.09183406829834,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 4,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 22.63018798828125
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.858529090881348,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 5,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 20.966014862060547
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.922205924987793,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 6,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 19.217822074890137
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.867104530334473,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 7,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 22.75588607788086
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.868462562561035,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 8,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 18.246864318847656
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.867802619934082,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 9,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 23.3478364944458
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.829231262207031,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 10,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 22.291622161865234
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.8713884353637695,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 11,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 19.96548080444336
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.859978675842285,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 12,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 22.07345962524414
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.858816146850586,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 13,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 18.689300537109375
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.904971122741699,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 14,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 21.444839477539062
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.85909366607666,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 15,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 19.91234588623047
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 7.774117469787598,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 16,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 23.298399925231934
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.84999942779541,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 17,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 22.37301254272461
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.8588762283325195,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 18,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 23.568363189697266
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 7.062923431396484,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 19,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 23.590599060058594
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.8466997146606445,
+        "allNodes": 1189
+      }
+    },
+    {
+      "cycle": 20,
+      "inside3D": {
+        "canvases": 1,
+        "iframes": 0,
+        "videos": 0,
+        "heapMb": 23.734130859375
+      },
+      "afterLeaveGC": {
+        "canvases": 0,
+        "iframes": 0,
+        "videos": 1,
+        "heapMb": 6.8292694091796875,
+        "allNodes": 1189
+      }
+    }
+  ]
+}

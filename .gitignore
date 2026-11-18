@@ -28,6 +28,7 @@ evidence/perf-profile/trace_*.json
 *.heapsnapshot
 
 frontend/test-results/
+test-results/
 playwright-report/
 blob-report/
 coverage/

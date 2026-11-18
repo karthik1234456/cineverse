@@ -105,6 +105,43 @@ function createWallRibNormalTexture(): THREE.CanvasTexture | null {
   return tex;
 }
 
+let _cachedCarpetAlbedo: THREE.CanvasTexture | null = null;
+let _cachedCarpetNormal: THREE.CanvasTexture | null = null;
+let _cachedSoftShadow: THREE.CanvasTexture | null = null;
+let _cachedWallRibNormal: THREE.CanvasTexture | null = null;
+
+function getCarpetCanvasTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  if (!_cachedCarpetAlbedo) {
+    _cachedCarpetAlbedo = createCarpetCanvasTexture();
+  }
+  return _cachedCarpetAlbedo;
+}
+
+function getCarpetNormalTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  if (!_cachedCarpetNormal) {
+    _cachedCarpetNormal = createCarpetNormalTexture();
+  }
+  return _cachedCarpetNormal;
+}
+
+function getSoftShadowTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  if (!_cachedSoftShadow) {
+    _cachedSoftShadow = createSoftShadowTexture();
+  }
+  return _cachedSoftShadow;
+}
+
+function getWallRibNormalTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  if (!_cachedWallRibNormal) {
+    _cachedWallRibNormal = createWallRibNormalTexture();
+  }
+  return _cachedWallRibNormal;
+}
+
 // Seat Family Model Paths
 const STD_LOD0_PATH = '/models/seats/standard_lod0.glb';
 const STD_LOD1_PATH = '/models/seats/standard_lod1.glb';
@@ -177,37 +214,19 @@ export function ProceduralAuditorium({
 
   const look = useMemo(() => getActiveLook(theatreLook), [theatreLook]);
 
-  // Load seat models across all 3 LODs
-  const stdLod0 = useGLTF(STD_LOD0_PATH);
-  const stdLod1 = useGLTF(STD_LOD1_PATH);
-  const stdLod2 = useGLTF(STD_LOD2_PATH);
+  // Load only the active LOD model per seat family, avoiding loading all 9 GLBs simultaneously
+  const stdPath = activeLod === 2 ? STD_LOD2_PATH : activeLod === 1 ? STD_LOD1_PATH : STD_LOD0_PATH;
+  const recPath = activeLod === 2 ? REC_LOD2_PATH : activeLod === 1 ? REC_LOD1_PATH : REC_LOD0_PATH;
+  const sofaPath = activeLod === 2 ? SOFA_LOD2_PATH : activeLod === 1 ? SOFA_LOD1_PATH : SOFA_LOD0_PATH;
 
-  const recLod0 = useGLTF(REC_LOD0_PATH);
-  const recLod1 = useGLTF(REC_LOD1_PATH);
-  const recLod2 = useGLTF(REC_LOD2_PATH);
-
-  const sofaLod0 = useGLTF(SOFA_LOD0_PATH);
-  const sofaLod1 = useGLTF(SOFA_LOD1_PATH);
-  const sofaLod2 = useGLTF(SOFA_LOD2_PATH);
+  const stdGltf = useGLTF(stdPath);
+  const recGltf = useGLTF(recPath);
+  const sofaGltf = useGLTF(sofaPath);
 
   // Extract geometries based on active LOD
-  const standardGeometry = useMemo(() => {
-    if (activeLod === 2) return extractFirstGeometry(stdLod2.scene);
-    if (activeLod === 1) return extractFirstGeometry(stdLod1.scene);
-    return extractFirstGeometry(stdLod0.scene);
-  }, [activeLod, stdLod0.scene, stdLod1.scene, stdLod2.scene]);
-
-  const reclinerGeometry = useMemo(() => {
-    if (activeLod === 2) return extractFirstGeometry(recLod2.scene);
-    if (activeLod === 1) return extractFirstGeometry(recLod1.scene);
-    return extractFirstGeometry(recLod0.scene);
-  }, [activeLod, recLod0.scene, recLod1.scene, recLod2.scene]);
-
-  const sofaGeometry = useMemo(() => {
-    if (activeLod === 2) return extractFirstGeometry(sofaLod2.scene);
-    if (activeLod === 1) return extractFirstGeometry(sofaLod1.scene);
-    return extractFirstGeometry(sofaLod0.scene);
-  }, [activeLod, sofaLod0.scene, sofaLod1.scene, sofaLod2.scene]);
+  const standardGeometry = useMemo(() => extractFirstGeometry(stdGltf.scene), [stdGltf.scene]);
+  const reclinerGeometry = useMemo(() => extractFirstGeometry(recGltf.scene), [recGltf.scene]);
+  const sofaGeometry = useMemo(() => extractFirstGeometry(sofaGltf.scene), [sofaGltf.scene]);
 
   const effectiveScreenType = screenType || (geometry.screenMesh.curved ? 'IMAX 3D' : 'Standard');
 
@@ -232,7 +251,7 @@ export function ProceduralAuditorium({
   }, [seats, effectiveScreenType]);
 
   const shadowGeometry = useMemo(() => new THREE.PlaneGeometry(1.22, 0.92), []);
-  const shadowTexture = useMemo(() => createSoftShadowTexture(), []);
+  const shadowTexture = useMemo(() => getSoftShadowTexture(), []);
   const shadowMaterial = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
@@ -246,9 +265,9 @@ export function ProceduralAuditorium({
 
   const carpetTextures = useMemo(() => {
     return {
-      albedo: createCarpetCanvasTexture(),
-      normal: createCarpetNormalTexture(),
-      ribNormal: createWallRibNormalTexture(),
+      albedo: getCarpetCanvasTexture(),
+      normal: getCarpetNormalTexture(),
+      ribNormal: getWallRibNormalTexture(),
     };
   }, []);
 

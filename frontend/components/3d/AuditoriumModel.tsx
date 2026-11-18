@@ -45,15 +45,6 @@ export function AuditoriumModel() {
   const modelUrl = useHqModel ? HQ_MODEL_PATH : WEB_MODEL_PATH;
   const { scene } = useGLTF(modelUrl);
 
-  // Load all 3 LODs for Standard and Recliner seats
-  const stdLod0 = useGLTF(STD_LOD0_PATH);
-  const stdLod1 = useGLTF(STD_LOD1_PATH);
-  const stdLod2 = useGLTF(STD_LOD2_PATH);
-
-  const recLod0 = useGLTF(REC_LOD0_PATH);
-  const recLod1 = useGLTF(REC_LOD1_PATH);
-  const recLod2 = useGLTF(REC_LOD2_PATH);
-
   // Check URL params (?seats=original, ?lod=0|1|2)
   const [useOriginalSeats, setUseOriginalSeats] = React.useState(false);
   const [urlLod, setUrlLod] = React.useState<number | null>(null);
@@ -68,6 +59,16 @@ export function AuditoriumModel() {
       }
     }
   }, []);
+
+  // Determine active LOD based on URL override or qualityMode
+  const activeLod = urlLod !== null ? urlLod : (qualityMode === 'smooth' ? 1 : 0);
+
+  // Load only the active LOD model for Standard and Recliner seats
+  const stdPath = activeLod === 2 ? STD_LOD2_PATH : activeLod === 1 ? STD_LOD1_PATH : STD_LOD0_PATH;
+  const recPath = activeLod === 2 ? REC_LOD2_PATH : activeLod === 1 ? REC_LOD1_PATH : REC_LOD0_PATH;
+
+  const stdGltf = useGLTF(stdPath);
+  const recGltf = useGLTF(recPath);
 
   const seats = (layoutData as unknown as SeatLayoutFile).seats;
 
@@ -98,21 +99,9 @@ export function AuditoriumModel() {
   const seatMaterials = useRef<Map<string, THREE.MeshStandardMaterial>>(new Map());
   const seatStateCache = useRef<Map<string, string>>(new Map());
 
-  // Determine active LOD based on URL override or qualityMode
-  const activeLod = urlLod !== null ? urlLod : (qualityMode === 'smooth' ? 1 : 0);
-
   // Extract geometries based on active LOD
-  const standardGeometry = useMemo(() => {
-    if (activeLod === 2) return extractFirstGeometry(stdLod2.scene);
-    if (activeLod === 1) return extractFirstGeometry(stdLod1.scene);
-    return extractFirstGeometry(stdLod0.scene);
-  }, [activeLod, stdLod0.scene, stdLod1.scene, stdLod2.scene]);
-
-  const reclinerGeometry = useMemo(() => {
-    if (activeLod === 2) return extractFirstGeometry(recLod2.scene);
-    if (activeLod === 1) return extractFirstGeometry(recLod1.scene);
-    return extractFirstGeometry(recLod0.scene);
-  }, [activeLod, recLod0.scene, recLod1.scene, recLod2.scene]);
+  const standardGeometry = useMemo(() => extractFirstGeometry(stdGltf.scene), [stdGltf.scene]);
+  const reclinerGeometry = useMemo(() => extractFirstGeometry(recGltf.scene), [recGltf.scene]);
 
   // Shared instanced materials & geometry for ultra-efficient batching
   const shadowGeometry = useMemo(() => new THREE.PlaneGeometry(1.22, 0.92), []);

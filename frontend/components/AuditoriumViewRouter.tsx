@@ -1,9 +1,26 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SeatMap2D } from '@/components/2d/SeatMap2D';
-import { AuditoriumExperience } from '@/components/3d/AuditoriumExperience';
+
+const AuditoriumExperience = dynamic(
+  () => import('@/components/3d/AuditoriumExperience').then((mod) => mod.AuditoriumExperience),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[100dvh] w-full items-center justify-center bg-[#07080a] text-white">
+        <div className="text-center">
+          <div className="h-3 w-3 rounded-full bg-[#e50914] shadow-[0_0_12px_#e50914] mx-auto mb-4 animate-ping" />
+          <div className="text-sm font-semibold tracking-widest text-slate-300 uppercase">
+            Loading CineVerse 3D Engine...
+          </div>
+        </div>
+      </div>
+    ),
+  }
+);
 import { useCinemaStore } from '@/store/useCinemaStore';
 import { getShowtimeSeats, type ShowtimeSeatsResponse } from '@/services/api';
 import { LayoutGrid, Maximize2, Minimize2, ArrowLeft } from 'lucide-react';

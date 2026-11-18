@@ -1004,8 +1004,8 @@ export function CinemaScreen({
         )}
       </mesh>
 
-      {/* Official YouTube Player placed directly on 3D Screen via CameraGuardedCSS3D (§ Part B, C) */}
-      {activeStrategy === 'youtube_css3d' && rawYoutubeId && trailer.isPlaying && !trailer.isTheatreMode && (
+      {/* Official YouTube Player placed directly on 3D Screen via CameraGuardedCSS3D (§ Part B, C, Item 5) */}
+      {activeStrategy === 'youtube_css3d' && rawYoutubeId && !trailer.isTheatreMode && (
         <CameraGuardedCSS3D
           position={[screenCenter[0], screenCenter[1], screenCenter[2] + 0.02]}
           rotation={[0, Math.PI, 0]}
@@ -1018,7 +1018,7 @@ export function CinemaScreen({
           <div data-testid="screen-youtube-player" className="w-full h-full">
             <iframe
               id="cineverse-screen-yt-iframe"
-              src={`https://www.youtube-nocookie.com/embed/${rawYoutubeId}?enablejsapi=1&autoplay=1&mute=0&controls=1&loop=1&playlist=${rawYoutubeId}&playsinline=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : 'http://localhost:3000')}`}
+              src={`https://www.youtube-nocookie.com/embed/${rawYoutubeId}?enablejsapi=1&autoplay=0&mute=1&controls=1&loop=1&playlist=${rawYoutubeId}&playsinline=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3002')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : 'http://localhost:3002')}`}
               className="w-full h-full border-0 bg-black rounded-sm"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen

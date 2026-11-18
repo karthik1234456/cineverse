@@ -146,6 +146,7 @@ export function useSeatData(showtimeId: string = '1') {
   });
 
   return {
+    data,
     isLoading,
     error,
     refetch,

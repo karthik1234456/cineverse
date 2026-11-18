@@ -52,7 +52,8 @@ export function AuditoriumExperience({
   onSwitchTo2D,
 }: AuditoriumExperienceProps) {
   // TanStack Query seat status sync
-  useSeatData(showtimeId);
+  const { data: seatData, isLoading } = useSeatData(showtimeId);
+  const proceduralResult = useCinemaStore((s) => s.proceduralResult);
 
   // Pause MovieBackdrop video while 3D auditorium is mounted (never two videos at once)
   const { setPausedBy3D } = useMovieBackdrop();
@@ -71,6 +72,20 @@ export function AuditoriumExperience({
       }
     }
   }, [setUseHqModel]);
+
+  // Prompt loading skeleton appears within 100ms; keeps UI responsive and avoids premature GLTF/Canvas load
+  if ((isLoading || !proceduralResult) && !seatData) {
+    return (
+      <div className="flex h-[100dvh] w-full items-center justify-center bg-[#07080a] text-white select-none">
+        <div className="text-center">
+          <div className="h-3 w-3 rounded-full bg-[#e50914] shadow-[0_0_12px_#e50914] mx-auto mb-4 animate-ping" />
+          <div className="text-sm font-semibold tracking-widest text-slate-300 uppercase">
+            Entering 3D Theatre...
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main
