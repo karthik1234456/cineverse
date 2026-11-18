@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useRef, useLayoutEffect, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import * as ReactDOM from 'react-dom/client';
 import { useThree, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
@@ -33,7 +33,7 @@ function getObjectCSSMatrix(matrix: THREE.Matrix4, factor: number) {
 }
 
 export interface CameraGuardedCSS3DProps {
-  position: [number, number, number];
+  position?: [number, number, number];
   rotation?: [number, number, number];
   distanceFactor?: number;
   width?: number;
@@ -45,12 +45,14 @@ export interface CameraGuardedCSS3DProps {
 }
 
 /**
- * CameraGuardedCSS3D: High-performance 3D HTML container that updates DOM transforms
- * ONLY when the camera or screen object moves (matrix delta > 0.0001), avoiding
- * per-frame style recalculations, layout reflows, and React state updates.
+ * CameraGuardedCSS3D: High-performance 3D HTML container.
+ * - Returns a Three.js <group> to R3F reconciler (eliminating "Div is not part of THREE namespace" error).
+ * - Mounts a separate ReactDOM.createRoot container in the DOM.
+ * - Updates DOM transforms ONLY when the camera or object moves (delta > 0.0001), avoiding
+ *   per-frame style recalculations, layout reflows, and React state updates.
  */
 export function CameraGuardedCSS3D({
-  position,
+  position = [0, 0, 0],
   rotation = [0, Math.PI, 0],
   distanceFactor = 400,
   width = 1280,
@@ -62,27 +64,16 @@ export function CameraGuardedCSS3D({
 }: CameraGuardedCSS3DProps) {
   const { gl, camera, size } = useThree();
 
+  const groupRef = useRef<THREE.Group>(null);
   const outerDivRef = useRef<HTMLDivElement | null>(null);
   const innerDivRef = useRef<HTMLDivElement | null>(null);
+  const rootRef = useRef<ReactDOM.Root | null>(null);
 
-  // Track previous camera matrix to guard against redundant updates
   const lastCameraMatrixRef = useRef<THREE.Matrix4>(new THREE.Matrix4());
   const lastObjectMatrixRef = useRef<THREE.Matrix4>(new THREE.Matrix4());
   const needsInitialUpdateRef = useRef<boolean>(true);
 
-  // Create Object3D representing position & orientation
-  const object3DRef = useRef<THREE.Object3D>(new THREE.Object3D());
-
-  useLayoutEffect(() => {
-    const obj = object3DRef.current;
-    obj.position.set(position[0], position[1], position[2]);
-    obj.rotation.set(rotation[0], rotation[1], rotation[2]);
-    obj.updateMatrix();
-    obj.updateMatrixWorld(true);
-    needsInitialUpdateRef.current = true;
-  }, [position[0], position[1], position[2], rotation[0], rotation[1], rotation[2]]);
-
-  // DOM node lifecycle
+  // Initialize DOM nodes and ReactDOM Root
   useLayoutEffect(() => {
     const parent = gl.domElement.parentElement;
     if (!parent) return;
@@ -118,26 +109,43 @@ export function CameraGuardedCSS3D({
 
     outerDivRef.current = outer;
     innerDivRef.current = inner;
+
+    const reactRoot = ReactDOM.createRoot(inner);
+    rootRef.current = reactRoot;
+    reactRoot.render(children);
+
     needsInitialUpdateRef.current = true;
 
     return () => {
+      try {
+        reactRoot.unmount();
+      } catch {}
       if (outer.parentNode) {
         outer.parentNode.removeChild(outer);
       }
       outerDivRef.current = null;
       innerDivRef.current = null;
+      rootRef.current = null;
     };
   }, [gl, zIndex, width, height, pointerEvents, className]);
+
+  // Update children when props change
+  useEffect(() => {
+    if (rootRef.current) {
+      rootRef.current.render(children);
+    }
+  }, [children]);
 
   // Frame update with camera delta threshold check
   useFrame(() => {
     const outer = outerDivRef.current;
     const inner = innerDivRef.current;
-    if (!outer || !inner) return;
+    const group = groupRef.current;
+    if (!outer || !inner || !group) return;
 
     const cam = camera as THREE.PerspectiveCamera;
     const camMat = cam.matrixWorld;
-    const objMat = object3DRef.current.matrixWorld;
+    const objMat = group.matrixWorld;
 
     // Check camera delta
     let camDiff = 0;
@@ -174,9 +182,14 @@ export function CameraGuardedCSS3D({
     inner.style.transform = getObjectCSSMatrix(objMat, 1 / (distanceFactor / 400));
   });
 
-  if (!innerDivRef.current) return null;
-
-  return createPortal(children, innerDivRef.current);
+  // Return a Three.js group element to the R3F scene tree
+  return (
+    <group
+      ref={groupRef}
+      position={position}
+      rotation={rotation}
+    />
+  );
 }
 
 export default CameraGuardedCSS3D;
