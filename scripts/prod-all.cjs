@@ -108,7 +108,7 @@ function probeUrl(url, timeoutMs = 2500) {
           timeout: timeoutMs,
         },
         (res) => {
-          resolve(res.statusCode >= 200 && res.statusCode < 500);
+          resolve(res.statusCode >= 200 && res.statusCode < 400);
         }
       );
       req.on('error', () => resolve(false));

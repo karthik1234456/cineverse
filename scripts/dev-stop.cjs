@@ -17,13 +17,28 @@ function getListeningPids(port) {
 
       const pids = new Set();
       for (const line of output.split('\n')) {
-        if (line.includes(`:${port}`) && line.includes('LISTENING')) {
+        const upper = line.toUpperCase();
+        if (upper.includes(`:${port}`) && upper.includes('LISTENING')) {
           const parts = line.trim().split(/\s+/);
           const pid = parts[parts.length - 1];
           if (pid && /^\d+$/.test(pid) && pid !== '0' && pid !== String(process.pid)) {
             pids.add(pid);
           }
         }
+      }
+      if (pids.size === 0) {
+        try {
+          const psOut = execSync(
+            `powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess"`,
+            { stdio: ['ignore', 'pipe', 'ignore'] }
+          ).toString();
+          for (const rawPid of psOut.split(/\r?\n/)) {
+            const pid = rawPid.trim();
+            if (pid && /^\d+$/.test(pid) && pid !== '0' && pid !== String(process.pid)) {
+              pids.add(pid);
+            }
+          }
+        } catch {}
       }
       return Array.from(pids);
     } else {
