@@ -70,6 +70,12 @@ export function ViewModeToggle() {
   const showPeople = useCinemaStore((s) => s.showPeople);
   const toggleShowPeople = useCinemaStore((s) => s.toggleShowPeople);
 
+  // Seat Markers & Beam Setting (§ Parts C & E)
+  const showSeatMarkers = useCinemaStore((s) => s.showSeatMarkers ?? true);
+  const toggleSeatMarkers = useCinemaStore((s) => s.toggleSeatMarkers);
+  const beamSetting = useCinemaStore((s) => s.beamSetting ?? 'subtle');
+  const setBeamSetting = useCinemaStore((s) => s.setBeamSetting);
+
   // Guided Tour
   const tourActive = useCinemaStore((s) => s.tourActive);
   const setTourActive = useCinemaStore((s) => s.setTourActive);
@@ -841,6 +847,60 @@ export function ViewModeToggle() {
               </div>
               <p className="text-[11px] text-slate-500 leading-tight">
                 {t.peopleIllustrative}. Only seated in already booked positions.
+              </p>
+            </div>
+
+            {/* 4b. Seat Markers Toggle (§ Part C) */}
+            <div className="space-y-1.5 rounded-2xl bg-slate-50 p-3 border border-slate-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Layers className="h-4 w-4 text-slate-600" />
+                  <span className="text-sm font-bold text-slate-900">Seat Markers</span>
+                </div>
+                <button
+                  onClick={toggleSeatMarkers}
+                  data-testid="toggle-seat-markers"
+                  role="switch"
+                  aria-checked={showSeatMarkers}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    showSeatMarkers ? 'bg-[#22C55E]' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      showSeatMarkers ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-tight">
+                High-contrast 3D badges (✓ selected, ✕ booked, 🕒 held) visible across all distances.
+              </p>
+            </div>
+
+            {/* 4c. Projector Beam Setting (§ Part E) */}
+            <div className="space-y-1.5 rounded-2xl bg-slate-50 p-3 border border-slate-200">
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                Projector Beam
+              </div>
+              <div className="grid grid-cols-3 gap-1.5">
+                {(['off', 'subtle', 'normal'] as const).map((setting) => (
+                  <button
+                    key={setting}
+                    onClick={() => setBeamSetting(setting)}
+                    data-testid={`beam-setting-${setting}`}
+                    className={`rounded-xl py-1.5 text-xs font-bold capitalize transition ${
+                      beamSetting === setting
+                        ? 'bg-[#C8102E] text-white shadow-sm'
+                        : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                    }`}
+                  >
+                    {setting}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-slate-500 leading-tight">
+                Controls the intensity and visibility of the laser projection cone.
               </p>
             </div>
 

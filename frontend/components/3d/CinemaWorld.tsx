@@ -25,6 +25,65 @@ interface CinemaWorldProps {
   onScreenTelemetryUpdate?: (telemetry: any) => void;
 }
 
+/**
+ * Performance Watchdog (§ Part F):
+ * If CSS 3D player is active and input latency exceeds 200 ms or the frame rate
+ * stays under 30 FPS for three seconds, automatically switches to Theatre Mode
+ * with a user-friendly toast message.
+ */
+function PerformanceWatchdog() {
+  const trailer = useCinemaStore((s) => s.trailer);
+  const setTrailer = useCinemaStore((s) => s.setTrailerState);
+  const showToast = useCinemaStore((s) => s.showToast);
+
+  const isCSS3DActive = trailer.isPlaying && !trailer.isTheatreMode && trailer.activeStrategy === 'youtube_css3d';
+  const lowFpsAccumulator = useRef(0);
+
+  // Monitor input latency during CSS 3D playback
+  useEffect(() => {
+    if (!isCSS3DActive) return;
+    const handleInput = () => {
+      const start = performance.now();
+      requestAnimationFrame(() => {
+        const latency = performance.now() - start;
+        if (latency > 200) {
+          setTrailer({ isTheatreMode: true });
+          showToast('Switched to Theatre Mode for smoother playback');
+        }
+      });
+    };
+
+    window.addEventListener('pointerdown', handleInput, { passive: true });
+    window.addEventListener('keydown', handleInput, { passive: true });
+    return () => {
+      window.removeEventListener('pointerdown', handleInput);
+      window.removeEventListener('keydown', handleInput);
+    };
+  }, [isCSS3DActive, setTrailer, showToast]);
+
+  // Monitor frame rate: if FPS < 30 for 3 seconds continuously
+  useFrame((_, delta) => {
+    if (!isCSS3DActive) {
+      lowFpsAccumulator.current = 0;
+      return;
+    }
+
+    const currentFps = 1 / Math.max(delta, 0.001);
+    if (currentFps < 30) {
+      lowFpsAccumulator.current += delta;
+      if (lowFpsAccumulator.current >= 3.0) {
+        lowFpsAccumulator.current = 0;
+        setTrailer({ isTheatreMode: true });
+        showToast('Switched to Theatre Mode for smoother playback');
+      }
+    } else {
+      lowFpsAccumulator.current = Math.max(0, lowFpsAccumulator.current - delta * 0.5);
+    }
+  });
+
+  return null;
+}
+
 export function CinemaWorld({
   onSeatSelect,
   overrideScreenMode,
@@ -147,6 +206,7 @@ export function CinemaWorld({
           <WayfindingLabels />
           <GroupSeatMarkers />
           <CameraController />
+          <PerformanceWatchdog />
           <DevBridge />
         </Suspense>
       </Canvas>

@@ -128,6 +128,13 @@ export interface CinemaState {
   setShowPeople: (show: boolean) => void;
   toggleShowPeople: () => void;
 
+  // Seat Markers & Projector Beam Settings (§ Parts C & E)
+  showSeatMarkers: boolean;
+  setShowSeatMarkers: (show: boolean) => void;
+  toggleSeatMarkers: () => void;
+  beamSetting: 'off' | 'subtle' | 'normal';
+  setBeamSetting: (setting: 'off' | 'subtle' | 'normal') => void;
+
   // 4DX Experience Simulation (§ 8)
   experience4dxActive: boolean;
   setExperience4dxActive: (active: boolean) => void;
@@ -443,6 +450,13 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   showPeople: true,
   setShowPeople: (show) => set({ showPeople: show }),
   toggleShowPeople: () => set((state) => ({ showPeople: !state.showPeople })),
+
+  // Seat Markers & Projector Beam Settings (§ Parts C & E)
+  showSeatMarkers: true,
+  setShowSeatMarkers: (show) => set({ showSeatMarkers: show }),
+  toggleSeatMarkers: () => set((state) => ({ showSeatMarkers: !state.showSeatMarkers })),
+  beamSetting: 'subtle',
+  setBeamSetting: (setting) => set({ beamSetting: setting }),
 
   // 4DX Experience Simulation (§ 8)
   experience4dxActive: false,
@@ -1050,4 +1064,5 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 if (typeof window !== 'undefined') {
   (window as any).useCinemaStore = useCinemaStore;
   (window as any).__cineverse_store = useCinemaStore;
+  (window as any).__cinemaStore = useCinemaStore;
 }
