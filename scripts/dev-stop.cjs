@@ -29,7 +29,7 @@ function getListeningPids(port) {
       if (pids.size === 0) {
         try {
           const psOut = execSync(
-            `powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${port} -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess"`,
+            `powershell -NoProfile -Command "Get-NetTCPConnection -LocalPort ${port} -State Listen -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess"`,
             { stdio: ['ignore', 'pipe', 'ignore'] }
           ).toString();
           for (const rawPid of psOut.split(/\r?\n/)) {
