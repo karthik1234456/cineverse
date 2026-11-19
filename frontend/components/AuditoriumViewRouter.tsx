@@ -90,7 +90,7 @@ export function AuditoriumViewRouter({
     if (modeParam === '3d' || modeParam === 'pov') {
       setCurrentMode('3d');
       if (modeParam === 'pov') {
-        const isValid = seatParam && /^[A-J](0[1-9]|10)$/i.test(seatParam.trim());
+        const isValid = seatParam && /^[A-Z]\d{1,3}$/i.test(seatParam.trim());
         if (isValid) {
           const upperSeat = seatParam!.trim().toUpperCase();
           useCinemaStore.getState().sitAt(upperSeat);

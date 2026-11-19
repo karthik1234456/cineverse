@@ -34,21 +34,41 @@ interface CinemaWorldProps {
 function PerformanceWatchdog() {
   const trailer = useCinemaStore((s) => s.trailer);
   const setTrailer = useCinemaStore((s) => s.setTrailerState);
+  const setTheatreModeOpen = useCinemaStore((s) => s.setTheatreModeOpen);
   const showToast = useCinemaStore((s) => s.showToast);
 
   const isCSS3DActive = trailer.isPlaying && !trailer.isTheatreMode && trailer.activeStrategy === 'youtube_css3d';
   const lowFpsAccumulator = useRef(0);
+  const playStartTimeRef = useRef(0);
+  const slowInputCountRef = useRef(0);
 
-  // Monitor input latency during CSS 3D playback
+  useEffect(() => {
+    if (isCSS3DActive) {
+      playStartTimeRef.current = performance.now();
+      slowInputCountRef.current = 0;
+      lowFpsAccumulator.current = 0;
+    }
+  }, [isCSS3DActive]);
+
+  // Monitor input latency during CSS 3D playback (requires sustained lag > 200ms after initial warmup)
   useEffect(() => {
     if (!isCSS3DActive) return;
     const handleInput = () => {
+      // Warmup: avoid false-positives on initial scene hydration / route load
+      if (performance.now() - playStartTimeRef.current < 4000) return;
+
       const start = performance.now();
       requestAnimationFrame(() => {
         const latency = performance.now() - start;
         if (latency > 200) {
-          setTrailer({ isTheatreMode: true });
-          showToast('Switched to Theatre Mode for smoother playback');
+          slowInputCountRef.current += 1;
+          if (slowInputCountRef.current >= 3) {
+            setTrailer({ isTheatreMode: true });
+            setTheatreModeOpen(true);
+            showToast('Switched to Theatre Mode for smoother playback');
+          }
+        } else {
+          slowInputCountRef.current = 0;
         }
       });
     };
@@ -59,14 +79,16 @@ function PerformanceWatchdog() {
       window.removeEventListener('pointerdown', handleInput);
       window.removeEventListener('keydown', handleInput);
     };
-  }, [isCSS3DActive, setTrailer, showToast]);
+  }, [isCSS3DActive, setTrailer, setTheatreModeOpen, showToast]);
 
-  // Monitor frame rate: if FPS < 30 for 3 seconds continuously
+  // Monitor frame rate: if FPS < 30 for 3 seconds continuously after warmup
   useFrame((_, delta) => {
     if (!isCSS3DActive) {
       lowFpsAccumulator.current = 0;
       return;
     }
+
+    if (performance.now() - playStartTimeRef.current < 4000) return;
 
     const currentFps = 1 / Math.max(delta, 0.001);
     if (currentFps < 30) {
@@ -74,6 +96,7 @@ function PerformanceWatchdog() {
       if (lowFpsAccumulator.current >= 3.0) {
         lowFpsAccumulator.current = 0;
         setTrailer({ isTheatreMode: true });
+        setTheatreModeOpen(true);
         showToast('Switched to Theatre Mode for smoother playback');
       }
     } else {

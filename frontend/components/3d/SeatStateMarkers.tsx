@@ -156,6 +156,7 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
   const selectedSeats = useCinemaStore((s) => s.selectedSeats);
   const seatStatuses = useCinemaStore((s) => s.seatStatuses);
   const cameraMode = useCinemaStore((s) => s.cameraMode);
+  const activeSeatId = useCinemaStore((s) => s.activeSeatId);
   const showSeatMarkers = useCinemaStore((s) => s.showSeatMarkers ?? true);
 
   // Billboard Textures
@@ -257,7 +258,12 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
       return;
     }
 
-    const isPov = cameraMode === 'pov';
+    const state = useCinemaStore.getState();
+    const activeSelected = state.selectedSeats;
+    const activeStatuses = state.seatStatuses;
+    const camMode = state.cameraMode;
+    const actSeatId = state.activeSeatId;
+    const isPov = camMode === 'pov';
     const time = clock.getElapsedTime();
     const bob = Math.sin(time * 3.5) * 0.025;
     const dummy = new THREE.Object3D();
@@ -284,41 +290,48 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
       // Minimum on-screen size safeguard (~24px minimum on screen at distance)
       const scale = Math.max(0.42, dist * 0.025);
 
-      const status = seatStatuses[seat.seat_id] || 'available';
-      const isSelected = selectedSeats.includes(seat.seat_id);
+      const status = activeStatuses[seat.seat_id] || 'available';
+      const isSelected = activeSelected.includes(seat.seat_id);
+      const isCurrentPovSeat = isPov && actSeatId === seat.seat_id;
 
-      if (isSelected && !isPov) {
-        // 1. Emerald Tick Badge (✓)
-        dummy.position.set(p.headrest[0], p.headrest[1] + 0.35 + scale * 0.3 + bob, p.headrest[2]);
-        dummy.quaternion.copy(camera.quaternion);
-        dummy.scale.set(scale * 1.15, scale * 1.15, 1);
-        dummy.updateMatrix();
-        tickMesh.setMatrixAt(tickCount, dummy.matrix);
-        tickCount++;
-
-        // Soft floor ring
+      if (isSelected) {
+        // 1. Soft emerald floor ring (render on floor for all selected seats, including current POV seat)
         dummy.position.set(p.base[0], p.base[1], p.base[2]);
         dummy.rotation.set(0, 0, 0);
         dummy.scale.set(1.0, 1.0, 1.0);
         dummy.updateMatrix();
         ringMesh.setMatrixAt(ringCount, dummy.matrix);
         ringCount++;
-      } else if (status === 'booked' && !isPov) {
-        // 2. Muted Grey Cross Badge (✕)
-        dummy.position.set(p.headrest[0], p.headrest[1] + 0.30 + scale * 0.3, p.headrest[2]);
-        dummy.quaternion.copy(camera.quaternion);
-        dummy.scale.set(scale, scale, 1);
-        dummy.updateMatrix();
-        crossMesh.setMatrixAt(crossCount, dummy.matrix);
-        crossCount++;
-      } else if (status === 'held' && !isPov) {
-        // 3. Amber Clock Badge (🕒)
-        dummy.position.set(p.headrest[0], p.headrest[1] + 0.32 + scale * 0.3 + bob * 0.5, p.headrest[2]);
-        dummy.quaternion.copy(camera.quaternion);
-        dummy.scale.set(scale, scale, 1);
-        dummy.updateMatrix();
-        clockMesh.setMatrixAt(clockCount, dummy.matrix);
-        clockCount++;
+
+        // 2. Emerald Tick Badge (✓) floating above seat
+        if (!isCurrentPovSeat) {
+          dummy.position.set(p.headrest[0], p.headrest[1] + 0.35 + scale * 0.3 + bob, p.headrest[2]);
+          dummy.quaternion.copy(camera.quaternion);
+          dummy.scale.set(scale * 1.15, scale * 1.15, 1);
+          dummy.updateMatrix();
+          tickMesh.setMatrixAt(tickCount, dummy.matrix);
+          tickCount++;
+        }
+      } else if (status === 'booked') {
+        if (!isCurrentPovSeat) {
+          // 3. Muted Grey Cross Badge (✕)
+          dummy.position.set(p.headrest[0], p.headrest[1] + 0.30 + scale * 0.3, p.headrest[2]);
+          dummy.quaternion.copy(camera.quaternion);
+          dummy.scale.set(scale, scale, 1);
+          dummy.updateMatrix();
+          crossMesh.setMatrixAt(crossCount, dummy.matrix);
+          crossCount++;
+        }
+      } else if (status === 'held') {
+        if (!isCurrentPovSeat) {
+          // 4. Amber Clock Badge (🕒)
+          dummy.position.set(p.headrest[0], p.headrest[1] + 0.32 + scale * 0.3 + bob * 0.5, p.headrest[2]);
+          dummy.quaternion.copy(camera.quaternion);
+          dummy.scale.set(scale, scale, 1);
+          dummy.updateMatrix();
+          clockMesh.setMatrixAt(clockCount, dummy.matrix);
+          clockCount++;
+        }
       }
     }
 

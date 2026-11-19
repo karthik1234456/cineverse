@@ -1040,8 +1040,11 @@ export function ProceduralAuditorium({
       );
       const sphere = new THREE.Sphere();
       box.getBoundingSphere(sphere);
-      mesh.geometry.boundingBox = box;
-      mesh.geometry.boundingSphere = sphere;
+      mesh.boundingBox = box;
+      mesh.boundingSphere = sphere;
+      // Keep/recompute local geometry bounds for individual instance raycasting
+      mesh.geometry.computeBoundingBox();
+      mesh.geometry.computeBoundingSphere();
     }
   }, []);
 
@@ -1434,8 +1437,17 @@ export function ProceduralAuditorium({
   };
 
   const lastHoverSeatId = useRef<string | null>(null);
+  const hoverOutTimer = useRef<any>(null);
+
   const createPointerMoveHandler = (items: { seat: SeatRecord; index: number }[]) => (e: ThreeEvent<PointerEvent>) => {
     e.stopPropagation();
+    if (hoverOutTimer.current) {
+      clearTimeout(hoverOutTimer.current);
+      hoverOutTimer.current = null;
+    }
+    if (typeof document !== 'undefined' && document.body.style.cursor !== 'pointer') {
+      document.body.style.cursor = 'pointer';
+    }
     if (e.instanceId !== undefined && items[e.instanceId]) {
       const seatId = items[e.instanceId].seat.seat_id;
       if (lastHoverSeatId.current === seatId) return;
@@ -1447,8 +1459,14 @@ export function ProceduralAuditorium({
   const handleInstancePointerOut = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
       e.stopPropagation();
-      lastHoverSeatId.current = null;
-      setHoveredSeat(null);
+      if (hoverOutTimer.current) clearTimeout(hoverOutTimer.current);
+      hoverOutTimer.current = setTimeout(() => {
+        if (typeof document !== 'undefined') {
+          document.body.style.cursor = 'default';
+        }
+        lastHoverSeatId.current = null;
+        setHoveredSeat(null);
+      }, 50);
     },
     [setHoveredSeat]
   );
@@ -2210,6 +2228,7 @@ export function ProceduralAuditorium({
           args={[shadowGeometry, shadowMaterial, seats.length]}
           name="InstancedContactShadows"
           frustumCulled={false}
+          raycast={() => null}
         />
         {standardGeometry && standardSeats.length > 0 && (
           <instancedMesh
