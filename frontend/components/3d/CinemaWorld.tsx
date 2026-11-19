@@ -110,7 +110,7 @@ export function CinemaWorld({
           toneMappingExposure: houseLights === 'show' ? 0.90 : (lightLevel === 'bright' ? 1.70 : 1.48),
         }}
         dpr={qualityMode === 'smooth' ? 1.0 : [1, 1.5]}
-        frameloop="demand" // Dynamically managed by AdaptiveFrameloopController
+        frameloop="always"
         onCreated={handleCreated}
       >
         {overrideScreenMode !== 'youtube_css3d' && (
@@ -198,12 +198,10 @@ function AdaptiveFrameloopController() {
     invalidate();
   }, [hoveredSeatId, selectedSeats, seatStatuses, houseLights, lightLevel, lightIntensity, qualityMode, theatreLook, invalidate]);
 
-  // Manage dynamic continuous vs demand frameloop
+  // Always maintain continuous 60fps frameloop for smooth camera transitions, damping, head-look, and video playback
   useEffect(() => {
-    const shouldBeContinuous = isPlaying || mode === 'walk' || isContinuous;
-    setFrameloop(shouldBeContinuous ? 'always' : 'demand');
-    invalidate();
-  }, [isPlaying, mode, isContinuous, setFrameloop, invalidate]);
+    setFrameloop('always');
+  }, [setFrameloop]);
 
   return null;
 }

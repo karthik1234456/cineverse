@@ -451,7 +451,7 @@ export function CinemaScreen({
       }
     } else if (activeStrategy === 'youtube_css3d' && rawYoutubeId) {
       // 2. YouTube CSS3D Player
-      setTrailerState({ isPlaying: true, isMuted: false, playbackStatus: 'loading' });
+      setTrailerState({ isPlaying: true, isMuted: false, playbackStatus: 'playing' });
       setHouseLights('show');
 
       if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
@@ -459,19 +459,9 @@ export function CinemaScreen({
           ytPlayerRef.current.unMute();
           ytPlayerRef.current.playVideo();
         } catch (err) {
-          console.warn('[Screen] Direct YouTube play failed, queuing watchdog:', err);
+          console.warn('[Screen] Direct YouTube play failed:', err);
         }
       }
-
-      // Start 3-second watchdog timer: if not verified advancing within 3s, open Theatre Mode
-      if (watchdogTimeoutRef.current) clearTimeout(watchdogTimeoutRef.current);
-      watchdogTimeoutRef.current = setTimeout(() => {
-        if (!verifiedAdvancingRef.current) {
-          console.info('[Screen] YouTube did not verify advancing frames within 3s. Opening Theatre Mode.');
-          setTheatreModeOpen(true);
-          setTrailerState({ isTheatreMode: true, isPlaying: true, playbackStatus: 'playing' });
-        }
-      }, 3000);
     } else {
       // 3. Fallback / Title Card / No trailer
       setTrailerState({ isPlaying: true, playbackStatus: 'playing' });
@@ -591,20 +581,15 @@ export function CinemaScreen({
     !trailer.isTheatreMode
   );
 
-  // Dynamically control canvas background: transparent ONLY when cutout is active!
+  // Keep consistent theatre background styling
   useEffect(() => {
-    if (isCutout) {
-      scene.background = null;
-      gl.setClearColor('#000000', 0.0);
-    } else {
-      scene.background = new THREE.Color('#0E0F12');
-      gl.setClearColor('#0E0F12', 1.0);
-    }
+    scene.background = new THREE.Color('#0E0F12');
+    gl.setClearColor('#0E0F12', 1.0);
     return () => {
       scene.background = new THREE.Color('#0E0F12');
       gl.setClearColor('#0E0F12', 1.0);
     };
-  }, [isCutout, gl, scene]);
+  }, [gl, scene]);
 
   
   // Render static 2D canvas once on mount/data change instead of every frame (§ Part B)
@@ -978,10 +963,10 @@ export function CinemaScreen({
         {isCutout ? (
           <meshBasicMaterial
             color="#000000"
-            transparent={true}
-            opacity={0}
-            blending={THREE.NoBlending}
             side={THREE.DoubleSide}
+            polygonOffset={true}
+            polygonOffsetFactor={-2}
+            polygonOffsetUnits={-2}
           />
         ) : isSolidColor ? (
           <meshBasicMaterial
@@ -1007,7 +992,7 @@ export function CinemaScreen({
       {/* Official YouTube Player placed directly on 3D Screen via CameraGuardedCSS3D (§ Part B, C, Item 5) */}
       {activeStrategy === 'youtube_css3d' && rawYoutubeId && !trailer.isTheatreMode && (
         <CameraGuardedCSS3D
-          position={[screenCenter[0], screenCenter[1], screenCenter[2] + 0.02]}
+          position={[screenCenter[0], screenCenter[1], screenCenter[2] - 0.03]}
           rotation={[0, Math.PI, 0]}
           distanceFactor={400 / (1280 / screenWidth)}
           width={1280}
@@ -1015,49 +1000,44 @@ export function CinemaScreen({
           pointerEvents="auto"
           zIndex={1}
         >
-          <div data-testid="screen-youtube-player" className="w-full h-full">
+          <div data-testid="screen-youtube-player" className="relative w-full h-full">
             <iframe
               id="cineverse-screen-yt-iframe"
-              src={`https://www.youtube-nocookie.com/embed/${rawYoutubeId}?enablejsapi=1&autoplay=0&mute=1&controls=1&loop=1&playlist=${rawYoutubeId}&playsinline=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3002')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : 'http://localhost:3002')}`}
+              src={`https://www.youtube-nocookie.com/embed/${rawYoutubeId}?enablejsapi=1&autoplay=${trailer.isPlaying ? 1 : 0}&mute=${trailer.isMuted ? 1 : 0}&controls=1&loop=1&playlist=${rawYoutubeId}&playsinline=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3002')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : 'http://localhost:3002')}`}
               className="w-full h-full border-0 bg-black rounded-sm"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               onLoad={initPlayer}
             />
-          </div>
-        </CameraGuardedCSS3D>
-      )}
-
-      {/* Large Inviting Circular Play Button directly on 3D Screen */}
-      {(!trailer.isPlaying || trailer.playbackStatus !== 'playing') && !trailer.isTheatreMode && (
-        <CameraGuardedCSS3D
-          position={[screenCenter[0], screenCenter[1], screenCenter[2] + 0.1]}
-          rotation={[0, Math.PI, 0]}
-          distanceFactor={400}
-          width={320}
-          height={240}
-          pointerEvents="auto"
-          zIndex={2}
-        >
-          <div data-testid="screen-3d-play-button-container" className="flex flex-col items-center justify-center w-full h-full">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleStartPlayback();
-              }}
-              data-testid="screen-3d-play-button"
-              className="group flex flex-col items-center justify-center gap-3.5 transition-transform hover:scale-105 active:scale-95 cursor-pointer focus:outline-none"
-              aria-label="Play trailer on screen"
-            >
-              <div className="relative flex h-28 w-28 sm:h-36 sm:w-36 md:h-40 md:w-40 items-center justify-center rounded-full bg-gradient-to-tr from-rose-600 to-red-500 text-white shadow-[0_0_60px_rgba(225,29,72,0.9)] ring-4 ring-white/90 backdrop-blur-md transition-all group-hover:ring-white group-hover:shadow-[0_0_80px_rgba(225,29,72,1)]">
-                <span className="absolute inset-0 rounded-full animate-ping bg-rose-500/30 duration-1000" />
-                <Play className="h-14 w-14 sm:h-18 sm:w-18 md:h-20 md:w-20 fill-white translate-x-1 drop-shadow-xl" />
+            {!trailer.isPlaying && (
+              <div
+                data-testid="screen-3d-play-button-container"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleStartPlayback();
+                }}
+                className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] cursor-pointer group select-none"
+              >
+                <button
+                  type="button"
+                  data-testid="screen-3d-play-button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleStartPlayback();
+                  }}
+                  className="flex flex-col items-center justify-center gap-4 transition-transform group-hover:scale-110 active:scale-95 focus:outline-none"
+                  aria-label="Play trailer on screen"
+                >
+                  <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-tr from-rose-600 to-red-500 text-white shadow-[0_0_50px_rgba(225,29,72,0.9)] ring-4 ring-white/90">
+                    <span className="absolute inset-0 rounded-full animate-ping bg-rose-500/30 duration-1000" />
+                    <Play className="h-12 w-12 fill-white translate-x-1 drop-shadow-xl" />
+                  </div>
+                  <div className="rounded-full border-2 border-white/50 bg-black/90 px-6 py-2 text-sm font-black tracking-widest uppercase text-white shadow-2xl backdrop-blur-md">
+                    Play trailer
+                  </div>
+                </button>
               </div>
-              <div className="rounded-full border-2 border-white/40 bg-black/90 px-6 py-2.5 text-sm sm:text-base font-black tracking-widest uppercase text-white shadow-2xl backdrop-blur-md group-hover:bg-black group-hover:border-white">
-                Play trailer
-              </div>
-            </button>
+            )}
           </div>
         </CameraGuardedCSS3D>
       )}

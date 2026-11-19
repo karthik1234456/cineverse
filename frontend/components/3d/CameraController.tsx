@@ -524,16 +524,19 @@ export function CameraController() {
       }
     }
 
-    // Dynamic floor & seat top collision barrier (§ Part C.1)
-    const localBarrierY = getLocalBarrierHeight(
-      persCam.position.x,
-      persCam.position.z,
-      walkables,
-      colliders,
-      proceduralResult?.geometry?.tiers,
-      seats
-    );
-    const minAllowedY = localBarrierY + 1.0;
+    // Dynamic floor & seat top collision barrier (only when camera is low enough to collide)
+    let minAllowedY = bounds.minY + 0.25;
+    if (persCam.position.y < 4.0) {
+      const localBarrierY = getLocalBarrierHeight(
+        persCam.position.x,
+        persCam.position.z,
+        walkables,
+        colliders,
+        proceduralResult?.geometry?.tiers,
+        seats
+      );
+      minAllowedY = localBarrierY + 1.0;
+    }
 
     // Hard boundary safety clamp: camera NEVER leaves interior volume or dips below floor/seats
     const margin = 0.25;

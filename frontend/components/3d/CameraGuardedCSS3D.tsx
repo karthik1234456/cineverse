@@ -48,6 +48,8 @@ export interface CameraGuardedCSS3DProps {
  * CameraGuardedCSS3D: High-performance 3D HTML container.
  * - Returns a Three.js <group> to R3F reconciler (eliminating "Div is not part of THREE namespace" error).
  * - Mounts a separate ReactDOM.createRoot container in the DOM.
+ * - Uses exact CSS3D projection with perspective: ${fov}px and translateZ(${fov}px).
+ * - Hides container when behind camera (deltaCamObj.angleTo(camDir) > PI/2) preventing Chrome GPU compositor freeze.
  * - Updates DOM transforms ONLY when the camera or object moves (delta > 0.0001), avoiding
  *   per-frame style recalculations, layout reflows, and React state updates.
  */
@@ -65,53 +67,69 @@ export function CameraGuardedCSS3D({
   const { gl, camera, size } = useThree();
 
   const groupRef = useRef<THREE.Group>(null);
+  const rootDivRef = useRef<HTMLDivElement | null>(null);
   const outerDivRef = useRef<HTMLDivElement | null>(null);
   const innerDivRef = useRef<HTMLDivElement | null>(null);
-  const rootRef = useRef<ReactDOM.Root | null>(null);
+  const reactRootRef = useRef<ReactDOM.Root | null>(null);
 
   const lastCameraMatrixRef = useRef<THREE.Matrix4>(new THREE.Matrix4());
   const lastObjectMatrixRef = useRef<THREE.Matrix4>(new THREE.Matrix4());
+  const wasVisibleRef = useRef<boolean>(true);
   const needsInitialUpdateRef = useRef<boolean>(true);
 
-  // Initialize DOM nodes and ReactDOM Root
+  // Initialize DOM nodes matching Drei structure
   useLayoutEffect(() => {
     const parent = gl.domElement.parentElement;
     if (!parent) return;
 
-    const outer = document.createElement('div');
-    outer.className = 'cineverse-css3d-outer';
-    outer.style.cssText = `
+    // Root container with perspective (matching Drei's el)
+    const rootEl = document.createElement('div');
+    rootEl.className = 'cineverse-css3d-root';
+    rootEl.style.cssText = `
       position: absolute;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
+      width: ${size.width}px;
+      height: ${size.height}px;
       pointer-events: none;
       overflow: hidden;
-      transform-style: preserve-3d;
       z-index: ${zIndex};
     `;
 
-    const inner = document.createElement('div');
-    inner.className = `cineverse-css3d-inner ${className}`;
-    inner.style.cssText = `
+    // Outer 3D stage with preserve-3d and camera matrix
+    const outerEl = document.createElement('div');
+    outerEl.className = 'cineverse-css3d-outer';
+    outerEl.style.cssText = `
       position: absolute;
       top: 0;
       left: 0;
+      width: ${size.width}px;
+      height: ${size.height}px;
+      transform-style: preserve-3d;
+      pointer-events: none;
+    `;
+
+    // Inner element with object matrix and content size
+    const innerEl = document.createElement('div');
+    innerEl.className = `cineverse-css3d-inner ${className}`;
+    innerEl.style.cssText = `
+      position: absolute;
       width: ${width}px;
       height: ${height}px;
       transform-origin: 50% 50%;
       pointer-events: ${pointerEvents};
     `;
 
-    outer.appendChild(inner);
-    parent.appendChild(outer);
+    outerEl.appendChild(innerEl);
+    rootEl.appendChild(outerEl);
+    parent.appendChild(rootEl);
 
-    outerDivRef.current = outer;
-    innerDivRef.current = inner;
+    rootDivRef.current = rootEl;
+    outerDivRef.current = outerEl;
+    innerDivRef.current = innerEl;
 
-    const reactRoot = ReactDOM.createRoot(inner);
-    rootRef.current = reactRoot;
+    const reactRoot = ReactDOM.createRoot(innerEl);
+    reactRootRef.current = reactRoot;
     reactRoot.render(children);
 
     needsInitialUpdateRef.current = true;
@@ -120,34 +138,60 @@ export function CameraGuardedCSS3D({
       try {
         reactRoot.unmount();
       } catch {}
-      if (outer.parentNode) {
-        outer.parentNode.removeChild(outer);
+      if (rootEl.parentNode) {
+        rootEl.parentNode.removeChild(rootEl);
       }
+      rootDivRef.current = null;
       outerDivRef.current = null;
       innerDivRef.current = null;
-      rootRef.current = null;
+      reactRootRef.current = null;
     };
-  }, [gl, zIndex, width, height, pointerEvents, className]);
+  }, [gl, zIndex, width, height, pointerEvents, className, size.width, size.height]);
 
   // Update children when props change
   useEffect(() => {
-    if (rootRef.current) {
-      rootRef.current.render(children);
+    if (reactRootRef.current) {
+      reactRootRef.current.render(children);
     }
   }, [children]);
 
-  // Frame update with camera delta threshold check
+  const vCamPos = useRef(new THREE.Vector3());
+  const vObjPos = useRef(new THREE.Vector3());
+  const vCamDir = useRef(new THREE.Vector3());
+
   useFrame(() => {
+    const root = rootDivRef.current;
     const outer = outerDivRef.current;
     const inner = innerDivRef.current;
     const group = groupRef.current;
-    if (!outer || !inner || !group) return;
+    if (!root || !outer || !inner || !group) return;
 
     const cam = camera as THREE.PerspectiveCamera;
     const camMat = cam.matrixWorld;
     const objMat = group.matrixWorld;
 
-    // Check camera delta
+    // Behind-camera culling check (CRITICAL for eliminating compositor freeze during motion)
+    vObjPos.current.setFromMatrixPosition(objMat);
+    vCamPos.current.setFromMatrixPosition(camMat);
+    const deltaCamObj = vObjPos.current.sub(vCamPos.current);
+    cam.getWorldDirection(vCamDir.current);
+    const isBehindCamera = deltaCamObj.angleTo(vCamDir.current) > (Math.PI / 2);
+
+    if (isBehindCamera) {
+      if (wasVisibleRef.current) {
+        root.style.display = 'none';
+        wasVisibleRef.current = false;
+      }
+      return;
+    } else {
+      if (!wasVisibleRef.current) {
+        root.style.display = 'block';
+        wasVisibleRef.current = true;
+        needsInitialUpdateRef.current = true;
+      }
+    }
+
+    // Delta threshold check to avoid unnecessary style writes
     let camDiff = 0;
     const lastCam = lastCameraMatrixRef.current.elements;
     const curCam = camMat.elements;
@@ -155,7 +199,6 @@ export function CameraGuardedCSS3D({
       camDiff += Math.abs(curCam[i] - lastCam[i]);
     }
 
-    // Check object delta
     let objDiff = 0;
     const lastObj = lastObjectMatrixRef.current.elements;
     const curObj = objMat.elements;
@@ -163,7 +206,6 @@ export function CameraGuardedCSS3D({
       objDiff += Math.abs(curObj[i] - lastObj[i]);
     }
 
-    // Skip update if neither camera nor object moved and not initial update
     if (!needsInitialUpdateRef.current && camDiff < 0.0001 && objDiff < 0.0001) {
       return;
     }
@@ -172,17 +214,21 @@ export function CameraGuardedCSS3D({
     lastCameraMatrixRef.current.copy(camMat);
     lastObjectMatrixRef.current.copy(objMat);
 
-    // Apply transform directly to DOM elements (never through React state)
-    const fov = cam.projectionMatrix.elements[5] * (size.height / 2);
+    // Exact Drei mathematical projection
     const widthHalf = size.width / 2;
     const heightHalf = size.height / 2;
+    const fov = cam.projectionMatrix.elements[5] * heightHalf;
 
-    const cameraCSSMatrix = `scale(${fov}) translateZ(${fov}px) ${getCameraCSSMatrix(cam.matrixWorldInverse)}`;
-    outer.style.transform = `${cameraCSSMatrix} translate(${widthHalf}px,${heightHalf}px)`;
-    inner.style.transform = getObjectCSSMatrix(objMat, 1 / (distanceFactor / 400));
+    root.style.perspective = `${fov}px`;
+    root.style.width = `${size.width}px`;
+    root.style.height = `${size.height}px`;
+
+    const cameraCSSMatrix = getCameraCSSMatrix(cam.matrixWorldInverse);
+    const cameraTransform = `translateZ(${fov}px)`;
+    outer.style.transform = `${cameraTransform}${cameraCSSMatrix}translate(${widthHalf}px,${heightHalf}px)`;
+    inner.style.transform = getObjectCSSMatrix(objMat, 1 / ((distanceFactor || 10) / 400));
   });
 
-  // Return a Three.js group element to the R3F scene tree
   return (
     <group
       ref={groupRef}
