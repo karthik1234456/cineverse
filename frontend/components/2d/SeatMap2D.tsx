@@ -1184,7 +1184,7 @@ export function SeatMap2D({
               </div>
               <div className="flex items-center gap-2">
                 <div className="h-5 w-5 rounded-lg border-2 border-[#F59E0B] bg-[#FEF3C7] text-[#B45309] flex items-center justify-center text-[10px] font-bold">
-                  ⏳
+                  🕒
                 </div>
                 <span className="font-semibold text-xs sm:text-sm text-[#B45309]">Held</span>
               </div>

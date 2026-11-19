@@ -340,27 +340,33 @@ export function AuditoriumInfoPanel() {
           <div className="mt-4 border-t border-[#E6DCD2] pt-3">
             <div className="flex items-center justify-between text-sm text-slate-700">
               <div className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full border border-slate-300 bg-[#FAF6F0]" />
+                <span className="h-4 w-4 rounded border border-slate-300 bg-[#FAF6F0]" />
                 <span className="font-medium">Available</span>
                 <span className="font-bold text-slate-500">({counts.available})</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full bg-[#C8102E]" />
-                <span className="font-bold text-[#C8102E]">Selected</span>
-                <span className="font-bold text-[#C8102E]">({counts.selected})</span>
+                <span className="h-4 w-4 rounded bg-[#22C55E] text-white flex items-center justify-center font-bold text-[10px] shadow-sm">
+                  ✓
+                </span>
+                <span className="font-bold text-[#22C55E]">Selected</span>
+                <span className="font-bold text-[#22C55E]">({counts.selected})</span>
               </div>
             </div>
 
             <div className="mt-2.5 flex items-center justify-between text-sm text-slate-700">
               <div className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full bg-amber-500 animate-pulse" />
-                <span className="font-medium">Held</span>
+                <span className="h-4 w-4 rounded bg-[#F59E0B] text-white flex items-center justify-center font-bold text-[10px] shadow-sm">
+                  🕒
+                </span>
+                <span className="font-medium text-amber-700">Held</span>
                 <span className="font-bold text-amber-700">({counts.held})</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full bg-slate-300" />
-                <span className="font-medium">Booked</span>
-                <span className="font-bold text-slate-400">({counts.booked})</span>
+                <span className="h-4 w-4 rounded bg-[#3F424A] text-slate-200 flex items-center justify-center font-bold text-[10px] shadow-sm">
+                  ✕
+                </span>
+                <span className="font-medium text-slate-600">Booked</span>
+                <span className="font-bold text-slate-500">({counts.booked})</span>
               </div>
             </div>
           </div>
