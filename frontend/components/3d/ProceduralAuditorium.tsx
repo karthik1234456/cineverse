@@ -1636,6 +1636,7 @@ export function ProceduralAuditorium({
         name="screen_frame"
         position={screenFrameBox.center}
         material={screenFrameMaterial}
+        raycast={() => null}
       >
         <boxGeometry args={screenFrameBox.size} />
       </mesh>
@@ -1644,6 +1645,7 @@ export function ProceduralAuditorium({
         name="stage_lip"
         position={stageLipBox.center}
         material={stageLipMaterial}
+        raycast={() => null}
       >
         <boxGeometry args={stageLipBox.size} />
       </mesh>
@@ -2005,6 +2007,7 @@ export function ProceduralAuditorium({
               name="volumetric_projector_beam"
               geometry={projectorBeamGeometry}
               material={projectorBeamMaterial}
+              raycast={() => null}
             />
           )}
         </group>

@@ -527,6 +527,8 @@ export function CinemaScreen({
       const angle = screenWidth / radius;
       const geom = new THREE.CylinderGeometry(radius, radius, screenHeight, 48, 1, true, -angle / 2, angle);
       geom.rotateY(Math.PI);
+      geom.scale(1, 1, -1);
+      geom.translate(0, 0, -radius);
       const uvs = geom.attributes.uv;
       for (let i = 0; i < uvs.count; i++) {
         uvs.setX(i, 1 - uvs.getX(i));
@@ -955,7 +957,9 @@ export function CinemaScreen({
         name="DynamicScreenOverlay"
         geometry={screenGeometry}
         position={screenCenter}
+        raycast={isCutout ? () => null : undefined}
         onClick={(e) => {
+          if (isCutout) return;
           e.stopPropagation();
           handleScreenClick();
         }}
@@ -1046,6 +1050,7 @@ export function CinemaScreen({
       <mesh
         name="ScreenProsceniumFrame"
         position={[screenCenter[0], screenCenter[1], screenCenter[2] - 0.015]}
+        raycast={() => null}
       >
         <boxGeometry args={[screenWidth + (isDirectView ? 0.08 : 0.22), screenHeight + (isDirectView ? 0.08 : 0.22), 0.03]} />
         <meshStandardMaterial
@@ -1067,6 +1072,7 @@ export function CinemaScreen({
               screenCenter[2] + (sideWidth / 2) * Math.sin(sideAngleRad),
             ]}
             rotation={[0, Math.PI - sideAngleRad, 0]}
+            raycast={() => null}
           >
             <meshBasicMaterial
               map={isCutout || isSolidColor ? undefined : activeTexture}
@@ -1084,6 +1090,7 @@ export function CinemaScreen({
               screenCenter[2] + (sideWidth / 2) * Math.sin(sideAngleRad),
             ]}
             rotation={[0, Math.PI + sideAngleRad, 0]}
+            raycast={() => null}
           >
             <meshBasicMaterial
               map={isCutout || isSolidColor ? undefined : activeTexture}
@@ -1112,7 +1119,7 @@ export function CinemaScreen({
 
       {/* Projector beam cone effect */}
       {qualityTier === 'high' && hasProjectorBeam && (
-        <mesh position={[0, 9.8, -24.8]} rotation={[0.22, 0, 0]}>
+        <mesh position={[0, 9.8, -24.8]} rotation={[0.22, 0, 0]} raycast={() => null}>
           <coneGeometry args={[4.2, 23.5, 32, 1, true]} />
           <meshBasicMaterial
             color={isSolidColor ? new THREE.Color(solidColor) : spillColor}
