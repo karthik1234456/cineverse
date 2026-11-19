@@ -1248,11 +1248,11 @@ export function ProceduralAuditorium({
 
         let hexColor: string;
         if (isSelected) {
-          hexColor = currentLook.seats.selected;
+          hexColor = '#22C55E'; // Emerald green
         } else if (isHeld) {
-          hexColor = currentLook.seats.held;
+          hexColor = '#F59E0B'; // Amber
         } else if (isBooked) {
-          hexColor = currentLook.seats.booked;
+          hexColor = '#3F424A'; // Desaturated grey
         } else if (isHovered) {
           hexColor = '#FF9E2C';
         } else {
@@ -1367,27 +1367,29 @@ export function ProceduralAuditorium({
     // Smoothly update volumetric projector beam opacity based on equipment profile
     const hasBeam = geometry.screenMesh.hasProjectorBeam !== false;
     const brightnessTier = geometry.beamBrightness || 'standard';
-    let baseShowOpacity = 0.12;
-    let baseDimOpacity = 0.05;
-
-    if (!hasBeam || brightnessTier === 'none') {
-      baseShowOpacity = 0.00;
-      baseDimOpacity = 0.00;
-    } else if (brightnessTier === 'laser') {
-      baseShowOpacity = 0.22;
-      baseDimOpacity = 0.08;
-    } else if (brightnessTier === 'bright') {
-      baseShowOpacity = 0.18;
-      baseDimOpacity = 0.06;
+    const beamSetting = useCinemaStore.getState().beamSetting ?? 'subtle';
+    let targetBeamOpacity = 0.00;
+    if (hasBeam && brightnessTier !== 'none' && beamSetting !== 'off') {
+      if (beamSetting === 'subtle') {
+        // Peak about 6 to 8 percent (0.07) for subtle setting (§ Part E)
+        targetBeamOpacity = isShow ? 0.07 : (useCinemaStore.getState().houseLights === 'dim' ? 0.025 : 0.00);
+      } else {
+        targetBeamOpacity = isShow ? 0.14 : (useCinemaStore.getState().houseLights === 'dim' ? 0.05 : 0.00);
+      }
     }
 
-    const targetBeamOpacity = isShow ? baseShowOpacity : (useCinemaStore.getState().houseLights === 'dim' ? baseDimOpacity : 0.00);
     if (projectorBeamMaterial) {
-      projectorBeamMaterial.opacity = THREE.MathUtils.lerp(
-        projectorBeamMaterial.opacity,
-        targetBeamOpacity,
-        0.10
-      );
+      if (beamSetting === 'off') {
+        projectorBeamMaterial.opacity = 0.00;
+        if (projectorBeamRef.current) projectorBeamRef.current.visible = false;
+      } else {
+        if (projectorBeamRef.current) projectorBeamRef.current.visible = true;
+        projectorBeamMaterial.opacity = THREE.MathUtils.lerp(
+          projectorBeamMaterial.opacity,
+          targetBeamOpacity,
+          0.25
+        );
+      }
     }
 
     // Dynamic emissive intensity on cove & skirting lights based on mode and intensity setting

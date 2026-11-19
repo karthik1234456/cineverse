@@ -421,12 +421,27 @@ export function CinemaScreen({
     } catch { }
   }, [trailer.isMuted, activeStrategy]);
 
-  // User Gesture Handlers (§ Part D.1, D.3, D.4)
+  // User Gesture Handlers (§ Part D)
   const handleStartPlayback = useCallback(() => {
     // 1. Hosted video texture
     if (activeStrategy === 'video_texture' && videoRef.current) {
       videoRef.current.muted = false;
+      videoRef.current.volume = 1.0;
       setTrailerPlaybackStatus('loading');
+
+      // Resume AudioContext if suspended
+      if (typeof window !== 'undefined') {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) {
+          try {
+            const ctx = new AudioCtx();
+            if (ctx.state === 'suspended') {
+              ctx.resume();
+            }
+          } catch {}
+        }
+      }
+
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
         playPromise
@@ -457,7 +472,19 @@ export function CinemaScreen({
       if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
         try {
           ytPlayerRef.current.unMute();
+          ytPlayerRef.current.setVolume(100);
           ytPlayerRef.current.playVideo();
+
+          // Verify with player API within 1 second (§ Part D)
+          setTimeout(() => {
+            if (ytPlayerRef.current) {
+              try {
+                const muted = typeof ytPlayerRef.current.isMuted === 'function' ? ytPlayerRef.current.isMuted() : false;
+                const vol = typeof ytPlayerRef.current.getVolume === 'function' ? ytPlayerRef.current.getVolume() : 100;
+                setTrailerState({ isMuted: muted || vol === 0 });
+              } catch {}
+            }
+          }, 800);
         } catch (err) {
           console.warn('[Screen] Direct YouTube play failed:', err);
         }
@@ -1102,29 +1129,29 @@ export function CinemaScreen({
         </group>
       )}
 
-      {/* Screen dynamic light spill into the auditorium */}
+      {/* Screen dynamic light spill into the auditorium (§ Part E) */}
       {qualityTier !== 'low' && (
         <spotLight
           ref={lightRef}
           name="ScreenLightSpill"
           position={[0, screenCenter[1] + 0.45, screenCenter[2] - 0.05]}
           target-position={[0, 2.0, -14.0]}
-          color={isSolidColor ? new THREE.Color(solidColor) : spillColor}
-          intensity={houseLights === 'show' ? 24.0 : houseLights === 'dim' ? 14.0 : 6.0}
-          distance={28}
-          angle={Math.PI / 3.2}
-          penumbra={0.7}
+          color={isSolidColor ? new THREE.Color(solidColor) : new THREE.Color(0.85, 0.90, 0.98)}
+          intensity={houseLights === 'show' ? 5.0 : houseLights === 'dim' ? 2.5 : 0.8}
+          distance={24}
+          angle={Math.PI / 3.4}
+          penumbra={0.8}
         />
       )}
 
-      {/* Projector beam cone effect */}
+      {/* Projector beam cone effect (§ Part E) */}
       {qualityTier === 'high' && hasProjectorBeam && (
         <mesh position={[0, 9.8, -24.8]} rotation={[0.22, 0, 0]} raycast={() => null}>
-          <coneGeometry args={[4.2, 23.5, 32, 1, true]} />
+          <coneGeometry args={[3.2, 20.0, 32, 1, true]} />
           <meshBasicMaterial
-            color={isSolidColor ? new THREE.Color(solidColor) : spillColor}
+            color={new THREE.Color(0.80, 0.88, 0.98)}
             transparent
-            opacity={houseLights === 'show' ? 0.045 : 0.015}
+            opacity={houseLights === 'show' ? 0.025 : 0.008}
             blending={THREE.AdditiveBlending}
             side={THREE.DoubleSide}
             depthWrite={false}
