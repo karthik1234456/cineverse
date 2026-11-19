@@ -70,10 +70,12 @@ export function ScreenMediaCluster() {
           setTrailer({ isPlaying: true, isMuted: false, playbackStatus: 'loading' });
           setHouseLights('show');
         } catch {
-          setTheatreModeOpen(true);
+          setTrailer({ isPlaying: true, isMuted: false, playbackStatus: 'loading' });
+          setHouseLights('show');
         }
       } else {
-        setTheatreModeOpen(true);
+        setTrailer({ isPlaying: true, isMuted: false, playbackStatus: 'loading' });
+        setHouseLights('show');
       }
     }
   };

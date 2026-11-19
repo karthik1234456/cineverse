@@ -33,20 +33,22 @@ interface CinemaWorldProps {
  */
 function PerformanceWatchdog() {
   const trailer = useCinemaStore((s) => s.trailer);
-  const setTrailer = useCinemaStore((s) => s.setTrailerState);
-  const setTheatreModeOpen = useCinemaStore((s) => s.setTheatreModeOpen);
+  const qualityMode = useCinemaStore((s) => s.qualityMode);
+  const setQualityMode = useCinemaStore((s) => s.setQualityMode);
   const showToast = useCinemaStore((s) => s.showToast);
 
   const isCSS3DActive = trailer.isPlaying && !trailer.isTheatreMode && trailer.activeStrategy === 'youtube_css3d';
   const lowFpsAccumulator = useRef(0);
   const playStartTimeRef = useRef(0);
   const slowInputCountRef = useRef(0);
+  const hasBoostedRef = useRef(false);
 
   useEffect(() => {
     if (isCSS3DActive) {
       playStartTimeRef.current = performance.now();
       slowInputCountRef.current = 0;
       lowFpsAccumulator.current = 0;
+      hasBoostedRef.current = false;
     }
   }, [isCSS3DActive]);
 
@@ -55,17 +57,19 @@ function PerformanceWatchdog() {
     if (!isCSS3DActive) return;
     const handleInput = () => {
       // Warmup: avoid false-positives on initial scene hydration / route load
-      if (performance.now() - playStartTimeRef.current < 4000) return;
+      if (performance.now() - playStartTimeRef.current < 5000) return;
 
       const start = performance.now();
       requestAnimationFrame(() => {
         const latency = performance.now() - start;
         if (latency > 200) {
           slowInputCountRef.current += 1;
-          if (slowInputCountRef.current >= 3) {
-            setTrailer({ isTheatreMode: true });
-            setTheatreModeOpen(true);
-            showToast('Switched to Theatre Mode for smoother playback');
+          if (slowInputCountRef.current >= 3 && !hasBoostedRef.current) {
+            hasBoostedRef.current = true;
+            if (qualityMode !== 'smooth') {
+              setQualityMode('smooth');
+              showToast('Optimized 3D theater performance for smooth playback');
+            }
           }
         } else {
           slowInputCountRef.current = 0;
@@ -79,25 +83,27 @@ function PerformanceWatchdog() {
       window.removeEventListener('pointerdown', handleInput);
       window.removeEventListener('keydown', handleInput);
     };
-  }, [isCSS3DActive, setTrailer, setTheatreModeOpen, showToast]);
+  }, [isCSS3DActive, qualityMode, setQualityMode, showToast]);
 
-  // Monitor frame rate: if FPS < 30 for 3 seconds continuously after warmup
+  // Monitor frame rate: if FPS < 30 for 3 seconds continuously after warmup, boost quality settings
   useFrame((_, delta) => {
     if (!isCSS3DActive) {
       lowFpsAccumulator.current = 0;
       return;
     }
 
-    if (performance.now() - playStartTimeRef.current < 4000) return;
+    if (performance.now() - playStartTimeRef.current < 5000) return;
 
     const currentFps = 1 / Math.max(delta, 0.001);
     if (currentFps < 30) {
       lowFpsAccumulator.current += delta;
-      if (lowFpsAccumulator.current >= 3.0) {
+      if (lowFpsAccumulator.current >= 3.0 && !hasBoostedRef.current) {
         lowFpsAccumulator.current = 0;
-        setTrailer({ isTheatreMode: true });
-        setTheatreModeOpen(true);
-        showToast('Switched to Theatre Mode for smoother playback');
+        hasBoostedRef.current = true;
+        if (qualityMode !== 'smooth') {
+          setQualityMode('smooth');
+          showToast('Optimized 3D theater performance for smooth playback');
+        }
       }
     } else {
       lowFpsAccumulator.current = Math.max(0, lowFpsAccumulator.current - delta * 0.5);

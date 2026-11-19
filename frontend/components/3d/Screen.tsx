@@ -9,7 +9,9 @@ import { useCinemaStore, ScreenStrategy, TrailerPlaybackStatus } from '@/store/u
 
 function getYouTubeId(url: string | null | undefined): string | null {
   if (!url) return null;
-  const m = url.match(/(?:youtu\.be\/|(?:youtube\.com|youtube-nocookie\.com)\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  const trimmed = url.trim();
+  if (/^[\w-]{11}$/.test(trimmed)) return trimmed;
+  const m = trimmed.match(/(?:youtu\.be\/|(?:youtube\.com|youtube-nocookie\.com)\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/);
   return m ? m[1] : null;
 }
 
@@ -321,6 +323,13 @@ export function CinemaScreen({
     };
   }, [activeStrategy, rawYoutubeId]);
 
+  // Stable YouTube embed URL (never mutated on play/mute to avoid iframe reload & segment buffer drop)
+  const stableYoutubeSrc = useMemo(() => {
+    if (!rawYoutubeId) return '';
+    const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3002';
+    return `https://www.youtube.com/embed/${rawYoutubeId}?enablejsapi=1&controls=1&loop=1&playlist=${rawYoutubeId}&playsinline=1&rel=0&iv_load_policy=3&origin=${encodeURIComponent(origin)}`;
+  }, [rawYoutubeId]);
+
   // Initialize YT.Player on iframe mount or when API is ready
   const initPlayer = useCallback(() => {
     if (typeof window === 'undefined') return;
@@ -378,11 +387,15 @@ export function CinemaScreen({
           },
           onError: (e: any) => {
             const code = e.data;
-            console.warn(`[Screen] YouTube Player Error Code ${code}. Transitioning to Theatre Mode.`);
+            console.warn(`[Screen] YouTube Player Error Code ${code}.`);
             setYoutubeErrorCode(code);
             setTrailerState({ youtubeErrorCode: code });
-            setTheatreModeOpen(true);
-            setTrailerState({ isTheatreMode: true, isPlaying: true, playbackStatus: 'playing' });
+            // If local video clip exists, fall back to video texture directly on 3D screen
+            const currentTrailer = useCinemaStore.getState().trailer;
+            const glimpse = (currentTrailer as any).glimpseUrl || (currentTrailer as any).glimpse_url;
+            if (glimpse) {
+              setTrailerState({ trailerUrl: glimpse, activeStrategy: 'video_texture', isPlaying: true });
+            }
           },
         },
       });
@@ -390,13 +403,21 @@ export function CinemaScreen({
     } catch (err) {
       console.warn('[Screen] Failed to attach YouTube player controller:', err);
     }
-  }, [rawYoutubeId, setTrailerPlaybackStatus, setTrailerState, trailer.isPlaying, setTheatreModeOpen]);
+  }, [rawYoutubeId, setTrailerPlaybackStatus, setTrailerState, setHouseLights]);
 
   useEffect(() => {
-    if (ytApiLoaded && activeStrategy === 'youtube_css3d') {
+    if (activeStrategy === 'youtube_css3d' && rawYoutubeId) {
       initPlayer();
+      const interval = setInterval(() => {
+        if (ytPlayerRef.current) {
+          clearInterval(interval);
+        } else {
+          initPlayer();
+        }
+      }, 250);
+      return () => clearInterval(interval);
     }
-  }, [ytApiLoaded, activeStrategy, initPlayer]);
+  }, [ytApiLoaded, activeStrategy, rawYoutubeId, initPlayer]);
 
   // Sync YouTube Controls (Play/Pause/Mute)
   useEffect(() => {
@@ -1041,9 +1062,11 @@ export function CinemaScreen({
           <div data-testid="screen-youtube-player" className="relative w-full h-full">
             <iframe
               id="cineverse-screen-yt-iframe"
-              src={`https://www.youtube-nocookie.com/embed/${rawYoutubeId}?enablejsapi=1&autoplay=${trailer.isPlaying ? 1 : 0}&mute=${trailer.isMuted ? 1 : 0}&controls=1&loop=1&playlist=${rawYoutubeId}&playsinline=1&origin=${encodeURIComponent(typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3002')}&widget_referrer=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : 'http://localhost:3002')}`}
+              src={stableYoutubeSrc}
               className="w-full h-full border-0 bg-black rounded-sm"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerPolicy="strict-origin-when-cross-origin"
+              loading="eager"
               allowFullScreen
               onLoad={initPlayer}
             />
