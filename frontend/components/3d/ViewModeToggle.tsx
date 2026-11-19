@@ -30,6 +30,8 @@ import {
   ChevronDown,
   Globe,
   Sliders,
+  Check,
+  Plus,
 } from 'lucide-react';
 import { THEATRE_LOOKS, type TheatreLookId } from '@/lib/theatreLooks';
 import { I18N_DICTIONARY, type SupportedLanguage } from '@/lib/i18n';
@@ -44,6 +46,9 @@ export function ViewModeToggle() {
   const setCameraPreset = useCinemaStore((s) => s.setCameraPreset);
   const setCameraPose = useCinemaStore((s) => s.setCameraPose);
   const activeSeatId = useCinemaStore((s) => s.activeSeatId);
+  const selectedSeats = useCinemaStore((s) => s.selectedSeats);
+  const toggleSeat = useCinemaStore((s) => s.toggleSeat);
+  const seatPrices = useCinemaStore((s) => s.seatPrices);
   const setMode = useCinemaStore((s) => s.setMode);
   const sitAt = useCinemaStore((s) => s.sitAt);
   const standUp = useCinemaStore((s) => s.standUp);
@@ -524,6 +529,47 @@ export function ViewModeToggle() {
                 <span>Row Down</span>
               </button>
             </div>
+
+            <div className="h-4 w-px bg-slate-200 mx-1" />
+
+            {/* Select / Deselect Seat in Sit View */}
+            {(() => {
+              const isCurrentSeatSelected = activeSeatId ? selectedSeats.includes(activeSeatId) : false;
+              const currentSeatRecord = auditoriumLayout?.seats?.find((s) => s.seat_id === activeSeatId);
+              const currentSeatPrice = (activeSeatId && seatPrices[activeSeatId]?.price) || currentSeatRecord?.price || 380;
+
+              return (
+                <button
+                  data-testid="seat-pov-select-button"
+                  onClick={() => {
+                    if (activeSeatId) {
+                      toggleSeat(activeSeatId);
+                    }
+                  }}
+                  className={`flex min-h-[36px] items-center gap-1.5 rounded-lg px-3 py-1 text-xs sm:text-sm font-bold transition-all shadow-sm ${
+                    isCurrentSeatSelected
+                      ? 'bg-[#22C55E] text-white hover:bg-[#16A34A] ring-2 ring-emerald-300'
+                      : 'bg-slate-900 text-white hover:bg-slate-800'
+                  }`}
+                  title={`${isCurrentSeatSelected ? 'Deselect' : 'Select'} seat ${activeSeatId || ''} (Enter)`}
+                >
+                  {isCurrentSeatSelected ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 stroke-[3]" />
+                      <span>Deselect · ₹{Math.round(currentSeatPrice)}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-3.5 w-3.5 stroke-[3]" />
+                      <span>Select · ₹{Math.round(currentSeatPrice)}</span>
+                    </>
+                  )}
+                  <kbd className="ml-1 hidden sm:inline-block rounded bg-white/20 px-1 py-0.5 text-[10px] font-mono leading-none">
+                    Enter
+                  </kbd>
+                </button>
+              );
+            })()}
 
             <div className="h-4 w-px bg-slate-200 mx-1" />
 

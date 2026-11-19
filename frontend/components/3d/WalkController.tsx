@@ -93,8 +93,14 @@ export function WalkController() {
         setMode('overview');
       }
 
-      // Quick interact (Sit in aimed seat)
-      if (e.code === 'KeyE' || e.code === 'Enter') {
+      // Quick interact: Select aimed seat via 'E', Sit in aimed seat via 'Enter'
+      if (e.code === 'KeyE') {
+        const hovered = useCinemaStore.getState().hoveredSeatId;
+        if (hovered) {
+          e.preventDefault();
+          useCinemaStore.getState().toggleSeat(hovered);
+        }
+      } else if (e.code === 'Enter') {
         const hovered = useCinemaStore.getState().hoveredSeatId;
         if (hovered) {
           e.preventDefault();
