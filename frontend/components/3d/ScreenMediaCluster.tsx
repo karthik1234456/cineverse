@@ -90,17 +90,77 @@ export function ScreenMediaCluster() {
     setHouseLights('show');
   };
 
+  const handleToggleMute = () => {
+    const newMuted = !trailer.isMuted;
+    const yt = (window as any).__cineverse_yt_player;
+    if (yt) {
+      if (newMuted && typeof yt.mute === 'function') {
+        yt.mute();
+      } else if (!newMuted && typeof yt.unMute === 'function') {
+        yt.unMute();
+        if (typeof yt.setVolume === 'function') yt.setVolume(volumeLevel || 100);
+      }
+    }
+    const vid = (window as any).__cineverse_video as HTMLVideoElement | undefined;
+    if (vid) {
+      vid.muted = newMuted;
+      if (!newMuted) vid.volume = (volumeLevel || 80) / 100;
+    }
+    toggleTrailerMute();
+  };
+
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = parseInt(e.target.value, 10);
     setVolumeLevel(val);
     const vid = (window as any).__cineverse_video as HTMLVideoElement | undefined;
     if (vid) {
       vid.volume = val / 100;
-      if (val > 0 && trailer.isMuted) {
-        toggleTrailerMute();
+      vid.muted = val === 0;
+      setTrailer({ isMuted: val === 0 });
+    }
+    const yt = (window as any).__cineverse_yt_player;
+    if (yt && typeof yt.setVolume === 'function') {
+      yt.setVolume(val);
+      if (val > 0) {
+        if (typeof yt.unMute === 'function') yt.unMute();
+        setTrailer({ isMuted: false });
+      } else {
+        if (typeof yt.mute === 'function') yt.mute();
+        setTrailer({ isMuted: true });
       }
     }
   };
+
+  // Truthful Audio State Polling (§ Part D)
+  React.useEffect(() => {
+    if (!trailer.isPlaying) return;
+    const timer = setInterval(() => {
+      const yt = (window as any).__cineverse_yt_player;
+      if (yt && typeof yt.isMuted === 'function') {
+        try {
+          const realMuted = yt.isMuted();
+          const realVol = typeof yt.getVolume === 'function' ? yt.getVolume() : 100;
+          if (realMuted !== trailer.isMuted) {
+            setTrailer({ isMuted: realMuted });
+          }
+          if (realVol !== volumeLevel && realVol >= 0) {
+            setVolumeLevel(realVol);
+          }
+        } catch {}
+      }
+      const vid = (window as any).__cineverse_video as HTMLVideoElement | undefined;
+      if (vid) {
+        if (vid.muted !== trailer.isMuted) {
+          setTrailer({ isMuted: vid.muted });
+        }
+        const vidVol = Math.round(vid.volume * 100);
+        if (vidVol !== volumeLevel) {
+          setVolumeLevel(vidVol);
+        }
+      }
+    }, 500);
+    return () => clearInterval(timer);
+  }, [trailer.isPlaying, trailer.isMuted, volumeLevel, setTrailer]);
 
   const handleOpenPopup = () => {
     openTrailer({
@@ -251,7 +311,7 @@ export function ScreenMediaCluster() {
 
           {/* Mute / Tap for sound */}
           <button
-            onClick={toggleTrailerMute}
+            onClick={handleToggleMute}
             data-testid="trailer-mute-toggle"
             className={`flex min-h-[38px] items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow ${
               trailer.isMuted
@@ -272,6 +332,31 @@ export function ScreenMediaCluster() {
               </>
             )}
           </button>
+
+          {/* No sound prompt (§ Part D) */}
+          {trailer.isPlaying && trailer.isMuted && (
+            <button
+              onClick={() => {
+                const yt = (window as any).__cineverse_yt_player;
+                if (yt && typeof yt.unMute === 'function') {
+                  yt.unMute();
+                  yt.setVolume(100);
+                }
+                const vid = (window as any).__cineverse_video as HTMLVideoElement | undefined;
+                if (vid) {
+                  vid.muted = false;
+                  vid.volume = 1.0;
+                }
+                setTrailer({ isMuted: false });
+                setVolumeLevel(100);
+              }}
+              data-testid="no-sound-unmute-prompt"
+              className="flex items-center gap-1.5 rounded-full bg-amber-500 text-slate-950 font-black px-3 py-1 text-xs shadow-lg animate-bounce hover:bg-amber-400 cursor-pointer"
+            >
+              <VolumeX className="h-3.5 w-3.5" />
+              <span>No sound: click here</span>
+            </button>
+          )}
 
           {/* Restart */}
           <button
