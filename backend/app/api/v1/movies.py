@@ -188,6 +188,88 @@ async def get_movies_catalog_info():
     }
 
 
+@router.get("/featured", response_model=MovieDetailResponse)
+async def get_featured_movie_endpoint(db: AsyncSession = Depends(get_db)):
+    """Returns top featured movie for Movie of the Day."""
+    stmt = (
+        select(Movie)
+        .options(
+            selectinload(Movie.cast_members),
+            selectinload(Movie.reviews).selectinload(Review.user)
+        )
+        .where(Movie.is_now_showing == True)
+        .order_by(Movie.is_tmdb.desc(), Movie.rating_avg.desc(), Movie.rating_count.desc())
+    )
+    result = await db.execute(stmt)
+    movie = result.scalars().first()
+    if not movie:
+        fallback_stmt = (
+            select(Movie)
+            .options(
+                selectinload(Movie.cast_members),
+                selectinload(Movie.reviews).selectinload(Review.user)
+            )
+            .limit(1)
+        )
+        res_fb = await db.execute(fallback_stmt)
+        movie = res_fb.scalars().first()
+    if not movie:
+        raise HTTPException(status_code=404, detail="No movies found")
+
+    review_responses = []
+    for r in movie.reviews:
+        if r.is_approved:
+            review_responses.append(ReviewResponse(
+                id=r.id,
+                movie_id=r.movie_id,
+                user_id=r.user_id,
+                rating=r.rating,
+                headline=r.headline,
+                content=r.content,
+                has_spoilers=r.has_spoilers,
+                created_at=r.created_at,
+                user_name=r.user.full_name if r.user else "Verified Viewer"
+            ))
+
+    return MovieDetailResponse(
+        id=movie.id,
+        title=movie.title,
+        slug=movie.slug,
+        synopsis=movie.synopsis,
+        poster_url=movie.poster_url,
+        banner_url=movie.banner_url,
+        trailer_url=movie.trailer_url,
+        dominant_color=movie.dominant_color,
+        glimpse_url=movie.glimpse_url,
+        glimpse_webm_url=movie.glimpse_webm_url,
+        glimpse_720p_url=movie.glimpse_720p_url,
+        duration_minutes=movie.duration_minutes,
+        certificate=movie.certificate,
+        release_date=movie.release_date,
+        is_now_showing=movie.is_now_showing,
+        is_coming_soon=movie.is_coming_soon,
+        rating_avg=movie.rating_avg,
+        rating_count=movie.rating_count,
+        interested_count=movie.interested_count,
+        languages=movie.languages or [],
+        genres=movie.genres or [],
+        formats=movie.formats or [],
+        tmdb_id=movie.tmdb_id,
+        tmdb_vote_average=movie.tmdb_vote_average,
+        tmdb_vote_count=movie.tmdb_vote_count,
+        is_tmdb=movie.is_tmdb,
+        director=movie.director,
+        cast=movie.cast or [],
+        reviews=review_responses
+    )
+
+
+@router.get("/now-showing", response_model=List[MovieResponse])
+async def get_now_showing_alias(response: Response, db: AsyncSession = Depends(get_db)):
+    """Convenience alias for /movies?status=now_showing."""
+    return await list_movies(response=response, status="now_showing", db=db)
+
+
 @router.get("/{id_or_slug}", response_model=MovieDetailResponse)
 async def get_movie(id_or_slug: str, db: AsyncSession = Depends(get_db)):
     stmt = (

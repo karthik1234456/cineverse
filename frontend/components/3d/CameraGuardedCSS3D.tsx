@@ -74,6 +74,7 @@ export function CameraGuardedCSS3D({
 
   const lastCameraMatrixRef = useRef<THREE.Matrix4>(new THREE.Matrix4());
   const lastObjectMatrixRef = useRef<THREE.Matrix4>(new THREE.Matrix4());
+  const lastFovRef = useRef<number>(0);
   const wasVisibleRef = useRef<boolean>(true);
   const needsInitialUpdateRef = useRef<boolean>(true);
 
@@ -92,7 +93,6 @@ export function CameraGuardedCSS3D({
       width: ${size.width}px;
       height: ${size.height}px;
       pointer-events: none;
-      overflow: hidden;
       z-index: ${zIndex};
     `;
 
@@ -107,6 +107,8 @@ export function CameraGuardedCSS3D({
       height: ${size.height}px;
       transform-style: preserve-3d;
       pointer-events: none;
+      will-change: transform;
+      backface-visibility: hidden;
     `;
 
     // Inner element with object matrix and content size
@@ -118,6 +120,8 @@ export function CameraGuardedCSS3D({
       height: ${height}px;
       transform-origin: 50% 50%;
       pointer-events: ${pointerEvents};
+      will-change: transform;
+      backface-visibility: hidden;
     `;
 
     outerEl.appendChild(innerEl);
@@ -219,9 +223,10 @@ export function CameraGuardedCSS3D({
     const heightHalf = size.height / 2;
     const fov = cam.projectionMatrix.elements[5] * heightHalf;
 
-    root.style.perspective = `${fov}px`;
-    root.style.width = `${size.width}px`;
-    root.style.height = `${size.height}px`;
+    if (Math.abs(fov - lastFovRef.current) > 0.01) {
+      lastFovRef.current = fov;
+      root.style.perspective = `${fov}px`;
+    }
 
     const cameraCSSMatrix = getCameraCSSMatrix(cam.matrixWorldInverse);
     const cameraTransform = `translateZ(${fov}px)`;

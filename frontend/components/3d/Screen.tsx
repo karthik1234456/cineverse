@@ -83,6 +83,7 @@ export function CinemaScreen({
   const [ytApiLoaded, setYtApiLoaded] = useState(false);
   const [youtubeVerifiedPlaying, setYoutubeVerifiedPlaying] = useState(false);
   const ytPlayerRef = useRef<any>(null);
+  const pendingPlayRef = useRef<boolean>(false);
 
   // Watchdog timer ref for 3s fallback to Theatre Mode
   const watchdogTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -337,9 +338,14 @@ export function CinemaScreen({
               (window as any).__cineverse_yt_player = e.target;
             }
             setYoutubeReady(true);
-            if (trailer.isPlaying) {
+            const shouldAutoPlay = useCinemaStore.getState().trailer.isPlaying || pendingPlayRef.current;
+            if (shouldAutoPlay) {
               try {
+                e.target.unMute();
+                e.target.setVolume(100);
                 e.target.playVideo();
+                setTrailerState({ isPlaying: true, isMuted: false, playbackStatus: 'playing' });
+                setHouseLights('show');
               } catch { }
             } else {
               setTrailerPlaybackStatus('ready');
@@ -466,6 +472,7 @@ export function CinemaScreen({
       }
     } else if (activeStrategy === 'youtube_css3d' && rawYoutubeId) {
       // 2. YouTube CSS3D Player
+      pendingPlayRef.current = true;
       setTrailerState({ isPlaying: true, isMuted: false, playbackStatus: 'playing' });
       setHouseLights('show');
 

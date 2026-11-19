@@ -2254,16 +2254,6 @@ export function ProceduralAuditorium({
       {/* 9b. Instanced Audience Simulation on Booked Seats Only */}
       <AudienceSimulation seats={seats} />
 
-      {/* Critical Red Warning if seat models fail to load (No silent fallback to boxes) */}
-      {hasModelLoadError && (
-        <group position={[0, geometry.screenMesh.center[1] + 1.0, geometry.screenMesh.center[2] + 1.0]}>
-          <mesh>
-            <planeGeometry args={[14, 2.2]} />
-            <meshBasicMaterial color="#DC2626" />
-          </mesh>
-        </group>
-      )}
-
       {/* 1.75m Person Silhouette Scale Verification (?debug=scale) */}
       {debugScale && (
         <group name="DebugScaleSilhouettes">
