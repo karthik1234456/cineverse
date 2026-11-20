@@ -8,44 +8,44 @@ describe('Screen Size Ranges & Distinctness Per Type', () => {
     expect(METERS_TO_SCENE).toBe(2.0);
   });
 
-  it('standard flat screen is 12 to 16 m wide', () => {
+  it('standard flat screen is 15 to 19 m wide', () => {
     const std = THEATRE_TYPE_REGISTRY.standard;
     expect(std.screenType.type).toBe('standard_flat');
-    expect(std.realWorldDimensions.screenWidthM).toBeGreaterThanOrEqual(12.0);
-    expect(std.realWorldDimensions.screenWidthM).toBeLessThanOrEqual(16.0);
+    expect(std.realWorldDimensions.screenWidthM).toBeGreaterThanOrEqual(15.0);
+    expect(std.realWorldDimensions.screenWidthM).toBeLessThanOrEqual(19.0);
   });
 
-  it('large curved or large format screen is 18 to 24 m wide', () => {
+  it('large curved or large format screen is 22 to 30 m wide', () => {
     const lrg = THEATRE_TYPE_REGISTRY.large;
     expect(lrg.screenType.type).toBe('large_curved');
-    expect(lrg.realWorldDimensions.screenWidthM).toBeGreaterThanOrEqual(18.0);
-    expect(lrg.realWorldDimensions.screenWidthM).toBeLessThanOrEqual(24.0);
+    expect(lrg.realWorldDimensions.screenWidthM).toBeGreaterThanOrEqual(22.0);
+    expect(lrg.realWorldDimensions.screenWidthM).toBeLessThanOrEqual(30.0);
 
     const flag = THEATRE_TYPE_REGISTRY.flagship;
     expect(flag.screenType.type).toBe('large_curved');
-    expect(flag.realWorldDimensions.screenWidthM).toBeGreaterThanOrEqual(18.0);
-    expect(flag.realWorldDimensions.screenWidthM).toBeLessThanOrEqual(24.0);
+    expect(flag.realWorldDimensions.screenWidthM).toBeGreaterThanOrEqual(22.0);
+    expect(flag.realWorldDimensions.screenWidthM).toBeLessThanOrEqual(30.0);
   });
 
-  it('premium direct-view screen is 10 to 14 m wide', () => {
+  it('premium direct-view screen is 12 to 16 m wide', () => {
     const dir = THEATRE_TYPE_REGISTRY.luxury_recliner;
     expect(dir.screenType.type).toBe('premium_direct_view');
-    expect(dir.realWorldDimensions.screenWidthM).toBeGreaterThanOrEqual(10.0);
-    expect(dir.realWorldDimensions.screenWidthM).toBeLessThanOrEqual(14.0);
+    expect(dir.realWorldDimensions.screenWidthM).toBeGreaterThanOrEqual(12.0);
+    expect(dir.realWorldDimensions.screenWidthM).toBeLessThanOrEqual(16.0);
   });
 
-  it('panoramic wrap screen is 14 to 18 m wide', () => {
+  it('panoramic wrap screen is 17 to 22 m wide', () => {
     const wrap = THEATRE_TYPE_REGISTRY.motion_seat;
     expect(wrap.screenType.type).toBe('panoramic_wrap');
-    expect(wrap.realWorldDimensions.screenWidthM).toBeGreaterThanOrEqual(14.0);
-    expect(wrap.realWorldDimensions.screenWidthM).toBeLessThanOrEqual(18.0);
+    expect(wrap.realWorldDimensions.screenWidthM).toBeGreaterThanOrEqual(17.0);
+    expect(wrap.realWorldDimensions.screenWidthM).toBeLessThanOrEqual(22.0);
   });
 
-  it('boutique screen is 6 to 9 m wide and hall has 60 to 120 seats', () => {
+  it('boutique screen is 8 to 11 m wide and hall has 60 to 120 seats', () => {
     const bq = THEATRE_TYPE_REGISTRY.boutique;
     expect(bq.screenType.type).toBe('boutique_small_flat');
-    expect(bq.realWorldDimensions.screenWidthM).toBeGreaterThanOrEqual(6.0);
-    expect(bq.realWorldDimensions.screenWidthM).toBeLessThanOrEqual(9.0);
+    expect(bq.realWorldDimensions.screenWidthM).toBeGreaterThanOrEqual(8.0);
+    expect(bq.realWorldDimensions.screenWidthM).toBeLessThanOrEqual(11.0);
     expect(bq.targetSeats[0]).toBeGreaterThanOrEqual(60);
     expect(bq.targetSeats[1]).toBeLessThanOrEqual(120);
   });

@@ -73,6 +73,8 @@ export function ViewModeToggle() {
   // Seat Markers & Beam Setting (§ Parts C & E)
   const showSeatMarkers = useCinemaStore((s) => s.showSeatMarkers ?? true);
   const toggleSeatMarkers = useCinemaStore((s) => s.toggleSeatMarkers);
+  const screenFitMode = useCinemaStore((s) => s.screenFitMode);
+  const setScreenFitMode = useCinemaStore((s) => s.setScreenFitMode);
   const beamSetting = useCinemaStore((s) => s.beamSetting ?? 'subtle');
   const setBeamSetting = useCinemaStore((s) => s.setBeamSetting);
 
@@ -901,6 +903,43 @@ export function ViewModeToggle() {
               </div>
               <p className="text-[11px] text-slate-500 leading-tight">
                 Controls the intensity and visibility of the laser projection cone.
+              </p>
+            </div>
+
+            {/* 4d. Screen Video Ratio / Fill Setting (§ Part A) */}
+            <div className="space-y-1.5 rounded-2xl bg-slate-50 p-3 border border-slate-200">
+              <div className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center justify-between">
+                <span>Screen Video Scaling</span>
+                <span className="text-[10px] font-mono uppercase bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-bold">
+                  {screenFitMode === 'fill' ? 'Fill (Crop to fill)' : 'Fit (Letterbox)'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setScreenFitMode('fit')}
+                  data-testid="screen-fit-btn"
+                  className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition ${
+                    screenFitMode === 'fit'
+                      ? 'bg-[#C8102E] text-white shadow-sm'
+                      : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <span>Fit (Letterbox)</span>
+                </button>
+                <button
+                  onClick={() => setScreenFitMode('fill')}
+                  data-testid="screen-fill-btn"
+                  className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition ${
+                    screenFitMode === 'fill'
+                      ? 'bg-[#C8102E] text-white shadow-sm'
+                      : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <span>Fill (Crop to fill)</span>
+                </button>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-tight">
+                Fill expands the picture across the full 3D screen frame; Fit preserves native ratio.
               </p>
             </div>
 

@@ -250,6 +250,8 @@ export interface CinemaState {
   setHouseLights: (mode: HouseLightsMode) => void;
   theatreLook: 'a' | 'b' | 'c';
   setTheatreLook: (look: 'a' | 'b' | 'c') => void;
+  screenFitMode: 'fit' | 'fill';
+  setScreenFitMode: (mode: 'fit' | 'fill') => void;
   setQualityTier: (tier: QualityTier) => void;
   setQualityMode: (mode: QualityMode) => void;
   setContinuousRendering: (continuous: boolean) => void;
@@ -388,6 +390,8 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   },
   theatreLook: (typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('look') as 'a' | 'b' | 'c') || 'a' : 'a'),
   setTheatreLook: (look) => set({ theatreLook: look }),
+  screenFitMode: 'fit',
+  setScreenFitMode: (mode) => set({ screenFitMode: mode }),
   qualityTier: initialQuality === 'smooth' ? 'low' : 'high',
   qualityMode: initialQuality,
   useHqModel: false,
@@ -1037,6 +1041,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     return {
       mode: state.mode,
       theatreLook: state.theatreLook,
+      screenFitMode: state.screenFitMode,
       cameraMode: state.cameraMode,
       cameraPreset: state.cameraPreset,
       isHeatmapActive: state.isHeatmapActive,

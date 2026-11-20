@@ -110,11 +110,11 @@ export function TheatreModePlayer() {
       role="dialog"
       aria-label="Theatre Mode Trailer Player"
     >
-      {/* Cinema Screen Frame */}
+      {/* Cinema Screen Frame (§ Part A: 85% viewport width, controls outside picture) */}
       <div
         ref={frameRef}
         data-testid="theatre-mode-cinema-frame"
-        className="relative flex flex-col w-full max-w-5xl rounded-2xl border-4 border-slate-700/80 bg-[#090b10] shadow-[0_0_80px_rgba(200,16,46,0.25)] overflow-hidden"
+        className="relative flex flex-col w-[85vw] max-w-7xl max-h-[92vh] rounded-2xl border-2 border-slate-700/80 bg-[#090b10] shadow-[0_0_80px_rgba(200,16,46,0.25)] overflow-hidden"
       >
         {/* Top Header Bar */}
         <header className="flex h-12 items-center justify-between border-b border-white/10 bg-[#0e131d]/90 px-4 py-2">

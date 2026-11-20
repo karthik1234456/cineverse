@@ -168,11 +168,11 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
     screenType: {
       type: 'standard_flat',
       name: 'Standard flat screen',
-      aspectRatio: 2.15,
+      aspectRatio: 2.16,
       isCurved: false,
       hasProjectorBeam: true,
       finish: 'matte_white',
-      bezel: { width: 0.25, color: '#111115', hasFrame: true },
+      bezel: { width: 0.06, color: '#111115', hasFrame: true, thinBlack: true },
     },
     realWorldDimensions: {
       seatWidthM: 0.55,
@@ -180,8 +180,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       rakeStepM: 0.18,
       aisleWidthM: 1.20,
       ceilingHeightM: 8.5,
-      screenWidthM: 7.8,
-      screenHeightM: 3.6,
+      screenWidthM: 9.2,
+      screenHeightM: 4.25,
     },
     sceneDimensions: {
       seatPitch: 1.20,
@@ -189,8 +189,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       tierRise: 0.22,
       aisleGap: 1.20,
       ceilingHeight: 11.2,
-      screenWidth: 15.6,
-      screenHeight: 7.25,
+      screenWidth: 18.4,
+      screenHeight: 8.5,
     },
     features: {
       curved_screen: false,
@@ -230,11 +230,11 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
     screenType: {
       type: 'standard_flat',
       name: 'Standard flat screen',
-      aspectRatio: 2.15,
+      aspectRatio: 2.125,
       isCurved: false,
       hasProjectorBeam: true,
       finish: 'matte_white',
-      bezel: { width: 0.25, color: '#111115', hasFrame: true },
+      bezel: { width: 0.06, color: '#111115', hasFrame: true, thinBlack: true },
     },
     realWorldDimensions: {
       seatWidthM: 0.52,
@@ -242,8 +242,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       rakeStepM: 0.17,
       aisleWidthM: 1.20,
       ceilingHeightM: 10.0,
-      screenWidthM: 14.5,
-      screenHeightM: 6.8,
+      screenWidthM: 17.0,
+      screenHeightM: 8.0,
     },
     sceneDimensions: {
       seatPitch: 1.20,  // 0.52m + 0.08m gap = 0.60m * 2.0
@@ -251,8 +251,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       tierRise: 0.34,   // 0.17m * 2.0
       aisleGap: 2.40,   // 1.20m * 2.0
       ceilingHeight: 10.0 * METERS_TO_SCENE,
-      screenWidth: 14.5 * METERS_TO_SCENE,
-      screenHeight: 6.8 * METERS_TO_SCENE,
+      screenWidth: 17.0 * METERS_TO_SCENE,
+      screenHeight: 8.0 * METERS_TO_SCENE,
     },
     features: {
       curved_screen: false,
@@ -292,12 +292,12 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
     screenType: {
       type: 'large_curved',
       name: 'Large curved screen',
-      aspectRatio: 2.15,
+      aspectRatio: 2.176,
       isCurved: true,
       curveRadiusM: 32.0,
       hasProjectorBeam: true,
       finish: 'matte_white',
-      bezel: { width: 0.20, color: '#090a0f', hasFrame: true },
+      bezel: { width: 0.06, color: '#090a0f', hasFrame: true, thinBlack: true },
     },
     realWorldDimensions: {
       seatWidthM: 0.56,
@@ -305,8 +305,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       rakeStepM: 0.19,
       aisleWidthM: 1.25,
       ceilingHeightM: 12.0,
-      screenWidthM: 20.0,
-      screenHeightM: 9.2,
+      screenWidthM: 23.5,
+      screenHeightM: 10.8,
     },
     sceneDimensions: {
       seatPitch: 0.56 * METERS_TO_SCENE,  // 1.12
@@ -314,8 +314,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       tierRise: 0.19 * METERS_TO_SCENE,   // 0.38
       aisleGap: 1.25 * METERS_TO_SCENE,   // 2.50
       ceilingHeight: 12.0 * METERS_TO_SCENE,
-      screenWidth: 20.0 * METERS_TO_SCENE,
-      screenHeight: 9.2 * METERS_TO_SCENE,
+      screenWidth: 23.5 * METERS_TO_SCENE,
+      screenHeight: 10.8 * METERS_TO_SCENE,
     },
     features: {
       curved_screen: true,
@@ -356,12 +356,12 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       type: 'large_curved',
       name: 'Large curved screen',
       brandName: 'Large Format',
-      aspectRatio: 2.18,
+      aspectRatio: 2.187,
       isCurved: true,
       curveRadiusM: 28.0,
       hasProjectorBeam: true,
       finish: 'matte_white',
-      bezel: { width: 0.15, color: '#05070a', hasFrame: true },
+      bezel: { width: 0.05, color: '#05070a', hasFrame: true, thinBlack: true },
     },
     realWorldDimensions: {
       seatWidthM: 0.58,
@@ -369,8 +369,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       rakeStepM: 0.20,
       aisleWidthM: 1.30,
       ceilingHeightM: 14.0,
-      screenWidthM: 24.0,
-      screenHeightM: 11.0,
+      screenWidthM: 28.0,
+      screenHeightM: 12.8,
     },
     sceneDimensions: {
       seatPitch: 0.58 * METERS_TO_SCENE,  // 1.16
@@ -378,14 +378,14 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       tierRise: 0.20 * METERS_TO_SCENE,   // 0.40
       aisleGap: 1.30 * METERS_TO_SCENE,   // 2.60
       ceilingHeight: 14.0 * METERS_TO_SCENE,
-      screenWidth: 24.0 * METERS_TO_SCENE,
-      screenHeight: 11.0 * METERS_TO_SCENE,
+      screenWidth: 28.0 * METERS_TO_SCENE,
+      screenHeight: 12.8 * METERS_TO_SCENE,
     },
     features: {
       curved_screen: true,
       sweet_spot: true,
     },
-    description: 'Colossal 20-row flagship hall with 25m curved screen, curved seating arc, and sweet spot.',
+    description: 'Colossal 20-row flagship hall with 28m curved screen, curved seating arc, and sweet spot.',
   },
 
   motion_seat: {
@@ -426,7 +426,7 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       isCurved: false,
       hasProjectorBeam: true,
       finish: 'matte_white',
-      bezel: { width: 0.25, color: '#0a0d14', hasFrame: true, clearFrame: true },
+      bezel: { width: 0.06, color: '#0a0d14', hasFrame: true, thinBlack: true, clearFrame: true },
       wrapPanels: {
         sideAngleDeg: 25.0,
         sideWidthRatio: 0.42,
@@ -439,8 +439,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       rakeStepM: 0.24,
       aisleWidthM: 1.25,
       ceilingHeightM: 11.5,
-      screenWidthM: 16.5,
-      screenHeightM: 7.8,
+      screenWidthM: 19.5,
+      screenHeightM: 9.2,
     },
     sceneDimensions: {
       seatPitch: 1.28, // 0.56m + 0.08m gap = 0.64m * 2.0
@@ -448,8 +448,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       tierRise: 0.48,  // 0.24m * 2.0
       aisleGap: 2.50,  // 1.25m * 2.0
       ceilingHeight: 11.5 * METERS_TO_SCENE,
-      screenWidth: 16.5 * METERS_TO_SCENE,
-      screenHeight: 7.8 * METERS_TO_SCENE,
+      screenWidth: 19.5 * METERS_TO_SCENE,
+      screenHeight: 9.2 * METERS_TO_SCENE,
     },
     features: {
       motion_seats: true,
@@ -495,11 +495,11 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
     screenType: {
       type: 'premium_direct_view',
       name: 'Premium direct-view screen',
-      aspectRatio: 2.07,
+      aspectRatio: 2.059,
       isCurved: false,
       hasProjectorBeam: false,
       finish: 'glossy_led',
-      bezel: { width: 0.08, color: '#050505', thinBlack: true, hasFrame: true },
+      bezel: { width: 0.04, color: '#050505', thinBlack: true, hasFrame: true },
     },
     realWorldDimensions: {
       seatWidthM: 0.92,
@@ -507,8 +507,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       rakeStepM: 0.22,
       aisleWidthM: 1.40,
       ceilingHeightM: 9.0,
-      screenWidthM: 12.0,
-      screenHeightM: 5.8,
+      screenWidthM: 14.0,
+      screenHeightM: 6.8,
     },
     sceneDimensions: {
       seatPitch: 2.16,  // 0.92m + 0.16m table = 1.08m * 2.0
@@ -516,8 +516,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       tierRise: 0.44,   // 0.22m * 2.0
       aisleGap: 2.80,   // 1.40m * 2.0
       ceilingHeight: 9.0 * METERS_TO_SCENE,
-      screenWidth: 12.0 * METERS_TO_SCENE,
-      screenHeight: 5.8 * METERS_TO_SCENE,
+      screenWidth: 14.0 * METERS_TO_SCENE,
+      screenHeight: 6.8 * METERS_TO_SCENE,
     },
     features: {
       recliner_pairs: true,
@@ -558,11 +558,11 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
     screenType: {
       type: 'boutique_small_flat',
       name: 'Boutique small flat screen',
-      aspectRatio: 2.11,
+      aspectRatio: 2.111,
       isCurved: false,
       hasProjectorBeam: true,
       finish: 'matte_white',
-      bezel: { width: 0.35, color: '#2a1a12', hasFrame: true },
+      bezel: { width: 0.08, color: '#2a1a12', hasFrame: true, thinBlack: true },
     },
     realWorldDimensions: {
       seatWidthM: 0.90,
@@ -570,8 +570,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       rakeStepM: 0.16,
       aisleWidthM: 1.20,
       ceilingHeightM: 8.0,
-      screenWidthM: 8.0,
-      screenHeightM: 3.8,
+      screenWidthM: 9.5,
+      screenHeightM: 4.5,
     },
     sceneDimensions: {
       seatPitch: 0.90 * METERS_TO_SCENE,  // 1.80
@@ -579,8 +579,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       tierRise: 0.16 * METERS_TO_SCENE,   // 0.32
       aisleGap: 1.20 * METERS_TO_SCENE,   // 2.40
       ceilingHeight: 8.0 * METERS_TO_SCENE,
-      screenWidth: 8.0 * METERS_TO_SCENE,
-      screenHeight: 3.8 * METERS_TO_SCENE,
+      screenWidth: 9.5 * METERS_TO_SCENE,
+      screenHeight: 4.5 * METERS_TO_SCENE,
     },
     features: {
       sofas: true,
@@ -621,12 +621,12 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
     screenType: {
       type: 'large_curved',
       name: 'Large curved screen',
-      aspectRatio: 2.24,
+      aspectRatio: 2.241,
       isCurved: true,
       curveRadiusM: 32.0,
       hasProjectorBeam: true,
       finish: 'matte_white',
-      bezel: { width: 0.25, color: '#15101a', hasFrame: true },
+      bezel: { width: 0.06, color: '#15101a', hasFrame: true, thinBlack: true },
     },
     realWorldDimensions: {
       seatWidthM: 0.54,
@@ -634,8 +634,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       rakeStepM: 0.20,
       aisleWidthM: 1.30,
       ceilingHeightM: 14.0, // 14 m ceiling in large balcony halls
-      screenWidthM: 22.0,
-      screenHeightM: 9.8,
+      screenWidthM: 26.0,
+      screenHeightM: 11.6,
     },
     sceneDimensions: {
       seatPitch: 1.24,  // 0.54m + 0.08m gap = 0.62m * 2.0
@@ -643,8 +643,8 @@ export const THEATRE_TYPE_REGISTRY: Record<TheatreTypeId, TheatreTypeDefinition>
       tierRise: 0.40,   // 0.20m * 2.0
       aisleGap: 2.60,   // 1.30m * 2.0
       ceilingHeight: 14.0 * METERS_TO_SCENE,
-      screenWidth: 22.0 * METERS_TO_SCENE,
-      screenHeight: 9.8 * METERS_TO_SCENE,
+      screenWidth: 26.0 * METERS_TO_SCENE,
+      screenHeight: 11.6 * METERS_TO_SCENE,
     },
     features: {
       has_balcony: true,

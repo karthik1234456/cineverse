@@ -414,6 +414,11 @@ function getLayoutCacheKey(input: AuditoriumLayoutInput): string {
       aisles: input.aisles,
       theatre_type: input.theatre_type,
       screen_type: input.screen_type,
+      screen_format: input.screen_format,
+      sound_system: input.sound_system,
+      projection_type: input.projection_type,
+      total_seats: input.total_seats,
+      features: input.features,
       arrangement_pattern: input.arrangement_pattern,
       blocks_pattern: input.blocks_pattern,
       balcony_rows: input.balcony_rows,
@@ -528,6 +533,24 @@ export function generateProceduralAuditorium(
     screenWidth = screenWidth ?? 15.6;
     screenHeight = screenHeight ?? 7.25;
     screenCenterY = 5.55;
+  } else if (isLegacyMode) {
+    if (defaultSeatsPerRow <= 12 && rows.length <= 8) {
+      screenWidth = screenWidth ?? 13.5;
+      screenHeight = screenHeight ?? 6.28;
+      screenCenterY = 5.0;
+    } else if (defaultSeatsPerRow >= 24 || rows.length >= 14) {
+      screenWidth = screenWidth ?? Math.min(27.0, Math.max(18.0, halfWidth * 1.35));
+      screenHeight = screenHeight ?? screenWidth / 2.15;
+      screenCenterY = 5.55 + (screenWidth - 15.6) * 0.22;
+    } else if (defaultSeatsPerRow >= 16) {
+      screenWidth = screenWidth ?? 21.0;
+      screenHeight = screenHeight ?? 9.77;
+      screenCenterY = 6.6;
+    } else {
+      screenWidth = screenWidth ?? theatreDef.sceneDimensions.screenWidth;
+      screenHeight = screenHeight ?? theatreDef.sceneDimensions.screenHeight;
+      screenCenterY = Math.max(5.55, (screenHeight || 7.25) / 2 + 1.2);
+    }
   } else {
     screenWidth = screenWidth ?? theatreDef.sceneDimensions.screenWidth;
     screenHeight = screenHeight ?? theatreDef.sceneDimensions.screenHeight;
@@ -548,12 +571,11 @@ export function generateProceduralAuditorium(
     : 0;
 
   // Calculate dynamic Row A Z based on screen distance rule:
-  // distance >= 1.2 * screenHeight and horizontal FOV <= 75 degrees.
-  // In legacy reference mode (100 seats without explicit type), retain fixed ROW_A_Z (-8.032) for bitwise test fidelity.
-  const reqScreenDist = (isLegacyMode || totalSeatsEstimate === 100)
+  // distance >= 1.2 * screenHeight, horizontal FOV <= 75 degrees, and 0.55 to 0.70 * screenWidth.
+  const reqScreenDist = (isLegacyMode || (totalSeatsEstimate === 100 && !input.theatre_type))
     ? Math.abs(ROW_A_Z - SCREEN_Z)
     : calculateScreenDistance(screenWidth, screenHeight, 75.0);
-  const rowAZ = (isLegacyMode || totalSeatsEstimate === 100)
+  const rowAZ = (isLegacyMode || (totalSeatsEstimate === 100 && !input.theatre_type))
     ? ROW_A_Z
     : Math.round((SCREEN_Z - (reqScreenDist + maxRowASagZ)) * 1000) / 1000;
 
@@ -2059,8 +2081,8 @@ export function generateProceduralAuditorium(
       hasProjectorBeam: !isDirectLED,
     },
     screenFrame: {
-      min: [-screenWidth / 2 - 0.4, screenCenterY - screenHeight / 2 - 0.4, SCREEN_Z - 0.08],
-      max: [screenWidth / 2 + 0.4, screenCenterY + screenHeight / 2 + 0.4, SCREEN_Z - 0.01],
+      min: [-screenWidth / 2 - 0.08, screenCenterY - screenHeight / 2 - 0.08, SCREEN_Z - 0.04],
+      max: [screenWidth / 2 + 0.08, screenCenterY + screenHeight / 2 + 0.08, SCREEN_Z - 0.01],
     },
     stageLip,
     proscenium,

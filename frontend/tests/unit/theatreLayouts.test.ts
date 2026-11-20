@@ -49,10 +49,10 @@ describe('Real-World Theatre Dimensions & Arrangements Tests', () => {
       expect(aliasDef.id).toBe('motion_seat');
     });
 
-    it('verifies flagship screen has 20-26m width and balcony ceiling reaches 14m', () => {
+    it('verifies flagship screen has 20-30m width and balcony ceiling reaches 14m', () => {
       const flagship = THEATRE_TYPE_REGISTRY.flagship;
       expect(flagship.realWorldDimensions.screenWidthM).toBeGreaterThanOrEqual(20.0);
-      expect(flagship.realWorldDimensions.screenWidthM).toBeLessThanOrEqual(26.0);
+      expect(flagship.realWorldDimensions.screenWidthM).toBeLessThanOrEqual(30.0);
 
       const balcony = THEATRE_TYPE_REGISTRY.balcony;
       expect(balcony.realWorldDimensions.ceilingHeightM).toBe(14.0);

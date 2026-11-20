@@ -47,10 +47,11 @@ export function CinemaScreen({
   const toggleTrailerMute = useCinemaStore((s) => s.toggleTrailerMute);
   const theatreModeOpen = useCinemaStore((s) => s.theatreModeOpen);
   const setTheatreModeOpen = useCinemaStore((s) => s.setTheatreModeOpen);
+  const screenFitMode = useCinemaStore((s) => s.screenFitMode);
   const screenConfig = useCinemaStore((s) => s.auditoriumLayout.screen);
 
-  const screenWidth = screenConfig?.width ?? 15.6;
-  const screenHeight = screenConfig?.height ?? 7.25;
+  const screenWidth = screenConfig?.width ?? 18.4;
+  const screenHeight = screenConfig?.height ?? 8.5;
   const screenCenter = screenConfig?.center_gltf_y_up ?? [0, 5.55, -1.255];
 
   const screenTypeId = screenConfig?.screen_type_id || (screenConfig as any)?.screen_type;
@@ -1053,17 +1054,17 @@ export function CinemaScreen({
         <CameraGuardedCSS3D
           position={[screenCenter[0], screenCenter[1], screenCenter[2] - 0.03]}
           rotation={[0, Math.PI, 0]}
-          distanceFactor={400 / (1280 / screenWidth)}
-          width={1280}
-          height={Math.round(1280 / (screenWidth / screenHeight))}
+          distanceFactor={400 / (640 / screenWidth)}
+          width={640}
+          height={Math.round(640 / (screenWidth / screenHeight))}
           pointerEvents="auto"
           zIndex={1}
         >
-          <div data-testid="screen-youtube-player" className="relative w-full h-full">
+          <div data-testid="screen-youtube-player" className="relative w-full h-full overflow-hidden">
             <iframe
               id="cineverse-screen-yt-iframe"
               src={stableYoutubeSrc}
-              className="w-full h-full border-0 bg-black rounded-sm"
+              className={`w-full h-full border-0 bg-black rounded-sm transition-transform duration-300 ${screenFitMode === 'fill' ? 'scale-[1.22]' : 'scale-100'}`}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
               referrerPolicy="strict-origin-when-cross-origin"
               loading="eager"
@@ -1103,13 +1104,13 @@ export function CinemaScreen({
         </CameraGuardedCSS3D>
       )}
 
-      {/* Proscenium Bezel Frame */}
+      {/* Proscenium Bezel Frame (Thinner profile to maximize picture area § Part A) */}
       <mesh
         name="ScreenProsceniumFrame"
         position={[screenCenter[0], screenCenter[1], screenCenter[2] - 0.015]}
         raycast={() => null}
       >
-        <boxGeometry args={[screenWidth + (isDirectView ? 0.08 : 0.22), screenHeight + (isDirectView ? 0.08 : 0.22), 0.03]} />
+        <boxGeometry args={[screenWidth + (isDirectView ? 0.04 : 0.08), screenHeight + (isDirectView ? 0.04 : 0.08), 0.02]} />
         <meshStandardMaterial
           color={isDirectView ? '#09090b' : '#0f172a'}
           roughness={isDirectView ? 0.2 : 0.5}
