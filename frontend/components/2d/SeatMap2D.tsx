@@ -1451,7 +1451,7 @@ export function SeatMap2D({
                                 data-status={isSelected ? 'selected' : status}
                                 data-score={score}
                               >
-                                {isSelected ? '✓' : (isBooked ? '✕' : (isHeld ? '⏳' : (isHeatmapActive ? Math.round(score) : s.number)))}
+                                {isSelected ? '✓' : (isBooked ? '✕' : (isHeld ? '🕒' : (isHeatmapActive ? Math.round(score) : s.number)))}
                                 {isAccessible && !isSelected && (
                                   <span
                                     title="Wheelchair Accessible Seat"

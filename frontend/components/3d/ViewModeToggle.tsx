@@ -57,6 +57,8 @@ export function ViewModeToggle() {
   const setFOV = useCinemaStore((s) => s.setFOV);
   const isHeatmapActive = useCinemaStore((s) => s.isHeatmapActive);
   const toggleHeatmap = useCinemaStore((s) => s.toggleHeatmap);
+  const isAvailabilityView = useCinemaStore((s) => s.isAvailabilityView);
+  const toggleAvailabilityView = useCinemaStore((s) => s.toggleAvailabilityView);
   const theatreLook = useCinemaStore((s) => s.theatreLook);
   const setTheatreLook = useCinemaStore((s) => s.setTheatreLook);
   const houseLights = useCinemaStore((s) => s.houseLights);
@@ -441,6 +443,21 @@ export function ViewModeToggle() {
           >
             <Flame className="h-3.5 w-3.5" />
             <span className="hidden xl:inline">Heatmap</span>
+          </button>
+
+          {/* 7b. Availability View Toggle (§ Part C) */}
+          <button
+            onClick={toggleAvailabilityView}
+            data-testid="toggle-3d-availability-btn"
+            className={`flex min-h-[40px] items-center gap-1 rounded-full px-2.5 sm:px-3 py-1.5 text-xs sm:text-sm font-bold transition-all ${
+              isAvailabilityView
+                ? 'bg-emerald-600 text-white shadow'
+                : 'text-slate-700 hover:bg-slate-100'
+            }`}
+            title="Toggle Availability View (Dims booked seats, brightens available)"
+          >
+            <Eye className="h-3.5 w-3.5" />
+            <span className="hidden xl:inline">Availability</span>
           </button>
 
           {/* 8. Controls Help Button */}

@@ -1218,6 +1218,7 @@ export function ProceduralAuditorium({
     const activeSelected = useCinemaStore.getState().selectedSeats;
     const currentHovered = useCinemaStore.getState().hoveredSeatId;
     const isShow = useCinemaStore.getState().houseLights === 'show';
+    const isAvailabilityView = useCinemaStore.getState().isAvailabilityView;
     const currentLook = getActiveLook(useCinemaStore.getState().theatreLook);
     const camMode = useCinemaStore.getState().cameraMode;
     const actSeatId = useCinemaStore.getState().activeSeatId;
@@ -1281,8 +1282,16 @@ export function ProceduralAuditorium({
         if (isHeld) {
           tempColor.multiplyScalar(pulse);
         }
+        // Availability View: Dims booked seats further and makes available seats brighter (§ Part C)
+        if (isAvailabilityView) {
+          if (isBooked) {
+            tempColor.multiplyScalar(0.35);
+          } else if (!isSelected && !isHeld) {
+            tempColor.multiplyScalar(1.4);
+          }
+        }
 
-        const stateKey = `${isSelected ? 1 : 0}-${isHeld ? pulse.toFixed(1) : 0}-${isBooked ? 1 : 0}-${isHovered ? 1 : 0}-${isShow ? 1 : 0}-${currentLook.id}-${isHiddenInPov ? 1 : 0}`;
+        const stateKey = `${isSelected ? 1 : 0}-${isHeld ? pulse.toFixed(1) : 0}-${isBooked ? 1 : 0}-${isHovered ? 1 : 0}-${isShow ? 1 : 0}-${isAvailabilityView ? 1 : 0}-${currentLook.id}-${isHiddenInPov ? 1 : 0}`;
         const isSeatShaking = is4dxActive && !!seat.in_motion_zone;
 
         if (seatStateCache.current.get(seat.seat_id) !== stateKey || isSeatShaking) {

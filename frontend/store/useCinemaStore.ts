@@ -123,6 +123,11 @@ export interface CinemaState {
   toggleHeatmap: () => void;
   setHeatmapActive: (active: boolean) => void;
 
+  // Availability View (§ Part C)
+  isAvailabilityView: boolean;
+  toggleAvailabilityView: () => void;
+  setAvailabilityView: (active: boolean) => void;
+
   // Audience Simulation (§ 4)
   showPeople: boolean;
   setShowPeople: (show: boolean) => void;
@@ -403,6 +408,10 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   isHeatmapActive: false,
   toggleHeatmap: () => set((state) => ({ isHeatmapActive: !state.isHeatmapActive })),
   setHeatmapActive: (active) => set({ isHeatmapActive: active }),
+
+  isAvailabilityView: false,
+  toggleAvailabilityView: () => set((state) => ({ isAvailabilityView: !state.isAvailabilityView })),
+  setAvailabilityView: (active) => set({ isAvailabilityView: active }),
 
   activeGroup: null,
   groupMemberMap: {},
@@ -1045,6 +1054,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
       cameraMode: state.cameraMode,
       cameraPreset: state.cameraPreset,
       isHeatmapActive: state.isHeatmapActive,
+      isAvailabilityView: state.isAvailabilityView,
       cameraPosition: state.cameraPosition,
       cameraTarget: state.cameraTarget,
       fov: state.fov,

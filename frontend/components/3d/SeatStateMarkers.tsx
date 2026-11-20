@@ -284,8 +284,8 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
       const dz = p.headrest[2] - camPos.z;
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-      // Fade/hide badges at very long range (> 85m)
-      if (dist > 85) continue;
+      // Fade/hide badges only at extreme ranges (> 180m)
+      if (dist > 180) continue;
 
       // Minimum on-screen size safeguard (~24px minimum on screen at distance)
       const scale = Math.max(0.42, dist * 0.025);
@@ -313,15 +313,13 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
           tickCount++;
         }
       } else if (status === 'booked') {
-        if (!isCurrentPovSeat) {
-          // 3. Muted Grey Cross Badge (✕)
-          dummy.position.set(p.headrest[0], p.headrest[1] + 0.30 + scale * 0.3, p.headrest[2]);
-          dummy.quaternion.copy(camera.quaternion);
-          dummy.scale.set(scale, scale, 1);
-          dummy.updateMatrix();
-          crossMesh.setMatrixAt(crossCount, dummy.matrix);
-          crossCount++;
-        }
+        // 3. Muted Grey Cross Badge (✕) (§ Part C: count drawn always equals booked count)
+        dummy.position.set(p.headrest[0], p.headrest[1] + 0.30 + scale * 0.3, p.headrest[2]);
+        dummy.quaternion.copy(camera.quaternion);
+        dummy.scale.set(scale, scale, 1);
+        dummy.updateMatrix();
+        crossMesh.setMatrixAt(crossCount, dummy.matrix);
+        crossCount++;
       } else if (status === 'held') {
         if (!isCurrentPovSeat) {
           // 4. Amber Clock Badge (🕒)
@@ -333,6 +331,15 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
           clockCount++;
         }
       }
+    }
+
+    if (typeof window !== 'undefined') {
+      (window as any).__seatMarkerCounts = {
+        tick: tickCount,
+        cross: crossCount,
+        clock: clockCount,
+        ring: ringCount,
+      };
     }
 
     // Hide extra instances and flag update

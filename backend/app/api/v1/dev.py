@@ -761,3 +761,65 @@ async def seed_demo_accounts(db: AsyncSession = Depends(get_db)):
     await db.commit()
     return {"status": "ok", "created": created, "updated": updated}
 
+
+@router.post("/showtimes/{showtime_id}/randomize-occupancy", tags=["Developer Diagnostics"])
+async def randomize_showtime_occupancy_endpoint(
+    showtime_id: int,
+    occupancy_pct: Optional[float] = None,
+    held_count: Optional[int] = None,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Developer tool to re-randomize a show's occupancy (§ Part C).
+    Distributes booked seats naturally in pairs, groups, and solo with realistic row weighting.
+    """
+    from app.services.occupancy_seeder import generate_natural_occupancy
+    from app.models.showtime import Showtime, SeatInventory, SeatStatusEnum
+
+    st_res = await db.execute(select(Showtime).where(Showtime.id == showtime_id))
+    showtime = st_res.scalar_one_or_none()
+    if not showtime:
+        raise HTTPException(status_code=404, detail="Showtime not found")
+
+    inv_res = await db.execute(select(SeatInventory).where(SeatInventory.showtime_id == showtime_id))
+    inventories = inv_res.scalars().all()
+    if not inventories:
+        raise HTTPException(status_code=400, detail="No seat inventory found for this showtime")
+
+    seats_list = [{"seat_id": inv.seat_id, "inv": inv} for inv in inventories]
+    booked_ids, held_ids = generate_natural_occupancy(
+        seats=seats_list,
+        start_time=showtime.start_time,
+        target_pct=occupancy_pct,
+        target_held=held_count,
+    )
+
+    booked_set = set(booked_ids)
+    held_set = set(held_ids)
+    cur_held_time = datetime.now() + timedelta(minutes=10)
+
+    for inv in inventories:
+        if inv.seat_id in booked_set:
+            inv.status = SeatStatusEnum.BOOKED
+            inv.hold_expires_at = None
+        elif inv.seat_id in held_set:
+            inv.status = SeatStatusEnum.HELD
+            inv.hold_expires_at = cur_held_time
+        else:
+            inv.status = SeatStatusEnum.AVAILABLE
+            inv.hold_expires_at = None
+
+    await db.commit()
+
+    return {
+        "status": "success",
+        "showtime_id": showtime_id,
+        "total_seats": len(inventories),
+        "booked_count": len(booked_ids),
+        "held_count": len(held_ids),
+        "available_count": len(inventories) - len(booked_ids) - len(held_ids),
+        "booked_percentage": round((len(booked_ids) / len(inventories)) * 100, 1),
+        "booked_seats": booked_ids,
+        "held_seats": held_ids,
+    }
+
