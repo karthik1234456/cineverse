@@ -26,10 +26,11 @@ interface CinemaWorldProps {
 }
 
 /**
- * Performance Watchdog (§ Part F):
- * If CSS 3D player is active and input latency exceeds 200 ms or the frame rate
- * stays under 30 FPS for three seconds, automatically switches to Theatre Mode
- * with a user-friendly toast message.
+ * Performance Watchdog (§ Part A):
+ * If CSS 3D player is active and playback is choppy (input latency exceeds 200 ms
+ * or the frame rate stays under 30 FPS for three seconds), shows a small hint with
+ * a button ("Playback is choppy. Try Theatre Mode"), but NEVER switches automatically.
+ * Theatre Mode opens ONLY when the user presses its button.
  */
 function PerformanceWatchdog() {
   const trailer = useCinemaStore((s) => s.trailer);
@@ -41,14 +42,14 @@ function PerformanceWatchdog() {
   const lowFpsAccumulator = useRef(0);
   const playStartTimeRef = useRef(0);
   const slowInputCountRef = useRef(0);
-  const hasSwitchedRef = useRef(false);
+  const hasSuggestedRef = useRef(false);
 
   useEffect(() => {
     if (isCSS3DActive) {
       playStartTimeRef.current = performance.now();
       slowInputCountRef.current = 0;
       lowFpsAccumulator.current = 0;
-      hasSwitchedRef.current = false;
+      hasSuggestedRef.current = false;
     }
   }, [isCSS3DActive]);
 
@@ -64,10 +65,13 @@ function PerformanceWatchdog() {
         const latency = performance.now() - start;
         if (latency > 200) {
           slowInputCountRef.current += 1;
-          if (slowInputCountRef.current >= 3 && !hasSwitchedRef.current) {
-            hasSwitchedRef.current = true;
-            setTheatreModeOpen(true);
-            showToast('Switched to Theatre Mode for smoother playback');
+          if (slowInputCountRef.current >= 3 && !hasSuggestedRef.current) {
+            hasSuggestedRef.current = true;
+            // Suggest Theatre Mode with an interactive action button; never switch by itself (§ Part A)
+            showToast('Playback is choppy. Try Theatre Mode', {
+              label: 'Theatre Mode',
+              onClick: () => setTheatreModeOpen(true),
+            });
           }
         } else {
           slowInputCountRef.current = 0;
@@ -83,7 +87,7 @@ function PerformanceWatchdog() {
     };
   }, [isCSS3DActive, setTheatreModeOpen, showToast]);
 
-  // Monitor frame rate: if FPS < 30 for 3 seconds continuously after warmup, switch to Theatre Mode (§ Part B.1)
+  // Monitor frame rate: if FPS < 30 for 3 seconds continuously after warmup, suggest Theatre Mode (§ Part A)
   useFrame((_, delta) => {
     if (!isCSS3DActive) {
       lowFpsAccumulator.current = 0;
@@ -95,11 +99,14 @@ function PerformanceWatchdog() {
     const currentFps = 1 / Math.max(delta, 0.001);
     if (currentFps < 30) {
       lowFpsAccumulator.current += delta;
-      if (lowFpsAccumulator.current >= 3.0 && !hasSwitchedRef.current) {
+      if (lowFpsAccumulator.current >= 3.0 && !hasSuggestedRef.current) {
         lowFpsAccumulator.current = 0;
-        hasSwitchedRef.current = true;
-        setTheatreModeOpen(true);
-        showToast('Switched to Theatre Mode for smoother playback');
+        hasSuggestedRef.current = true;
+        // Suggest Theatre Mode with an interactive action button; never switch by itself (§ Part A)
+        showToast('Playback is choppy. Try Theatre Mode', {
+          label: 'Theatre Mode',
+          onClick: () => setTheatreModeOpen(true),
+        });
       }
     } else {
       lowFpsAccumulator.current = Math.max(0, lowFpsAccumulator.current - delta * 0.5);

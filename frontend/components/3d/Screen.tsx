@@ -3,7 +3,7 @@
 import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CameraGuardedCSS3D } from './CameraGuardedCSS3D';
-import { Play } from 'lucide-react';
+import { Play, Maximize2 } from 'lucide-react';
 import * as THREE from 'three';
 import { useCinemaStore, ScreenStrategy, TrailerPlaybackStatus } from '@/store/useCinemaStore';
 
@@ -1100,6 +1100,38 @@ export function CinemaScreen({
                 </button>
               </div>
             )}
+          </div>
+        </CameraGuardedCSS3D>
+      )}
+
+      {/* If player fails (error 101, 150, 153) or restricted, keep 3D screen showing title card with plain message and Watch in Theatre Mode button (§ Part A) */}
+      {(youtubeErrorCode !== null || (activeStrategy === 'title_card' && rawYoutubeId && trailer.isPlaying)) && !trailer.isTheatreMode && (
+        <CameraGuardedCSS3D
+          position={[screenCenter[0], screenCenter[1], screenCenter[2] - 0.03]}
+          rotation={[0, Math.PI, 0]}
+          distanceFactor={400 / (640 / screenWidth)}
+          width={640}
+          height={Math.round(640 / (screenWidth / screenHeight))}
+          pointerEvents="auto"
+          zIndex={1}
+        >
+          <div data-testid="screen-error-fallback" className="relative w-full h-full flex flex-col items-center justify-center bg-slate-950/90 text-white p-6 text-center select-none border border-white/10 rounded-sm">
+            <div className="text-sm sm:text-base font-bold text-rose-400 mb-2">
+              {youtubeErrorCode === 101 || youtubeErrorCode === 150 || youtubeErrorCode === 153
+                ? `Embedding restricted by content owner (Error ${youtubeErrorCode})`
+                : 'Trailer unavailable directly on 3D screen'}
+            </div>
+            <p className="text-xs text-slate-300 max-w-sm mb-4">
+              Watch this trailer with full audio in high-definition Theatre Mode.
+            </p>
+            <button
+              onClick={() => setTheatreModeOpen(true)}
+              data-testid="watch-in-theatre-mode-btn"
+              className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-5 py-2.5 text-xs font-bold text-white shadow-xl hover:from-red-500 hover:to-rose-500 transition active:scale-95"
+            >
+              <Maximize2 className="h-4 w-4" />
+              <span>Watch in Theatre Mode</span>
+            </button>
           </div>
         </CameraGuardedCSS3D>
       )}

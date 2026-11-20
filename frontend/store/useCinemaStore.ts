@@ -168,6 +168,7 @@ export interface CinemaState {
 
   // Feedback & Toast
   toastMessage: string | null;
+  toastAction: { label: string; onClick: () => void } | null;
   lastBoundaryNoticeTime: number;
   triggerBoundaryNotice: () => void;
 
@@ -266,7 +267,7 @@ export interface CinemaState {
   addToCompare: (seatId: string) => void;
   removeFromCompare: (seatId: string) => void;
 
-  showToast: (message: string) => void;
+  showToast: (message: string, action?: { label: string; onClick: () => void } | null) => void;
   clearToast: () => void;
   setRendererInfo: (info: Partial<CinemaState['rendererInfo']>) => void;
 
@@ -451,6 +452,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   },
 
   toastMessage: null,
+  toastAction: null,
   lastBoundaryNoticeTime: 0,
   triggerBoundaryNotice: () => {
     const now = Date.now();
@@ -1024,17 +1026,17 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     }));
   },
 
-  showToast: (message) => {
+  showToast: (message, action = null) => {
     if (toastTimer) clearTimeout(toastTimer);
-    set({ toastMessage: message });
+    set({ toastMessage: message, toastAction: action });
     toastTimer = setTimeout(() => {
-      set({ toastMessage: null });
-    }, 3200);
+      set({ toastMessage: null, toastAction: null });
+    }, action ? 5000 : 3200);
   },
 
   clearToast: () => {
     if (toastTimer) clearTimeout(toastTimer);
-    set({ toastMessage: null });
+    set({ toastMessage: null, toastAction: null });
   },
 
   setRendererInfo: (info) =>

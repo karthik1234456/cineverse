@@ -6,6 +6,7 @@ import { AlertCircle, Info, CheckCircle2, X } from 'lucide-react';
 
 export function ToastNotification() {
   const toastMessage = useCinemaStore((s) => s.toastMessage);
+  const toastAction = useCinemaStore((s) => s.toastAction);
   const clearToast = useCinemaStore((s) => s.clearToast);
 
   if (!toastMessage) return null;
@@ -29,13 +30,27 @@ export function ToastNotification() {
           <Icon className={`h-5 w-5 ${iconColor} shrink-0`} />
           <span className="text-xs font-semibold">{toastMessage}</span>
         </div>
-        <button
-          onClick={clearToast}
-          className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white transition"
-          aria-label="Dismiss message"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-2 shrink-0">
+          {toastAction && (
+            <button
+              onClick={() => {
+                toastAction.onClick();
+                clearToast();
+              }}
+              data-testid="toast-action-btn"
+              className="rounded-lg bg-white/20 hover:bg-white/30 px-2.5 py-1 text-xs font-bold text-white transition active:scale-95"
+            >
+              {toastAction.label}
+            </button>
+          )}
+          <button
+            onClick={clearToast}
+            className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white transition"
+            aria-label="Dismiss message"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       </div>
     </div>
   );
