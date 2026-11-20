@@ -82,6 +82,16 @@ class MovieResponse(BaseModel):
     youtube_trailer_id: Optional[str] = None
     trailer_embeddable: Optional[bool] = False
     trailer_reason: Optional[str] = None
+    hosted_trailer_url: Optional[str] = None
+    hosted_trailer_webm_url: Optional[str] = None
+    hosted_trailer_poster_url: Optional[str] = None
+    hosted_trailer_ambient_clip_url: Optional[str] = None
+    trailer_rights_holder: Optional[str] = None
+    trailer_license_note: Optional[str] = None
+    trailer_license_expiry: Optional[date] = None
+    trailer_source_type: Optional[str] = "youtube"
+    trailer_file_size_bytes: Optional[int] = None
+    trailer_virus_scanned: Optional[bool] = True
 
     class Config:
         from_attributes = True

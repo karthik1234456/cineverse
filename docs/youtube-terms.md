@@ -8,12 +8,12 @@
 
 ## 1. Architectural Overview & Technical Implementation
 
-CineVerse integrates YouTube trailers strictly via Google's official, sanctioned mechanisms in compliance with the **YouTube API Services Terms of Service** and **YouTube Developer Policies**.
+CineVerse integrates promotional trailers strictly through authorized channels: trailers are either embedded through the official player or hosted from files with documented rights. No third-party video downloaders, rippers, or stream extraction tools (e.g., `yt-dlp`, `youtube-dl`, `ytdl-core`, `pytube`) are used or permitted within the codebase.
 
 ### Key Technical Safeguards:
 1. **Official IFrame API:** All trailer playback utilizes the official YouTube IFrame Player API (`https://www.youtube.com/iframe_api`). No reverse-engineered streams, private APIs, or raw media stream extraction (`.m3u8`, `.mpd`, or `.mp4` URLs) are utilized.
 2. **Privacy-Enhanced Domain:** All embeds are served from `https://www.youtube-nocookie.com/embed/{video_id}`, preventing YouTube from setting tracking cookies until the user initiates playback.
-3. **No Downloading or Local Caching:** Video and audio streams are decoded live by the browser's native media engine directly from YouTube CDN endpoints. CineVerse stores zero audiovisual chunks, cached files, or offline copies on its servers or client devices.
+3. **Zero Downloading or Local Caching:** Video and audio streams are decoded live by the browser's native media engine directly from YouTube CDN endpoints. CineVerse stores zero audiovisual chunks, cached files, or offline copies on its servers or client devices. Trailers are either embedded through the official player or hosted from files with documented rights.
 4. **Unmodified Native Player Chrome & Controls:** The player renders with `controls=1`. Native player controls (play/pause, time scrubber, volume/mute, captions, quality, full-screen, and official YouTube logo) remain visible, unobstructed, and interactable.
 5. **Exact Attribution & Watch-on-YouTube Link:** The embedded player retains YouTube's clickable video title and watermark linking directly to the canonical video page on `https://www.youtube.com`.
 
@@ -68,3 +68,16 @@ Prior to public launch, the engineering and legal teams must complete the follow
    - Disclose that initiating video playback may establish connections to Google/YouTube infrastructure.
 4. **Trademark & Branding Review:**
    - Confirm adherence to [YouTube Brand Guidelines](https://www.youtube.com/howyoutubeworks/resources/brand-resources/), ensuring CineVerse does not imply official endorsement, sponsorship, or partnership with YouTube or Google LLC.
+
+---
+
+## 5. Hosted Trailer Pipeline with Rights Verification & Compliance Guard (§ Part B.2, B.3)
+
+To ensure uncompromised performance and legal rigor, CineVerse maintains a dual video presentation architecture:
+1. **Official YouTube Embeds:** Used for titles licensed via YouTube standard streaming under the official IFrame Player API.
+2. **Hosted Trailer Pipeline:** Used for cinema titles with direct exhibition rights or open-access creative licenses (e.g. Creative Commons Attribution).
+   - **Mandatory Licensing Documentation:** Any hosted trailer attached via the administrator interface requires verified metadata: `rights_holder`, `license_note`, and `expiry_date`.
+   - **Automated Verification:** Incoming assets are inspected for file format, file size limits (<150 MB), duration (10–300s), and clean virus scan signatures prior to ingestion.
+   - **Optimized Transcoding:** Media is packaged into 720p H.264 MP4 with fast start (`+faststart` moov atom repositioning) and WebM containers, accompanied by synchronous audio preservation and poster extraction.
+   - **Signed Expiring Access:** Streaming endpoints require HMAC-SHA256 signed tokens with short expiration windows (`/api/v1/trailers/stream/{id}?token=...&expires=...`).
+   - **Automated CI Compliance Guard:** A continuous integration check (`scripts/check-compliance.cjs`) strictly verifies that no video downloaders or ripper tools (e.g. `yt-dlp`, `youtube-dl`, `ytdl-core`) exist in the repository dependencies or codebases, enforcing that trailers are either embedded through the official player or hosted from files with documented rights.

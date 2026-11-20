@@ -35,6 +35,9 @@ jobs:
       - name: TypeScript type-check
         run: npx tsc --noEmit
 
+      - name: Video Licensing & Anti-Ripper Compliance Guard
+        run: node ../scripts/check-compliance.cjs
+
       - name: Run Vitest unit tests
         run: npm test
 

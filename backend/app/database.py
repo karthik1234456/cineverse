@@ -103,6 +103,16 @@ async def init_db():
             ("youtube_trailer_id", "VARCHAR(50)"),
             ("trailer_embeddable", "BOOLEAN DEFAULT 0"),
             ("trailer_reason", "VARCHAR(255)"),
+            ("hosted_trailer_url", "VARCHAR(500)"),
+            ("hosted_trailer_webm_url", "VARCHAR(500)"),
+            ("hosted_trailer_poster_url", "VARCHAR(500)"),
+            ("hosted_trailer_ambient_clip_url", "VARCHAR(500)"),
+            ("trailer_rights_holder", "VARCHAR(255)"),
+            ("trailer_license_note", "VARCHAR(500)"),
+            ("trailer_license_expiry", "DATE"),
+            ("trailer_source_type", "VARCHAR(50) DEFAULT 'youtube'"),
+            ("trailer_file_size_bytes", "INTEGER"),
+            ("trailer_virus_scanned", "BOOLEAN DEFAULT 1"),
         ]
         for col_name, col_def in movie_cols:
             if existing_movie_cols and col_name not in existing_movie_cols:

@@ -77,6 +77,7 @@ export function CameraGuardedCSS3D({
   const lastFovRef = useRef<number>(0);
   const wasVisibleRef = useRef<boolean>(true);
   const needsInitialUpdateRef = useRef<boolean>(true);
+  const lastUpdateTimeRef = useRef<number>(0);
 
   // Initialize DOM nodes matching Drei structure
   useLayoutEffect(() => {
@@ -195,6 +196,12 @@ export function CameraGuardedCSS3D({
       }
     }
 
+    // 30 Hz throttle check: update at most 30 times a second (~33.3ms) (§ Part B.1)
+    const now = performance.now();
+    if (!needsInitialUpdateRef.current && (now - lastUpdateTimeRef.current < 33.33)) {
+      return;
+    }
+
     // Delta threshold check to avoid unnecessary style writes
     let camDiff = 0;
     const lastCam = lastCameraMatrixRef.current.elements;
@@ -214,6 +221,7 @@ export function CameraGuardedCSS3D({
       return;
     }
 
+    lastUpdateTimeRef.current = now;
     needsInitialUpdateRef.current = false;
     lastCameraMatrixRef.current.copy(camMat);
     lastObjectMatrixRef.current.copy(objMat);
