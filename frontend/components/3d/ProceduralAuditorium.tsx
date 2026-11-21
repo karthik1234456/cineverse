@@ -210,7 +210,8 @@ export function ProceduralAuditorium({
     }
   }, []);
 
-  const activeLod = urlLod !== null ? urlLod : (qualityMode === 'smooth' ? 1 : 0);
+  // Default to detailed LOD0 at normal viewing distances (§ Part E: realistic chair shape with headrest, back, arms)
+  const activeLod = urlLod !== null ? urlLod : 0;
 
   const look = useMemo(() => getActiveLook(theatreLook), [theatreLook]);
 
@@ -236,8 +237,9 @@ export function ProceduralAuditorium({
     const rec: { seat: SeatRecord; index: number }[] = [];
     const sofa: { seat: SeatRecord; index: number }[] = [];
 
+    const theatreType = auditoriumLayout?.theatre_type || (geometry as any)?.theatre_type;
     seats.forEach((seat, index) => {
-      const family = getSeatFamilyForSeat(seat.category, seat.seat_type, effectiveScreenType);
+      const family = getSeatFamilyForSeat(seat.category, seat.seat_type, effectiveScreenType, theatreType);
       if (family === 'sofa') {
         sofa.push({ seat, index });
       } else if (family === 'recliner') {

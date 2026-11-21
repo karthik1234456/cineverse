@@ -119,20 +119,27 @@ export const SEAT_REGISTRY: Record<SeatFamilyId, SeatFamilyDefinition> = {
 export function getSeatFamilyForSeat(
   category: string = 'prime',
   seatType: string = 'standard',
-  screenType: string = 'Standard'
+  screenType: string = 'Standard',
+  theatreType?: string
 ): SeatFamilyId {
   const normCat = (category || '').toLowerCase();
   const normType = (seatType || '').toLowerCase();
   const normScreen = (screenType || '').toLowerCase();
+  const normTheatre = (theatreType || '').toLowerCase();
+
+  // Luxury recliner halls use plush recliners for all rows (§ Part E)
+  if (normTheatre === 'luxury_recliner' || normScreen.includes('recliner')) {
+    return 'recliner';
+  }
+
+  // Boutique VIP halls or boutique sofa seat type
+  if (normTheatre === 'boutique' || normScreen.includes('boutique') || normScreen.includes('vip') || normType === 'sofa') {
+    return 'sofa';
+  }
 
   // Motion seats always use high-back standard family with headrest & nozzles (never recliners)
   if (normType === 'motion' || normScreen.includes('motion') || normScreen.includes('4dx')) {
     return 'standard';
-  }
-
-  // Boutique VIP screen or boutique sofa seat type
-  if (normScreen.includes('boutique') || normScreen.includes('vip') || normType === 'sofa') {
-    return 'sofa';
   }
 
   // Recliner pairs or premier category recliners
