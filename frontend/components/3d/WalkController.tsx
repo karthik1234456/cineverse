@@ -136,6 +136,8 @@ export function WalkController() {
     if (!isWalkMode) return;
     const canvas = gl.domElement;
 
+    const MAX_PITCH = (85 * Math.PI) / 180; // 1.48353 rad (±85°)
+
     const onPointerLockChange = () => {
       isPointerLocked.current = document.pointerLockElement === canvas;
     };
@@ -146,9 +148,9 @@ export function WalkController() {
       if (isPointerLocked.current) {
         const factor = walkSettings.sensitivity;
         const invert = walkSettings.invertY ? -1 : 1;
-        yawRef.current -= e.movementX * factor;
+        yawRef.current += e.movementX * factor;
         pitchRef.current -= e.movementY * factor * invert;
-        pitchRef.current = THREE.MathUtils.clamp(pitchRef.current, -1.3, 1.3); // ±75°
+        pitchRef.current = THREE.MathUtils.clamp(pitchRef.current, -MAX_PITCH, MAX_PITCH);
       } else if (isDraggingMouse.current) {
         const dx = e.clientX - lastMousePos.current.x;
         const dy = e.clientY - lastMousePos.current.y;
@@ -156,10 +158,34 @@ export function WalkController() {
 
         const factor = walkSettings.sensitivity * 1.5;
         const invert = walkSettings.invertY ? -1 : 1;
-        yawRef.current -= dx * factor;
+        yawRef.current += dx * factor;
         pitchRef.current -= dy * factor * invert;
-        pitchRef.current = THREE.MathUtils.clamp(pitchRef.current, -1.3, 1.3);
+        pitchRef.current = THREE.MathUtils.clamp(pitchRef.current, -MAX_PITCH, MAX_PITCH);
       }
+    };
+
+    let lastTouchX = 0;
+    let lastTouchY = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (!isWalkMode || e.touches.length === 0) return;
+      lastTouchX = e.touches[0].clientX;
+      lastTouchY = e.touches[0].clientY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isWalkMode || e.touches.length === 0) return;
+      const t = e.touches[0];
+      const dx = t.clientX - lastTouchX;
+      const dy = t.clientY - lastTouchY;
+      lastTouchX = t.clientX;
+      lastTouchY = t.clientY;
+
+      const factor = walkSettings.sensitivity * 1.5;
+      const invert = walkSettings.invertY ? -1 : 1;
+      yawRef.current += dx * factor;
+      pitchRef.current -= dy * factor * invert;
+      pitchRef.current = THREE.MathUtils.clamp(pitchRef.current, -MAX_PITCH, MAX_PITCH);
     };
 
     const onMouseDown = (e: MouseEvent) => {
@@ -188,12 +214,16 @@ export function WalkController() {
     window.addEventListener('mousemove', onMouseMove);
     canvas.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mouseup', onMouseUp);
+    canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
 
     return () => {
       document.removeEventListener('pointerlockchange', onPointerLockChange);
       window.removeEventListener('mousemove', onMouseMove);
       canvas.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mouseup', onMouseUp);
+      canvas.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
     };
   }, [isWalkMode, gl, walkSettings, sitAt]);
 
@@ -238,9 +268,9 @@ export function WalkController() {
     if (keys.has('KeyA')) strafe -= 1;
     if (keys.has('KeyD')) strafe += 1;
 
-    // Left / Right turn (yaw with arrow keys)
-    if (keys.has('ArrowLeft')) turn += 1;
-    if (keys.has('ArrowRight')) turn -= 1;
+    // Left / Right turn (yaw with arrow keys: left turns left, right turns right)
+    if (keys.has('ArrowLeft')) turn -= 1;
+    if (keys.has('ArrowRight')) turn += 1;
 
     if (turn !== 0) {
       yawRef.current += turn * 2.2 * clampedDelta;
@@ -330,21 +360,16 @@ export function WalkController() {
     const targetEyeY = posRef.current.y + playerCfg.standing_eye_height;
     eyeHeightRef.current = smoothEyeHeight(eyeHeightRef.current, targetEyeY, clampedDelta, 14.0);
 
-    // 5. Update Three.js camera pose
+    // 5. Update Three.js camera pose (§ Part C)
+    // Derived strictly from yaw and pitch only, roll fixed at zero, pitch clamped to ±85°, world up vector fixed (0, 1, 0)
     const pitch = pitchRef.current;
     const camX = posRef.current.x;
     const camY = eyeHeightRef.current;
     const camZ = posRef.current.z;
 
     camera.position.set(camX, camY, camZ);
-
-    // Camera look direction from yaw and pitch
-    const lookTarget = new THREE.Vector3(
-      camX + Math.sin(yaw) * Math.cos(pitch),
-      camY + Math.sin(pitch),
-      camZ + Math.cos(yaw) * Math.cos(pitch)
-    );
-    camera.lookAt(lookTarget);
+    camera.up.set(0, 1, 0);
+    camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw + Math.PI, 0, 'YXZ'));
 
     // 6. Crosshair seat detection raycast
     raycaster.setFromCamera(centerScreen, camera);
