@@ -6,7 +6,11 @@ import layoutData from '@/public/models/seat_layout_v2.json';
 import type { SeatLayoutFile, SeatStatus, QualityTier } from '@/lib/types';
 import { Info, Sliders, Sun, Moon, X } from 'lucide-react';
 
-export function AuditoriumInfoPanel() {
+export interface AuditoriumInfoPanelProps {
+  inline?: boolean;
+}
+
+export function AuditoriumInfoPanel({ inline = false }: AuditoriumInfoPanelProps) {
   const [showHonestyModal, setShowHonestyModal] = useState(false);
   const [showDevControls, setShowDevControls] = useState(false);
   const [isDebugMode, setIsDebugMode] = useState(false);
@@ -167,7 +171,7 @@ export function AuditoriumInfoPanel() {
 
   if (isCollapsed) {
     return (
-      <div className="fixed left-4 top-16 z-30 hidden md:block">
+      <div className={inline ? 'pointer-events-auto w-full shrink-0' : 'fixed left-4 top-16 z-30 hidden md:block'}>
         <button
           onClick={() => setIsCollapsed(false)}
           data-testid="expand-auditorium-info-btn"
@@ -183,7 +187,11 @@ export function AuditoriumInfoPanel() {
   return (
     <>
       <div
-        className="pointer-events-none fixed left-4 top-16 z-20 hidden w-80 max-h-[calc(100dvh-5rem)] flex-col gap-3 overflow-y-auto transition-opacity duration-300 md:flex"
+        className={
+          inline
+            ? 'pointer-events-none flex flex-col gap-3 w-full shrink-0 transition-opacity duration-300'
+            : 'pointer-events-none fixed left-4 top-16 z-20 hidden w-80 max-h-[calc(100dvh-5rem)] flex-col gap-3 overflow-y-auto transition-opacity duration-300 md:flex'
+        }
       >
         {/* Theatre Title & Screen Spec Card */}
         <div

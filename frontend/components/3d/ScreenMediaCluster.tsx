@@ -18,7 +18,11 @@ const SAMPLE_HOSTED_CLIPS: MovieClipOption[] = [
   { id: 'clip_action', label: 'Action Sequence Clip', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', isHd: false },
 ];
 
-export function ScreenMediaCluster() {
+export interface ScreenMediaClusterProps {
+  inline?: boolean;
+}
+
+export function ScreenMediaCluster({ inline = false }: ScreenMediaClusterProps) {
   const trailer = useCinemaStore((s) => s.trailer);
   const setTrailer = useCinemaStore((s) => s.setTrailerState);
   const toggleTrailerPlay = useCinemaStore((s) => s.toggleTrailerPlay);
@@ -175,15 +179,17 @@ export function ScreenMediaCluster() {
 
   if (isMinimized) {
     return (
-      <button
-        onClick={() => setIsMinimized(false)}
-        data-testid="restore-media-cluster-btn"
-        className="pointer-events-auto fixed bottom-24 left-4 z-30 flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-[#12161f]/90 text-white shadow-xl backdrop-blur-md hover:bg-[#1a202c] transition"
-        title="Open Screen Media Controls"
-        aria-label="Open Screen Media Controls"
-      >
-        <Film className="h-5 w-5 text-rose-500" />
-      </button>
+      <div className={inline ? 'pointer-events-auto w-full shrink-0' : 'pointer-events-auto fixed bottom-24 left-4 z-30'}>
+        <button
+          onClick={() => setIsMinimized(false)}
+          data-testid="restore-media-cluster-btn"
+          className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-[#12161f]/90 text-white shadow-xl backdrop-blur-md hover:bg-[#1a202c] transition"
+          title="Open Screen Media Controls"
+          aria-label="Open Screen Media Controls"
+        >
+          <Film className="h-5 w-5 text-rose-500" />
+        </button>
+      </div>
     );
   }
 
@@ -248,7 +254,11 @@ export function ScreenMediaCluster() {
   return (
     <div
       data-testid="trailer-controls-hud"
-      className="pointer-events-auto fixed bottom-24 left-4 z-30 flex flex-col gap-2 rounded-2xl border border-white/15 bg-[#0f131a]/95 p-3 shadow-2xl backdrop-blur-lg text-white max-w-sm sm:max-w-md"
+      className={
+        inline
+          ? 'pointer-events-auto flex flex-col gap-2 rounded-2xl border border-white/15 bg-[#0f131a]/95 p-3 shadow-2xl backdrop-blur-lg text-white w-full shrink-0'
+          : 'pointer-events-auto fixed bottom-24 left-4 z-30 flex flex-col gap-2 rounded-2xl border border-white/15 bg-[#0f131a]/95 p-3 shadow-2xl backdrop-blur-lg text-white max-w-sm sm:max-w-md'
+      }
     >
       {/* Header bar: Movie clip label + minimize */}
       <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2">

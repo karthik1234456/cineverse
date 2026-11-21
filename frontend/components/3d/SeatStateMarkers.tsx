@@ -294,6 +294,13 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
       const isSelected = activeSelected.includes(seat.seat_id);
       const isCurrentPovSeat = isPov && actSeatId === seat.seat_id;
 
+      // Project 3D badge position to screen NDC to prevent drawing over toolbar/HUD (§ Part D)
+      const badgeY = p.headrest[1] + 0.32 + scale * 0.3;
+      const projPos = new THREE.Vector3(p.headrest[0], badgeY, p.headrest[2]).project(camera);
+      const isUnderToolbar = projPos.y > 0.60 && Math.abs(projPos.x) < 0.65;
+      const isUnderLeftHUD = !isPov && projPos.x < -0.60 && projPos.y > -0.90 && projPos.y < 0.85;
+      const isClippedByHUD = isUnderToolbar || isUnderLeftHUD;
+
       if (isSelected) {
         // 1. Soft emerald floor ring (render on floor for all selected seats, including current POV seat)
         dummy.position.set(p.base[0], p.base[1], p.base[2]);
@@ -303,8 +310,8 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
         ringMesh.setMatrixAt(ringCount, dummy.matrix);
         ringCount++;
 
-        // 2. Emerald Tick Badge (✓) floating above seat
-        if (!isCurrentPovSeat) {
+        // 2. Emerald Tick Badge (✓) floating above seat (clipped under toolbar & HUD)
+        if (!isCurrentPovSeat && !isClippedByHUD) {
           dummy.position.set(p.headrest[0], p.headrest[1] + 0.35 + scale * 0.3 + bob, p.headrest[2]);
           dummy.quaternion.copy(camera.quaternion);
           dummy.scale.set(scale * 1.15, scale * 1.15, 1);
@@ -313,16 +320,18 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
           tickCount++;
         }
       } else if (status === 'booked') {
-        // 3. Muted Grey Cross Badge (✕) (§ Part C: count drawn always equals booked count)
-        dummy.position.set(p.headrest[0], p.headrest[1] + 0.30 + scale * 0.3, p.headrest[2]);
-        dummy.quaternion.copy(camera.quaternion);
-        dummy.scale.set(scale, scale, 1);
-        dummy.updateMatrix();
-        crossMesh.setMatrixAt(crossCount, dummy.matrix);
-        crossCount++;
+        // 3. Muted Grey Cross Badge (✕) (§ Part C, D: clipped under toolbar & HUD)
+        if (!isClippedByHUD) {
+          dummy.position.set(p.headrest[0], p.headrest[1] + 0.30 + scale * 0.3, p.headrest[2]);
+          dummy.quaternion.copy(camera.quaternion);
+          dummy.scale.set(scale, scale, 1);
+          dummy.updateMatrix();
+          crossMesh.setMatrixAt(crossCount, dummy.matrix);
+          crossCount++;
+        }
       } else if (status === 'held') {
-        if (!isCurrentPovSeat) {
-          // 4. Amber Clock Badge (🕒)
+        if (!isCurrentPovSeat && !isClippedByHUD) {
+          // 4. Amber Clock Badge (🕒) (clipped under toolbar & HUD)
           dummy.position.set(p.headrest[0], p.headrest[1] + 0.32 + scale * 0.3 + bob * 0.5, p.headrest[2]);
           dummy.quaternion.copy(camera.quaternion);
           dummy.scale.set(scale, scale, 1);
