@@ -11,9 +11,13 @@ export interface AuditoriumInfoPanelProps {
 }
 
 export function AuditoriumInfoPanel({ inline = false }: AuditoriumInfoPanelProps) {
+  const cameraMode = useCinemaStore((s) => s.cameraMode);
+  const mode = useCinemaStore((s) => s.mode);
+
   const [showHonestyModal, setShowHonestyModal] = useState(false);
   const [showDevControls, setShowDevControls] = useState(false);
   const [isDebugMode, setIsDebugMode] = useState(false);
+
   // First-person modes (Walk/Seated/POV) are minimal: collapsed by default
   const isFirstPerson = mode === 'walk' || mode === 'seated' || cameraMode === 'pov' || cameraMode === 'walk';
   const [isCollapsed, setIsCollapsed] = useState(isFirstPerson);
@@ -36,8 +40,6 @@ export function AuditoriumInfoPanel({ inline = false }: AuditoriumInfoPanelProps
   const setUseHqModel = useCinemaStore((s) => s.setUseHqModel);
   const updateSeatStatus = useCinemaStore((s) => s.updateSeatStatus);
   const showToast = useCinemaStore((s) => s.showToast);
-  const cameraMode = useCinemaStore((s) => s.cameraMode);
-  const mode = useCinemaStore((s) => s.mode);
   const storeTiers = useCinemaStore((s) => s.tiers);
   const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
   const auditoriumName = useCinemaStore((s) => s.auditoriumName);

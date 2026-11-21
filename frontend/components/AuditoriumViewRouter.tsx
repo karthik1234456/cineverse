@@ -46,9 +46,9 @@ export function AuditoriumViewRouter({
   const modeParam = searchParams.get('mode');
   const seatParam = searchParams.get('seat');
 
-  // Default is 2D seat map per Phase 4 requirement; mode=3d or mode=pov switches to 3D
+  // Default is 2D seat map per Phase 4 requirement; mode=3d, mode=pov, or mode=walk switches to 3D
   const [currentMode, setCurrentMode] = useState<'2d' | '3d'>(
-    (modeParam === '3d' || modeParam === 'pov' || initialMode === '3d') ? '3d' : '2d'
+    (modeParam === '3d' || modeParam === 'pov' || modeParam === 'walk' || initialMode === '3d') ? '3d' : '2d'
   );
   const simpleMode = useComfortStore((s) => s.simpleMode);
   const is3DActive = currentMode === '3d' && !simpleMode;
@@ -87,7 +87,7 @@ export function AuditoriumViewRouter({
   const has3D = true;
 
   useEffect(() => {
-    if (modeParam === '3d' || modeParam === 'pov') {
+    if (modeParam === '3d' || modeParam === 'pov' || modeParam === 'walk') {
       setCurrentMode('3d');
       if (modeParam === 'pov') {
         const isValid = seatParam && /^[A-Z]\d{1,3}$/i.test(seatParam.trim());
@@ -97,6 +97,8 @@ export function AuditoriumViewRouter({
         } else {
           useCinemaStore.getState().setMode('overview');
         }
+      } else if (modeParam === 'walk') {
+        useCinemaStore.getState().setCameraMode('walk');
       }
     } else if (modeParam === '2d') {
       setCurrentMode('2d');

@@ -99,13 +99,13 @@ export function AuditoriumExperience({
       </CanvasErrorBoundary>
 
       {/* Overlaid UI elements */}
-      {/* Left HUD Column: Stacks Info Panel, Light Controls, and Trailer Panel without collision (§ Part D) */}
+      {/* Left HUD Column: Stacks Media Cluster, Info Panel, and Controls without collision (§ Part D) */}
       <div
         id="hud-left-column"
         className="pointer-events-none fixed left-4 top-16 bottom-6 z-30 flex flex-col gap-3 w-80 max-w-[calc(100vw-2rem)] overflow-y-auto overflow-x-hidden no-scrollbar"
       >
-        <AuditoriumInfoPanel inline />
         <ScreenMediaCluster inline />
+        <AuditoriumInfoPanel inline />
       </div>
 
       <SeatInformationPanel />

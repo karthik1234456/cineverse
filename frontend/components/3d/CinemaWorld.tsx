@@ -375,6 +375,17 @@ function DevBridge() {
       setQualityMode,
       setFOV,
       setHoveredSeat: (seatId: string | null) => useCinemaStore.getState().setHoveredSeat(seatId),
+      samplePixelAt: (xNorm: number = 0.5, yNorm: number = 0.5) => {
+        gl.render(scene, camera);
+        const rawGl = gl.getContext();
+        const width = rawGl.drawingBufferWidth || gl.domElement.width;
+        const height = rawGl.drawingBufferHeight || gl.domElement.height;
+        const pxX = Math.floor(Math.max(0, Math.min(width - 1, xNorm * width)));
+        const pxY = Math.floor(Math.max(0, Math.min(height - 1, (1.0 - yNorm) * height)));
+        const pixel = new Uint8Array(4);
+        rawGl.readPixels(pxX, pxY, 1, 1, rawGl.RGBA, rawGl.UNSIGNED_BYTE, pixel);
+        return [pixel[0], pixel[1], pixel[2], pixel[3]];
+      },
       sampleLuminance: () => {
         gl.render(scene, camera);
         const rawGl = gl.getContext();
