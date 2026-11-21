@@ -203,17 +203,17 @@ describe('Motion-Seat (4DX-Style) Hall Type — Structure, Screen & Seating Veri
   });
 
   describe('6. Hall Layout & Screen Distance Mathematical Conformance (PART A Requirements)', () => {
-    it('verifies screen distance >= 1.2 * screenHeight across all generated seats and rows', () => {
-      const sh = geometry.screenMesh.height;
+    it('verifies screen distance 0.5-0.6x screenWidth and FOV limits across all generated seats and rows', () => {
       const sw = geometry.screenMesh.width;
       const screenZ = geometry.screenMesh.center[2];
-      const minDistH = 1.2 * sh;
 
       const rowASeats = seatLayout.seats.filter((s) => s.row === 'A');
       for (const s of rowASeats) {
         const distZ = Math.abs(s.position_gltf_y_up[2] - screenZ);
-        expect(distZ).toBeGreaterThanOrEqual(minDistH - 0.05);
-        expect(s.screen_h_fov_deg).toBeLessThanOrEqual(75.5);
+        expect(distZ).toBeGreaterThanOrEqual(0.50 * sw - 0.05);
+        expect(distZ).toBeLessThanOrEqual(0.60 * sw + 0.05);
+        expect(s.screen_h_fov_deg).toBeGreaterThanOrEqual(79.0);
+        expect(s.screen_h_fov_deg).toBeLessThanOrEqual(91.0);
       }
 
       const allRows = Array.from(new Set(seatLayout.seats.map((s) => s.row))).sort();
@@ -224,9 +224,12 @@ describe('Motion-Seat (4DX-Style) Hall Type — Structure, Screen & Seating Veri
       }
     });
 
-    it('ensures no obstructing partition wall in the middle of the hall and effect props are slim and off-center', () => {
-      // Stage lip sits compactly under screen (min Z >= SCREEN_Z - 1.5, nowhere near Row A at Z <= -11.6)
-      expect(geometry.stageLip.min[2]).toBeGreaterThan(-3.0);
+    it('ensures no obstructing partition wall in the middle of the hall and empty floor <= 4m', () => {
+      // Stage lip deepened to satisfy empty floor <= 4m (8 units) before Row A
+      const rowAZ = seatLayout.seats.find((s) => s.row === 'A')!.position_gltf_y_up[2];
+      const emptyFloorScene = Math.abs(rowAZ - geometry.stageLip.min[2]);
+      expect(emptyFloorScene * 0.5).toBeLessThanOrEqual(4.0);
+      expect(emptyFloorScene * 0.5).toBeGreaterThan(0.5);
       expect(geometry.stageLip.max[2]).toBeLessThanOrEqual(geometry.screenMesh.center[2]);
       // Environmental props removed
       expect(geometry.effectProps || []).toHaveLength(0);

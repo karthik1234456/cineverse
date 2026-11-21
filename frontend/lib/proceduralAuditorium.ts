@@ -360,17 +360,35 @@ export const SCREEN_Z = -1.255;
  * 2. Front-row horizontal FOV <= 75 degrees (fov = 2 * atan((screenWidth/2)/dist) <= 75 deg => dist >= (screenWidth/2)/tan(37.5 deg))
  * 3. First row sits 0.66 to 0.90 times the screen width from the screen
  */
+export const TYPE_TARGET_RATIOS: Record<string, number> = {
+  compact: 0.55,
+  standard: 0.54,
+  large: 0.53,
+  flagship: 0.52,
+  motion_seat: 0.56,
+  dolby_atmos_4dx: 0.56,
+  luxury_recliner: 0.58,
+  boutique: 0.57,
+  balcony: 0.54,
+};
+
+/**
+ * Calculates optimal distance from screen to front row (Row A):
+ * 1. Distance between 0.50 and 0.60 times screen width (coherent geometry rules)
+ * 2. Front-row field of view between 80 and 90 degrees (fov = 2 * atan((screenWidth/2)/dist))
+ * 3. Back-row field of view at least 28 degrees
+ */
 export function calculateScreenDistance(
   screenWidth: number,
   screenHeight: number,
-  maxFrontFovDeg: number = 75.5,
-  targetRatio: number = 0.63
+  maxFrontFovDeg: number = 88.0,
+  targetRatio: number = 0.55
 ): number {
-  const minDistH = 1.2 * screenHeight;
+  const minDistH = 1.0 * screenHeight;
   const halfFovRad = (maxFrontFovDeg / 2.0) * (Math.PI / 180.0);
   const minDistFov = (screenWidth / 2.0) / Math.tan(halfFovRad);
-  const minRatioDist = 0.55 * screenWidth;
-  const maxRatioDist = 0.70 * screenWidth;
+  const minRatioDist = 0.50 * screenWidth;
+  const maxRatioDist = 0.60 * screenWidth;
   const targetDist = targetRatio * screenWidth;
 
   const minBound = Math.max(minDistH, minDistFov, minRatioDist);
@@ -570,11 +588,13 @@ export function generateProceduralAuditorium(
     ? Math.round(((maxRowAX * maxRowAX) / (2 * curveRadius)) * 1000) / 1000
     : 0;
 
-  // Calculate dynamic Row A Z based on screen distance rule:
-  // distance >= 1.2 * screenHeight, horizontal FOV <= 75 degrees, and 0.55 to 0.70 * screenWidth.
+  // Calculate dynamic Row A Z based on coherent screen distance rule:
+  // distance 0.50 to 0.60 * screenWidth, horizontal FOV 80 to 90 degrees.
+  const tid = theatreDef.id || input.theatre_type || 'standard';
+  const targetRatio = TYPE_TARGET_RATIOS[tid] ?? 0.55;
   const reqScreenDist = (isLegacyMode || (totalSeatsEstimate === 100 && !input.theatre_type))
     ? Math.abs(ROW_A_Z - SCREEN_Z)
-    : calculateScreenDistance(screenWidth, screenHeight, 75.0);
+    : calculateScreenDistance(screenWidth, screenHeight, 88.0, targetRatio);
   const rowAZ = (isLegacyMode || (totalSeatsEstimate === 100 && !input.theatre_type))
     ? ROW_A_Z
     : Math.round((SCREEN_Z - (reqScreenDist + maxRowASagZ)) * 1000) / 1000;
@@ -1097,11 +1117,10 @@ export function generateProceduralAuditorium(
   colliders.push(screenStructure);
 
   // Stage Lip & Apron
-  // Balcony and flagship halls have an extended apron with stairs; standard and motion halls sit compactly under screen
-  const hasApron = theatreDef.id === 'balcony' || theatreDef.id === 'flagship';
-  const stageLipDepth = hasApron
-    ? Math.max(2.4, Math.min(8.0, Math.abs(rowAZ - SCREEN_Z) - 4.0))
-    : 1.2;
+  // Coherent rule: Empty floor between stage edge and Row A at most 4 m (8.0 scene units).
+  // Deepen the stage/apron so that empty floor is ~2.75 m (5.5 scene units), strictly <= 4.0 m.
+  const distToRowA = Math.abs(rowAZ - SCREEN_Z);
+  const stageLipDepth = Math.max(2.4, Math.round((distToRowA - 5.5) * 100) / 100);
   const stageLipFrontZ = SCREEN_Z - stageLipDepth;
   const stageLipWidth = Math.min(screenWidth + 1.2, halfWidth * 1.8);
   const stageLip: BoundingBox3D = {

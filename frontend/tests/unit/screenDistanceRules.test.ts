@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { generateProceduralAuditorium } from '../../lib/proceduralAuditorium';
 import type { TheatreTypeId } from '../../lib/theatreTypeRegistry';
 
-describe('PART F: Screen Distance Rules & FOV Verification', () => {
+describe('Coherent Screen Distance Rules, FOV & Stage Apron Verification', () => {
   const theatreTypes = [
     'compact',
     'standard',
@@ -16,7 +16,7 @@ describe('PART F: Screen Distance Rules & FOV Verification', () => {
   ];
 
   theatreTypes.forEach(tid => {
-    it(`enforces distance >= 1.2x H and FOV limits for ${tid}`, () => {
+    it(`enforces distance 0.5-0.6x screen width, FOV 80-90 deg, empty floor <= 4m for ${tid}`, () => {
       const rows = tid === 'boutique' ? 6 : 10;
       const res = generateProceduralAuditorium({
         theatre_type: tid,
@@ -37,12 +37,14 @@ describe('PART F: Screen Distance Rules & FOV Verification', () => {
 
       const frontDistance = Math.abs(rowAZ - screenZ);
 
-      // Rule 1: Front row distance >= 1.2 * screenHeight
-      expect(frontDistance).toBeGreaterThanOrEqual(1.2 * screenHeight - 0.05);
+      // Rule 1: Front row distance between 0.50 and 0.60 times screen width
+      expect(frontDistance).toBeGreaterThanOrEqual(0.50 * screenWidth - 0.05);
+      expect(frontDistance).toBeLessThanOrEqual(0.60 * screenWidth + 0.05);
 
-      // Rule 2: Front row horizontal FOV <= 75 degrees
+      // Rule 2: Front row horizontal FOV between 80 and 90 degrees
       const frontFOV = (2 * Math.atan((screenWidth / 2) / frontDistance) * 180) / Math.PI;
-      expect(frontFOV).toBeLessThanOrEqual(75.5);
+      expect(frontFOV).toBeGreaterThanOrEqual(79.0);
+      expect(frontFOV).toBeLessThanOrEqual(91.0);
 
       // Rule 3: Back row horizontal FOV >= 28 degrees
       const lastRowLetter = res.seatLayout.seats[res.seatLayout.seats.length - 1].row;
@@ -52,6 +54,13 @@ describe('PART F: Screen Distance Rules & FOV Verification', () => {
       const backFOV = (2 * Math.atan((screenWidth / 2) / backDistance) * 180) / Math.PI;
 
       expect(backFOV).toBeGreaterThanOrEqual(28.0);
+
+      // Rule 4: Empty floor between stage edge and Row A <= 4.0 m
+      const stageLip = res.geometry.stageLip;
+      const stageEdgeZ = stageLip.min[2] * 0.5; // stage front edge in metres
+      const emptyFloorM = Math.abs(rowAZ - stageEdgeZ);
+      expect(emptyFloorM).toBeLessThanOrEqual(4.0);
+      expect(emptyFloorM).toBeGreaterThan(0.5); // strictly positive clearance
     });
   });
 });
