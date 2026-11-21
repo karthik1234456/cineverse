@@ -62,10 +62,11 @@ hallTypes.forEach((tid) => {
   const distToBackRowM = Math.abs(backRowZ - screenZ) * SCENE_TO_METERS;
   const backRowFovDeg = Math.round((2 * Math.atan((screenWidthM / 2) / distToBackRowM) * 180 / Math.PI) * 10) / 10;
 
+  const reg = (THEATRE_TYPE_REGISTRY as Record<string, any>)[tid];
   results.push({
     id: tid,
-    name: THEATRE_TYPE_REGISTRY[tid]?.name || tid,
-    screenType: THEATRE_TYPE_REGISTRY[tid]?.screenType?.name || 'Standard',
+    name: reg?.name || tid,
+    screenType: reg?.screenType?.name || 'Standard',
     screenWidthM,
     screenHeightM,
     stageDepthM,

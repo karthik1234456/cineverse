@@ -16,6 +16,7 @@ describe('PART A: Remove Automatic Theatre Mode & Verify Safeguard Truth', () =>
         trailerUrl: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
         isTheatreMode: false,
         youtubeErrorCode: null,
+        hasSpill: false,
       },
     });
   });

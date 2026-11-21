@@ -47,6 +47,7 @@ export function CinemaScreen({
   const toggleTrailerMute = useCinemaStore((s) => s.toggleTrailerMute);
   const theatreModeOpen = useCinemaStore((s) => s.theatreModeOpen);
   const setTheatreModeOpen = useCinemaStore((s) => s.setTheatreModeOpen);
+  const showToast = useCinemaStore((s) => s.showToast);
   const screenFitMode = useCinemaStore((s) => s.screenFitMode);
   const screenConfig = useCinemaStore((s) => s.auditoriumLayout.screen);
 
@@ -451,6 +452,13 @@ export function CinemaScreen({
 
   // User Gesture Handlers (§ Part D)
   const handleStartPlayback = useCallback(() => {
+    // If user prefers Theatre Mode in Settings (§ Part E), open Theatre Mode on user play
+    const displayPref = useCinemaStore.getState().trailerDisplayPreference;
+    if (displayPref === 'theatre_mode') {
+      setTheatreModeOpen(true);
+      return;
+    }
+
     // 1. Hosted video texture
     if (activeStrategy === 'video_texture' && videoRef.current) {
       videoRef.current.muted = false;
@@ -678,6 +686,55 @@ export function CinemaScreen({
       gl.setClearColor('#0E0F12', 1.0);
     };
   }, [isCutout, gl, scene]);
+
+  // Runtime Visibility Check: if player says playing but screen stays uniform for 2s, show notice (§ Part B)
+  const uniformStartTimeRef = useRef<number | null>(null);
+  const uniformToastShownRef = useRef<boolean>(false);
+
+  useEffect(() => {
+    if (!trailer.isPlaying || trailer.isTheatreMode) {
+      uniformStartTimeRef.current = null;
+      uniformToastShownRef.current = false;
+      return;
+    }
+
+    const checkVisibility = () => {
+      if (uniformToastShownRef.current) return;
+      if (!trailer.isPlaying || trailer.playbackStatus !== 'playing') return;
+
+      // Sample pixels if available via window.__cineverse
+      if (typeof window !== 'undefined' && (window as any).__cineverse?.samplePixelAt) {
+        const sample = (window as any).__cineverse.samplePixelAt;
+        const p1 = sample(0.48, 0.48);
+        const p2 = sample(0.50, 0.50);
+        const p3 = sample(0.52, 0.52);
+
+        // Check if black or uniform
+        const isBlack = (p2[0] === 0 && p2[1] === 0 && p2[2] === 0) || (p2[0] < 15 && p2[1] < 15 && p2[2] < 15);
+        const isUniform = Math.abs(p1[0] - p2[0]) + Math.abs(p1[1] - p2[1]) + Math.abs(p1[2] - p2[2]) < 3 &&
+                          Math.abs(p2[0] - p3[0]) + Math.abs(p2[1] - p3[1]) + Math.abs(p2[2] - p3[2]) < 3;
+
+        const now = performance.now();
+        if (isBlack || isUniform) {
+          if (uniformStartTimeRef.current === null) {
+            uniformStartTimeRef.current = now;
+          } else if (now - uniformStartTimeRef.current >= 2000) {
+            uniformToastShownRef.current = true;
+            console.warn('[Screen] The picture is not visible on the 3D screen. Uniform frame detected for 2 seconds while playing.');
+            showToast('The picture is not visible on the 3D screen', {
+              label: 'Open Theatre Mode',
+              onClick: () => setTheatreModeOpen(true),
+            });
+          }
+        } else {
+          uniformStartTimeRef.current = null;
+        }
+      }
+    };
+
+    const interval = setInterval(checkVisibility, 500);
+    return () => clearInterval(interval);
+  }, [trailer.isPlaying, trailer.playbackStatus, trailer.isTheatreMode, showToast, setTheatreModeOpen]);
 
   
   // Render static 2D canvas once on mount/data change instead of every frame (§ Part B)
@@ -1160,19 +1217,60 @@ export function CinemaScreen({
         </CameraGuardedCSS3D>
       )}
 
-      {/* Proscenium Bezel Frame (Thinner profile to maximize picture area § Part A) */}
-      <mesh
+      {/* Proscenium Bezel Frame: Hollow 4-border frame to maximize picture area and keep center open for cutout (§ Part A) */}
+      <group
         name="ScreenProsceniumFrame"
         position={[screenCenter[0], screenCenter[1], screenCenter[2] - 0.015]}
-        raycast={() => null}
       >
-        <boxGeometry args={[screenWidth + (isDirectView ? 0.04 : 0.08), screenHeight + (isDirectView ? 0.04 : 0.08), 0.02]} />
-        <meshStandardMaterial
-          color={isDirectView ? '#09090b' : '#0f172a'}
-          roughness={isDirectView ? 0.2 : 0.5}
-          metalness={isDirectView ? 0.8 : 0.6}
-        />
-      </mesh>
+        {/* Top Border */}
+        <mesh
+          position={[0, screenHeight / 2 + (isDirectView ? 0.02 : 0.04) / 2, 0]}
+          raycast={() => null}
+        >
+          <boxGeometry args={[screenWidth + (isDirectView ? 0.04 : 0.08), isDirectView ? 0.02 : 0.04, 0.02]} />
+          <meshStandardMaterial
+            color={isDirectView ? '#09090b' : '#0f172a'}
+            roughness={isDirectView ? 0.2 : 0.5}
+            metalness={isDirectView ? 0.8 : 0.6}
+          />
+        </mesh>
+        {/* Bottom Border */}
+        <mesh
+          position={[0, -screenHeight / 2 - (isDirectView ? 0.02 : 0.04) / 2, 0]}
+          raycast={() => null}
+        >
+          <boxGeometry args={[screenWidth + (isDirectView ? 0.04 : 0.08), isDirectView ? 0.02 : 0.04, 0.02]} />
+          <meshStandardMaterial
+            color={isDirectView ? '#09090b' : '#0f172a'}
+            roughness={isDirectView ? 0.2 : 0.5}
+            metalness={isDirectView ? 0.8 : 0.6}
+          />
+        </mesh>
+        {/* Left Border */}
+        <mesh
+          position={[-screenWidth / 2 - (isDirectView ? 0.02 : 0.04) / 2, 0, 0]}
+          raycast={() => null}
+        >
+          <boxGeometry args={[isDirectView ? 0.02 : 0.04, screenHeight, 0.02]} />
+          <meshStandardMaterial
+            color={isDirectView ? '#09090b' : '#0f172a'}
+            roughness={isDirectView ? 0.2 : 0.5}
+            metalness={isDirectView ? 0.8 : 0.6}
+          />
+        </mesh>
+        {/* Right Border */}
+        <mesh
+          position={[screenWidth / 2 + (isDirectView ? 0.02 : 0.04) / 2, 0, 0]}
+          raycast={() => null}
+        >
+          <boxGeometry args={[isDirectView ? 0.02 : 0.04, screenHeight, 0.02]} />
+          <meshStandardMaterial
+            color={isDirectView ? '#09090b' : '#0f172a'}
+            roughness={isDirectView ? 0.2 : 0.5}
+            metalness={isDirectView ? 0.8 : 0.6}
+          />
+        </mesh>
+      </group>
 
       {/* Panoramic Wrap Wings */}
       {isPanoramicWrap && leftWingGeom && rightWingGeom && (

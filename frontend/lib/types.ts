@@ -334,6 +334,7 @@ declare global {
       setQualityMode: (mode: QualityMode) => void;
       setFOV: (fov: number) => void;
       setHoveredSeat: (seatId: string | null) => void;
+      samplePixelAt?: (xNorm?: number, yNorm?: number) => [number, number, number, number];
       getStore: () => any;
       getVisibleProxiesCount: () => number;
       getShadowCastersCount: () => number;

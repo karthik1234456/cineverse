@@ -72,6 +72,17 @@ export interface TrailerState {
   isTheatreMode?: boolean;
 }
 
+function getInitialTrailerDisplayPreference(): 'screen_3d' | 'theatre_mode' {
+  if (typeof window === 'undefined') return 'screen_3d';
+  try {
+    const saved = localStorage.getItem('cineverse_trailer_display');
+    if (saved === 'theatre_mode' || saved === 'screen_3d') return saved;
+  } catch (e) {}
+  return 'screen_3d';
+}
+
+const initialTrailerDisplay = getInitialTrailerDisplayPreference();
+
 export interface CinemaState {
   // Seat state
   seatStatuses: Record<string, SeatStatus>;
@@ -258,6 +269,8 @@ export interface CinemaState {
   setTheatreLook: (look: 'a' | 'b' | 'c') => void;
   screenFitMode: 'fit' | 'fill';
   setScreenFitMode: (mode: 'fit' | 'fill') => void;
+  trailerDisplayPreference: 'screen_3d' | 'theatre_mode';
+  setTrailerDisplayPreference: (pref: 'screen_3d' | 'theatre_mode') => void;
   setQualityTier: (tier: QualityTier) => void;
   setQualityMode: (mode: QualityMode) => void;
   setContinuousRendering: (continuous: boolean) => void;
@@ -398,6 +411,15 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   setTheatreLook: (look) => set({ theatreLook: look }),
   screenFitMode: 'fit',
   setScreenFitMode: (mode) => set({ screenFitMode: mode }),
+  trailerDisplayPreference: initialTrailerDisplay,
+  setTrailerDisplayPreference: (pref) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('cineverse_trailer_display', pref);
+      } catch (e) {}
+    }
+    set({ trailerDisplayPreference: pref });
+  },
   qualityTier: initialQuality === 'smooth' ? 'low' : 'high',
   qualityMode: initialQuality,
   useHqModel: false,

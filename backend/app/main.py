@@ -3,6 +3,18 @@ import asyncio
 import time
 import uuid
 import logging
+import socket
+
+# Silence Windows asyncio Proactor ConnectionResetError [WinError 10054] on client disconnect
+if os.name == "nt":
+    from asyncio.proactor_events import _ProactorBasePipeTransport
+    orig_call_connection_lost = _ProactorBasePipeTransport._call_connection_lost
+    def patched_call_connection_lost(self, exc):
+        try:
+            orig_call_connection_lost(self, exc)
+        except (ConnectionResetError, OSError):
+            pass
+    _ProactorBasePipeTransport._call_connection_lost = patched_call_connection_lost
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response, HTTPException, status
 from fastapi.responses import JSONResponse

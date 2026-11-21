@@ -37,12 +37,15 @@ function PerformanceWatchdog() {
   const theatreModeOpen = useCinemaStore((s) => s.theatreModeOpen);
   const setTheatreModeOpen = useCinemaStore((s) => s.setTheatreModeOpen);
   const showToast = useCinemaStore((s) => s.showToast);
+  const isContinuousRendering = useCinemaStore((s) => s.isContinuousRendering);
+  const cameraMode = useCinemaStore((s) => s.cameraMode);
 
   const isCSS3DActive = (trailer.isPlaying || trailer.playbackStatus === 'playing') && !theatreModeOpen;
   const lowFpsAccumulator = useRef(0);
   const playStartTimeRef = useRef(0);
   const slowInputCountRef = useRef(0);
   const hasSuggestedRef = useRef(false);
+  const prevCameraPos = useRef(new THREE.Vector3());
 
   useEffect(() => {
     if (isCSS3DActive) {
@@ -53,21 +56,25 @@ function PerformanceWatchdog() {
     }
   }, [isCSS3DActive]);
 
-  // Monitor input latency during CSS 3D playback (requires sustained lag > 200ms after initial warmup)
+  // Monitor input latency via browser event timing during CSS 3D playback
   useEffect(() => {
     if (!isCSS3DActive) return;
-    const handleInput = () => {
+    const handleInput = (e: Event) => {
       // Warmup: avoid false-positives on initial scene hydration / route load
       if (performance.now() - playStartTimeRef.current < 4000) return;
 
-      const start = performance.now();
+      const eventTime = e.timeStamp;
+      const processTime = performance.now();
+      const inputDelay = Math.max(0, processTime - eventTime);
+
       requestAnimationFrame(() => {
-        const latency = performance.now() - start;
-        if (latency > 200) {
+        const frameDoneTime = performance.now();
+        const totalLatency = frameDoneTime - eventTime;
+        if (totalLatency > 200 || inputDelay > 100) {
           slowInputCountRef.current += 1;
-          if (slowInputCountRef.current >= 3 && !hasSuggestedRef.current) {
+          if (slowInputCountRef.current >= 4 && !hasSuggestedRef.current) {
             hasSuggestedRef.current = true;
-            // Suggest Theatre Mode with an interactive action button; never switch by itself (§ Part A)
+            // Suggest Theatre Mode with an interactive action button; never switch by itself (§ Part A, C)
             showToast('Playback is choppy. Try Theatre Mode', {
               label: 'Theatre Mode',
               onClick: () => setTheatreModeOpen(true),
@@ -87,8 +94,9 @@ function PerformanceWatchdog() {
     };
   }, [isCSS3DActive, setTheatreModeOpen, showToast]);
 
-  // Monitor frame rate: if FPS < 30 for 3 seconds continuously after warmup, suggest Theatre Mode (§ Part A)
-  useFrame((_, delta) => {
+  // Monitor frame rate ONLY during continuous active rendering (camera motion or walk) (§ Part C)
+  // Requires >= 5s of sustained poor FPS (<30), shows at most once per session, never for idle frames
+  useFrame((state, delta) => {
     if (!isCSS3DActive) {
       lowFpsAccumulator.current = 0;
       return;
@@ -96,13 +104,27 @@ function PerformanceWatchdog() {
 
     if (performance.now() - playStartTimeRef.current < 4000) return;
 
+    // Check if camera is actively moving or continuous motion is active
+    const camPos = state.camera.position;
+    const camMoved = camPos.distanceTo(prevCameraPos.current) > 0.005;
+    prevCameraPos.current.copy(camPos);
+
+    const isActivelyRendering = isContinuousRendering || camMoved || cameraMode === 'walk';
+
+    // NEVER trigger during idle frames
+    if (!isActivelyRendering) {
+      lowFpsAccumulator.current = Math.max(0, lowFpsAccumulator.current - delta);
+      return;
+    }
+
     const currentFps = 1 / Math.max(delta, 0.001);
     if (currentFps < 30) {
       lowFpsAccumulator.current += delta;
-      if (lowFpsAccumulator.current >= 3.0 && !hasSuggestedRef.current) {
+      // Require >= 5s of sustained poor values (§ Part C)
+      if (lowFpsAccumulator.current >= 5.0 && !hasSuggestedRef.current) {
         lowFpsAccumulator.current = 0;
         hasSuggestedRef.current = true;
-        // Suggest Theatre Mode with an interactive action button; never switch by itself (§ Part A)
+        // Suggest Theatre Mode with an interactive action button; never switch by itself (§ Part A, C)
         showToast('Playback is choppy. Try Theatre Mode', {
           label: 'Theatre Mode',
           onClick: () => setTheatreModeOpen(true),
@@ -128,6 +150,8 @@ export function CinemaWorld({
   const houseLights = useCinemaStore((s) => s.houseLights);
   const lightLevel = useCinemaStore((s) => s.lightLevel || 'normal');
   const proceduralResult = useCinemaStore((s) => s.proceduralResult);
+  const trailer = useCinemaStore((s) => s.trailer);
+  const theatreModeOpen = useCinemaStore((s) => s.theatreModeOpen);
 
   // Check WebGL availability and register context loss / restore handlers
   useEffect(() => {
@@ -147,8 +171,10 @@ export function CinemaWorld({
 
   // WebGL context loss listeners on canvas
   const handleCreated = ({ gl, scene, camera }: { gl: THREE.WebGLRenderer; scene: THREE.Scene; camera: THREE.Camera }) => {
-    if (overrideScreenMode === 'youtube_css3d') {
-      gl.setClearColor('#000000', 0.0);
+    const store = useCinemaStore.getState();
+    const isCutoutActive = (store.trailer.isPlaying || store.trailer.playbackStatus === 'playing') && !store.theatreModeOpen && store.trailer.activeStrategy === 'youtube_css3d';
+    if (overrideScreenMode === 'youtube_css3d' || isCutoutActive) {
+      gl.setClearColor(0x000000, 0.0);
       scene.background = null;
     } else {
       gl.setClearColor('#0E0F12', 1.0);
@@ -204,7 +230,7 @@ export function CinemaWorld({
         frameloop="always"
         onCreated={handleCreated}
       >
-        {overrideScreenMode !== 'youtube_css3d' && (
+        {overrideScreenMode !== 'youtube_css3d' && !(trailer.isPlaying && !theatreModeOpen && trailer.activeStrategy === 'youtube_css3d') && (
           <fog
             attach="fog"
             args={[
@@ -215,7 +241,7 @@ export function CinemaWorld({
           />
         )}
         <Suspense fallback={null}>
-          <AdaptiveFrameloopController />
+          <AdaptiveFrameloopController overrideScreenMode={overrideScreenMode} />
           {proceduralResult ? (
             <ProceduralAuditorium
               geometry={proceduralResult.geometry}
@@ -259,7 +285,7 @@ export function CinemaWorld({
  * Enforces render-on-demand when scene is static and switches to continuous 60fps
  * when camera transitions, player walks, user drags/orbits, or trailer video plays.
  */
-function AdaptiveFrameloopController() {
+function AdaptiveFrameloopController({ overrideScreenMode }: { overrideScreenMode?: ScreenStrategy }) {
   const setFrameloop = useThree((s) => s.setFrameloop);
   const invalidate = useThree((s) => s.invalidate);
   const { gl, scene } = useThree();
@@ -274,16 +300,29 @@ function AdaptiveFrameloopController() {
   const lightIntensity = useCinemaStore((s) => s.lightIntensity);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
   const theatreLook = useCinemaStore((s) => s.theatreLook);
+  const theatreModeOpen = useCinemaStore((s) => s.theatreModeOpen);
+  const trailer = useCinemaStore((s) => s.trailer);
+
+  const isCutoutActive = Boolean(
+    trailer.isPlaying &&
+    !theatreModeOpen &&
+    trailer.activeStrategy === 'youtube_css3d'
+  );
 
   // Synchronize tone mapping exposure and background color on lighting switch
   useEffect(() => {
     gl.toneMappingExposure = houseLights === 'show' ? 0.90 : (lightLevel === 'bright' ? 1.70 : 1.48);
-    gl.setClearColor('#0E0F12', 1.0);
-    if (scene) {
-      scene.background = new THREE.Color('#0E0F12');
+    if (isCutoutActive || overrideScreenMode === 'youtube_css3d') {
+      gl.setClearColor(0x000000, 0.0);
+      scene.background = null;
+    } else {
+      gl.setClearColor('#0E0F12', 1.0);
+      if (scene) {
+        scene.background = new THREE.Color('#0E0F12');
+      }
     }
     invalidate();
-  }, [gl, scene, houseLights, lightLevel, invalidate]);
+  }, [gl, scene, houseLights, lightLevel, isCutoutActive, overrideScreenMode, invalidate]);
 
   // Invalidate and render frame whenever interactive state changes
   useEffect(() => {
