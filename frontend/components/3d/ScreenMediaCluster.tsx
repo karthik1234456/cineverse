@@ -179,15 +179,67 @@ export function ScreenMediaCluster({ inline = false }: ScreenMediaClusterProps) 
 
   if (isMinimized) {
     return (
-      <div className={inline ? 'pointer-events-auto w-full shrink-0' : 'pointer-events-auto fixed bottom-24 left-4 z-30'}>
+      <div
+        data-testid="compact-trailer-controls-overlay"
+        className={
+          inline
+            ? 'pointer-events-auto flex items-center gap-1.5 rounded-2xl border border-white/20 bg-[#12161f]/95 p-1.5 shadow-xl backdrop-blur-md text-white w-fit shrink-0'
+            : 'pointer-events-auto fixed bottom-24 left-4 z-30 flex items-center gap-1.5 rounded-2xl border border-white/20 bg-[#12161f]/95 p-1.5 shadow-xl backdrop-blur-md text-white'
+        }
+      >
         <button
           onClick={() => setIsMinimized(false)}
           data-testid="restore-media-cluster-btn"
-          className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/20 bg-[#12161f]/90 text-white shadow-xl backdrop-blur-md hover:bg-[#1a202c] transition"
-          title="Open Screen Media Controls"
-          aria-label="Open Screen Media Controls"
+          className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition"
+          title="Expand Screen Media Controls"
+          aria-label="Expand Screen Media Controls"
         >
-          <Film className="h-5 w-5 text-rose-500" />
+          <Film className="h-4 w-4 text-rose-500" />
+        </button>
+
+        {/* Play/Pause */}
+        <button
+          onClick={toggleTrailerPlay}
+          data-testid="compact-trailer-play-toggle"
+          className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition"
+          aria-label={trailer.isPlaying ? 'Pause trailer' : 'Play trailer'}
+          title={trailer.isPlaying ? 'Pause trailer' : 'Play trailer'}
+        >
+          {trailer.isPlaying && playbackStatus === 'playing' ? (
+            <Pause className="h-4 w-4 text-rose-400" />
+          ) : (
+            <Play className="h-4 w-4 text-rose-400 fill-current" />
+          )}
+        </button>
+
+        {/* Mute */}
+        <button
+          onClick={handleToggleMute}
+          data-testid="compact-trailer-mute-toggle"
+          className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
+            trailer.isMuted
+              ? 'bg-rose-600/80 text-white hover:bg-rose-600'
+              : 'bg-emerald-600/80 text-white hover:bg-emerald-600'
+          }`}
+          aria-label={trailer.isMuted ? 'Turn sound on' : 'Mute sound'}
+          title={trailer.isMuted ? 'Turn sound on' : 'Mute sound'}
+        >
+          {trailer.isMuted ? (
+            <VolumeX className="h-4 w-4" />
+          ) : (
+            <Volume2 className="h-4 w-4" />
+          )}
+        </button>
+
+        {/* Restart */}
+        <button
+          onClick={restartTrailer}
+          data-testid="compact-trailer-restart-btn"
+          className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition"
+          title="Restart trailer"
+          aria-label="Restart trailer"
+        >
+          <RotateCcw className="h-4 w-4" />
         </button>
       </div>
     );

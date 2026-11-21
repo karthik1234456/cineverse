@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import layoutData from '@/public/models/seat_layout_v2.json';
 import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
-import { X, ArrowRight, Ticket, Loader2, ChevronLeft, ChevronRight, Eye, Check } from 'lucide-react';
+import { X, ArrowRight, Ticket, Loader2, ChevronLeft, ChevronRight, Eye, Check, Play, Pause, Volume2, VolumeX, RotateCcw } from 'lucide-react';
 import { FnbAddonModal } from '@/components/FnbAddonModal';
 import { holdSeats, updateHoldAddons } from '@/services/api';
 import { I18N_DICTIONARY } from '@/lib/i18n';
@@ -126,13 +126,65 @@ export function SelectedSeatsBar() {
               </span>
             </div>
 
-            {/* Movie & Cinema Format Summary */}
-            <div className="text-xs text-slate-600 font-semibold flex items-center gap-2">
-              <span className="font-bold text-[#1B1320] truncate max-w-[180px]">{trailer.movieTitle || 'Movie'}</span>
-              <span>•</span>
-              <span className="rounded bg-rose-100 text-[#C8102E] px-1.5 py-0.5 text-[10px] font-black uppercase">
-                {screenType.includes('4DX') ? '4DX 3D' : 'Laser IMAX'}
-              </span>
+            {/* Movie & Cinema Format Summary + Compact Trailer Controls */}
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-slate-600 font-semibold flex items-center gap-2">
+                <span className="font-bold text-[#1B1320] truncate max-w-[150px] sm:max-w-[180px]">{trailer.movieTitle || 'Movie'}</span>
+                <span>•</span>
+                <span className="rounded bg-rose-100 text-[#C8102E] px-1.5 py-0.5 text-[10px] font-black uppercase">
+                  {screenType.includes('4DX') ? '4DX 3D' : 'Laser IMAX'}
+                </span>
+              </div>
+
+              {/* Compact Trailer Controls (Item 5) */}
+              <div
+                data-testid="bottom-bar-compact-trailer-controls"
+                className="flex items-center gap-1 border-l border-slate-200 pl-2.5"
+              >
+                <button
+                  onClick={() => {
+                    const toggle = useCinemaStore.getState().toggleTrailerPlay;
+                    toggle();
+                  }}
+                  data-testid="bottom-bar-trailer-play"
+                  aria-label={trailer.isPlaying ? 'Pause trailer' : 'Play trailer'}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                  title={trailer.isPlaying ? 'Pause trailer' : 'Play trailer'}
+                >
+                  {trailer.isPlaying ? <Pause className="h-3.5 w-3.5 text-rose-600" /> : <Play className="h-3.5 w-3.5 fill-current text-rose-600" />}
+                </button>
+                <button
+                  onClick={() => {
+                    const toggleMute = useCinemaStore.getState().toggleTrailerMute;
+                    toggleMute();
+                  }}
+                  data-testid="bottom-bar-trailer-mute"
+                  aria-label={trailer.isMuted ? 'Turn sound on' : 'Mute sound'}
+                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                  title={trailer.isMuted ? 'Turn sound on' : 'Mute sound'}
+                >
+                  {trailer.isMuted ? <VolumeX className="h-3.5 w-3.5 text-amber-600" /> : <Volume2 className="h-3.5 w-3.5 text-emerald-600" />}
+                </button>
+                <button
+                  onClick={() => {
+                    const yt = (window as any).__cineverse_yt_player;
+                    if (yt && typeof yt.seekTo === 'function') {
+                      yt.seekTo(0, true);
+                    }
+                    const vid = (window as any).__cineverse_video as HTMLVideoElement | undefined;
+                    if (vid) {
+                      vid.currentTime = 0;
+                      vid.play().catch(() => {});
+                    }
+                  }}
+                  data-testid="bottom-bar-trailer-restart"
+                  aria-label="Restart trailer"
+                  className="flex h-7 w-7 items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition"
+                  title="Restart trailer"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+              </div>
             </div>
           </div>
 

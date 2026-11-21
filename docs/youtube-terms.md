@@ -19,22 +19,26 @@ CineVerse integrates promotional trailers strictly through authorized channels: 
 
 ---
 
-## 2. Display Modes & Graceful Fallback Engine
+## 2. Display Modes, Layering & Interaction Architecture
 
 CineVerse utilizes a dual-mode presentation architecture designed to respect content owner distribution settings:
 
-### Mode 1: 3D On-Screen Spatial Projection (CSS3D)
-- Rendered using Three.js CSS3D transform matrices directly aligned with the virtual cinema auditorium screen geometry.
-- Used exclusively for titles where the content owner has permitted third-party domain embedding (verified via YouTube's official oEmbed endpoint returning HTTP 200).
-- Transparent pointer routing allows natural interaction with the 3D world before playback, switching to native player interactivity once active.
+### Mode 1: 3D On-Screen Spatial Projection (Behind-Canvas CSS3D Layering)
+- **Depth-Correct Z-Ordering:** The WebGL rendering canvas (`z-index: 1`) is positioned in front of the CSS3D YouTube player container (`z-index: 0`). The 3D virtual screen mesh renders with a transparent cutout shader (custom blending `ZeroFactor` destination alpha), punching an exact window through the WebGL scene.
+- **Physical Occlusion:** Foregrounds objects—including auditorium seats, handrails, walls, pillars, and moving avatars—are drawn on top of the WebGL canvas and naturally occlude the video player behind them, guaranteeing optical depth accuracy.
+- **Non-Clickable IFrame:** Because the WebGL canvas sits in front of the CSS3D player, pointer events outside the viewport do not penetrate to the inner iframe, and users cannot click directly inside the YouTube player during 3D auditorium navigation.
+- **Official API Controls:** CineVerse provides full playback control through its custom HUD and bottom bar controls communicating directly with the official YouTube IFrame Player API:
+  - **Play / Pause:** `player.playVideo()` / `player.pauseVideo()`
+  - **Mute / Unmute:** `player.mute()` / `player.unMute()`
+  - **Volume:** `player.setVolume(val)`
+  - **Restart / Seek:** `player.seekTo(0, true)`
+  - **Closed Captions Toggle:** `player.loadModule('captions')` / `player.unloadModule('captions')`
+- **Transparent Attribution:** The YouTube watermark and canonical video title are rendered within the player boundary.
 
-### Mode 2: Theatre Mode Modal Fallback
-- Activated automatically when:
-  1. A content owner restricts embedding on external websites (`Error 101`, `Error 150`, `Error 153`).
-  2. The video is age-restricted or region-locked by the studio.
-  3. Video buffering or playback does not start within the 3-second watchdog window.
-- The player expands to a high-visibility, framed cinema canvas overlay over the auditorium.
-- The 3D screen transitions to the high-resolution movie poster with the message *"Playing in Theatre Mode"*—preventing black screens or visual degradation.
+### Mode 2: Theatre Mode
+- **User-Initiated Only:** Theatre Mode is activated solely upon explicit user action (clicking the "Theatre Mode" button or "Watch in Theatre Mode" on error cards). CineVerse contains zero automatic watchdogs or forced mode switches.
+- **Direct Interaction:** In Theatre Mode, the player is presented as an expansive modal (85% viewport width) where the user can directly interact with the full YouTube player chrome.
+- **Error Handling:** If a content owner restricts embedding (`Error 101`, `Error 150`, `Error 153`), the 3D screen displays a clean title card with a plain message and an optional "Watch in Theatre Mode" button. If playback is choppy, a non-intrusive hint is offered, but playback never automatically switches mode.
 
 ---
 
@@ -53,20 +57,30 @@ CineVerse utilizes a dual-mode presentation architecture designed to respect con
 
 ## 4. Pre-Launch Legal & Technical Review Requirements
 
-Prior to public launch, the engineering and legal teams must complete the following mandatory reviews:
+Prior to public launch, the engineering, product, and legal teams must complete and sign off on the following mandatory launch review checklist:
 
-1. **Google Cloud Console Project Registration:**
-   - Verify that the production project is registered with a dedicated Google Cloud Console project and API key under the CineVerse enterprise account.
-   - Request API quota increases if daily active user traffic is projected to exceed default YouTube Data API v3 quota limits (10,000 units/day).
-2. **Content Security Policy (CSP) & Referrer Directives:**
+1. **Google Cloud Console Project Registration & Quota Audit:**
+   - Verify production project registration with a dedicated Google Cloud Console project and API key under the CineVerse enterprise organization.
+   - Request YouTube Data API v3 quota increase (default: 10,000 units/day) to accommodate anticipated launch traffic.
+2. **Official YouTube API Compliance Audit:**
+   - Submit the YouTube API Services Compliance Audit Form and verify adherence to the Developer Policies.
+   - Certify Zero Ad Overlay: confirm that no CineVerse advertising, banners, or interactive modals overlap the active video picture area during playback.
+   - Confirm that the user is informed that the video player is embedded via YouTube, and provide a direct "Watch on YouTube" attribution link.
+3. **Content Security Policy (CSP) & Referrer Directives:**
    - Production web servers must deploy headers permitting YouTube assets:
      - `frame-src https://www.youtube.com https://www.youtube-nocookie.com;`
      - `script-src https://www.youtube.com https://s.ytimg.com;`
      - `referrer-policy: no-referrer-when-downgrade;` or `origin-when-cross-origin;`
-3. **Privacy Notice & Cookie Banner:**
+4. **Browser Autoplay & Audio Policy Compliance:**
+   - Verify unmuted playback requires explicit user gesture across Chrome, Safari, Edge, and Firefox.
+   - Ensure the "Tap for Sound" / unmute prompt reliably triggers audio context unmute via official API `unMute()`.
+5. **Accessibility & Captioning Verification:**
+   - Verify that closed captions can be toggled via CineVerse controls (`loadModule('captions')` / `unloadModule('captions')`) and that font sizing respects user preferences.
+   - Keyboard navigation audit: ensure Tab and Enter keys can reach play/pause, mute, restart, and Theatre Mode buttons.
+6. **Privacy Notice & Cookie Banner:**
    - Update the public Privacy Policy and Cookie Consent Manager to disclose the use of YouTube's privacy-enhanced mode (`youtube-nocookie.com`).
-   - Disclose that initiating video playback may establish connections to Google/YouTube infrastructure.
-4. **Trademark & Branding Review:**
+   - Disclose that initiating video playback connects to YouTube/Google CDN.
+7. **Trademark & Branding Review:**
    - Confirm adherence to [YouTube Brand Guidelines](https://www.youtube.com/howyoutubeworks/resources/brand-resources/), ensuring CineVerse does not imply official endorsement, sponsorship, or partnership with YouTube or Google LLC.
 
 ---

@@ -14,7 +14,15 @@ export function AuditoriumInfoPanel({ inline = false }: AuditoriumInfoPanelProps
   const [showHonestyModal, setShowHonestyModal] = useState(false);
   const [showDevControls, setShowDevControls] = useState(false);
   const [isDebugMode, setIsDebugMode] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // First-person modes (Walk/Seated/POV) are minimal: collapsed by default
+  const isFirstPerson = mode === 'walk' || mode === 'seated' || cameraMode === 'pov' || cameraMode === 'walk';
+  const [isCollapsed, setIsCollapsed] = useState(isFirstPerson);
+
+  useEffect(() => {
+    if (isFirstPerson) {
+      setIsCollapsed(true);
+    }
+  }, [isFirstPerson]);
 
   const seatStatuses = useCinemaStore((s) => s.seatStatuses);
   const selectedSeats = useCinemaStore((s) => s.selectedSeats);
@@ -163,11 +171,7 @@ export function AuditoriumInfoPanel({ inline = false }: AuditoriumInfoPanelProps
     return { available, booked, held, selected };
   }, [seatStatuses, selectedSeats, layout.seats]);
 
-  // First-person modes (Walk/Seated/POV) are minimal: auto-hide the panel
-  const isFirstPerson = mode === 'walk' || mode === 'seated' || cameraMode === 'pov' || cameraMode === 'walk';
-  if (isFirstPerson) {
-    return null;
-  }
+  // First-person modes (Walk/Seated/POV) are minimal: collapsed by default (rendered via isCollapsed below)
 
   if (isCollapsed) {
     return (
