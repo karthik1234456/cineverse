@@ -639,15 +639,45 @@ export function CinemaScreen({
     !trailer.isTheatreMode
   );
 
-  // Keep consistent theatre background styling
+  // Transparent cutout shader material punching through 3D canvas so CSS3D player behind is visible (§ Part B.2)
+  const cutoutMaterial = useMemo(() => {
+    return new THREE.ShaderMaterial({
+      vertexShader: `
+        void main() {
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        void main() {
+          gl_FragColor = vec4(0.0, 0.0, 0.0, 0.0);
+        }
+      `,
+      blending: THREE.CustomBlending,
+      blendEquation: THREE.AddEquation,
+      blendSrc: THREE.ZeroFactor,
+      blendDst: THREE.ZeroFactor,
+      blendSrcAlpha: THREE.ZeroFactor,
+      blendDstAlpha: THREE.ZeroFactor,
+      depthWrite: true,
+      depthTest: true,
+      side: THREE.DoubleSide,
+    });
+  }, []);
+
+  // Set transparent canvas background when cutout is active, otherwise opaque theatre background
   useEffect(() => {
-    scene.background = new THREE.Color('#0E0F12');
-    gl.setClearColor('#0E0F12', 1.0);
+    if (isCutout) {
+      scene.background = null;
+      gl.setClearColor(0x000000, 0.0);
+    } else {
+      scene.background = new THREE.Color('#0E0F12');
+      gl.setClearColor('#0E0F12', 1.0);
+    }
     return () => {
       scene.background = new THREE.Color('#0E0F12');
       gl.setClearColor('#0E0F12', 1.0);
     };
-  }, [gl, scene]);
+  }, [isCutout, gl, scene]);
 
   
   // Render static 2D canvas once on mount/data change instead of every frame (§ Part B)
@@ -1021,13 +1051,7 @@ export function CinemaScreen({
         }}
       >
         {isCutout ? (
-          <meshBasicMaterial
-            color="#000000"
-            side={THREE.DoubleSide}
-            polygonOffset={true}
-            polygonOffsetFactor={-2}
-            polygonOffsetUnits={-2}
-          />
+          <primitive object={cutoutMaterial} attach="material" />
         ) : isSolidColor ? (
           <meshBasicMaterial
             color={solidColor}
@@ -1049,16 +1073,16 @@ export function CinemaScreen({
         )}
       </mesh>
 
-      {/* Official YouTube Player placed directly on 3D Screen via CameraGuardedCSS3D (§ Part B, C, Item 5) */}
+      {/* Official YouTube Player placed directly behind 3D Screen cutout via CameraGuardedCSS3D (§ Part B.2) */}
       {activeStrategy === 'youtube_css3d' && rawYoutubeId && !trailer.isTheatreMode && (
         <CameraGuardedCSS3D
-          position={[screenCenter[0], screenCenter[1], screenCenter[2] - 0.03]}
+          position={[screenCenter[0], screenCenter[1], screenCenter[2]]}
           rotation={[0, Math.PI, 0]}
           distanceFactor={400 / (640 / screenWidth)}
           width={640}
           height={Math.round(640 / (screenWidth / screenHeight))}
           pointerEvents="auto"
-          zIndex={1}
+          zIndex={0}
         >
           <div data-testid="screen-youtube-player" className="relative w-full h-full overflow-hidden">
             <iframe

@@ -85,6 +85,7 @@ export function CameraGuardedCSS3D({
     if (!parent) return;
 
     // Root container with perspective (matching Drei's el)
+    // Placed strictly behind the 3D canvas (z-index: 0 vs canvas z-index: 1)
     const rootEl = document.createElement('div');
     rootEl.className = 'cineverse-css3d-root';
     rootEl.style.cssText = `
@@ -127,7 +128,17 @@ export function CameraGuardedCSS3D({
 
     outerEl.appendChild(innerEl);
     rootEl.appendChild(outerEl);
-    parent.appendChild(rootEl);
+
+    // Ensure gl canvas is positioned above rootEl
+    if (gl.domElement) {
+      gl.domElement.style.position = 'absolute';
+      gl.domElement.style.top = '0';
+      gl.domElement.style.left = '0';
+      gl.domElement.style.zIndex = '1';
+      parent.insertBefore(rootEl, gl.domElement);
+    } else {
+      parent.appendChild(rootEl);
+    }
 
     rootDivRef.current = rootEl;
     outerDivRef.current = outerEl;
