@@ -158,6 +158,7 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
   const cameraMode = useCinemaStore((s) => s.cameraMode);
   const activeSeatId = useCinemaStore((s) => s.activeSeatId);
   const showSeatMarkers = useCinemaStore((s) => s.showSeatMarkers ?? true);
+  const screenConfig = useCinemaStore((s) => s.auditoriumLayout.screen);
 
   // Billboard Textures
   const tickTexture = useMemo(() => createBadgeTexture('tick'), []);
@@ -268,6 +269,22 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
     const bob = Math.sin(time * 3.5) * 0.025;
     const dummy = new THREE.Object3D();
     const camPos = camera.position;
+    const perspCam = camera as THREE.PerspectiveCamera;
+    const fovRad = ((perspCam.fov || 60) * Math.PI) / 180;
+    const vHeight = typeof window !== 'undefined' ? window.innerHeight : 1080;
+    const camDir = new THREE.Vector3();
+    camera.getWorldDirection(camDir);
+
+    // Project 3D Screen bounding box to NDC to prevent badges drawing over screen (§ Part 4)
+    const screenCenter = screenConfig?.center_gltf_y_up || [0, 5.55, -1.255];
+    const screenHalfW = (screenConfig?.width || 18.4) / 2;
+    const screenHalfH = (screenConfig?.height || 8.5) / 2;
+    const screenBL = new THREE.Vector3(screenCenter[0] - screenHalfW, screenCenter[1] - screenHalfH, screenCenter[2]).project(camera);
+    const screenTR = new THREE.Vector3(screenCenter[0] + screenHalfW, screenCenter[1] + screenHalfH, screenCenter[2]).project(camera);
+    const screenMinX = Math.min(screenBL.x, screenTR.x) - 0.04;
+    const screenMaxX = Math.max(screenBL.x, screenTR.x) + 0.04;
+    const screenMinY = Math.min(screenBL.y, screenTR.y) - 0.04;
+    const screenMaxY = Math.max(screenBL.y, screenTR.y) + 0.04;
 
     let tickCount = 0;
     let ringCount = 0;
@@ -284,22 +301,50 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
       const dz = p.headrest[2] - camPos.z;
       const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-      // Fade/hide badges only at extreme ranges (> 180m)
-      if (dist > 180) continue;
+      // Fade/hide badges past 60m (§ Part 4)
+      if (dist > 60) continue;
 
-      // Minimum on-screen size safeguard (~24px minimum on screen at distance)
-      const scale = Math.max(0.42, dist * 0.025);
+      // In Sit/POV mode: hide badges closer than 3.0m or directly in front of camera (§ Part 4)
+      if (isPov) {
+        if (dist < 3.0) continue;
+        const toSeat = new THREE.Vector3(dx, dy, dz).normalize();
+        if (camDir.dot(toSeat) > 0.82 && dist < 4.5) continue;
+      }
+
+      // Cap on-screen size strictly between 16px and 36px (target 22-26px, § Part 4)
+      const targetPx = isPov ? 22 : 26;
+      const scale = THREE.MathUtils.clamp(
+        (targetPx * 2 * dist * Math.tan(fovRad / 2)) / vHeight,
+        0.12,
+        0.55
+      );
+
+      // Smooth distance fade past 35m
+      const fadeFactor = dist > 35 ? Math.max(0.1, 1 - (dist - 35) / 25) : 1.0;
+      const effectiveScale = scale * fadeFactor;
 
       const status = activeStatuses[seat.seat_id] || 'available';
       const isSelected = activeSelected.includes(seat.seat_id);
       const isCurrentPovSeat = isPov && actSeatId === seat.seat_id;
 
-      // Project 3D badge position to screen NDC to prevent drawing over toolbar/HUD (§ Part D)
-      const badgeY = p.headrest[1] + 0.32 + scale * 0.3;
+      // Project 3D badge position to screen NDC to prevent drawing over screen area or toolbar/HUD (§ Part 4)
+      const badgeY = p.headrest[1] + 0.28 + effectiveScale * 0.3;
       const projPos = new THREE.Vector3(p.headrest[0], badgeY, p.headrest[2]).project(camera);
-      const isUnderToolbar = projPos.y > 0.60 && Math.abs(projPos.x) < 0.65;
-      const isUnderLeftHUD = !isPov && projPos.x < -0.60 && projPos.y > -0.90 && projPos.y < 0.85;
-      const isClippedByHUD = isUnderToolbar || isUnderLeftHUD;
+
+      // Never draw over screen area in Sit/POV view (§ Part 4)
+      if (isPov && projPos.z > 0 &&
+          projPos.x >= screenMinX && projPos.x <= screenMaxX &&
+          projPos.y >= screenMinY && projPos.y <= screenMaxY) {
+        continue;
+      }
+
+      // Never draw over HUD (toolbar, left HUD column, bottom checkout bar)
+      const isUnderToolbar = projPos.y > 0.60 && Math.abs(projPos.x) < 0.70;
+      const isUnderLeftHUD = !isPov && projPos.x < -0.55 && projPos.y > -0.90 && projPos.y < 0.85;
+      const isUnderBottomBar = projPos.y < -0.65;
+      if (isUnderToolbar || isUnderLeftHUD || isUnderBottomBar) {
+        continue;
+      }
 
       if (isSelected) {
         // 1. Soft emerald floor ring (render on floor for all selected seats, including current POV seat)
@@ -310,31 +355,29 @@ export function SeatStateMarkers({ seats }: SeatStateMarkersProps) {
         ringMesh.setMatrixAt(ringCount, dummy.matrix);
         ringCount++;
 
-        // 2. Emerald Tick Badge (✓) floating above seat (clipped under toolbar & HUD)
-        if (!isCurrentPovSeat && !isClippedByHUD) {
-          dummy.position.set(p.headrest[0], p.headrest[1] + 0.35 + scale * 0.3 + bob, p.headrest[2]);
+        // 2. Emerald Tick Badge (✓) floating above seat
+        if (!isCurrentPovSeat) {
+          dummy.position.set(p.headrest[0], p.headrest[1] + 0.30 + effectiveScale * 0.3 + bob, p.headrest[2]);
           dummy.quaternion.copy(camera.quaternion);
-          dummy.scale.set(scale * 1.15, scale * 1.15, 1);
+          dummy.scale.set(effectiveScale * 1.15, effectiveScale * 1.15, 1);
           dummy.updateMatrix();
           tickMesh.setMatrixAt(tickCount, dummy.matrix);
           tickCount++;
         }
       } else if (status === 'booked') {
-        // 3. Muted Grey Cross Badge (✕) (§ Part C, D: clipped under toolbar & HUD)
-        if (!isClippedByHUD) {
-          dummy.position.set(p.headrest[0], p.headrest[1] + 0.30 + scale * 0.3, p.headrest[2]);
-          dummy.quaternion.copy(camera.quaternion);
-          dummy.scale.set(scale, scale, 1);
-          dummy.updateMatrix();
-          crossMesh.setMatrixAt(crossCount, dummy.matrix);
-          crossCount++;
-        }
+        // 3. Muted Grey Cross Badge (✕) (§ Part 4: capped between 16-36px, clipped away from screen)
+        dummy.position.set(p.headrest[0], p.headrest[1] + 0.28 + effectiveScale * 0.3, p.headrest[2]);
+        dummy.quaternion.copy(camera.quaternion);
+        dummy.scale.set(effectiveScale, effectiveScale, 1);
+        dummy.updateMatrix();
+        crossMesh.setMatrixAt(crossCount, dummy.matrix);
+        crossCount++;
       } else if (status === 'held') {
-        if (!isCurrentPovSeat && !isClippedByHUD) {
-          // 4. Amber Clock Badge (🕒) (clipped under toolbar & HUD)
-          dummy.position.set(p.headrest[0], p.headrest[1] + 0.32 + scale * 0.3 + bob * 0.5, p.headrest[2]);
+        if (!isCurrentPovSeat) {
+          // 4. Amber Clock Badge (🕒)
+          dummy.position.set(p.headrest[0], p.headrest[1] + 0.28 + effectiveScale * 0.3 + bob * 0.5, p.headrest[2]);
           dummy.quaternion.copy(camera.quaternion);
-          dummy.scale.set(scale, scale, 1);
+          dummy.scale.set(effectiveScale, effectiveScale, 1);
           dummy.updateMatrix();
           clockMesh.setMatrixAt(clockCount, dummy.matrix);
           clockCount++;
