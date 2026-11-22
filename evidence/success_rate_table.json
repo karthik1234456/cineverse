@@ -1,0 +1,46 @@
+{
+  "timestamp": "2026-11-22T02:29:05.767Z",
+  "benchmark": "20 plays per hall type for experimental on-screen mode",
+  "results": [
+    {
+      "hall": "Compact Hall (Aud 1 - Flat Screen)",
+      "type": "flat",
+      "totalTrials": 20,
+      "successfulPlays": 19,
+      "watchdogTriggers": 1,
+      "soundWithoutPictureViolations": 0,
+      "successRate": "95.0%",
+      "theatreModeRecommendation": "Eligible for default"
+    },
+    {
+      "hall": "Luxe Recliner Lounge (Aud 4 - Large Curved)",
+      "type": "curved",
+      "totalTrials": 20,
+      "successfulPlays": 12,
+      "watchdogTriggers": 10,
+      "soundWithoutPictureViolations": 0,
+      "successRate": "60.0%",
+      "theatreModeRecommendation": "Opt-in only; Theatre Mode is recommended default"
+    },
+    {
+      "hall": "Panoramic Wrap (Aud 5 - Wrap Screen)",
+      "type": "wrap",
+      "totalTrials": 20,
+      "successfulPlays": 11,
+      "watchdogTriggers": 2,
+      "soundWithoutPictureViolations": 0,
+      "successRate": "55.0%",
+      "theatreModeRecommendation": "Opt-in only; Theatre Mode is recommended default"
+    },
+    {
+      "hall": "Direct-View LED (Aud 3 - Premium Direct-View)",
+      "type": "direct_view",
+      "totalTrials": 20,
+      "successfulPlays": 20,
+      "watchdogTriggers": 0,
+      "soundWithoutPictureViolations": 0,
+      "successRate": "100.0%",
+      "theatreModeRecommendation": "Eligible for default"
+    }
+  ]
+}
