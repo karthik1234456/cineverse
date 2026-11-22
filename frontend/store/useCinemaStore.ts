@@ -52,7 +52,7 @@ export interface WalkSettings {
   headBob: boolean;
 }
 
-export type TrailerPlaybackStatus = 'ready' | 'loading' | 'playing' | 'paused' | 'blocked' | 'unavailable';
+export type TrailerPlaybackStatus = 'ready' | 'loading' | 'playing' | 'paused' | 'blocked' | 'unavailable' | 'error';
 export type ScreenStrategy = 'video_texture' | 'youtube_css3d' | 'backdrop_motion' | 'title_card' | 'solid_color' | 'test_card';
 
 export interface TrailerState {
@@ -72,13 +72,13 @@ export interface TrailerState {
   isTheatreMode?: boolean;
 }
 
-function getInitialTrailerDisplayPreference(): 'screen_3d' | 'theatre_mode' {
-  if (typeof window === 'undefined') return 'screen_3d';
+function getInitialTrailerDisplayPreference(): 'theatre_mode' | 'screen_3d' {
+  if (typeof window === 'undefined') return 'theatre_mode';
   try {
     const saved = localStorage.getItem('cineverse_trailer_display');
     if (saved === 'theatre_mode' || saved === 'screen_3d') return saved;
   } catch (e) {}
-  return 'screen_3d';
+  return 'theatre_mode';
 }
 
 const initialTrailerDisplay = getInitialTrailerDisplayPreference();
@@ -382,8 +382,13 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   setTheatreModeOpen: (open) =>
     set((s) => ({
       theatreModeOpen: open,
-      trailer: { ...s.trailer, isTheatreMode: open },
-      houseLights: open ? 'dim' : s.houseLights,
+      trailer: {
+        ...s.trailer,
+        isTheatreMode: open,
+        isPlaying: open ? s.trailer.isPlaying : false,
+        playbackStatus: open ? s.trailer.playbackStatus : 'ready',
+      },
+      houseLights: open ? 'dim' : 'full',
     })),
 
   houseLights: 'full',
@@ -893,10 +898,27 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
       trailer: { ...s.trailer, activeStrategy: strategy },
     })),
 
-  toggleTrailerPlay: () =>
-    set((s) => ({
+  toggleTrailerPlay: () => {
+    const s = get();
+    const isHosted = Boolean(
+      s.trailer.trailerUrl &&
+      (s.trailer.trailerUrl.endsWith('.mp4') ||
+        s.trailer.trailerUrl.endsWith('.webm') ||
+        s.trailer.trailerUrl.startsWith('/trailers/') ||
+        s.trailer.trailerUrl.includes('googleapis.com'))
+    );
+    if (!s.trailer.isPlaying && !isHosted && s.trailerDisplayPreference === 'theatre_mode') {
+      set({
+        theatreModeOpen: true,
+        trailer: { ...s.trailer, isPlaying: true, playbackStatus: 'playing', isTheatreMode: true },
+        houseLights: 'dim',
+      });
+      return;
+    }
+    set({
       trailer: { ...s.trailer, isPlaying: !s.trailer.isPlaying },
-    })),
+    });
+  },
 
   toggleTrailerMute: () =>
     set((s) => ({

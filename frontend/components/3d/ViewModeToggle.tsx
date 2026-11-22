@@ -962,26 +962,15 @@ export function ViewModeToggle() {
               </p>
             </div>
 
-            {/* 4e. Trailer Display Preference (§ Part E) */}
+            {/* 4e. Trailer Display Preference (§ Part 1, 2) */}
             <div className="space-y-1.5 border-t border-slate-100 pt-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-700">Trailer Display</span>
                 <span className="text-[11px] font-mono text-slate-400">
-                  {trailerDisplayPreference === 'theatre_mode' ? 'Theatre Mode' : 'On 3D screen'}
+                  {trailerDisplayPreference === 'theatre_mode' ? 'Theatre Mode (default)' : 'On the 3D screen (experimental)'}
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setTrailerDisplayPreference('screen_3d')}
-                  data-testid="trailer-display-3d-btn"
-                  className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition ${
-                    trailerDisplayPreference === 'screen_3d'
-                      ? 'bg-[#C8102E] text-white shadow-sm'
-                      : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                  }`}
-                >
-                  <span>On 3D screen</span>
-                </button>
                 <button
                   onClick={() => setTrailerDisplayPreference('theatre_mode')}
                   data-testid="trailer-display-theatre-btn"
@@ -991,11 +980,22 @@ export function ViewModeToggle() {
                       : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
                   }`}
                 >
-                  <span>Theatre Mode</span>
+                  <span>Theatre Mode (default)</span>
+                </button>
+                <button
+                  onClick={() => setTrailerDisplayPreference('screen_3d')}
+                  data-testid="trailer-display-3d-btn"
+                  className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-xs font-bold transition ${
+                    trailerDisplayPreference === 'screen_3d'
+                      ? 'bg-[#C8102E] text-white shadow-sm'
+                      : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <span>On 3D screen (experimental)</span>
                 </button>
               </div>
               <p className="text-[11px] text-slate-500 leading-tight">
-                Choose between immersive 3D screen perspective or full-fidelity floating Theatre Mode.
+                Theatre Mode provides smooth high-fidelity playback with audio-visual sync. On-screen 3D playback is experimental.
               </p>
             </div>
 

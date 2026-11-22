@@ -3,7 +3,7 @@
 import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { useFrame, useThree } from '@react-three/fiber';
 import { CameraGuardedCSS3D } from './CameraGuardedCSS3D';
-import { Play, Maximize2 } from 'lucide-react';
+import { Play, Maximize2, X } from 'lucide-react';
 import * as THREE from 'three';
 import { useCinemaStore, ScreenStrategy, TrailerPlaybackStatus } from '@/store/useCinemaStore';
 
@@ -49,6 +49,7 @@ export function CinemaScreen({
   const setTheatreModeOpen = useCinemaStore((s) => s.setTheatreModeOpen);
   const showToast = useCinemaStore((s) => s.showToast);
   const screenFitMode = useCinemaStore((s) => s.screenFitMode);
+  const trailerDisplayPreference = useCinemaStore((s) => s.trailerDisplayPreference);
   const screenConfig = useCinemaStore((s) => s.auditoriumLayout.screen);
 
   const screenWidth = screenConfig?.width ?? 18.4;
@@ -450,16 +451,16 @@ export function CinemaScreen({
     } catch { }
   }, [trailer.isMuted, activeStrategy]);
 
-  // User Gesture Handlers (§ Part D)
+  // User Gesture Handlers (§ Part 1, 2)
   const handleStartPlayback = useCallback(() => {
-    // If user prefers Theatre Mode in Settings (§ Part E), open Theatre Mode on user play
+    // If Theatre Mode is selected (default) and trailer is YouTube-only, open Theatre Mode directly (§ Part 1)
     const displayPref = useCinemaStore.getState().trailerDisplayPreference;
-    if (displayPref === 'theatre_mode') {
+    if (displayPref === 'theatre_mode' && activeStrategy !== 'video_texture') {
       setTheatreModeOpen(true);
       return;
     }
 
-    // 1. Hosted video texture
+    // 1. Hosted video texture (§ Part 1: keeps playing on 3D screen as video texture)
     if (activeStrategy === 'video_texture' && videoRef.current) {
       videoRef.current.muted = false;
       videoRef.current.volume = 1.0;
@@ -501,31 +502,38 @@ export function CinemaScreen({
           });
       }
     } else if (activeStrategy === 'youtube_css3d' && rawYoutubeId) {
-      // 2. YouTube CSS3D Player
+      // 2. Experimental On-Screen YouTube Player (§ Part 2)
+      // Never allow sound without picture: start strictly MUTED with loading status
       pendingPlayRef.current = true;
-      setTrailerState({ isPlaying: true, isMuted: false, playbackStatus: 'playing' });
+      verifiedAdvancingRef.current = false;
+      setTrailerState({ isPlaying: true, isMuted: true, playbackStatus: 'loading' });
       setHouseLights('show');
 
       if (ytPlayerRef.current && typeof ytPlayerRef.current.playVideo === 'function') {
         try {
-          ytPlayerRef.current.unMute();
-          ytPlayerRef.current.setVolume(100);
+          ytPlayerRef.current.mute(); // STRICTLY MUTED until picture and time advance are verified!
           ytPlayerRef.current.playVideo();
-
-          // Verify with player API within 1 second (§ Part D)
-          setTimeout(() => {
-            if (ytPlayerRef.current) {
-              try {
-                const muted = typeof ytPlayerRef.current.isMuted === 'function' ? ytPlayerRef.current.isMuted() : false;
-                const vol = typeof ytPlayerRef.current.getVolume === 'function' ? ytPlayerRef.current.getVolume() : 100;
-                setTrailerState({ isMuted: muted || vol === 0 });
-              } catch {}
-            }
-          }, 800);
         } catch (err) {
           console.warn('[Screen] Direct YouTube play failed:', err);
         }
       }
+
+      // Watchdog: If picture is not visible / advancing within 2 seconds, stop audio and show toast (§ Part 2)
+      if (watchdogTimeoutRef.current) clearTimeout(watchdogTimeoutRef.current);
+      watchdogTimeoutRef.current = setTimeout(() => {
+        if (!verifiedAdvancingRef.current) {
+          console.warn('[Screen] YouTube picture not visible on 3D screen within 2s. Stopping audio.');
+          try {
+            ytPlayerRef.current?.pauseVideo?.();
+            ytPlayerRef.current?.mute?.();
+          } catch {}
+          setTrailerPlaybackStatus('error');
+          showToast('The picture is not visible on the 3D screen', {
+            label: 'Open Theatre Mode',
+            onClick: () => setTheatreModeOpen(true),
+          });
+        }
+      }, 2000);
     } else {
       // 3. Fallback / Title Card / No trailer
       setTrailerState({ isPlaying: true, playbackStatus: 'playing' });
@@ -919,15 +927,21 @@ export function CinemaScreen({
       ctx.fillStyle = '#38bdf8';
       ctx.fillText('Synchronized 3D Acoustics & House Lighting Active', textX, badgeY + 148);
 
-      ctx.fillStyle = '#e2e8f0';
-      ctx.font = 'bold 13px sans-serif';
-      ctx.fillText('Press "Play trailer" on the screen for the full theatrical trailer', textX, badgeY + 186);
+      if (theatreModeOpen || trailer.isTheatreMode) {
+        ctx.fillStyle = '#f59e0b';
+        ctx.font = 'bold 15px sans-serif';
+        ctx.fillText('PLAYING IN THEATRE MODE  •  CLOSE WINDOW TO RETURN', textX, badgeY + 186);
+      } else {
+        ctx.fillStyle = '#e2e8f0';
+        ctx.font = 'bold 13px sans-serif';
+        ctx.fillText('Press "Play trailer" on the screen for the full theatrical trailer', textX, badgeY + 186);
+      }
 
       ctx.restore();
     }
 
     fallbackTextureRef.current.needsUpdate = true;
-  }, [canvas, trailer.isTheatreMode, activeStrategy, overrideMode, screenWidth, screenHeight, screenCenter, trailer.movieTitle, screenConfig]);
+  }, [canvas, trailer.isTheatreMode, theatreModeOpen, activeStrategy, overrideMode, screenWidth, screenHeight, screenCenter, trailer.movieTitle, screenConfig]);
 
   useEffect(() => {
     renderTitleCardCanvas();
@@ -951,6 +965,13 @@ export function CinemaScreen({
           }
           setYoutubeVerifiedPlaying(true);
           verifiedAdvancingRef.current = true;
+          // Unmute now that picture and advance are verified (§ Part 2)
+          if (!trailer.isMuted && ytPlayerRef.current && typeof ytPlayerRef.current.unMute === 'function') {
+            try {
+              ytPlayerRef.current.unMute();
+              ytPlayerRef.current.setVolume(100);
+            } catch {}
+          }
           if (watchdogTimeoutRef.current) {
             clearTimeout(watchdogTimeoutRef.current);
             watchdogTimeoutRef.current = null;
@@ -1130,8 +1151,8 @@ export function CinemaScreen({
         )}
       </mesh>
 
-      {/* Official YouTube Player placed directly behind 3D Screen cutout via CameraGuardedCSS3D (§ Part B.2) */}
-      {activeStrategy === 'youtube_css3d' && rawYoutubeId && !trailer.isTheatreMode && (
+      {/* Official YouTube Player placed directly behind 3D Screen cutout via CameraGuardedCSS3D (§ Part 1, 2) */}
+      {activeStrategy === 'youtube_css3d' && rawYoutubeId && !trailer.isTheatreMode && trailerDisplayPreference === 'screen_3d' && (
         <CameraGuardedCSS3D
           position={[screenCenter[0], screenCenter[1], screenCenter[2]]}
           rotation={[0, Math.PI, 0]}
@@ -1212,6 +1233,39 @@ export function CinemaScreen({
             >
               <Maximize2 className="h-4 w-4" />
               <span>Watch in Theatre Mode</span>
+            </button>
+          </div>
+        </CameraGuardedCSS3D>
+      )}
+
+      {/* 3D Return to Hall / Theatre Mode indicator (§ Part 1) */}
+      {(theatreModeOpen || trailer.isTheatreMode) && (
+        <CameraGuardedCSS3D
+          position={[screenCenter[0], screenCenter[1], screenCenter[2] - 0.03]}
+          rotation={[0, Math.PI, 0]}
+          distanceFactor={400 / (640 / screenWidth)}
+          width={440}
+          height={160}
+          pointerEvents="auto"
+          zIndex={2}
+        >
+          <div data-testid="screen-theatre-mode-indicator" className="relative flex flex-col items-center justify-center bg-black/85 backdrop-blur-md text-white p-4 rounded-xl border border-amber-500/30 shadow-2xl text-center select-none">
+            <div className="flex items-center gap-2 text-amber-400 font-bold text-sm tracking-wide mb-1">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse" />
+              PLAYING IN THEATRE MODE
+            </div>
+            <p className="text-xs text-slate-300 mb-3">High-definition audio and video active in Theatre Mode overlay.</p>
+            <button
+              type="button"
+              data-testid="return-to-hall-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                setTheatreModeOpen(false);
+              }}
+              className="flex items-center gap-2 rounded-lg bg-white/10 hover:bg-white/20 px-4 py-1.5 text-xs font-semibold text-white border border-white/30 transition active:scale-95 cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+              <span>Return to Hall</span>
             </button>
           </div>
         </CameraGuardedCSS3D>

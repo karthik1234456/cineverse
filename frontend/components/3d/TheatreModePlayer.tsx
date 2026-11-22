@@ -52,10 +52,23 @@ export function TheatreModePlayer() {
     setTheatreModeOpen(false);
     setTrailerState({
       isTheatreMode: false,
-      playbackStatus: 'paused',
+      isPlaying: false,
+      playbackStatus: 'ready',
     });
     setHouseLights('full');
   }, [setTheatreModeOpen, setTrailerState, setHouseLights]);
+
+  // Synchronize playback status on open (§ Part 1, 2)
+  useEffect(() => {
+    if (theatreModeOpen) {
+      setTrailerState({
+        isTheatreMode: true,
+        isPlaying: true,
+        playbackStatus: 'playing',
+      });
+      setHouseLights('dim');
+    }
+  }, [theatreModeOpen, setTrailerState, setHouseLights]);
 
   // Keyboard navigation inside Theatre Mode
   useEffect(() => {
