@@ -1178,28 +1178,40 @@ export function CinemaScreen({
                 data-testid="screen-3d-play-button-container"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleStartPlayback();
-                }}
-                className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] cursor-pointer group select-none"
-              >
-                <button
-                  type="button"
-                  data-testid="screen-3d-play-button"
-                  onClick={(e) => {
-                    e.stopPropagation();
+                  if (trailer.trailerUrl && trailer.trailerEmbeddable !== false) {
                     handleStartPlayback();
-                  }}
-                  className="flex flex-col items-center justify-center gap-4 transition-transform group-hover:scale-110 active:scale-95 focus:outline-none"
-                  aria-label="Play trailer on screen"
-                >
-                  <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-tr from-rose-600 to-red-500 text-white shadow-[0_0_50px_rgba(225,29,72,0.9)] ring-4 ring-white/90">
-                    <span className="absolute inset-0 rounded-full animate-ping bg-rose-500/30 duration-1000" />
-                    <Play className="h-12 w-12 fill-white translate-x-1 drop-shadow-xl" />
+                  }
+                }}
+                className={`absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[2px] select-none ${
+                  trailer.trailerUrl && trailer.trailerEmbeddable !== false ? 'cursor-pointer group' : 'cursor-default'
+                }`}
+              >
+                {trailer.trailerUrl && trailer.trailerEmbeddable !== false ? (
+                  <button
+                    type="button"
+                    data-testid="screen-3d-play-button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStartPlayback();
+                    }}
+                    className="flex flex-col items-center justify-center gap-4 transition-transform group-hover:scale-110 active:scale-95 focus:outline-none cursor-pointer"
+                    aria-label="Play trailer on screen"
+                  >
+                    <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-tr from-rose-600 to-red-500 text-white shadow-[0_0_50px_rgba(225,29,72,0.9)] ring-4 ring-white/90">
+                      <span className="absolute inset-0 rounded-full animate-ping bg-rose-500/30 duration-1000" />
+                      <Play className="h-12 w-12 fill-white translate-x-1 drop-shadow-xl" />
+                    </div>
+                    <div className="rounded-full border-2 border-white/50 bg-black/90 px-6 py-2 text-sm font-black tracking-widest uppercase text-white shadow-2xl backdrop-blur-md">
+                      Play trailer
+                    </div>
+                  </button>
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <div className="rounded-full border border-white/30 bg-black/80 px-5 py-2 text-xs font-bold tracking-wider text-slate-300 shadow-xl backdrop-blur-md">
+                      Trailer not available
+                    </div>
                   </div>
-                  <div className="rounded-full border-2 border-white/50 bg-black/90 px-6 py-2 text-sm font-black tracking-widest uppercase text-white shadow-2xl backdrop-blur-md">
-                    Play trailer
-                  </div>
-                </button>
+                )}
               </div>
             )}
           </div>

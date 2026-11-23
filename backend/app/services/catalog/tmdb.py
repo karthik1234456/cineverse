@@ -660,6 +660,10 @@ class TMDBCatalogProvider(CatalogProvider):
                 return 2
             if v_type == "Teaser":
                 return 3
+            if v_type in ("Clip", "Featurette") and is_off:
+                return 4
+            if v_type in ("Clip", "Featurette"):
+                return 5
             return 99
 
         eligible_candidates = [v for v in yt_candidates if _candidate_priority(v) < 99]

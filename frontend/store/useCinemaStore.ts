@@ -60,6 +60,9 @@ export interface TrailerState {
   isMuted: boolean;
   volume: number;
   trailerUrl: string;
+  trailerEmbeddable?: boolean;
+  youtubeTrailerId?: string | null;
+  trailerReason?: string | null;
   posterUrl?: string;
   bannerUrl?: string;
   movieTitle?: string;
@@ -900,6 +903,11 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
   toggleTrailerPlay: () => {
     const s = get();
+    // Invariant: Never open or play trailer without playable source
+    const hasPlayableSource = Boolean(s.trailer.trailerUrl) && s.trailer.trailerEmbeddable !== false;
+    if (!hasPlayableSource) {
+      return;
+    }
     const isHosted = Boolean(
       s.trailer.trailerUrl &&
       (s.trailer.trailerUrl.endsWith('.mp4') ||

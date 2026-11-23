@@ -503,6 +503,9 @@ export interface ShowtimeSeatsResponse {
   glb_path: string;
   layout_path: string;
   trailer_url?: string;
+  trailer_embeddable?: boolean;
+  youtube_trailer_id?: string;
+  trailer_reason?: string;
   poster_url?: string;
   banner_url?: string;
   dominant_color?: string | null;

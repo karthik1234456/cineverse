@@ -19,6 +19,7 @@ import { ToastNotification } from '../ui/ToastNotification';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import { CanvasErrorBoundary } from './CanvasErrorBoundary';
 import { TheatreModePlayer } from './TheatreModePlayer';
+import { TrailerDebugPanel } from './TrailerDebugPanel';
 
 // Lazy-load 3D Canvas with ssr: false as required in § 6
 const CinemaWorld = dynamic(
@@ -104,6 +105,7 @@ export function AuditoriumExperience({
         id="hud-left-column"
         className="pointer-events-none fixed left-4 top-16 bottom-6 z-30 flex flex-col gap-3 w-80 max-w-[calc(100vw-2rem)] overflow-y-auto overflow-x-hidden no-scrollbar"
       >
+        <TrailerDebugPanel />
         <ScreenMediaCluster inline />
         <AuditoriumInfoPanel inline />
       </div>

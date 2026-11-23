@@ -336,7 +336,25 @@ export function ScreenMediaCluster({ inline = false }: ScreenMediaClusterProps) 
       </div>
 
       {/* Main control row (§ Part D.1, D.4) */}
-      {!trailer.isPlaying && playbackStatus === 'ready' ? (
+      {!trailer.trailerUrl || trailer.trailerEmbeddable === false ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex items-center gap-2">
+            <span className="rounded-md bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-400">
+              Trailer not available
+            </span>
+          </div>
+          <a
+            href={`https://www.youtube.com/results?search_query=${encodeURIComponent((trailer.movieTitle || 'Movie') + ' trailer')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="search-trailer-youtube-link"
+            className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 font-semibold transition"
+          >
+            <span>Search on YouTube</span>
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      ) : !trailer.isPlaying && playbackStatus === 'ready' ? (
         <div className="flex items-center justify-between gap-3 pt-1">
           <span className="text-xs text-slate-300 font-medium">
             Ready, press play on the screen

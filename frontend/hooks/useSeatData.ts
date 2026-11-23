@@ -126,6 +126,9 @@ export function useSeatData(showtimeId: string = '1') {
       // Configure screen trailer from showtime movie data
       setTrailerState({
         trailerUrl: data.trailer_url || '',
+        trailerEmbeddable: data.trailer_embeddable ?? (Boolean(data.trailer_url)),
+        youtubeTrailerId: data.youtube_trailer_id ?? null,
+        trailerReason: data.trailer_reason ?? null,
         posterUrl: data.poster_url || '',
         bannerUrl: data.banner_url || data.poster_url || '',
         movieTitle: data.movie_title || '',
