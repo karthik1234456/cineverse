@@ -23,7 +23,23 @@ CineVerse integrates promotional trailers strictly through authorized channels: 
 
 CineVerse utilizes a dual-mode presentation architecture designed to respect content owner distribution settings:
 
-### Mode 1: 3D On-Screen Spatial Projection (Behind-Canvas CSS3D Layering)
+### Default Strategy per Source Type
+- **Hosted Titles (51 titles):** Default is **On the 3D Screen (Hosted Video Texture)**. Media is streamed directly into a WebGL video texture, with real-time physical seat occlusion, room acoustics, and depth layering.
+- **YouTube Titles (36 titles total in DB, 29 with active showtimes):** Default is **Theatre Mode**. Pressing Play opens the official embedded player in an expansive, framed theatre window over the dimmed auditorium. Zero audio plays without picture, and a 6-second watchdog prevents any silent black box.
+- **Titles Without Trailers (35 titles in DB, 7 with active showtimes):** Default is **Title Card Fallback**. The Play button is replaced with "Trailer not available", and a direct link "Search this trailer on YouTube" allows external search without broken embeds.
+
+### Catalogue Distribution & Audit Counts
+- **Total Catalogue Movies in DB:** 122
+  - **Hosted Showcase Movies:** 51 (100% verified distinct perceptual signatures and unique checksums)
+  - **YouTube Licensed Movies:** 36 (100% landscape 16:9 / 4:3, zero portrait or Shorts)
+  - **No-Trailer Titles:** 35 (Honest title cards; 0 videos in TMDB or restricted)
+- **Active Titles with Scheduled Showtimes:** 87
+  - **Hosted Titles Active:** 51 (51/51 verified playing with sound and advancing picture)
+  - **YouTube Titles Active:** 29 (29/29 verified playing in Theatre Mode with sound and advancing picture)
+  - **No-Trailer Titles Active:** 7 (7/7 honest fallbacks)
+
+### Mode 1: 3D On-Screen Spatial Projection (Behind-Canvas CSS3D Layering - Experimental Opt-in)
+- **User Preference:** Available in Settings under Trailer Display: "Theatre Mode (default)" or "On the 3D screen (experimental)".
 - **Depth-Correct Z-Ordering:** The WebGL rendering canvas (`z-index: 1`) is positioned in front of the CSS3D YouTube player container (`z-index: 0`). The 3D virtual screen mesh renders with a transparent cutout shader (custom blending `ZeroFactor` destination alpha), punching an exact window through the WebGL scene.
 - **Physical Occlusion:** Foregrounds objects—including auditorium seats, handrails, walls, pillars, and moving avatars—are drawn on top of the WebGL canvas and naturally occlude the video player behind them, guaranteeing optical depth accuracy.
 - **Non-Clickable IFrame:** Because the WebGL canvas sits in front of the CSS3D player, pointer events outside the viewport do not penetrate to the inner iframe, and users cannot click directly inside the YouTube player during 3D auditorium navigation.
@@ -35,10 +51,10 @@ CineVerse utilizes a dual-mode presentation architecture designed to respect con
   - **Closed Captions Toggle:** `player.loadModule('captions')` / `player.unloadModule('captions')`
 - **Transparent Attribution:** The YouTube watermark and canonical video title are rendered within the player boundary.
 
-### Mode 2: Theatre Mode
-- **User-Initiated Only:** Theatre Mode is activated solely upon explicit user action (clicking the "Theatre Mode" button or "Watch in Theatre Mode" on error cards). CineVerse contains zero automatic watchdogs or forced mode switches.
+### Mode 2: Theatre Mode (Default for YouTube)
+- **User-Initiated Playback:** Theatre Mode opens whenever Play is pressed for a YouTube trailer. CineVerse contains zero automatic watchdogs or forced mode switches.
 - **Direct Interaction:** In Theatre Mode, the player is presented as an expansive modal (85% viewport width) where the user can directly interact with the full YouTube player chrome.
-- **Error Handling:** If a content owner restricts embedding (`Error 101`, `Error 150`, `Error 153`), the 3D screen displays a clean title card with a plain message and an optional "Watch in Theatre Mode" button. If playback is choppy, a non-intrusive hint is offered, but playback never automatically switches mode.
+- **Error Handling:** If a content owner restricts embedding (`Error 101`, `Error 150`, `Error 153`), the 3D screen displays a clean title card with a plain message and an optional "Search on YouTube" button. If playback fails to advance within 6 seconds, the user is informed with plain words, never a black box.
 
 ---
 

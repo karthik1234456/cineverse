@@ -248,3 +248,44 @@ async def get_trailer_freshness_status():
         "history": history[:10],
     }
 
+
+@router.post("/admin/trailers/freshness/simulate-loss")
+async def simulate_trailer_loss(
+    movie_id: int = Query(..., description="Movie ID to simulate trailer restriction / removal"),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Simulates a trailer losing embeddability (Error 150/153 or copyright removal).
+    Sets the video ID to a non-existent key, clears TMDB backup to prevent auto-replace,
+    and runs the freshness job to verify that an alert is raised.
+    """
+    res = await db.execute(select(Movie).where(Movie.id == movie_id))
+    movie = res.scalar_one_or_none()
+    if not movie:
+        raise HTTPException(status_code=404, detail="Movie not found")
+
+    old_yt = movie.youtube_trailer_id
+    movie.youtube_trailer_id = "BROKEN_RESTRICTED_KEY_99"
+    movie.trailer_url = "https://www.youtube-nocookie.com/embed/BROKEN_RESTRICTED_KEY_99"
+    movie.trailer_embeddable = True
+    orig_tmdb = movie.tmdb_id
+    movie.tmdb_id = None # Clear tmdb_id temporarily to trigger alert loss path
+    await db.commit()
+
+    report = await run_trailer_freshness_job(db)
+
+    # Restore movie tmdb_id for database cleanliness
+    movie.tmdb_id = orig_tmdb
+    await db.commit()
+
+    return {
+        "status": "simulation_executed",
+        "movie_id": movie_id,
+        "movie_title": movie.title,
+        "simulated_broken_key": "BROKEN_RESTRICTED_KEY_99",
+        "alerts_generated": report.get("alerts", []),
+        "all_active_alerts": get_freshness_alerts(),
+        "report": report
+    }
+
+

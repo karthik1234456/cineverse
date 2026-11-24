@@ -79,7 +79,13 @@ async def lifespan(app: FastAPI):
 
     # Launch background sweeper task for expired holds
     sweeper_task = asyncio.create_task(start_sweeper_task(interval_seconds=10))
+
+    # Launch background nightly trailer freshness scheduler (24h / 86400s)
+    from app.services.trailer_freshness import start_trailer_freshness_scheduler
+    freshness_task = asyncio.create_task(start_trailer_freshness_scheduler(interval_seconds=86400, run_on_startup=True))
+
     yield
+    freshness_task.cancel()
     sweeper_task.cancel()
     await close_redis_client()
     logger.info("Application shutdown complete.")

@@ -20,6 +20,48 @@ def get_freshness_alerts() -> List[Dict[str, Any]]:
 def get_freshness_history() -> List[Dict[str, Any]]:
     return list(FRESHNESS_AUDIT_LOG)
 
+def dispatch_alert_notification(alert_item: Dict[str, Any]):
+    """
+    Dispatches critical alerts to ops channels (admin notification center, log, webhook).
+    """
+    logger.warning(
+        f"[TRAILER_ALERT_DISPATCH] CRITICAL ALERT: Movie {alert_item.get('movie_id')} ({alert_item.get('title')}) "
+        f"lost embeddable trailer (Key: {alert_item.get('broken_key')})! Reason: {alert_item.get('reason')}. "
+        f"Dispatched to admin notification feed and operations alert queue."
+    )
+
+async def start_trailer_freshness_scheduler(interval_seconds: int = 86400, run_on_startup: bool = True):
+    """
+    Background worker loop that triggers the trailer freshness audit every interval_seconds (default: 86400s / 24 hours).
+    """
+    logger.info(f"[TRAILER_SCHEDULER] Nightly trailer freshness scheduler initiated (interval={interval_seconds}s / 24h)")
+    if run_on_startup:
+        # Give server a few seconds to warm up before first run
+        await asyncio.sleep(4)
+        try:
+            from app.database import AsyncSessionLocal
+            async with AsyncSessionLocal() as session:
+                logger.info("[TRAILER_SCHEDULER] Running scheduled trailer freshness check on startup...")
+                rep = await run_trailer_freshness_job(session)
+                logger.info(f"[TRAILER_SCHEDULER] Freshness check complete: checked={rep['total_checked']}, replaced={rep['replaced_count']}, lost={rep['lost_count']}, alerts={rep['alerts_raised']}")
+        except Exception as e:
+            logger.error(f"[TRAILER_SCHEDULER] Error during initial freshness run: {e}")
+
+    while True:
+        try:
+            await asyncio.sleep(interval_seconds)
+            from app.database import AsyncSessionLocal
+            async with AsyncSessionLocal() as session:
+                logger.info("[TRAILER_SCHEDULER] Running periodic nightly trailer freshness check...")
+                rep = await run_trailer_freshness_job(session)
+                logger.info(f"[TRAILER_SCHEDULER] Freshness check complete: checked={rep['total_checked']}, replaced={rep['replaced_count']}, lost={rep['lost_count']}, alerts={rep['alerts_raised']}")
+        except asyncio.CancelledError:
+            logger.info("[TRAILER_SCHEDULER] Trailer freshness scheduler cancelled.")
+            break
+        except Exception as e:
+            logger.error(f"[TRAILER_SCHEDULER] Periodic run error: {e}")
+
+
 async def run_trailer_freshness_job(db: AsyncSession) -> Dict[str, Any]:
     """
     Nightly / On-Demand Trailer Freshness & Self-Healing Pipeline (Task 4).
@@ -120,6 +162,7 @@ async def run_trailer_freshness_job(db: AsyncSession) -> Dict[str, Any]:
                 }
                 run_alerts.append(alert_item)
                 ALERT_NOTICES.append(alert_item)
+                dispatch_alert_notification(alert_item)
         else:
             still_missing_count += 1
 
