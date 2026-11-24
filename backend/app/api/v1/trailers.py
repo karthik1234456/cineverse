@@ -15,6 +15,11 @@ from app.services.trailer_pipeline import (
     verify_signed_trailer_token,
     PUBLIC_TRAILERS_DIR,
 )
+from app.services.trailer_freshness import (
+    run_trailer_freshness_job,
+    get_freshness_alerts,
+    get_freshness_history,
+)
 
 router = APIRouter()
 
@@ -217,3 +222,29 @@ async def stream_hosted_trailer(
         raise HTTPException(status_code=404, detail="Trailer media file not found on server.")
 
     return FileResponse(filepath, media_type="video/mp4", filename=filename)
+
+
+@router.post("/admin/trailers/freshness/run")
+async def trigger_trailer_freshness_check(db: AsyncSession = Depends(get_db)):
+    """
+    Triggers the nightly trailer freshness and embeddability audit job (§ Task 4).
+    Re-checks every trailer, replaces broken ones, and raises alerts.
+    """
+    report = await run_trailer_freshness_job(db)
+    return report
+
+
+@router.get("/admin/trailers/freshness/status")
+async def get_trailer_freshness_status():
+    """
+    Returns latest freshness job history, active alerts, and health metrics.
+    """
+    history = get_freshness_history()
+    alerts = get_freshness_alerts()
+    return {
+        "latest_run": history[0] if history else None,
+        "total_runs": len(history),
+        "active_alerts": alerts,
+        "history": history[:10],
+    }
+

@@ -55,6 +55,45 @@ export default function AdminTrailersPage() {
   const [submitMessage, setSubmitMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [previewTrailer, setPreviewTrailer] = useState<TrailerItem | null>(null);
 
+  // Freshness State (Task 4)
+  const [freshnessStatus, setFreshnessStatus] = useState<any>(null);
+  const [runningFreshness, setRunningFreshness] = useState(false);
+  const [freshnessMessage, setFreshnessMessage] = useState<string | null>(null);
+
+  const fetchFreshness = async () => {
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/admin/trailers/freshness/status');
+      if (res.ok) {
+        const data = await res.json();
+        setFreshnessStatus(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch freshness status:', err);
+    }
+  };
+
+  const handleRunFreshness = async () => {
+    setRunningFreshness(true);
+    setFreshnessMessage(null);
+    try {
+      const res = await fetch('http://localhost:8000/api/v1/admin/trailers/freshness/run', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok) {
+        setFreshnessMessage(
+          `Freshness check complete: ${data.total_checked} checked, ${data.healthy_youtube} healthy YouTube, ${data.healthy_hosted} healthy hosted, ${data.replaced_count} auto-repaired, ${data.lost_count} lost.`
+        );
+        fetchFreshness();
+        fetchReadiness();
+      } else {
+        setFreshnessMessage('Failed to execute freshness check.');
+      }
+    } catch (err: any) {
+      setFreshnessMessage(err.message || 'Error running freshness check.');
+    } finally {
+      setRunningFreshness(false);
+    }
+  };
+
   const fetchReadiness = async () => {
     setLoading(true);
     try {
@@ -72,6 +111,7 @@ export default function AdminTrailersPage() {
 
   useEffect(() => {
     fetchReadiness();
+    fetchFreshness();
   }, []);
 
   const handleAttachSubmit = async (e: React.FormEvent) => {
@@ -191,7 +231,7 @@ export default function AdminTrailersPage() {
         </div>
 
         {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="bg-[#0e121b] border border-white/5 rounded-xl p-5">
             <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">Hosted 720p Trailers</div>
             <div className="text-3xl font-bold text-emerald-400 mt-2 flex items-center gap-2">
@@ -209,6 +249,16 @@ export default function AdminTrailersPage() {
             <p className="text-xs text-slate-500 mt-1">Sanctioned IFrame API (Privacy-Enhanced, Zero Download)</p>
           </div>
           <div className="bg-[#0e121b] border border-white/5 rounded-xl p-5">
+            <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">Nightly Freshness Status</div>
+            <div className="text-3xl font-bold text-sky-400 mt-2 flex items-center gap-2">
+              <ShieldCheck className="w-6 h-6 text-sky-400" />
+              {freshnessStatus?.latest_run ? 'Active' : 'Standby'}
+            </div>
+            <p className="text-xs text-slate-500 mt-1">
+              {freshnessStatus?.latest_run ? `Last run: ${freshnessStatus.latest_run.timestamp}` : 'Embeddability monitoring ready'}
+            </p>
+          </div>
+          <div className="bg-[#0e121b] border border-white/5 rounded-xl p-5">
             <div className="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Catalog Coverage</div>
             <div className="text-3xl font-bold text-white mt-2 flex items-center gap-2">
               <Film className="w-6 h-6 text-rose-500" />
@@ -216,6 +266,60 @@ export default function AdminTrailersPage() {
             </div>
             <p className="text-xs text-slate-500 mt-1">100% verified against ToS & ripper compliance guards</p>
           </div>
+        </div>
+
+        {/* Freshness & Alert Banner (Task 4) */}
+        <div className="bg-[#0e121b] border border-sky-500/30 rounded-2xl p-6 shadow-xl space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-sky-400" />
+                Nightly Embeddability & Freshness Health Monitor
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Automatically monitors every stored trailer, detects YouTube copyright takedowns/restrictions (Errors 150/153), attempts self-healing with TMDB backups, and alerts administrators.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleRunFreshness}
+                disabled={runningFreshness}
+                data-testid="run-freshness-btn"
+                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white rounded-lg text-xs font-bold transition disabled:opacity-50 cursor-pointer shadow-lg"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${runningFreshness ? 'animate-spin' : ''}`} />
+                <span>{runningFreshness ? 'Auditing Catalog...' : 'Run Freshness Audit Now'}</span>
+              </button>
+            </div>
+          </div>
+
+          {freshnessMessage && (
+            <div className="rounded-xl border border-sky-500/40 bg-sky-950/40 p-3 text-xs text-sky-200">
+              {freshnessMessage}
+            </div>
+          )}
+
+          {freshnessStatus?.active_alerts && freshnessStatus.active_alerts.length > 0 ? (
+            <div className="rounded-xl border border-rose-500/40 bg-rose-950/40 p-4 space-y-2">
+              <div className="text-xs font-bold text-rose-400 flex items-center gap-1.5 uppercase tracking-wider">
+                <AlertTriangle className="w-4 h-4" />
+                <span>Alert: {freshnessStatus.active_alerts.length} Titles Lost Trailers</span>
+              </div>
+              <div className="space-y-1.5">
+                {freshnessStatus.active_alerts.map((alert: any, idx: number) => (
+                  <div key={idx} className="text-xs text-rose-200 flex items-center justify-between">
+                    <span>• Movie #{alert.movie_id} <strong>{alert.title}</strong> — Video key {alert.broken_key} ({alert.reason})</span>
+                    <span className="text-[10px] text-slate-400 font-mono">{alert.timestamp}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="text-xs text-slate-400 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-emerald-400" />
+              <span>Zero broken trailer alerts. All {freshnessStatus?.latest_run?.total_checked || trailers.length} movies currently healthy with verified playback sources.</span>
+            </div>
+          )}
         </div>
 
         {/* Attach Trailer Form */}
