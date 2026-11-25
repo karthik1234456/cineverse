@@ -56,6 +56,10 @@ class SeatInventoryItem(BaseModel):
     vertical_angle_deg: float
     horizontal_angle_deg: float
     is_accessible: bool = False
+    is_companion: bool = False
+    seat_type: Optional[str] = None
+    pod_id: Optional[str] = None
+    motion_zone: Optional[str] = None
 
 
 class ShowtimeSeatsResponse(BaseModel):
@@ -69,7 +73,15 @@ class ShowtimeSeatsResponse(BaseModel):
     screen_type: str
     has_3d_preview: bool
     layout_data: Optional[dict] = None
+    layout_signature: Optional[str] = None
     format: str
+    screen_format: Optional[str] = None
+    sound_system: Optional[str] = None
+    projection_type: Optional[str] = None
+    tech_specs_display: Optional[str] = None
+    requires_glasses: bool = False
+    confirmed_with_cinema: bool = False
+    is_demo: bool = True
     language: str
     start_time: datetime
     currency: str = "INR"
@@ -77,6 +89,9 @@ class ShowtimeSeatsResponse(BaseModel):
     glb_path: str = "/models/cineverse_auditorium_v2.web.glb"
     layout_path: str = "/models/seat_layout_v2.json"
     trailer_url: Optional[str] = None
+    trailer_embeddable: Optional[bool] = False
+    youtube_trailer_id: Optional[str] = None
+    trailer_reason: Optional[str] = None
     poster_url: Optional[str] = None
     banner_url: Optional[str] = None
     dominant_color: Optional[str] = None

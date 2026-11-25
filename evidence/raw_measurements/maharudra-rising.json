@@ -1,0 +1,45 @@
+{
+  "index": 14,
+  "id": 14,
+  "title": "Maharudra: The Fortress of Valor",
+  "slug": "maharudra-rising",
+  "source_type": "hosted",
+  "showtime_id": 12012,
+  "cinema_id": 4,
+  "auditorium_id": 13,
+  "url": "http://localhost:3002/cinemas/4/auditorium/13?showtime=12012&mode=3d&debug=1",
+  "click_timestamp": 1864.7000000029802,
+  "first_picture_timestamp": 2099.5,
+  "time_to_first_picture_ms": 234.8,
+  "screenshot_1": {
+    "timestamp": 2808.9000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\maharudra-rising_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4942.600000008941,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\maharudra-rising_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 7186.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\maharudra-rising_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.92,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.510189
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.92,
+  "movement_delta_12": 1.908,
+  "movement_delta_23": 0.016
+}

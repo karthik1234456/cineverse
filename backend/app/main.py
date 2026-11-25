@@ -1,7 +1,20 @@
+import os
 import asyncio
 import time
 import uuid
 import logging
+import socket
+
+# Silence Windows asyncio Proactor ConnectionResetError [WinError 10054] on client disconnect
+if os.name == "nt":
+    from asyncio.proactor_events import _ProactorBasePipeTransport
+    orig_call_connection_lost = _ProactorBasePipeTransport._call_connection_lost
+    def patched_call_connection_lost(self, exc):
+        try:
+            orig_call_connection_lost(self, exc)
+        except (ConnectionResetError, OSError):
+            pass
+    _ProactorBasePipeTransport._call_connection_lost = patched_call_connection_lost
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, Response, HTTPException, status
 from fastapi.responses import JSONResponse
@@ -28,15 +41,23 @@ from app.api.v1.payments import router as payments_router
 from app.api.v1.tickets import router as tickets_router
 from app.api.v1.admin import router as admin_router
 from app.api.v1.search import router as search_router
+from app.api.v1.technical_specs import router as technical_specs_router
 from app.api.v1.agent import router as agent_router
 from app.api.v1.operations.onboarding import router as onboarding_router
 from app.api.v1.operations.scanning import router as scanning_router
 from app.api.v1.operations.food import router as food_router
 from app.api.v1.operations.loyalty import router as loyalty_router
 from app.api.v1.operations.transfer import router as transfer_router
+from app.api.v1.group_booking import router as group_booking_router
 from app.api.v1.waitlist import router as waitlist_router
 from app.api.v1.pricing import router as pricing_router
 from app.api.v1.insights import router as insights_router
+from app.api.v1.problem_reports import router as problem_reports_router
+from app.api.v1.admin_security import router as admin_security_router
+from app.api.v1.invoices import router as invoices_router
+from app.api.v1.operator_schedule import router as operator_schedule_router
+from app.api.v1.trailers import router as trailers_router
+from app.api.v1.dev import router as dev_router
 from app.api.websockets.showtimes import router as ws_router
 
 logging.basicConfig(
@@ -50,14 +71,26 @@ logger = logging.getLogger("cineverse.main")
 async def lifespan(app: FastAPI):
     logger.info("Initializing database...")
     await init_db()
-    try:
-        await seed_database()
-    except Exception as exc:
-        logger.warning(f"Seed step notice: {exc}")
+    if os.environ.get("RUN_SEEDER", "0") == "1":
+        try:
+            await seed_database()
+        except Exception as exc:
+            logger.warning(f"Seed step notice: {exc}")
 
     # Launch background sweeper task for expired holds
     sweeper_task = asyncio.create_task(start_sweeper_task(interval_seconds=10))
+
+    # Launch background nightly trailer freshness scheduler (24h / 86400s)
+    from app.services.trailer_freshness import start_trailer_freshness_scheduler
+    freshness_task = asyncio.create_task(start_trailer_freshness_scheduler(interval_seconds=86400, run_on_startup=True))
+
+    # Launch background weekly sample audit scheduler (30 titles, 7d / 604800s)
+    from app.services.trailer_weekly_audit import start_weekly_trailer_audit_scheduler
+    weekly_audit_task = asyncio.create_task(start_weekly_trailer_audit_scheduler(interval_seconds=604800, run_on_startup=True))
+
     yield
+    weekly_audit_task.cancel()
+    freshness_task.cancel()
     sweeper_task.cancel()
     await close_redis_client()
     logger.info("Application shutdown complete.")
@@ -78,7 +111,7 @@ def create_app() -> FastAPI:
     # 1. CORS Middleware
     application.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
+        allow_origins=settings.get_allowed_origins(),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -110,17 +143,44 @@ def create_app() -> FastAPI:
         headers = dict(exc.headers) if exc.headers else {}
         if req_id:
             headers["X-Request-ID"] = req_id
+
+        err_code = "RATE_LIMIT_EXCEEDED" if exc.status_code == 429 else f"HTTP_{exc.status_code}"
+        error_content: dict = {
+            "code": err_code,
+            "message": str(exc.detail),
+            "request_id": req_id
+        }
+
+        if exc.status_code == 429 and "Retry-After" in headers:
+            try:
+                error_content["retry_after"] = int(headers["Retry-After"])
+            except ValueError:
+                error_content["retry_after"] = headers["Retry-After"]
+
         return JSONResponse(
             status_code=exc.status_code,
             content={
-                "error": {
-                    "code": f"HTTP_{exc.status_code}",
-                    "message": str(exc.detail),
-                    "request_id": req_id
-                },
+                "error": error_content,
                 "detail": exc.detail
             },
             headers=headers
+        )
+
+    @application.exception_handler(Exception)
+    async def global_unhandled_exception_handler(request: Request, exc: Exception):
+        req_id = getattr(request.state, "request_id", str(uuid.uuid4()))
+        logger.exception(f"[REQ {req_id}] Unhandled server error: {exc}")
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={
+                "error": {
+                    "code": "INTERNAL_SERVER_ERROR",
+                    "message": "An unexpected server error occurred while processing your reservation. Please try again.",
+                    "request_id": req_id,
+                },
+                "detail": "An unexpected server error occurred while processing your reservation."
+            },
+            headers={"X-Request-ID": req_id}
         )
 
     # 4. Health & Readiness Probes
@@ -195,8 +255,10 @@ def create_app() -> FastAPI:
     application.include_router(coupons_router, prefix=f"{v1}/coupons", tags=["Coupons & Offers"])
     application.include_router(payments_router, prefix=f"{v1}/payments", tags=["Payments"])
     application.include_router(tickets_router, prefix=f"{v1}/tickets", tags=["Tickets"])
+    application.include_router(technical_specs_router, prefix=f"{v1}/technical-specs", tags=["Technical Specifications"])
     application.include_router(search_router, prefix=f"{v1}/search", tags=["Global Search"])
     application.include_router(admin_router, prefix=f"{v1}/admin", tags=["Admin"])
+    application.include_router(admin_security_router, prefix=f"{v1}", tags=["Admin Security & Abuse Protection"])
     application.include_router(pricing_router, prefix=f"{v1}/admin", tags=["Admin Dynamic Pricing"])
     application.include_router(insights_router, prefix=f"{v1}/admin", tags=["Admin Insights & Forecasting"])
     application.include_router(waitlist_router, prefix=f"{v1}", tags=["Waitlist"])
@@ -206,6 +268,13 @@ def create_app() -> FastAPI:
     application.include_router(food_router)
     application.include_router(loyalty_router)
     application.include_router(transfer_router)
+    application.include_router(group_booking_router, prefix=f"{v1}/groups", tags=["Group Booking"])
+    application.include_router(dev_router, prefix=f"{v1}/dev", tags=["Developer Diagnostics"])
+    application.include_router(dev_router, prefix="/api/dev", tags=["Developer Diagnostics"])
+    application.include_router(problem_reports_router, prefix=f"{v1}", tags=["Problem Reports"])
+    application.include_router(invoices_router, prefix=f"{v1}", tags=["Tax Invoices"])
+    application.include_router(operator_schedule_router, prefix=f"{v1}", tags=["Operator Schedule"])
+    application.include_router(trailers_router, prefix=f"{v1}", tags=["Hosted Trailers & Verification"])
     application.include_router(ws_router, tags=["WebSockets"])
 
     # 6. Static files mount for trailers, posters, backdrops with byte-range support
@@ -215,6 +284,8 @@ def create_app() -> FastAPI:
     trailers_dir = os.path.join(frontend_public, "trailers")
     posters_dir = os.path.join(frontend_public, "posters")
     backdrops_dir = os.path.join(frontend_public, "backdrops")
+    bug_reports_dir = os.path.join(frontend_public, "bug_reports")
+    os.makedirs(bug_reports_dir, exist_ok=True)
 
     if os.path.exists(trailers_dir):
         application.mount("/trailers", StaticFiles(directory=trailers_dir), name="trailers")
@@ -222,6 +293,8 @@ def create_app() -> FastAPI:
         application.mount("/posters", StaticFiles(directory=posters_dir), name="posters")
     if os.path.exists(backdrops_dir):
         application.mount("/backdrops", StaticFiles(directory=backdrops_dir), name="backdrops")
+    if os.path.exists(bug_reports_dir):
+        application.mount("/bug_reports", StaticFiles(directory=bug_reports_dir), name="bug_reports")
 
     return application
 

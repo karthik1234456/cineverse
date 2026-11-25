@@ -1,0 +1,45 @@
+{
+  "index": 32,
+  "id": 32,
+  "title": "The Magic Quill: Rabindra Fantasy",
+  "slug": "the-magic-quill",
+  "source_type": "hosted",
+  "showtime_id": 12030,
+  "cinema_id": 10,
+  "auditorium_id": 31,
+  "url": "http://localhost:3002/cinemas/10/auditorium/31?showtime=12030&mode=3d&debug=1",
+  "click_timestamp": 1621.800000011921,
+  "first_picture_timestamp": 1755.6000000089407,
+  "time_to_first_picture_ms": 133.8,
+  "screenshot_1": {
+    "timestamp": 2247.1000000089407,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\the-magic-quill_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4210.300000011921,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\the-magic-quill_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6193,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\the-magic-quill_ss3.png"
+  },
+  "frame_diff_pixel_sum": 2.35,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.740005
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 2.351,
+  "movement_delta_12": 2.312,
+  "movement_delta_23": 0.086
+}

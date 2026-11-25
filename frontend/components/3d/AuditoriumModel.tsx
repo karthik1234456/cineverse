@@ -7,34 +7,87 @@ import * as THREE from 'three';
 import { useCinemaStore } from '@/store/useCinemaStore';
 import { assertSceneCoordinates } from '@/lib/assertCoordinates';
 import layoutData from '@/public/models/seat_layout_v2.json';
-import type { SeatLayoutFile } from '@/lib/types';
+import type { SeatLayoutFile, SeatRecord } from '@/lib/types';
 import { getActiveLook } from '@/lib/theatreLooks';
+import { SeatStateMarkers } from './SeatStateMarkers';
 
 const WEB_MODEL_PATH = '/models/cineverse_auditorium_v2.web.glb';
 const HQ_MODEL_PATH = '/models/cineverse_auditorium_v2.glb';
-const PREMIUM_SEAT_PATH = '/models/seat_premium.glb';
+
+// Seat Family Model Paths
+const STD_LOD0_PATH = '/models/seats/standard_lod0.glb';
+const STD_LOD1_PATH = '/models/seats/standard_lod1.glb';
+const STD_LOD2_PATH = '/models/seats/standard_lod2.glb';
+
+const REC_LOD0_PATH = '/models/seats/recliner_single_lod0.glb';
+const REC_LOD1_PATH = '/models/seats/recliner_single_lod1.glb';
+const REC_LOD2_PATH = '/models/seats/recliner_single_lod2.glb';
+
+function extractFirstGeometry(scene: THREE.Group): THREE.BufferGeometry | null {
+  let geo: THREE.BufferGeometry | null = null;
+  scene.traverse((o) => {
+    if (!geo && o instanceof THREE.Mesh) {
+      geo = o.geometry;
+    }
+  });
+  return geo;
+}
 
 export function AuditoriumModel() {
   const useHqModel = useCinemaStore((s) => s.useHqModel);
   const theatreLook = useCinemaStore((s) => s.theatreLook);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
   const cameraMode = useCinemaStore((s) => s.cameraMode);
+  const mode = useCinemaStore((s) => s.mode);
+  const isOverview = mode === 'overview';
   const activeSeatId = useCinemaStore((s) => s.activeSeatId);
 
   const modelUrl = useHqModel ? HQ_MODEL_PATH : WEB_MODEL_PATH;
   const { scene } = useGLTF(modelUrl);
-  const premiumGltf = useGLTF(PREMIUM_SEAT_PATH);
 
-  // Check ?seats=original URL param
+  // Check URL params (?seats=original, ?lod=0|1|2)
   const [useOriginalSeats, setUseOriginalSeats] = React.useState(false);
+  const [urlLod, setUrlLod] = React.useState<number | null>(null);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       setUseOriginalSeats(params.get('seats') === 'original');
+      const lodP = params.get('lod');
+      if (lodP === '0' || lodP === '1' || lodP === '2') {
+        setUrlLod(parseInt(lodP, 10));
+      }
     }
   }, []);
 
+  // Determine active LOD based on URL override or qualityMode
+  const activeLod = urlLod !== null ? urlLod : (qualityMode === 'smooth' ? 1 : 0);
+
+  // Load only the active LOD model for Standard and Recliner seats
+  const stdPath = activeLod === 2 ? STD_LOD2_PATH : activeLod === 1 ? STD_LOD1_PATH : STD_LOD0_PATH;
+  const recPath = activeLod === 2 ? REC_LOD2_PATH : activeLod === 1 ? REC_LOD1_PATH : REC_LOD0_PATH;
+
+  const stdGltf = useGLTF(stdPath);
+  const recGltf = useGLTF(recPath);
+
   const seats = (layoutData as unknown as SeatLayoutFile).seats;
+
+  // Partition seats: Row J (10 seats) as luxury Recliners, Rows A-I (90 seats) as Standard push-back
+  const { standardSeats, reclinerSeats } = useMemo(() => {
+    const std: { seat: SeatRecord; index: number }[] = [];
+    const rec: { seat: SeatRecord; index: number }[] = [];
+
+    seats.forEach((seat, idx) => {
+      if (seat.row === 'J' || seat.seat_type === 'recliner' || seat.seat_type === 'recliner_pair') {
+        rec.push({ seat, index: idx });
+      } else {
+        std.push({ seat, index: idx });
+      }
+    });
+
+    return { standardSeats: std, reclinerSeats: rec };
+  }, [seats]);
+
   const seatNodeMap = useMemo(() => {
     const map = new Map<string, string>();
     for (const s of seats) {
@@ -46,18 +99,11 @@ export function AuditoriumModel() {
   const seatMaterials = useRef<Map<string, THREE.MeshStandardMaterial>>(new Map());
   const seatStateCache = useRef<Map<string, string>>(new Map());
 
-  // Extract geometry from premium seat model
-  const premiumGeometry = useMemo(() => {
-    let geo: THREE.BufferGeometry | null = null;
-    premiumGltf.scene.traverse((o) => {
-      if (!geo && o instanceof THREE.Mesh) {
-        geo = o.geometry;
-      }
-    });
-    return geo;
-  }, [premiumGltf.scene]);
+  // Extract geometries based on active LOD
+  const standardGeometry = useMemo(() => extractFirstGeometry(stdGltf.scene), [stdGltf.scene]);
+  const reclinerGeometry = useMemo(() => extractFirstGeometry(recGltf.scene), [recGltf.scene]);
 
-  // Shared instanced materials & geometry for ultra-efficient batching (Part D Compliance)
+  // Shared instanced materials & geometry for ultra-efficient batching
   const shadowGeometry = useMemo(() => new THREE.PlaneGeometry(1.22, 0.92), []);
   const shadowMaterial = useMemo(
     () =>
@@ -70,50 +116,130 @@ export function AuditoriumModel() {
     [qualityMode]
   );
 
-  const premiumMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        roughness: 0.68,
+  // Shared texture loaders for seat families
+  const seatTextures = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const loader = new THREE.TextureLoader();
+
+    const stdDiff = loader.load('/models/seats/textures/atlas_standard_diffuse.png');
+    stdDiff.colorSpace = THREE.SRGBColorSpace;
+    stdDiff.wrapS = THREE.RepeatWrapping;
+    stdDiff.wrapT = THREE.RepeatWrapping;
+
+    const stdNorm = loader.load('/models/seats/textures/atlas_standard_normal.png');
+    stdNorm.wrapS = THREE.RepeatWrapping;
+    stdNorm.wrapT = THREE.RepeatWrapping;
+
+    const recDiff = loader.load('/models/seats/textures/atlas_recliner_diffuse.png');
+    recDiff.colorSpace = THREE.SRGBColorSpace;
+    recDiff.wrapS = THREE.RepeatWrapping;
+    recDiff.wrapT = THREE.RepeatWrapping;
+
+    const recNorm = loader.load('/models/seats/textures/atlas_recliner_normal.png');
+    recNorm.wrapS = THREE.RepeatWrapping;
+    recNorm.wrapT = THREE.RepeatWrapping;
+
+    return { stdDiff, stdNorm, recDiff, recNorm };
+  }, []);
+
+  const standardMaterial = useMemo(
+    () => {
+      const mat = new THREE.MeshStandardMaterial({
+        roughness: 0.85,
+        metalness: 0.02,
+        vertexColors: true, // Multiplies instanceColor by baked AO vertex colors (COLOR_0)
+        map: seatTextures?.stdDiff || null,
+        normalMap: seatTextures?.stdNorm || null,
+      });
+      if (seatTextures?.stdNorm) {
+        mat.normalScale.set(1.2, 1.2);
+      }
+      return mat;
+    },
+    [seatTextures]
+  );
+
+  const reclinerMaterial = useMemo(
+    () => {
+      const mat = new THREE.MeshStandardMaterial({
+        roughness: 0.50,
         metalness: 0.04,
-      }),
-    []
+        vertexColors: true, // Multiplies instanceColor by baked AO vertex colors (COLOR_0)
+        map: seatTextures?.recDiff || null,
+        normalMap: seatTextures?.recNorm || null,
+      });
+      if (seatTextures?.recNorm) {
+        mat.normalScale.set(1.4, 1.4);
+      }
+      return mat;
+    },
+    [seatTextures]
   );
 
   const shadowMeshRef = useRef<THREE.InstancedMesh>(null);
-  const premiumSeatsMeshRef = useRef<THREE.InstancedMesh>(null);
+  const standardMeshRef = useRef<THREE.InstancedMesh>(null);
+  const reclinerMeshRef = useRef<THREE.InstancedMesh>(null);
 
   // Initialize instanced seat & shadow matrices
   useEffect(() => {
-    if (!shadowMeshRef.current || !premiumSeatsMeshRef.current) return;
-    const shadowMesh = shadowMeshRef.current;
-    const seatMesh = premiumSeatsMeshRef.current;
     const dummy = new THREE.Object3D();
 
-    seats.forEach((seat, idx) => {
-      const { min, max } = seat.bounds_gltf_y_up;
-      const posX = (min[0] + max[0]) / 2;
-      const posY = min[1];
-      const posZ = (min[2] + max[2]) / 2;
+    // 1. Shadows for all 100 seats
+    if (shadowMeshRef.current) {
+      const shadowMesh = shadowMeshRef.current;
+      seats.forEach((seat, idx) => {
+        const { min, max } = seat.bounds_gltf_y_up;
+        const posX = (min[0] + max[0]) / 2;
+        const posY = min[1];
+        const posZ = (min[2] + max[2]) / 2;
 
-      // Seat matrix
-      dummy.position.set(posX, posY, posZ);
-      dummy.rotation.set(0, 0, 0);
-      dummy.scale.set(1, 1, 1);
-      dummy.updateMatrix();
-      seatMesh.setMatrixAt(idx, dummy.matrix);
+        dummy.position.set(posX, posY + 0.005, posZ);
+        dummy.rotation.set(-Math.PI / 2, 0, 0);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        shadowMesh.setMatrixAt(idx, dummy.matrix);
+      });
+      shadowMesh.instanceMatrix.needsUpdate = true;
+    }
 
-      // Shadow matrix
-      dummy.position.set(posX, posY + 0.005, posZ);
-      dummy.rotation.set(-Math.PI / 2, 0, 0);
-      dummy.scale.set(1, 1, 1);
-      dummy.updateMatrix();
-      shadowMesh.setMatrixAt(idx, dummy.matrix);
-    });
+    // 2. Standard Seats (90 seats, Rows A-I)
+    if (standardMeshRef.current) {
+      const stdMesh = standardMeshRef.current;
+      standardSeats.forEach((item, idx) => {
+        const { min, max } = item.seat.bounds_gltf_y_up;
+        const posX = (min[0] + max[0]) / 2;
+        const posY = min[1];
+        const posZ = (min[2] + max[2]) / 2;
 
-    seatMesh.instanceMatrix.needsUpdate = true;
-    shadowMesh.instanceMatrix.needsUpdate = true;
+        dummy.position.set(posX, posY, posZ);
+        dummy.rotation.set(0, 0, 0); // naturally faces +Z toward screen
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        stdMesh.setMatrixAt(idx, dummy.matrix);
+      });
+      stdMesh.instanceMatrix.needsUpdate = true;
+    }
+
+    // 3. Recliner Seats (10 seats, Row J)
+    if (reclinerMeshRef.current) {
+      const recMesh = reclinerMeshRef.current;
+      reclinerSeats.forEach((item, idx) => {
+        const { min, max } = item.seat.bounds_gltf_y_up;
+        const posX = (min[0] + max[0]) / 2;
+        const posY = min[1];
+        const posZ = (min[2] + max[2]) / 2;
+
+        dummy.position.set(posX, posY, posZ);
+        dummy.rotation.set(0, 0, 0); // naturally faces +Z toward screen
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        recMesh.setMatrixAt(idx, dummy.matrix);
+      });
+      recMesh.instanceMatrix.needsUpdate = true;
+    }
+
     seatStateCache.current.clear();
-  }, [seats]);
+  }, [seats, standardSeats, reclinerSeats]);
 
   // Active aesthetic look (Look A, B, or C)
   const look = useMemo(() => getActiveLook(theatreLook), [theatreLook]);
@@ -144,13 +270,13 @@ export function AuditoriumModel() {
       color: new THREE.Color(look.wallColor),
       roughness: 0.90,
       metalness: 0.02,
-      side: THREE.DoubleSide,
+      side: isOverview ? THREE.BackSide : THREE.DoubleSide,
     });
     const acousticPanelMaterial = new THREE.MeshStandardMaterial({
       color: new THREE.Color(look.acousticPanelColor),
       roughness: 0.82,
       metalness: 0.04,
-      side: THREE.DoubleSide,
+      side: isOverview ? THREE.BackSide : THREE.DoubleSide,
     });
     const panelTrimMaterial = new THREE.MeshStandardMaterial({
       color: new THREE.Color(look.panelTrimColor),
@@ -254,6 +380,7 @@ export function AuditoriumModel() {
       } else if (name.startsWith('panel_trim_')) {
         obj.material = panelTrimMaterial;
       } else if (name === 'ceiling') {
+        obj.visible = !isOverview;
         obj.material = ceilingMaterial;
       } else if (name === 'screen_outer_frame') {
         obj.material = screenFrameMaterial;
@@ -308,9 +435,10 @@ export function AuditoriumModel() {
     }
   }, [scene, cameraMode, activeSeatId, seatNodeMap, useOriginalSeats]);
 
-  // Dynamically update seat states without React re-rendering using InstancedMesh (Part D batching)
+  // Dynamically update seat states without React re-rendering using InstancedMesh
   useFrame(({ clock, invalidate }) => {
-    const seatMesh = premiumSeatsMeshRef.current;
+    const stdMesh = standardMeshRef.current;
+    const recMesh = reclinerMeshRef.current;
     const time = clock.getElapsedTime();
     const pulse = 0.5 + Math.sin(time * 3.5) * 0.3;
     const store = useCinemaStore.getState();
@@ -365,96 +493,122 @@ export function AuditoriumModel() {
       return;
     }
 
-    // 2. If using ultra-fast InstancedMesh for premium seats
-    if (!seatMesh) return;
+    // Helper to update colors and visibility for an instanced mesh group
+    const updateMeshGroup = (
+      mesh: THREE.InstancedMesh | null,
+      items: { seat: SeatRecord; index: number }[],
+      isReclinerGroup: boolean
+    ) => {
+      if (!mesh) return;
 
-    let colorsNeedUpdate = false;
-    let matricesNeedUpdate = false;
-    const dummy = new THREE.Object3D();
-    const tempColor = new THREE.Color();
+      let colorsNeedUpdate = false;
+      let matricesNeedUpdate = false;
+      const dummy = new THREE.Object3D();
+      const tempColor = new THREE.Color();
 
-    for (let idx = 0; idx < seats.length; idx++) {
-      const seat = seats[idx];
-      const isSelected = activeSelected.includes(seat.seat_id);
-      const rawStatus = activeStatuses[seat.seat_id] || 'available';
-      const isHeld = rawStatus === 'held';
-      const isBooked = rawStatus === 'booked';
-      const isHovered = currentHovered === seat.seat_id;
-      const isHiddenInPov = camMode === 'pov' && actSeatId === seat.seat_id;
+      for (let i = 0; i < items.length; i++) {
+        const seat = items[i].seat;
+        const isSelected = activeSelected.includes(seat.seat_id);
+        const rawStatus = activeStatuses[seat.seat_id] || 'available';
+        const isHeld = rawStatus === 'held';
+        const isBooked = rawStatus === 'booked';
+        const isHovered = currentHovered === seat.seat_id;
+        const isHiddenInPov = camMode === 'pov' && actSeatId === seat.seat_id;
 
-      // Determine target color
-      let hexColor: string;
-      if (isSelected) {
-        hexColor = currentLook.seats.selected;
-      } else if (isHeld) {
-        hexColor = currentLook.seats.held;
-      } else if (isBooked) {
-        hexColor = currentLook.seats.booked;
-      } else if (isHovered) {
-        hexColor = '#ffd700'; // Vibrant gold/amber for instant hover feedback
-      } else {
-        const cat = (seat.category || 'prime').toLowerCase();
-        hexColor =
-          cat === 'premier'
-            ? currentLook.seats.premier
-            : cat === 'front'
-            ? currentLook.seats.front
-            : currentLook.seats.prime;
+        let hexColor: string;
+        if (isSelected) {
+          hexColor = currentLook.seats.selected; // Emerald #22C55E
+        } else if (isHeld) {
+          hexColor = currentLook.seats.held; // Amber #F59E0B
+        } else if (isBooked) {
+          hexColor = currentLook.seats.booked; // Desaturated grey #3F424A
+        } else if (isHovered) {
+          hexColor = '#FF9E2C'; // Soft rim amber outline
+        } else {
+          if (isReclinerGroup) {
+            hexColor = '#4A2818'; // Cognac leather for VIP recliners
+          } else {
+            const cat = (seat.category || 'prime').toLowerCase();
+            hexColor =
+              cat === 'premier'
+                ? currentLook.seats.premier
+                : cat === 'front'
+                ? currentLook.seats.front
+                : currentLook.seats.prime; // Classic velvet red #6E141A
+          }
+        }
+
+        tempColor.set(hexColor);
+        if (isShow && !isSelected && !isHovered && !isHeld) {
+          tempColor.multiplyScalar(0.75);
+        }
+        if (isHeld) {
+          tempColor.multiplyScalar(pulse);
+        }
+
+        const stateKey = `${isSelected ? 1 : 0}-${isHeld ? pulse.toFixed(1) : 0}-${isBooked ? 1 : 0}-${isHovered ? 1 : 0}-${isShow ? 1 : 0}-${currentLook.id}-${isHiddenInPov ? 1 : 0}`;
+        if (seatStateCache.current.get(seat.seat_id) !== stateKey) {
+          seatStateCache.current.set(seat.seat_id, stateKey);
+          mesh.setColorAt(i, tempColor);
+          colorsNeedUpdate = true;
+
+          // Update POV visibility
+          const { min, max } = seat.bounds_gltf_y_up;
+          const posX = (min[0] + max[0]) / 2;
+          const posY = min[1];
+          const posZ = (min[2] + max[2]) / 2;
+          dummy.position.set(posX, posY, posZ);
+          dummy.rotation.set(0, 0, 0);
+          dummy.scale.set(isHiddenInPov ? 0 : 1, isHiddenInPov ? 0 : 1, isHiddenInPov ? 0 : 1);
+          dummy.updateMatrix();
+          mesh.setMatrixAt(i, dummy.matrix);
+          matricesNeedUpdate = true;
+        }
       }
 
-      tempColor.set(hexColor);
-      if (isShow && !isSelected && !isHovered && !isHeld) {
-        tempColor.multiplyScalar(0.75);
+      if (colorsNeedUpdate && mesh.instanceColor) {
+        mesh.instanceColor.needsUpdate = true;
       }
-      if (isHeld) {
-        tempColor.multiplyScalar(pulse);
+      if (matricesNeedUpdate) {
+        mesh.instanceMatrix.needsUpdate = true;
       }
+    };
 
-      // Check cache key before updating
-      const stateKey = `${isSelected ? 1 : 0}-${isHeld ? pulse.toFixed(1) : 0}-${isBooked ? 1 : 0}-${isHovered ? 1 : 0}-${isShow ? 1 : 0}-${currentLook.id}-${isHiddenInPov ? 1 : 0}`;
-      if (seatStateCache.current.get(seat.seat_id) !== stateKey) {
-        seatStateCache.current.set(seat.seat_id, stateKey);
-        seatMesh.setColorAt(idx, tempColor);
-        colorsNeedUpdate = true;
-
-        // Update visibility/scale in POV
-        const { min, max } = seat.bounds_gltf_y_up;
-        const posX = (min[0] + max[0]) / 2;
-        const posY = min[1];
-        const posZ = (min[2] + max[2]) / 2;
-        dummy.position.set(posX, posY, posZ);
-        dummy.scale.set(isHiddenInPov ? 0 : 1, isHiddenInPov ? 0 : 1, isHiddenInPov ? 0 : 1);
-        dummy.updateMatrix();
-        seatMesh.setMatrixAt(idx, dummy.matrix);
-        matricesNeedUpdate = true;
-      }
-    }
-
-    if (colorsNeedUpdate && seatMesh.instanceColor) {
-      seatMesh.instanceColor.needsUpdate = true;
-    }
-    if (matricesNeedUpdate) {
-      seatMesh.instanceMatrix.needsUpdate = true;
-    }
+    updateMeshGroup(stdMesh, standardSeats, false);
+    updateMeshGroup(recMesh, reclinerSeats, true);
   });
 
   return (
     <group name="AuditoriumRootGroup">
       <primitive object={scene} name="AuditoriumBaseModel" />
 
-      {/* Instanced Premium Seats with Ambient Occlusion Contact Shadows (§ Part D Optimization) */}
-      {!useOriginalSeats && premiumGeometry && (
-        <group name="PremiumSeatsContainer">
+      {/* Instanced Modern Seats & Contact Shadows (§ Original Geometry in 3 Families) */}
+      {!useOriginalSeats && (
+        <group name="ModernSeatsContainer">
           <instancedMesh
             ref={shadowMeshRef}
             args={[shadowGeometry, shadowMaterial, seats.length]}
             name="InstancedContactShadows"
+            frustumCulled={false}
           />
-          <instancedMesh
-            ref={premiumSeatsMeshRef}
-            args={[premiumGeometry, premiumMaterial, seats.length]}
-            name="InstancedPremiumSeats"
-          />
+          {standardGeometry && (
+            <instancedMesh
+              ref={standardMeshRef}
+              args={[standardGeometry, standardMaterial, standardSeats.length]}
+              name="InstancedStandardSeats"
+              frustumCulled={false}
+            />
+          )}
+          {reclinerGeometry && (
+            <instancedMesh
+              ref={reclinerMeshRef}
+              args={[reclinerGeometry, reclinerMaterial, reclinerSeats.length]}
+              name="InstancedReclinerSeats"
+              frustumCulled={false}
+            />
+          )}
+          {/* Floating 3D State Markers (✓ for selected, ✕ for booked, gold rim glow on hover) */}
+          <SeatStateMarkers seats={seats} />
         </group>
       )}
     </group>
@@ -464,4 +618,9 @@ export function AuditoriumModel() {
 // Preload models for immediate fast rendering
 useGLTF.preload(WEB_MODEL_PATH);
 useGLTF.preload(HQ_MODEL_PATH);
-useGLTF.preload(PREMIUM_SEAT_PATH);
+useGLTF.preload(STD_LOD0_PATH);
+useGLTF.preload(STD_LOD1_PATH);
+useGLTF.preload(STD_LOD2_PATH);
+useGLTF.preload(REC_LOD0_PATH);
+useGLTF.preload(REC_LOD1_PATH);
+useGLTF.preload(REC_LOD2_PATH);

@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
-from typing import List, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException
+from typing import List, Dict, Any, Optional
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
@@ -10,11 +10,19 @@ from app.models.auth import User, RoleEnum
 from app.models.booking import Booking, BookingSeat, BookingStatusEnum
 from app.models.showtime import Showtime, PriceRule, SeatInventory, SeatStatusEnum
 from app.models.cinema import Auditorium, Seat, Cinema
+from app.models.technical_specs import ScreenFormat, SoundSystem, ProjectionType
 from app.models.movie import Movie
 from app.schemas.admin import AdminAnalyticsResponse, ShowtimeCreateRequest
-from app.schemas.cinema import CinemaCoordinatesUpdateRequest, CinemaResponse
+from app.schemas.cinema import CinemaCoordinatesUpdateRequest, CinemaResponse, AuditoriumResponse
+from app.schemas.technical_specs import (
+    ScreenFormatResponse, ScreenFormatCreate, ScreenFormatUpdate,
+    SoundSystemResponse, SoundSystemCreate, SoundSystemUpdate,
+    ProjectionTypeResponse, ProjectionTypeCreate, ProjectionTypeUpdate,
+    AuditoriumAssignmentUpdate,
+)
 from app.services.auth_service import require_role
 from app.services.geo_service import generate_directions_url
+from app.services.payment_service import get_stuck_refunds, retry_stuck_refund
 
 router = APIRouter()
 
@@ -209,4 +217,516 @@ async def create_showtime(
     await db.refresh(showtime)
 
     return {"message": "Showtime created successfully", "showtime_id": showtime.id}
+
+
+@router.get("/operations/dashboard")
+async def get_cinema_operations_dashboard(
+    cinema_id: int,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.CINEMA_MANAGER])),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Cinema operations dashboard for managers:
+    Returns today's shows with live occupancy, scan admission counts,
+    food orders, cancellations, and refunds.
+    Enforces cinema manager isolation: each manager sees only their own cinema.
+    """
+    if current_user.role == RoleEnum.CINEMA_MANAGER:
+        if current_user.cinema_id is not None and current_user.cinema_id != cinema_id:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Forbidden: Cinema manager is not authorized to access cinema {cinema_id}"
+            )
+
+    cinema = await db.get(Cinema, cinema_id)
+    if not cinema:
+        raise HTTPException(status_code=404, detail="Cinema not found")
+
+    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+    today_end = today_start + timedelta(days=1)
+
+    shows_stmt = (
+        select(Showtime)
+        .where(
+            Showtime.cinema_id == cinema_id,
+            Showtime.start_time >= today_start,
+            Showtime.start_time < today_end
+        )
+        .options(
+            selectinload(Showtime.movie),
+            selectinload(Showtime.auditorium)
+        )
+        .order_by(Showtime.start_time.asc())
+    )
+    shows_res = await db.execute(shows_stmt)
+    shows = shows_res.scalars().all()
+
+    from app.models.operations import TicketScanLog, ScanResultEnum, FoodOrder, FoodDeliveryStatusEnum
+
+    shows_data = []
+    total_scans_today = 0
+    total_food_orders_today = 0
+    total_cancellations_today = 0
+    total_refunds_today = 0.0
+
+    for sh in shows:
+        # Occupancy
+        inv_stmt = select(SeatInventory).where(SeatInventory.showtime_id == sh.id)
+        inv_res = await db.execute(inv_stmt)
+        invs = inv_res.scalars().all()
+        total_capacity = len(invs) or 1
+        booked_seats = sum(1 for i in invs if i.status in [SeatStatusEnum.BOOKED, SeatStatusEnum.HELD])
+        occupancy_pct = round((booked_seats / total_capacity) * 100, 1)
+
+        # Scans
+        from app.models.booking import Ticket
+        scan_stmt = (
+            select(func.count(TicketScanLog.id))
+            .join(Ticket, TicketScanLog.ticket_id == Ticket.id)
+            .join(Booking, Ticket.booking_id == Booking.id)
+            .where(
+                Booking.showtime_id == sh.id,
+                TicketScanLog.scan_result.in_([ScanResultEnum.SUCCESS, ScanResultEnum.OFFLINE_RESOLVED])
+            )
+        )
+        scan_res = await db.execute(scan_stmt)
+        admitted_scans = scan_res.scalar() or 0
+        total_scans_today += admitted_scans
+
+        # Food orders
+        food_stmt = select(FoodOrder).where(FoodOrder.showtime_id == sh.id)
+        food_res = await db.execute(food_stmt)
+        food_orders = food_res.scalars().all()
+        food_count = len(food_orders)
+        total_food_orders_today += food_count
+
+        food_preparing = sum(1 for fo in food_orders if fo.delivery_status == FoodDeliveryStatusEnum.PREPARING)
+        food_ready = sum(1 for fo in food_orders if fo.delivery_status == FoodDeliveryStatusEnum.READY)
+        food_delivered = sum(1 for fo in food_orders if fo.delivery_status == FoodDeliveryStatusEnum.DELIVERED)
+
+        # Cancellations & refunds for this showtime
+        cancel_stmt = select(Booking).where(
+            Booking.showtime_id == sh.id,
+            Booking.status == BookingStatusEnum.CANCELLED
+        )
+        cancel_res = await db.execute(cancel_stmt)
+        cancelled_bookings = cancel_res.scalars().all()
+        cancel_count = len(cancelled_bookings)
+        refund_amount = sum(b.final_total_amount * 0.75 for b in cancelled_bookings)  # 75% refund policy
+        total_cancellations_today += cancel_count
+        total_refunds_today += refund_amount
+
+        shows_data.append({
+            "showtime_id": sh.id,
+            "movie_title": sh.movie.title if sh.movie else "Feature Film",
+            "auditorium_name": sh.auditorium.name if sh.auditorium else f"Auditorium {sh.auditorium_id}",
+            "start_time": sh.start_time.isoformat(),
+            "format": sh.format,
+            "language": sh.language,
+            "total_capacity": total_capacity,
+            "booked_seats": booked_seats,
+            "occupancy_percentage": occupancy_pct,
+            "admitted_scans": admitted_scans,
+            "food_orders_count": food_count,
+            "food_breakdown": {
+                "preparing": food_preparing,
+                "ready": food_ready,
+                "delivered": food_delivered
+            },
+            "cancellations_count": cancel_count,
+            "refund_amount_inr": round(refund_amount, 2)
+        })
+
+    return {
+        "cinema_id": cinema.id,
+        "cinema_name": cinema.name,
+        "date": today_start.strftime("%Y-%m-%d"),
+        "total_shows": len(shows),
+        "total_admitted_scans": total_scans_today,
+        "total_food_orders": total_food_orders_today,
+        "total_cancellations": total_cancellations_today,
+        "total_refunds_inr": round(total_refunds_today, 2),
+        "shows": shows_data
+    }
+
+
+@router.get("/operations/export")
+async def export_cinema_operations_csv(
+    cinema_id: int,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.CINEMA_MANAGER])),
+    db: AsyncSession = Depends(get_db)
+):
+    """Exports cinema operations telemetry as CSV."""
+    dash = await get_cinema_operations_dashboard(cinema_id, current_user, db)
+    import csv
+    import io
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Showtime ID", "Movie Title", "Auditorium", "Start Time", "Capacity",
+        "Booked Seats", "Occupancy %", "Admitted Scans", "Food Orders", "Cancellations", "Refunds (INR)"
+    ])
+    for s in dash["shows"]:
+        writer.writerow([
+            s["showtime_id"], s["movie_title"], s["auditorium_name"], s["start_time"],
+            s["total_capacity"], s["booked_seats"], f"{s['occupancy_percentage']}%",
+            s["admitted_scans"], s["food_orders_count"], s["cancellations_count"], s["refund_amount_inr"]
+        ])
+    return Response(
+        content=output.getvalue(),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=cinema_{cinema_id}_operations_{dash['date']}.csv"}
+    )
+
+
+@router.get("/catalog/status")
+async def get_catalog_status(
+    db: AsyncSession = Depends(get_db)
+):
+    """Returns current catalog provider state and licensing status."""
+    from app.config import settings
+    from app.services.catalog.factory import get_catalog_provider
+    provider = get_catalog_provider()
+    
+    # Count TMDB vs local movies
+    res_tmdb = await db.execute(select(func.count(Movie.id)).where(Movie.is_tmdb.is_(True)))
+    tmdb_count = res_tmdb.scalar() or 0
+    res_all = await db.execute(select(func.count(Movie.id)))
+    total_count = res_all.scalar() or 0
+
+    return {
+        "catalog_source": settings.CATALOG_SOURCE,
+        "active_provider": provider.source_name,
+        "has_tmdb_key": bool(settings.TMDB_API_KEY),
+        "tmdb_movies_count": tmdb_count,
+        "total_movies_count": total_count,
+        "licensing_warning": "TMDB API free tier is for demonstration and non-commercial testing only. A commercial launch requires official content licensing and commercial TMDB terms.",
+        "is_demo_mode": True,
+    }
+
+
+@router.post("/catalog/sync")
+async def trigger_catalog_sync(
+    languages: Optional[List[str]] = None,
+    force_refresh: bool = False,
+    db: AsyncSession = Depends(get_db)
+):
+    """Triggers an idempotent sync of movies from the active catalog provider."""
+    from app.services.catalog.factory import get_catalog_provider
+    provider = get_catalog_provider()
+    report = await provider.sync_catalog(db, languages=languages, force_refresh=force_refresh)
+    return report
+
+
+# --- Technical Specifications Admin Endpoints ---
+
+@router.get("/screen-formats", response_model=List[ScreenFormatResponse])
+async def admin_list_screen_formats(
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(ScreenFormat).order_by(ScreenFormat.name)
+    res = await db.execute(stmt)
+    return res.scalars().all()
+
+
+@router.post("/screen-formats", response_model=ScreenFormatResponse)
+async def admin_create_screen_format(
+    req: ScreenFormatCreate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    fmt = ScreenFormat(**req.model_dump())
+    db.add(fmt)
+    await db.commit()
+    await db.refresh(fmt)
+    return fmt
+
+
+@router.put("/screen-formats/{format_id}", response_model=ScreenFormatResponse)
+async def admin_update_screen_format(
+    format_id: int,
+    req: ScreenFormatUpdate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    fmt = await db.get(ScreenFormat, format_id)
+    if not fmt:
+        raise HTTPException(status_code=404, detail="Screen format not found")
+    for k, v in req.model_dump(exclude_unset=True).items():
+        setattr(fmt, k, v)
+    await db.commit()
+    await db.refresh(fmt)
+    return fmt
+
+
+@router.delete("/screen-formats/{format_id}")
+async def admin_delete_screen_format(
+    format_id: int,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    fmt = await db.get(ScreenFormat, format_id)
+    if not fmt:
+        raise HTTPException(status_code=404, detail="Screen format not found")
+    await db.delete(fmt)
+    await db.commit()
+    return {"message": "Screen format deleted successfully"}
+
+
+@router.get("/sound-systems", response_model=List[SoundSystemResponse])
+async def admin_list_sound_systems(
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(SoundSystem).order_by(SoundSystem.name)
+    res = await db.execute(stmt)
+    return res.scalars().all()
+
+
+@router.post("/sound-systems", response_model=SoundSystemResponse)
+async def admin_create_sound_system(
+    req: SoundSystemCreate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    snd = SoundSystem(**req.model_dump())
+    db.add(snd)
+    await db.commit()
+    await db.refresh(snd)
+    return snd
+
+
+@router.put("/sound-systems/{sound_id}", response_model=SoundSystemResponse)
+async def admin_update_sound_system(
+    sound_id: int,
+    req: SoundSystemUpdate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    snd = await db.get(SoundSystem, sound_id)
+    if not snd:
+        raise HTTPException(status_code=404, detail="Sound system not found")
+    for k, v in req.model_dump(exclude_unset=True).items():
+        setattr(snd, k, v)
+    await db.commit()
+    await db.refresh(snd)
+    return snd
+
+
+@router.delete("/sound-systems/{sound_id}")
+async def admin_delete_sound_system(
+    sound_id: int,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    snd = await db.get(SoundSystem, sound_id)
+    if not snd:
+        raise HTTPException(status_code=404, detail="Sound system not found")
+    await db.delete(snd)
+    await db.commit()
+    return {"message": "Sound system deleted successfully"}
+
+
+@router.get("/projection-types", response_model=List[ProjectionTypeResponse])
+async def admin_list_projection_types(
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(ProjectionType).order_by(ProjectionType.name)
+    res = await db.execute(stmt)
+    return res.scalars().all()
+
+
+@router.post("/projection-types", response_model=ProjectionTypeResponse)
+async def admin_create_projection_type(
+    req: ProjectionTypeCreate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    prj = ProjectionType(**req.model_dump())
+    db.add(prj)
+    await db.commit()
+    await db.refresh(prj)
+    return prj
+
+
+@router.put("/projection-types/{projection_id}", response_model=ProjectionTypeResponse)
+async def admin_update_projection_type(
+    projection_id: int,
+    req: ProjectionTypeUpdate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    prj = await db.get(ProjectionType, projection_id)
+    if not prj:
+        raise HTTPException(status_code=404, detail="Projection type not found")
+    for k, v in req.model_dump(exclude_unset=True).items():
+        setattr(prj, k, v)
+    await db.commit()
+    await db.refresh(prj)
+    return prj
+
+
+@router.delete("/projection-types/{projection_id}")
+async def admin_delete_projection_type(
+    projection_id: int,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    prj = await db.get(ProjectionType, projection_id)
+    if not prj:
+        raise HTTPException(status_code=404, detail="Projection type not found")
+    await db.delete(prj)
+    await db.commit()
+    return {"message": "Projection type deleted successfully"}
+
+
+@router.get("/auditoriums", response_model=List[AuditoriumResponse])
+async def admin_list_auditoriums(
+    cinema_id: Optional[int] = None,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.CINEMA_MANAGER])),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = select(Auditorium).options(
+        selectinload(Auditorium.screen_format),
+        selectinload(Auditorium.sound_system),
+        selectinload(Auditorium.projection_type),
+    )
+    if cinema_id:
+        stmt = stmt.where(Auditorium.cinema_id == cinema_id)
+    res = await db.execute(stmt)
+    auds = res.scalars().all()
+    return [
+        AuditoriumResponse(
+            id=a.id,
+            cinema_id=a.cinema_id,
+            name=a.name,
+            screen_type=a.screen_format_name,
+            total_seats=a.total_seats,
+            has_3d_preview=a.has_3d_preview,
+            layout_data=a.layout_data,
+            glb_path="/models/cineverse_auditorium_v2.web.glb",
+            layout_path="/models/seat_layout_v2.json",
+            screen_format_id=a.screen_format_id,
+            sound_system_id=a.sound_system_id,
+            projection_type_id=a.projection_type_id,
+            screen_format_name=a.screen_format_name,
+            sound_system_name=a.sound_system_name,
+            projection_type_name=a.projection_type_name,
+            tech_specs_display=a.tech_specs_display,
+            requires_glasses=a.screen_format.requires_glasses if a.screen_format else ("3D" in a.screen_format_name),
+            confirmed_with_cinema=a.confirmed_with_cinema,
+            is_demo=a.is_demo,
+        )
+        for a in auds
+    ]
+
+
+@router.patch("/auditoriums/{auditorium_id}/specs", response_model=AuditoriumResponse)
+async def admin_update_auditorium_specs(
+    auditorium_id: int,
+    req: AuditoriumAssignmentUpdate,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN, RoleEnum.CINEMA_MANAGER])),
+    db: AsyncSession = Depends(get_db)
+):
+    stmt = (
+        select(Auditorium)
+        .where(Auditorium.id == auditorium_id)
+        .options(
+            selectinload(Auditorium.screen_format),
+            selectinload(Auditorium.sound_system),
+            selectinload(Auditorium.projection_type),
+        )
+    )
+    res = await db.execute(stmt)
+    aud = res.scalars().first()
+    if not aud:
+        raise HTTPException(status_code=404, detail="Auditorium not found")
+
+    if req.screen_format_id is not None:
+        aud.screen_format_id = req.screen_format_id
+        fmt = await db.get(ScreenFormat, req.screen_format_id)
+        if fmt:
+            aud.screen_type = fmt.name
+            # also sync showtimes in this hall
+            from sqlalchemy import update as sql_update
+            await db.execute(
+                sql_update(Showtime)
+                .where(Showtime.auditorium_id == aud.id)
+                .values(format=fmt.name)
+            )
+
+    if req.sound_system_id is not None:
+        aud.sound_system_id = req.sound_system_id
+    if req.projection_type_id is not None:
+        aud.projection_type_id = req.projection_type_id
+    if req.confirmed_with_cinema is not None:
+        aud.confirmed_with_cinema = req.confirmed_with_cinema
+    if req.is_demo is not None:
+        aud.is_demo = req.is_demo
+
+    await db.commit()
+    await db.refresh(aud)
+
+    # Re-fetch with relationships
+    stmt = (
+        select(Auditorium)
+        .where(Auditorium.id == auditorium_id)
+        .options(
+            selectinload(Auditorium.screen_format),
+            selectinload(Auditorium.sound_system),
+            selectinload(Auditorium.projection_type),
+        )
+    )
+    res = await db.execute(stmt)
+    aud = res.scalars().first()
+
+    return AuditoriumResponse(
+        id=aud.id,
+        cinema_id=aud.cinema_id,
+        name=aud.name,
+        screen_type=aud.screen_format_name,
+        total_seats=aud.total_seats,
+        has_3d_preview=aud.has_3d_preview,
+        layout_data=aud.layout_data,
+        glb_path="/models/cineverse_auditorium_v2.web.glb",
+        layout_path="/models/seat_layout_v2.json",
+        screen_format_id=aud.screen_format_id,
+        sound_system_id=aud.sound_system_id,
+        projection_type_id=aud.projection_type_id,
+        screen_format_name=aud.screen_format_name,
+        sound_system_name=aud.sound_system_name,
+        projection_type_name=aud.projection_type_name,
+        tech_specs_display=aud.tech_specs_display,
+        requires_glasses=aud.screen_format.requires_glasses if aud.screen_format else ("3D" in aud.screen_format_name),
+        confirmed_with_cinema=aud.confirmed_with_cinema,
+        is_demo=aud.is_demo,
+    )
+
+
+@router.get("/refunds/stuck")
+async def api_get_stuck_refunds(
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Returns stuck or failed customer refunds for administrator inspection and manual retry.
+    """
+    return await get_stuck_refunds(db)
+
+
+@router.post("/refunds/{refund_id}/retry")
+async def api_retry_stuck_refund(
+    refund_id: int,
+    current_user: User = Depends(require_role([RoleEnum.ADMIN])),
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    Manually retries a stuck or failed refund.
+    """
+    return await retry_stuck_refund(db, refund_id)
+
+
+
 

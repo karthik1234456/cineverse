@@ -14,6 +14,8 @@ if backend_dir not in sys.path:
 os.environ["DATABASE_URL"] = "sqlite+aiosqlite:///./test_cineverse.db"
 os.environ["REDIS_URL"] = "redis://localhost:6379/1"
 os.environ["USE_FAKEREDIS_FALLBACK"] = "True"
+os.environ["CATALOG_SOURCE"] = "local"
+
 
 from httpx import AsyncClient, ASGITransport
 from sqlalchemy import update, delete
@@ -34,6 +36,15 @@ def initialize_test_database():
     """Ensure dedicated test database is fresh and seeded once per test session."""
     async def _setup():
         await init_db()
+        async with AsyncSessionLocal() as session:
+            try:
+                from app.models.cinema import Auditorium
+                from sqlalchemy import func, select
+                count = (await session.execute(select(func.count(Auditorium.id)))).scalar()
+                if count and count >= 112:
+                    return
+            except Exception:
+                pass
         await seed_database()
     asyncio.run(_setup())
     yield
@@ -57,10 +68,10 @@ async def _cleanup_database_state():
         await db.execute(delete(BookingSeat))
         await db.execute(delete(Booking))
 
-        # Reset Showtime 1 seat inventory for booking tests
+        # Reset Showtime 1, 2, 3 seat inventory for booking tests
         await db.execute(
             update(SeatInventory)
-            .where(SeatInventory.showtime_id == 1)
+            .where(SeatInventory.showtime_id.in_([1, 2, 3]))
             .values(status=SeatStatusEnum.AVAILABLE, hold_id=None, hold_expires_at=None, held_by_user_id=None)
         )
         await db.execute(

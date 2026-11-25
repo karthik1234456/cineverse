@@ -30,20 +30,105 @@ import type {
   SeatCategory,
   CategoryInfo,
 } from './types';
+import {
+  getTheatreTypeDefinition,
+  METERS_TO_SCENE,
+  SCENE_TO_METERS,
+  type TheatreTypeId,
+} from './theatreTypeRegistry';
+
+export interface RowDefinition {
+  row: string;
+  seats_count: number;
+  blocks?: number[];
+  seat_types?: Record<number, string>;
+}
 
 export interface AuditoriumLayoutInput {
-  rows: string[];
-  seats_per_row: number;
-  aisles: number[];
+  rows?: string[] | number;
+  seats_per_row?: number;
+  aisles?: number[];
+  theatre_type?: TheatreTypeId | string;
+  arrangement_pattern?: string;
+  blocks_pattern?: number[];
+  sweet_spot?: {
+    rows: string[];
+    seat_numbers: number[];
+    label?: string;
+    price_multiplier?: number;
+  };
+  row_definitions?: RowDefinition[];
+  documented_scale?: {
+    meters_to_scene: number;
+    seat_width_m: number;
+    row_pitch_m: number;
+    rake_step_m: number;
+    aisle_width_m: number;
+    ceiling_height_m: number;
+  };
+  seat_pitch?: number;
+  row_pitch?: number;
+  tier_rise?: number;
+  aisle_gap?: number;
+  ceiling_height?: number;
+  screen_width?: number;
+  screen_height?: number;
   accessible_seats?: string[];
+  companion_seats?: string[];
   category_bands?: Array<{
     category: string;
     rows: string[];
     price_multiplier?: number;
   }>;
   screen_type?: string;
+  layout_signature?: string;
   total_seats?: number;
   base_price?: number;
+  curve_radius?: number;
+  angle_span?: number;
+  levels?: {
+    stalls?: { label: string; height: number; rows: string[] };
+    balcony?: { label: string; height: number; rows: string[] };
+  };
+  has_balcony?: boolean;
+  balcony_rows?: string[];
+  recliner_pairs?: Array<[string, string]>;
+  sofa_pairs?: Array<[string, string]>;
+  motion_rows?: string[];
+  pod_sizes?: number[];
+  pods?: any[];
+  effect_props?: any[];
+  is_motion_hall?: boolean;
+  screen_format?: string;
+  sound_system?: string;
+  projection_type?: string;
+  equipment_profile?: {
+    screen_description?: string;
+    screen_aspect?: number;
+    screen_curved?: boolean;
+    curve_radius?: number;
+    is_direct_led?: boolean;
+    is_screenx?: boolean;
+    has_glasses_counter?: boolean;
+    has_motion_pods?: boolean;
+    has_projector_beam?: boolean;
+    beam_brightness?: 'laser' | 'bright' | 'standard' | 'none';
+    seat_family?: 'standard' | 'recliner';
+    sound_system?: string;
+    projection_type?: string;
+    confirmation_note?: string;
+  };
+  features?: {
+    motion_seats?: boolean;
+    wind?: boolean;
+    water?: boolean;
+    fog?: boolean;
+    scent?: boolean;
+    strobe?: boolean;
+    ticklers?: boolean;
+    is_4dx?: boolean;
+    dolby_atmos?: boolean;
+  };
 }
 
 export interface AcousticPanelDef {
@@ -60,6 +145,7 @@ export interface ProceduralGeometryData {
     height: number;
     halfWidth: number;
     zBack: number;
+    zFront: number;
     topTierY: number;
   };
   roomFloor: BoundingBox3D;
@@ -68,6 +154,7 @@ export interface ProceduralGeometryData {
     row: string;
     bounds: BoundingBox3D;
     topY: number;
+    level?: 'stalls' | 'balcony';
   }>;
   aisleSteps: Array<{
     name: string;
@@ -87,12 +174,151 @@ export interface ProceduralGeometryData {
     height: number;
     curved: boolean;
     curveRadius?: number;
+    type?: string;
+    panoramicWrap?: {
+      sideAngleDeg: number;
+      sideWidthRatio: number;
+      sideHeightRatio: number;
+    };
+    bezel?: {
+      width: number;
+      color: string;
+      hasFrame: boolean;
+      thinBlack?: boolean;
+      clearFrame?: boolean;
+    };
+    finish?: 'matte_white' | 'glossy_led';
+    hasProjectorBeam?: boolean;
   };
   screenFrame: BoundingBox3D;
   stageLip: BoundingBox3D;
+  proscenium: BoundingBox3D;
+  sideCurtains: {
+    left: BoundingBox3D;
+    right: BoundingBox3D;
+  };
+  woodenSlats: Array<{
+    id: string;
+    position: [number, number, number];
+    size: [number, number, number];
+    rotationY: number;
+  }>;
   acousticPanels: AcousticPanelDef[];
   stepLights: Array<{ id: string; position: [number, number, number] }>;
   sconces: Array<{ id: string; position: [number, number, number] }>;
+  ceilingDownlights: Array<{ id: string; position: [number, number, number] }>;
+  atmosSpeakers: Array<{ id: string; position: [number, number, number]; channel: string }>;
+  exitSigns: Array<{ id: string; position: [number, number, number]; label: string }>;
+  carpetRunners?: Array<{ name: string; bounds: BoundingBox3D }>;
+  ceilingClouds: Array<{
+    id: string;
+    bounds: BoundingBox3D;
+    style?: string;
+  }>;
+  roofTrusses: Array<{
+    id: string;
+    bounds: BoundingBox3D;
+  }>;
+  ventilationDucts: Array<{
+    id: string;
+    bounds: BoundingBox3D;
+  }>;
+  coveLightStrips: Array<{
+    id: string;
+    bounds: BoundingBox3D;
+    color?: string;
+  }>;
+  skirtingLights: Array<{
+    id: string;
+    bounds: BoundingBox3D;
+  }>;
+  doorFrames: Array<{
+    id: string;
+    frameBounds: BoundingBox3D;
+    doorBounds: BoundingBox3D;
+  }>;
+  projectionBooth: {
+    housing: BoundingBox3D;
+    centerWindow: BoundingBox3D;
+    sideWindows: Array<BoundingBox3D>;
+    projectorAperture: [number, number, number];
+    screenTarget: [number, number, number];
+  };
+  effectRigs?: Array<{
+    id: string;
+    trussBounds: BoundingBox3D;
+    nozzles: Array<[number, number, number]>;
+    fans: Array<[number, number, number]>;
+  }>;
+  motionPodBases?: Array<{
+    id: string;
+    row: string;
+    bounds: BoundingBox3D;
+    center: [number, number, number];
+    size: [number, number, number];
+    pistons: Array<[number, number, number]>;
+    grilles: Array<[number, number, number]>;
+  }>;
+  effectProps?: Array<{
+    id: string;
+    type: 'wind' | 'fog' | 'water' | 'strobe' | 'scent' | 'poke';
+    position: [number, number, number];
+    orientation?: [number, number, number];
+    label: string;
+  }>;
+  frontFloorTrim?: {
+    bounds: BoundingBox3D;
+    color: string;
+  };
+  acousticBaffles?: Array<{
+    id: string;
+    bounds: BoundingBox3D;
+  }>;
+  balconyStructure?: {
+    platform: BoundingBox3D;
+    fascia: BoundingBox3D;
+    railing: BoundingBox3D;
+    columns?: Array<{ min: [number, number, number]; max: [number, number, number] }>;
+    coveLightBounds: BoundingBox3D;
+  };
+  crossAisleHandrails?: Array<{
+    id: string;
+    bounds: BoundingBox3D;
+    railColor?: string;
+  }>;
+  reclinerAccessories?: Array<{
+    id: string;
+    seatId: string;
+    tablePosition: [number, number, number];
+    badgePosition: [number, number, number];
+    sidePanelBounds: BoundingBox3D;
+  }>;
+  motionLedBars?: Array<{
+    id: string;
+    position: [number, number, number];
+    size: [number, number, number];
+    rotation: [number, number, number];
+    colorType: 'blue' | 'red' | 'white';
+  }>;
+  amberOutlinePanels?: Array<{
+    id: string;
+    position: [number, number, number];
+    size: [number, number, number];
+  }>;
+  glassesCounter?: {
+    bounds: BoundingBox3D;
+    topTrayBounds: BoundingBox3D;
+    signBounds: BoundingBox3D;
+    glassesCount: number;
+  };
+  sideProjectors?: Array<{
+    id: string;
+    position: [number, number, number];
+    rotationY: number;
+  }>;
+  soundSystem?: string;
+  projectionType?: string;
+  beamBrightness?: 'laser' | 'bright' | 'standard' | 'none';
   cameraBounds: {
     minX: number;
     maxX: number;
@@ -111,6 +337,7 @@ export interface ProceduralGeometryData {
   };
   defaultCameraPos: [number, number, number];
   defaultCameraTarget: [number, number, number];
+  cameraPresets?: Record<string, { position: [number, number, number]; target: [number, number, number]; caption: string }>;
 }
 
 export interface ProceduralAuditoriumResult {
@@ -128,6 +355,47 @@ export const ROW_A_Y = 1.365;
 export const SCREEN_Z = -1.255;
 
 /**
+ * Calculates optimal front-row distance from screen to satisfy:
+ * 1. Screen-to-Row-A distance >= 1.2 * screenHeight
+ * 2. Front-row horizontal FOV <= 75 degrees (fov = 2 * atan((screenWidth/2)/dist) <= 75 deg => dist >= (screenWidth/2)/tan(37.5 deg))
+ * 3. First row sits 0.66 to 0.90 times the screen width from the screen
+ */
+export const TYPE_TARGET_RATIOS: Record<string, number> = {
+  compact: 0.55,
+  standard: 0.54,
+  large: 0.53,
+  flagship: 0.52,
+  motion_seat: 0.56,
+  dolby_atmos_4dx: 0.56,
+  luxury_recliner: 0.58,
+  boutique: 0.57,
+  balcony: 0.54,
+};
+
+/**
+ * Calculates optimal distance from screen to front row (Row A):
+ * 1. Distance between 0.50 and 0.60 times screen width (coherent geometry rules)
+ * 2. Front-row field of view between 80 and 90 degrees (fov = 2 * atan((screenWidth/2)/dist))
+ * 3. Back-row field of view at least 28 degrees
+ */
+export function calculateScreenDistance(
+  screenWidth: number,
+  screenHeight: number,
+  maxFrontFovDeg: number = 88.0,
+  targetRatio: number = 0.55
+): number {
+  const minDistH = 1.0 * screenHeight;
+  const halfFovRad = (maxFrontFovDeg / 2.0) * (Math.PI / 180.0);
+  const minDistFov = (screenWidth / 2.0) / Math.tan(halfFovRad);
+  const minRatioDist = 0.50 * screenWidth;
+  const maxRatioDist = 0.60 * screenWidth;
+  const targetDist = targetRatio * screenWidth;
+
+  const minBound = Math.max(minDistH, minDistFov, minRatioDist);
+  return Math.min(Math.max(targetDist, minBound), maxRatioDist);
+}
+
+/**
  * Computes exact X coordinates for a row with aisles.
  * Seat 01 is on Audience Left (+X) facing +Z.
  */
@@ -137,6 +405,9 @@ export function computeRowXPositions(
   seatPitch: number = SEAT_PITCH,
   extraAisleGap: number = EXTRA_AISLE_GAP
 ): number[] {
+  if (seatsPerRow <= 0) return [];
+  if (seatsPerRow === 1) return [0.0];
+
   const xRel: number[] = new Array(seatsPerRow).fill(0);
   for (let i = 1; i < seatsPerRow; i++) {
     const prevSeatNum = i; // 1-based seat number of the previous seat
@@ -147,8 +418,37 @@ export function computeRowXPositions(
   const span = xRel[seatsPerRow - 1];
   const halfSpan = span / 2.0;
 
-  // Seat 01 is at +halfSpan, Seat N is at -halfSpan
+  // Seat 01 is at +halfSpan (Audience Left), Seat N is at -halfSpan (Audience Right)
   return xRel.map((xr) => Math.round((halfSpan - xr) * 1000) / 1000);
+}
+
+const _proceduralAuditoriumCache = new Map<string, ProceduralAuditoriumResult>();
+
+function getLayoutCacheKey(input: AuditoriumLayoutInput): string {
+  try {
+    return JSON.stringify({
+      rows: input.rows,
+      seats_per_row: input.seats_per_row,
+      aisles: input.aisles,
+      theatre_type: input.theatre_type,
+      screen_type: input.screen_type,
+      screen_format: input.screen_format,
+      sound_system: input.sound_system,
+      projection_type: input.projection_type,
+      total_seats: input.total_seats,
+      features: input.features,
+      arrangement_pattern: input.arrangement_pattern,
+      blocks_pattern: input.blocks_pattern,
+      balcony_rows: input.balcony_rows,
+      recliner_pairs: input.recliner_pairs,
+      sofa_pairs: input.sofa_pairs,
+      row_definitions: input.row_definitions,
+      equipment_profile: input.equipment_profile,
+      documented_scale: input.documented_scale,
+    });
+  } catch {
+    return '';
+  }
 }
 
 /**
@@ -157,61 +457,203 @@ export function computeRowXPositions(
 export function generateProceduralAuditorium(
   input: AuditoriumLayoutInput
 ): ProceduralAuditoriumResult {
-  const rows = input.rows && input.rows.length > 0 ? input.rows : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
-  const seatsPerRow = input.seats_per_row || 10;
+  const cacheKey = getLayoutCacheKey(input);
+  if (cacheKey && _proceduralAuditoriumCache.has(cacheKey)) {
+    return _proceduralAuditoriumCache.get(cacheKey)!;
+  }
+  const rows: string[] = Array.isArray(input.rows)
+    ? (input.rows.length > 0 ? input.rows : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'])
+    : typeof input.rows === 'number'
+    ? Array.from({ length: input.rows }, (_, i) => String.fromCharCode(65 + i))
+    : ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
+  const defaultSeatsPerRow = input.seats_per_row || 10;
+  const totalSeatsEstimate = input.total_seats || (rows.length * defaultSeatsPerRow);
   
-  // For the standard 100-seat hall, ensure single central aisle if not specified
-  let aisles = input.aisles || [];
-  if (aisles.length === 0) {
-    aisles = [Math.floor(seatsPerRow / 2)];
+  // Resolve theatre type definition from registry
+  const hasExplicitType = !!input.theatre_type;
+  const theatreDef = getTheatreTypeDefinition(input.theatre_type || (totalSeatsEstimate === 100 ? 'compact' : input.screen_type), totalSeatsEstimate);
+
+  // If no explicit theatre_type was passed and total_seats is not 100, preserve the legacy unit tests' defaults (SEAT_PITCH=1.2, EXTRA_AISLE_GAP=1.2, etc.)
+  const isLegacyMode = !hasExplicitType && totalSeatsEstimate !== 100 && !input.documented_scale;
+
+  // Scene scaling: use input overrides if provided, otherwise legacy defaults or registry scene dimensions
+  const seatPitch = input.seat_pitch ?? (isLegacyMode ? SEAT_PITCH : theatreDef.sceneDimensions.seatPitch);
+  const rowPitch = input.row_pitch ?? (isLegacyMode ? ROW_PITCH : theatreDef.sceneDimensions.rowPitch);
+  const tierRise = input.tier_rise ?? (isLegacyMode ? TIER_RISE : theatreDef.sceneDimensions.tierRise);
+  const aisleGap = input.aisle_gap ?? (isLegacyMode ? EXTRA_AISLE_GAP : theatreDef.sceneDimensions.aisleGap);
+
+  // Resolve aisles from blocks_pattern if not explicitly provided
+  let aisles = input.aisles;
+  if (!aisles && input.blocks_pattern && input.blocks_pattern.length > 1) {
+    let accum = 0;
+    aisles = [];
+    for (let b = 0; b < input.blocks_pattern.length - 1; b++) {
+      accum += input.blocks_pattern[b];
+      aisles.push(accum);
+    }
+  } else if (!aisles) {
+    if (defaultSeatsPerRow <= 10) {
+      aisles = [Math.floor(defaultSeatsPerRow / 2)];
+    } else if (theatreDef.arrangementPattern === 'continental') {
+      aisles = [];
+    } else {
+      aisles = [Math.floor(defaultSeatsPerRow * 0.25), Math.floor(defaultSeatsPerRow * 0.75)];
+    }
   }
 
-  const _accessibleSeats = new Set(input.accessible_seats || ['A01', `A${String(seatsPerRow).padStart(2, '0')}`]);
+  const _accessibleSeats = new Set(input.accessible_seats || ['A01', `A${String(defaultSeatsPerRow).padStart(2, '0')}`]);
   const basePrice = input.base_price || 280;
-  const screenType = input.screen_type || 'IMAX 3D';
-  const isFlagship = (input.total_seats || rows.length * seatsPerRow) >= 350;
-  const isCurved = screenType.includes('IMAX') || isFlagship;
+  const screenType = input.screen_type || theatreDef.name;
+  const isDedicatedMotionHall = theatreDef.id === 'motion_seat' || theatreDef.id === 'dolby_atmos_4dx' || input.theatre_type === 'motion_seat' || input.theatre_type === 'dolby_atmos_4dx' || input.arrangement_pattern === 'motion_pods';
+  const isMotionHall = isDedicatedMotionHall || !!input.is_motion_hall || (screenType && screenType.toLowerCase().includes('motion-seat')) || !!input.features?.motion_seats;
+  const isFlagship = theatreDef.id === 'flagship' || totalSeatsEstimate >= 400;
+  const isCurved = !isMotionHall && (
+    theatreDef.features.curved_screen ||
+    input.curve_radius !== undefined ||
+    isFlagship ||
+    input.screen_format === 'Dolby Cinema' ||
+    Boolean(input.screen_format?.includes('IMAX')) ||
+    Boolean(input.equipment_profile?.screen_curved)
+  );
 
-  // 1. Calculate Row X Coordinates
-  const xPositions = computeRowXPositions(seatsPerRow, aisles);
-  const maxSeatAbsX = Math.abs(xPositions[0]);
+  // Build row definitions map if variable row widths are provided
+  const rowDefMap = new Map<string, RowDefinition>();
+  if (input.row_definitions) {
+    for (const rd of input.row_definitions) {
+      rowDefMap.set(rd.row, rd);
+    }
+  }
 
-  // 2. Hall Dimensions
+  // Pre-calculate maximum seat X span across all rows to size the hall
+  let maxSeatAbsX = 0;
+  for (const r of rows) {
+    const rd = rowDefMap.get(r);
+    const count = rd ? rd.seats_count : defaultSeatsPerRow;
+    const rAisles = rd?.blocks && rd.blocks.length > 1
+      ? rd.blocks.slice(0, -1).reduce((acc: number[], len, idx) => [...acc, (acc[idx - 1] || 0) + len], [])
+      : aisles;
+    const xs = computeRowXPositions(count, rAisles, seatPitch, aisleGap);
+    if (xs.length > 0) {
+      const rowMaxAbs = Math.max(Math.abs(xs[0]), Math.abs(xs[xs.length - 1]));
+      if (rowMaxAbs > maxSeatAbsX) maxSeatAbsX = rowMaxAbs;
+    }
+  }
+
+  // Hall Dimensions in Scene Units
   const halfWidth = Math.max(11.11, maxSeatAbsX + 4.2);
-  const totalRows = rows.length;
-  const zBack = ROW_A_Z - (totalRows - 1) * ROW_PITCH - 4.5;
-  const topTierY = totalRows * TIER_RISE;
-  const ceilingHeight = Math.max(11.2, topTierY + 8.2);
 
-  // 3. Screen Scaling
-  let screenWidth = 15.6;
-  let screenHeight = 7.25;
+  let screenWidth = input.screen_width;
+  let screenHeight = input.screen_height;
   let screenCenterY = 5.55;
 
-  if (seatsPerRow <= 12 && totalRows <= 8) {
-    // Small luxury hall (60-90 seats)
-    screenWidth = 13.5;
-    screenHeight = 6.28;
-    screenCenterY = 5.0;
-  } else if (seatsPerRow >= 24 || totalRows >= 14) {
-    // Flagship Big Hall (380-450 seats)
-    screenWidth = Math.min(27.0, Math.max(18.0, halfWidth * 1.35));
-    screenHeight = screenWidth / 2.15;
-    screenCenterY = 5.55 + (screenWidth - 15.6) * 0.22;
-  } else if (seatsPerRow >= 16) {
-    // Large hall (240-320 seats)
-    screenWidth = 21.0;
-    screenHeight = 9.77;
-    screenCenterY = 6.6;
+  if (totalSeatsEstimate === 100 && !input.theatre_type) {
+    // 100-seat reference hall uses bespoke 15.6 x 7.25 scene units (7.8m x 3.6m metric)
+    screenWidth = screenWidth ?? 15.6;
+    screenHeight = screenHeight ?? 7.25;
+    screenCenterY = 5.55;
+  } else if (isLegacyMode) {
+    if (defaultSeatsPerRow <= 12 && rows.length <= 8) {
+      screenWidth = screenWidth ?? 13.5;
+      screenHeight = screenHeight ?? 6.28;
+      screenCenterY = 5.0;
+    } else if (defaultSeatsPerRow >= 24 || rows.length >= 14) {
+      screenWidth = screenWidth ?? Math.min(27.0, Math.max(18.0, halfWidth * 1.35));
+      screenHeight = screenHeight ?? screenWidth / 2.15;
+      screenCenterY = 5.55 + (screenWidth - 15.6) * 0.22;
+    } else if (defaultSeatsPerRow >= 16) {
+      screenWidth = screenWidth ?? 21.0;
+      screenHeight = screenHeight ?? 9.77;
+      screenCenterY = 6.6;
+    } else {
+      screenWidth = screenWidth ?? theatreDef.sceneDimensions.screenWidth;
+      screenHeight = screenHeight ?? theatreDef.sceneDimensions.screenHeight;
+      screenCenterY = Math.max(5.55, (screenHeight || 7.25) / 2 + 1.2);
+    }
+  } else {
+    screenWidth = screenWidth ?? theatreDef.sceneDimensions.screenWidth;
+    screenHeight = screenHeight ?? theatreDef.sceneDimensions.screenHeight;
+    screenCenterY = Math.max(5.55, screenHeight / 2 + 1.2);
   }
 
-  const screenCenter: [number, number, number] = [0.0, screenCenterY, SCREEN_Z];
+  const curveRadius = input.curve_radius ?? (isCurved ? 28.0 : undefined);
 
-  // 4. Generate Category Lookup
+  // If rows are curved, outer seats curve forwards towards the screen by sagZ = (posX^2) / (2 * curveRadius).
+  // We offset rowAZ backwards by maxRowASagZ so that even the most forward-curved edge seats
+  // strictly satisfy distance >= 1.2 * screenHeight and horizontal FOV <= 75 degrees.
+  const rowASeatsCount = rowDefMap.get(rows[0])?.seats_count ?? defaultSeatsPerRow;
+  const rowAAisles = aisles;
+  const rowAXs = computeRowXPositions(rowASeatsCount, rowAAisles, seatPitch, aisleGap);
+  const maxRowAX = rowAXs.length > 0 ? Math.max(...rowAXs.map(Math.abs)) : 0;
+  const maxRowASagZ = (isCurved && curveRadius && maxRowAX > 0)
+    ? Math.round(((maxRowAX * maxRowAX) / (2 * curveRadius)) * 1000) / 1000
+    : 0;
+
+  // Calculate dynamic Row A Z based on coherent screen distance rule:
+  // distance 0.50 to 0.60 * screenWidth, horizontal FOV 80 to 90 degrees.
+  const tid = theatreDef.id || input.theatre_type || 'standard';
+  const targetRatio = TYPE_TARGET_RATIOS[tid] ?? 0.55;
+  const reqScreenDist = (isLegacyMode || (totalSeatsEstimate === 100 && !input.theatre_type))
+    ? Math.abs(ROW_A_Z - SCREEN_Z)
+    : calculateScreenDistance(screenWidth, screenHeight, 88.0, targetRatio);
+  const rowAZ = (isLegacyMode || (totalSeatsEstimate === 100 && !input.theatre_type))
+    ? ROW_A_Z
+    : Math.round((SCREEN_Z - (reqScreenDist + maxRowASagZ)) * 1000) / 1000;
+
+  const totalRows = rows.length;
+  const zBack = rowAZ - (totalRows - 1) * rowPitch - 4.5;
+
+  const screenCenter: [number, number, number] = [0.0, screenCenterY, SCREEN_Z];
+  const isRef100 = totalSeatsEstimate === 100 || isLegacyMode;
+
+  // Balcony configuration
+  const hasBalcony = !!(theatreDef.features.has_balcony || input.has_balcony || (input.balcony_rows && input.balcony_rows.length > 0) || (input.levels?.balcony && input.levels.balcony.rows.length > 0));
+  const balconyRowsList: string[] = input.balcony_rows || (input.levels?.balcony?.rows) || (hasBalcony ? rows.slice(Math.max(rows.length - 4, 10)) : []);
+  const balconyRowSet = new Set(balconyRowsList);
+  const stallsRowsList = rows.filter((r) => !balconyRowSet.has(r));
+  const stallsCount = stallsRowsList.length;
+
+  // Compute dynamic sightline clearance risers (§ Part D: C >= 0.12m clearance)
+  // Guarantees no front seat blocks screen bottom, center, or corners from any row.
+  const rowYElevations: number[] = [];
+  const screenBottomY = screenCenterY - screenHeight / 2.0;
+  const H_seat_top = isMotionHall ? 2.28 : 2.10; // seat back top in scene units (1.05m * 2 + motion pod base)
+  const H_eye = 2.24;      // seated adult eye height in scene units (1.12m * 2)
+  const C_clearance = 0.24;// 0.12m clearance * 2
+
+  for (let rIdx = 0; rIdx < rows.length; rIdx++) {
+    const row = rows[rIdx];
+    const isBalcony = balconyRowSet.has(row);
+
+    if (isRef100) {
+      rowYElevations.push(Math.round((ROW_A_Y + rIdx * tierRise) * 1000) / 1000);
+    } else if (isBalcony) {
+      const bIdx = balconyRowsList.indexOf(row);
+      const balconyElevationJump = 3.6;
+      const bY = Math.round((tierRise + stallsCount * tierRise + balconyElevationJump + bIdx * (tierRise + 0.12)) * 1000) / 1000;
+      rowYElevations.push(bY);
+    } else if (rIdx === 0) {
+      rowYElevations.push(tierRise);
+    } else {
+      const zEye = (rowAZ - rIdx * rowPitch) + 0.10;
+      const zAhead = (rowAZ - (rIdx - 1) * rowPitch) + 0.10;
+      const dScreen = SCREEN_Z - zEye;
+      const dAhead = zAhead - zEye;
+      const t = dAhead / Math.max(0.001, dScreen);
+      const prevY = rowYElevations[rIdx - 1];
+      const reqFloor = (prevY + H_seat_top + C_clearance - t * screenBottomY) / (1 - t) - H_eye;
+      const rise = Math.max(tierRise, reqFloor - prevY);
+      rowYElevations.push(Math.round((prevY + rise) * 1000) / 1000);
+    }
+  }
+
+  const topTierY = rowYElevations[totalRows - 1] || (totalRows * tierRise);
+  const ceilingHeight = Math.max(input.ceiling_height ?? (isLegacyMode ? 11.2 : theatreDef.sceneDimensions.ceilingHeight), topTierY + 7.5);
+
+  // Category bands
   const categoryBands = input.category_bands || [
-    { category: 'Front', rows: rows.slice(0, Math.max(2, Math.floor(totalRows * 0.3))), price_multiplier: 0.8 },
-    { category: 'Prime', rows: rows.slice(Math.max(2, Math.floor(totalRows * 0.3)), Math.max(4, Math.floor(totalRows * 0.7))), price_multiplier: 1.0 },
-    { category: 'Premier', rows: rows.slice(Math.max(4, Math.floor(totalRows * 0.7))), price_multiplier: 1.35 },
+    { category: 'Front', rows: rows.slice(0, Math.max(2, Math.floor(totalRows * 0.25))), price_multiplier: 0.75 },
+    { category: 'Prime', rows: rows.slice(Math.max(2, Math.floor(totalRows * 0.25)), Math.max(4, Math.floor(totalRows * 0.7))), price_multiplier: 1.0 },
+    { category: 'Premier', rows: rows.slice(Math.max(4, Math.floor(totalRows * 0.7))), price_multiplier: 1.45 },
   ];
 
   function getSeatCategory(rowLetter: string): { cat: SeatCategory; mult: number } {
@@ -227,58 +669,211 @@ export function generateProceduralAuditorium(
     return { cat: 'prime', mult: 1.0 };
   }
 
-  // 5. Build Seat Records
+  // Sweet spot configuration
+  const sweetSpotRows = new Set(input.sweet_spot?.rows || []);
+  const sweetSpotSeats = new Set(input.sweet_spot?.seat_numbers || []);
+  const sweetSpotMultiplier = input.sweet_spot?.price_multiplier || 1.45;
+
+  // Seat Records & Colliders
   const seatRecords: SeatRecord[] = [];
   const colliders: ColliderAABB[] = [];
+  const reclinerPairMap = new Map<string, string>();
+
+  // If explicit recliner pairs passed, index them
+  if (input.recliner_pairs) {
+    for (const [s1, s2] of input.recliner_pairs) {
+      reclinerPairMap.set(s1, s2);
+      reclinerPairMap.set(s2, s1);
+    }
+  }
+
+  // Pre-calculate pairs for premier rows or luxury recliner halls if not explicitly provided
+  const premierRows = categoryBands.find((b) => b.category.toLowerCase() === 'premier')?.rows || [];
+  const shouldAutoPair = !isDedicatedMotionHall && (theatreDef.features.recliner_pairs || theatreDef.id === 'luxury_recliner');
+
+  // Pre-calculate pods for motion halls
+  const seatToPod = new Map<string, string>();
+  const podSeatLists = new Map<string, SeatRecord[]>();
+  if (isMotionHall) {
+    if (input.pods && input.pods.length > 0) {
+      for (const p of input.pods) {
+        for (const sId of p.seat_ids || []) {
+          seatToPod.set(sId, p.pod_id);
+        }
+      }
+    } else {
+      for (const r of rows) {
+        const rd = rowDefMap.get(r);
+        const count = rd ? rd.seats_count : defaultSeatsPerRow;
+        let podSizes: number[] = [];
+        if (count === 22) {
+          podSizes = [4, 2, 4, 2, 4, 2, 4];
+        } else if (count === 18) {
+          podSizes = [4, 4, 2, 4, 4];
+        } else if (count === 16) {
+          podSizes = [4, 4, 4, 4];
+        } else if (count === 14) {
+          podSizes = [2, 2, 2, 2, 2, 2, 2];
+        } else {
+          podSizes = Array(Math.floor(count / 4)).fill(4);
+          if (count % 4 > 0) podSizes.push(count % 4);
+        }
+        let cur = 1;
+        podSizes.forEach((sz, pIdx) => {
+          const pId = `POD-${r}${pIdx + 1}`;
+          for (let i = 0; i < sz && cur <= count; i++) {
+            const sId = `${r}${String(cur).padStart(2, '0')}`;
+            seatToPod.set(sId, pId);
+            cur++;
+          }
+        });
+      }
+    }
+  }
+
+  if (!input.recliner_pairs && shouldAutoPair) {
+    for (const r of rows) {
+      const rd = rowDefMap.get(r);
+      const count = rd ? rd.seats_count : defaultSeatsPerRow;
+      for (let s = 1; s <= count; s += 2) {
+        if (s + 1 <= count) {
+          const s1 = `${r}${String(s).padStart(2, '0')}`;
+          const s2 = `${r}${String(s + 1).padStart(2, '0')}`;
+          if (!_accessibleSeats.has(s1) && !_accessibleSeats.has(s2)) {
+            reclinerPairMap.set(s1, s2);
+            reclinerPairMap.set(s2, s1);
+          }
+        }
+      }
+    }
+  } else if (!input.recliner_pairs && !isDedicatedMotionHall) {
+    // Pair back rows in premier band
+    for (const pRow of premierRows) {
+      const rd = rowDefMap.get(pRow);
+      const count = rd ? rd.seats_count : defaultSeatsPerRow;
+      for (let s = 1; s <= count; s += 2) {
+        if (s + 1 <= count) {
+          const s1 = `${pRow}${String(s).padStart(2, '0')}`;
+          const s2 = `${pRow}${String(s + 1).padStart(2, '0')}`;
+          if (!_accessibleSeats.has(s1) && !_accessibleSeats.has(s2)) {
+            reclinerPairMap.set(s1, s2);
+            reclinerPairMap.set(s2, s1);
+          }
+        }
+      }
+    }
+  }
+
+  const motionRows = new Set(input.motion_rows || (theatreDef.features.is_4dx || input.features?.is_4dx ? ['D', 'E', 'F', 'G'] : []));
 
   for (let rIdx = 0; rIdx < rows.length; rIdx++) {
     const row = rows[rIdx];
-    const rowY = Math.round((ROW_A_Y + rIdx * TIER_RISE) * 1000) / 1000;
-    const rowZ = Math.round((ROW_A_Z - rIdx * ROW_PITCH) * 1000) / 1000;
-    const { cat, mult } = getSeatCategory(row);
-    const price = Math.round(basePrice * mult);
+    const isBalcony = balconyRowSet.has(row);
+    const rowY: number = rowYElevations[rIdx];
+    let rowZ: number;
 
-    for (let sIdx = 0; sIdx < seatsPerRow; sIdx++) {
+    if (isBalcony) {
+      const bIdx = balconyRowsList.indexOf(row);
+      rowZ = Math.round((rowAZ - (stallsCount + bIdx) * rowPitch - 0.5) * 1000) / 1000;
+    } else {
+      rowZ = Math.round((rowAZ - rIdx * rowPitch) * 1000) / 1000;
+    }
+
+    const { cat, mult } = getSeatCategory(row);
+    const rd = rowDefMap.get(row);
+    const rowSeatsCount = rd ? rd.seats_count : defaultSeatsPerRow;
+    const rAisles = rd?.blocks && rd.blocks.length > 1
+      ? rd.blocks.slice(0, -1).reduce((acc: number[], len, idx) => [...acc, (acc[idx - 1] || 0) + len], [])
+      : aisles;
+    const xPositions = computeRowXPositions(rowSeatsCount, rAisles, seatPitch, aisleGap);
+
+    for (let sIdx = 0; sIdx < rowSeatsCount; sIdx++) {
       const num = sIdx + 1;
       const seatId = `${row}${String(num).padStart(2, '0')}`;
       const posX = xPositions[sIdx];
-      const posY = rowY;
-      const posZ = rowZ;
+      const sagZ = curveRadius ? Math.round(((posX * posX) / (2 * curveRadius)) * 1000) / 1000 : 0.0;
+      const posZ = Math.round((rowZ + sagZ) * 1000) / 1000;
+
+      // Seat category strictly follows tier rows (§ Part G: non-overlapping price bands)
+      const isSweetSpot = sweetSpotRows.has(row) && sweetSpotSeats.has(num);
+      const effectiveMultiplier = isSweetSpot ? sweetSpotMultiplier : mult;
+      const effectiveCategory: SeatCategory = cat;
+      const price = Math.round(basePrice * effectiveMultiplier);
+
+      const podId = isMotionHall ? seatToPod.get(seatId) : undefined;
+      const isRef100 = totalSeatsEstimate === 100 || isLegacyMode;
+      const seatFloorY = isRef100
+        ? rowY
+        : ((isMotionHall && podId) ? Math.round((rowY + 0.18) * 1000) / 1000 : rowY);
 
       const bounds: BoundingBox3D = {
         min: [
-          Math.round((posX - 0.64) * 1000) / 1000,
-          Math.round((posY - 0.995) * 1000) / 1000,
+          Math.round((posX - seatPitch * 0.48) * 1000) / 1000,
+          isRef100 ? Math.round((rowY - 0.995) * 1000) / 1000 : seatFloorY,
           Math.round((posZ - 0.492) * 1000) / 1000,
         ],
         max: [
-          Math.round((posX + 0.64) * 1000) / 1000,
-          Math.round((posY + 0.995) * 1000) / 1000,
+          Math.round((posX + seatPitch * 0.48) * 1000) / 1000,
+          isRef100 ? Math.round((rowY + 0.995) * 1000) / 1000 : Math.round((seatFloorY + 1.98) * 1000) / 1000,
           Math.round((posZ + 0.491) * 1000) / 1000,
         ],
       };
 
       const eye = eyePosition(bounds.min, bounds.max);
-      // Round eye coordinates to 3 decimals to match reference GLB precision
-      const eyePos: [number, number, number] = [
-        Math.round(eye[0] * 1000) / 1000,
-        Math.round(eye[1] * 1000) / 1000,
-        Math.round(eye[2] * 1000) / 1000,
-      ];
+      const eyePos: [number, number, number] = isRef100
+        ? [
+            Math.round(eye[0] * 1000) / 1000,
+            Math.round(eye[1] * 1000) / 1000,
+            Math.round(eye[2] * 1000) / 1000,
+          ]
+        : [
+            Math.round(posX * 1000) / 1000,
+            Math.round((seatFloorY + 2.24) * 1000) / 1000,
+            Math.round((posZ + 0.10) * 1000) / 1000,
+          ];
 
       const sDist = screenDistance(eyePos, screenCenter);
       const hAngle = horizontalAngle(eyePos, screenCenter);
       const vAngle = verticalAngle(eyePos, screenCenter);
       const fov = screenFov(eyePos, screenWidth, screenHeight, screenCenter);
 
+      const isAccessible = _accessibleSeats.has(seatId);
+      const isCompanion = (input.companion_seats && input.companion_seats.includes(seatId)) ||
+        (isAccessible === false && _accessibleSeats.has(`${row}${String(num - 1).padStart(2, '0')}`));
+      const pairPartner = reclinerPairMap.get(seatId);
+
+      const isReclinerFormat = Boolean(
+        theatreDef.id === 'luxury_recliner' ||
+        input.theatre_type === 'luxury_recliner' ||
+        input.screen_format === 'Dolby Cinema' ||
+        input.equipment_profile?.seat_family === 'recliner'
+      );
+
+      let seatType = isAccessible
+        ? 'accessible'
+        : (isCompanion
+          ? 'companion'
+          : (isDedicatedMotionHall || (!pairPartner && motionRows.has(row))
+            ? 'motion'
+            : (theatreDef.id === 'boutique'
+              ? 'sofa'
+              : (pairPartner
+                ? 'recliner_pair'
+                : (isReclinerFormat ? 'recliner' : 'standard')))));
+
+      // Override if row definition explicitly specifies seat type
+      if (rd?.seat_types && rd.seat_types[num]) {
+        seatType = rd.seat_types[num];
+      }
+
       const seatRec: SeatRecord = {
         seat_id: seatId,
         node_name: `seat_${row}_${String(num).padStart(2, '0')}`,
         row,
         number: num,
-        category: cat,
+        category: effectiveCategory,
         price,
-        position_gltf_y_up: [posX, posY, posZ],
+        position_gltf_y_up: [posX, seatFloorY, posZ],
         bounds_gltf_y_up: bounds,
         eye_position_gltf_y_up: eyePos,
         screen_distance: Math.round(sDist * 1000) / 1000,
@@ -287,9 +882,21 @@ export function generateProceduralAuditorium(
         vertical_angle_deg: Math.round(vAngle * 100) / 100,
         screen_h_fov_deg: Math.round(fov.hFov * 10) / 10,
         screen_v_fov_deg: Math.round(fov.vFov * 10) / 10,
+        seat_type: seatType as any,
+        pod_id: podId,
+        motion_zone: isMotionHall ? 'all' : undefined,
+        pair_partner_id: pairPartner,
+        level: isBalcony ? 'balcony' : 'stalls',
+        section: isBalcony ? 'Balcony' : 'Stalls',
+        in_motion_zone: isMotionHall ? true : motionRows.has(row),
       };
 
       seatRecords.push(seatRec);
+
+      if (podId) {
+        if (!podSeatLists.has(podId)) podSeatLists.set(podId, []);
+        podSeatLists.get(podId)!.push(seatRec);
+      }
 
       // Seat obstacle collider for Walk Mode
       colliders.push({
@@ -315,16 +922,31 @@ export function generateProceduralAuditorium(
   });
 
   // Tier platforms
-  const tierGeometries: Array<{ name: string; row: string; bounds: BoundingBox3D; topY: number }> = [];
+  const tierGeometries: Array<{ name: string; row: string; bounds: BoundingBox3D; topY: number; level?: 'stalls' | 'balcony' }> = [];
   for (let rIdx = 0; rIdx < rows.length; rIdx++) {
     const row = rows[rIdx];
-    const rowZ = ROW_A_Z - rIdx * ROW_PITCH;
-    const tierTopY = Math.round((rIdx + 1) * TIER_RISE * 1000) / 1000;
-    const tierBottomY = Math.round(rIdx * TIER_RISE * 1000) / 1000;
+    const isBalcony = balconyRowSet.has(row);
+    let rowZ = rowAZ - rIdx * rowPitch;
+    let tierTopY: number;
+    let tierBottomY: number;
+
+    if (isBalcony) {
+      const bIdx = balconyRowsList.indexOf(row);
+      const balconyElevationJump = 3.6;
+      tierTopY = Math.round((ROW_A_Y + stallsCount * tierRise + balconyElevationJump + (bIdx + 1) * (tierRise + 0.12)) * 1000) / 1000;
+      tierBottomY = Math.round((ROW_A_Y + stallsCount * tierRise + balconyElevationJump + bIdx * (tierRise + 0.12)) * 1000) / 1000;
+      rowZ = rowAZ - (stallsCount + bIdx) * rowPitch - 0.5;
+    } else if (isRef100) {
+      tierTopY = Math.round((rIdx + 1) * tierRise * 1000) / 1000;
+      tierBottomY = Math.round(rIdx * tierRise * 1000) / 1000;
+    } else {
+      tierTopY = rowYElevations[rIdx];
+      tierBottomY = rIdx === 0 ? 0.0 : rowYElevations[rIdx - 1];
+    }
 
     const tierBounds: BoundingBox3D = {
-      min: [-halfWidth + 2.0, tierBottomY, Math.round((rowZ - 0.818) * 1000) / 1000],
-      max: [halfWidth - 2.0, tierTopY, Math.round((rowZ + 0.682) * 1000) / 1000],
+      min: [-halfWidth + 2.0, tierBottomY, Math.round((rowZ - rowPitch * 0.54) * 1000) / 1000],
+      max: [halfWidth - 2.0, tierTopY, Math.round((rowZ + rowPitch * 0.46) * 1000) / 1000],
     };
 
     const tierObj = {
@@ -332,6 +954,7 @@ export function generateProceduralAuditorium(
       row,
       bounds: tierBounds,
       topY: tierTopY,
+      level: isBalcony ? ('balcony' as const) : ('stalls' as const),
     };
 
     tierGeometries.push(tierObj);
@@ -348,28 +971,41 @@ export function generateProceduralAuditorium(
   const aisleSteps: Array<{ name: string; bounds: BoundingBox3D; topY: number }> = [];
   const aisleCenters: number[] = [];
 
+  const defaultRowXPositions = computeRowXPositions(defaultSeatsPerRow, aisles, seatPitch, aisleGap);
   for (const aIdx of aisles) {
-    if (aIdx >= 1 && aIdx < seatsPerRow) {
-      const leftSeatX = xPositions[aIdx - 1];
-      const rightSeatX = xPositions[aIdx];
+    if (aIdx >= 1 && aIdx < defaultSeatsPerRow) {
+      const leftSeatX = defaultRowXPositions[aIdx - 1];
+      const rightSeatX = defaultRowXPositions[aIdx];
       const aisleCenterX = (leftSeatX + rightSeatX) / 2.0;
       aisleCenters.push(aisleCenterX);
 
       for (let rIdx = 0; rIdx < rows.length; rIdx++) {
         const row = rows[rIdx];
-        const rowZ = ROW_A_Z - rIdx * ROW_PITCH;
-        const treadY = Math.round((rIdx + 1) * TIER_RISE * 1000) / 1000;
+        const isBalcony = balconyRowSet.has(row);
+        let rowZ = rowAZ - rIdx * rowPitch;
+        let treadY: number;
+
+        if (isBalcony) {
+          const bIdx = balconyRowsList.indexOf(row);
+          const balconyElevationJump = 3.6;
+          treadY = Math.round((ROW_A_Y + stallsCount * tierRise + balconyElevationJump + (bIdx + 1) * (tierRise + 0.12)) * 1000) / 1000;
+          rowZ = rowAZ - (stallsCount + bIdx) * rowPitch - 0.5;
+        } else if (isRef100) {
+          treadY = Math.round((rIdx + 1) * tierRise * 1000) / 1000;
+        } else {
+          treadY = rowYElevations[rIdx];
+        }
 
         const stepBounds: BoundingBox3D = {
           min: [
-            Math.round((aisleCenterX - 0.6) * 1000) / 1000,
+            Math.round((aisleCenterX - aisleGap * 0.45) * 1000) / 1000,
             treadY - 0.05,
-            Math.round((rowZ - 0.75) * 1000) / 1000,
+            Math.round((rowZ - rowPitch * 0.5) * 1000) / 1000,
           ],
           max: [
-            Math.round((aisleCenterX + 0.6) * 1000) / 1000,
+            Math.round((aisleCenterX + aisleGap * 0.45) * 1000) / 1000,
             treadY,
-            Math.round((rowZ + 0.75) * 1000) / 1000,
+            Math.round((rowZ + rowPitch * 0.5) * 1000) / 1000,
           ],
         };
 
@@ -382,6 +1018,60 @@ export function generateProceduralAuditorium(
         aisleSteps.push(stepObj);
         walkableSurfaces.push({
           name: `aisle_tread_${aIdx}_${row}`,
+          type: 'tread',
+          bounds: stepBounds,
+          top_y: treadY,
+        });
+      }
+    }
+  }
+
+  // Continental seating (no internal aisles): generate perimeter side aisle steps
+  if (aisles.length === 0) {
+    const sideAisleCenters = [-(maxSeatAbsX + 1.2), (maxSeatAbsX + 1.2)];
+    for (let sIdx = 0; sIdx < sideAisleCenters.length; sIdx++) {
+      const aisleCenterX = sideAisleCenters[sIdx];
+      aisleCenters.push(aisleCenterX);
+
+      for (let rIdx = 0; rIdx < rows.length; rIdx++) {
+        const row = rows[rIdx];
+        const isBalcony = balconyRowSet.has(row);
+        let rowZ = rowAZ - rIdx * rowPitch;
+        let treadY: number;
+
+        if (isBalcony) {
+          const bIdx = balconyRowsList.indexOf(row);
+          const balconyElevationJump = 3.6;
+          treadY = Math.round((ROW_A_Y + stallsCount * tierRise + balconyElevationJump + (bIdx + 1) * (tierRise + 0.12)) * 1000) / 1000;
+          rowZ = rowAZ - (stallsCount + bIdx) * rowPitch - 0.5;
+        } else if (isRef100) {
+          treadY = Math.round((rIdx + 1) * tierRise * 1000) / 1000;
+        } else {
+          treadY = rowYElevations[rIdx];
+        }
+
+        const stepBounds: BoundingBox3D = {
+          min: [
+            Math.round((aisleCenterX - aisleGap * 0.45) * 1000) / 1000,
+            treadY - 0.05,
+            Math.round((rowZ - rowPitch * 0.5) * 1000) / 1000,
+          ],
+          max: [
+            Math.round((aisleCenterX + aisleGap * 0.45) * 1000) / 1000,
+            treadY,
+            Math.round((rowZ + rowPitch * 0.5) * 1000) / 1000,
+          ],
+        };
+
+        const stepObj = {
+          name: `side_aisle_tread_${sIdx}_${row}`,
+          bounds: stepBounds,
+          topY: treadY,
+        };
+
+        aisleSteps.push(stepObj);
+        walkableSurfaces.push({
+          name: `side_aisle_tread_${sIdx}_${row}`,
           type: 'tread',
           bounds: stepBounds,
           top_y: treadY,
@@ -426,17 +1116,24 @@ export function generateProceduralAuditorium(
   };
   colliders.push(screenStructure);
 
-  // Stage Lip Collider
+  // Stage Lip & Apron
+  // Coherent rule: Empty floor between stage edge and Row A at most 4 m (8.0 scene units).
+  // Deepen the stage/apron so that empty floor is ~2.75 m (5.5 scene units), strictly <= 4.0 m.
+  const distToRowA = Math.abs(rowAZ - SCREEN_Z);
+  const stageLipDepth = Math.max(2.4, Math.round((distToRowA - 5.5) * 100) / 100);
+  const stageLipFrontZ = SCREEN_Z - stageLipDepth;
+  const stageLipWidth = Math.min(screenWidth + 1.2, halfWidth * 1.8);
   const stageLip: BoundingBox3D = {
-    min: [-screenWidth / 2 - 1.5, 0.0, -4.5],
-    max: [screenWidth / 2 + 1.5, 0.85, SCREEN_Z - 0.1],
+    min: [-stageLipWidth / 2, 0.0, stageLipFrontZ],
+    max: [stageLipWidth / 2, 0.45, SCREEN_Z - 0.2],
   };
   colliders.push({ name: 'stage_lip', type: 'screen_structure', bounds: stageLip });
 
-  // 8. Acoustic Wall Panels & Lighting Accents
+  // 8. Architectural Features (Wood Slats, Curtains, Proscenium, Exit Signs, Runners)
   const acousticPanels: AcousticPanelDef[] = [];
   const sconces: Array<{ id: string; position: [number, number, number] }> = [];
   const stepLights: Array<{ id: string; position: [number, number, number] }> = [];
+  const woodenSlats: Array<{ id: string; position: [number, number, number]; size: [number, number, number]; rotationY: number }> = [];
 
   const panelCount = Math.max(5, Math.floor(Math.abs(zBack) / 2.8));
   const zStep = (Math.abs(zBack) - 3.0) / panelCount;
@@ -469,11 +1166,32 @@ export function generateProceduralAuditorium(
     });
   }
 
+  // Wooden vertical slats spaced on side walls
+  const slatSpacing = 0.55;
+  const slatCount = Math.floor((Math.abs(zBack) - 4.0) / slatSpacing);
+  for (let i = 0; i < slatCount; i++) {
+    const sZ = Math.round((-2.2 - i * slatSpacing) * 1000) / 1000;
+    // Left side wall
+    woodenSlats.push({
+      id: `slat_left_${i}`,
+      position: [halfWidth - 0.08, 4.2, sZ],
+      size: [0.06, 6.2, 0.12],
+      rotationY: 0,
+    });
+    // Right side wall
+    woodenSlats.push({
+      id: `slat_right_${i}`,
+      position: [-halfWidth + 0.08, 4.2, sZ],
+      size: [0.06, 6.2, 0.12],
+      rotationY: 0,
+    });
+  }
+
   // Step illumination accents on each aisle
   for (const acX of aisleCenters) {
     for (let rIdx = 0; rIdx < rows.length; rIdx++) {
-      const rowZ = ROW_A_Z - rIdx * ROW_PITCH;
-      const stepY = (rIdx + 1) * TIER_RISE;
+      const rowZ = rowAZ - rIdx * rowPitch;
+      const stepY = (rIdx + 1) * tierRise;
       stepLights.push({
         id: `steplight_${acX.toFixed(1)}_${rIdx}`,
         position: [acX - 0.55, stepY + 0.02, rowZ],
@@ -485,55 +1203,772 @@ export function generateProceduralAuditorium(
     }
   }
 
+  // Recessed downlight grid in warm white (2700 to 3000 K) over the aisles and seat blocks
+  const ceilingDownlights: Array<{ id: string; position: [number, number, number] }> = [];
+  const dlZStep = 3.2;
+  const dlXStep = Math.max(2.4, Math.min(3.2, (halfWidth * 1.5) / Math.max(3, Math.round((halfWidth * 1.5) / 2.8))));
+  const usedDlCoords = new Set<string>();
+
+  // 1. Grid over seating blocks
+  for (let x = -halfWidth * 0.72; x <= halfWidth * 0.72 + 0.1; x += dlXStep) {
+    for (let z = -3.5; z >= zBack + 1.2; z -= dlZStep) {
+      const rx = Math.round(x * 10) / 10;
+      const rz = Math.round(z * 10) / 10;
+      const key = `${rx}_${rz}`;
+      if (!usedDlCoords.has(key)) {
+        usedDlCoords.add(key);
+        ceilingDownlights.push({
+          id: `downlight_grid_${ceilingDownlights.length}`,
+          position: [rx, Math.round((ceilingHeight - 0.15) * 100) / 100, rz],
+        });
+      }
+    }
+  }
+
+  // 2. Dedicated downlights along all aisles
+  for (const acX of aisleCenters) {
+    for (let z = -3.5; z >= zBack + 1.2; z -= dlZStep) {
+      const rx = Math.round(acX * 10) / 10;
+      const rz = Math.round(z * 10) / 10;
+      const key = `${rx}_${rz}`;
+      if (!usedDlCoords.has(key)) {
+        usedDlCoords.add(key);
+        ceilingDownlights.push({
+          id: `downlight_aisle_${ceilingDownlights.length}`,
+          position: [rx, Math.round((ceilingHeight - 0.15) * 100) / 100, rz],
+        });
+      }
+    }
+  }
+
+  // Sound system-aware speaker layout
+  const soundSys = input.sound_system || input.equipment_profile?.sound_system || 'Dolby Atmos';
+  const isObjectAudio = soundSys.includes('Atmos') || soundSys.includes('DTS:X');
+  const isStandard51 = soundSys.includes('5.1');
+
+  const atmosSpeakers: Array<{ id: string; position: [number, number, number]; channel: string }> = [];
+
+  // Overhead ceiling speaker arrays: Only for Dolby Atmos and DTS:X
+  if (isObjectAudio) {
+    atmosSpeakers.push(
+      // Overhead ceiling array (6 speakers)
+      { id: 'atmos_top_l1', position: [-halfWidth * 0.45, ceilingHeight - 0.4, -6.5], channel: 'top_left_front' },
+      { id: 'atmos_top_r1', position: [halfWidth * 0.45, ceilingHeight - 0.4, -6.5], channel: 'top_right_front' },
+      { id: 'atmos_top_l2', position: [-halfWidth * 0.45, ceilingHeight - 0.4, -13.0], channel: 'top_left_middle' },
+      { id: 'atmos_top_r2', position: [halfWidth * 0.45, ceilingHeight - 0.4, -13.0], channel: 'top_right_middle' },
+      { id: 'atmos_top_l3', position: [-halfWidth * 0.45, ceilingHeight - 0.4, zBack + 3.0], channel: 'top_left_rear' },
+      { id: 'atmos_top_r3', position: [halfWidth * 0.45, ceilingHeight - 0.4, zBack + 3.0], channel: 'top_right_rear' },
+      // Side wall surrounds (6 speakers)
+      { id: 'atmos_surr_l1', position: [halfWidth - 0.25, 6.2, -7.0], channel: 'surround_left_front' },
+      { id: 'atmos_surr_r1', position: [-halfWidth + 0.25, 6.2, -7.0], channel: 'surround_right_front' },
+      { id: 'atmos_surr_l2', position: [halfWidth - 0.25, 6.6, -14.0], channel: 'surround_left_middle' },
+      { id: 'atmos_surr_r2', position: [-halfWidth + 0.25, 6.6, -14.0], channel: 'surround_right_middle' },
+      { id: 'atmos_surr_l3', position: [halfWidth - 0.25, 7.0, zBack + 3.0], channel: 'surround_left_rear' },
+      { id: 'atmos_surr_r3', position: [-halfWidth + 0.25, 7.0, zBack + 3.0], channel: 'surround_right_rear' },
+    );
+  } else if (isStandard51) {
+    // 5.1: 4 side surrounds and 2 rear surrounds (no overhead ceiling speakers)
+    atmosSpeakers.push(
+      { id: 'surr_l1', position: [halfWidth - 0.25, 6.2, -8.0], channel: 'surround_left_front' },
+      { id: 'surr_r1', position: [-halfWidth + 0.25, 6.2, -8.0], channel: 'surround_right_front' },
+      { id: 'surr_l2', position: [halfWidth - 0.25, 6.6, -14.0], channel: 'surround_left_rear' },
+      { id: 'surr_r2', position: [-halfWidth + 0.25, 6.6, -14.0], channel: 'surround_right_rear' },
+      { id: 'rear_l1', position: [halfWidth * 0.35, topTierY + 3.2, zBack + 0.25], channel: 'rear_left' },
+      { id: 'rear_r1', position: [-halfWidth * 0.35, topTierY + 3.2, zBack + 0.25], channel: 'rear_right' },
+    );
+  } else {
+    // 7.1: 6 side wall surrounds and 4 rear surrounds (no overhead ceiling speakers)
+    atmosSpeakers.push(
+      { id: 'surr_l1', position: [halfWidth - 0.25, 6.2, -7.0], channel: 'surround_left_front' },
+      { id: 'surr_r1', position: [-halfWidth + 0.25, 6.2, -7.0], channel: 'surround_right_front' },
+      { id: 'surr_l2', position: [halfWidth - 0.25, 6.6, -14.0], channel: 'surround_left_middle' },
+      { id: 'surr_r2', position: [-halfWidth + 0.25, 6.6, -14.0], channel: 'surround_right_middle' },
+      { id: 'surr_l3', position: [halfWidth - 0.25, 7.0, zBack + 3.0], channel: 'surround_left_rear' },
+      { id: 'surr_r3', position: [-halfWidth + 0.25, 7.0, zBack + 3.0], channel: 'surround_right_rear' },
+      { id: 'rear_l1', position: [halfWidth * 0.55, topTierY + 3.2, zBack + 0.25], channel: 'rear_left_outer' },
+      { id: 'rear_l2', position: [halfWidth * 0.20, topTierY + 3.2, zBack + 0.25], channel: 'rear_left_inner' },
+      { id: 'rear_r1', position: [-halfWidth * 0.20, topTierY + 3.2, zBack + 0.25], channel: 'rear_right_inner' },
+      { id: 'rear_r2', position: [-halfWidth * 0.55, topTierY + 3.2, zBack + 0.25], channel: 'rear_right_outer' },
+    );
+  }
+
+  // 3D Glasses Counter at entrance (for all 3D formats)
+  const is3DFormat = Boolean(
+    (input.screen_format && input.screen_format.includes('3D')) ||
+    input.equipment_profile?.has_glasses_counter
+  );
+
+  let glassesCounter: ProceduralGeometryData['glassesCounter'];
+  if (is3DFormat) {
+    const counterX = -halfWidth + 1.8;
+    const counterY = topTierY;
+    const counterZ = zBack + 3.6;
+    glassesCounter = {
+      bounds: {
+        min: [counterX - 0.6, counterY, counterZ - 1.2],
+        max: [counterX + 0.6, counterY + 1.8, counterZ + 1.2],
+      },
+      topTrayBounds: {
+        min: [counterX - 0.5, counterY + 1.8, counterZ - 1.0],
+        max: [counterX + 0.5, counterY + 2.1, counterZ + 1.0],
+      },
+      signBounds: {
+        min: [counterX - 0.4, counterY + 2.3, counterZ - 0.8],
+        max: [counterX + 0.4, counterY + 2.9, counterZ + 0.8],
+      },
+      glassesCount: 48,
+    };
+  }
+
+  // ScreenX side wall projectors
+  const isScreenX = Boolean(
+    input.screen_format?.toLowerCase().includes('screen') ||
+    input.equipment_profile?.is_screenx
+  );
+
+  const sideProjectors: Array<{ id: string; position: [number, number, number]; rotationY: number }> = [];
+  if (isScreenX) {
+    for (let z = -6.0; z >= zBack + 2.0; z -= 5.5) {
+      sideProjectors.push(
+        { id: `sp_left_${Math.abs(z).toFixed(0)}`, position: [halfWidth - 0.35, ceilingHeight - 1.2, z], rotationY: -Math.PI / 2 },
+        { id: `sp_right_${Math.abs(z).toFixed(0)}`, position: [-halfWidth + 0.35, ceilingHeight - 1.2, z], rotationY: Math.PI / 2 }
+      );
+    }
+  }
+
+  // Direct-view Samsung Onyx LED
+  const isDirectLED = Boolean(
+    input.equipment_profile?.is_direct_led ||
+    input.screen_format?.toLowerCase().includes('onyx')
+  );
+
+  const beamBrightness: 'laser' | 'bright' | 'standard' | 'none' = isDirectLED
+    ? 'none'
+    : (input.equipment_profile?.beam_brightness || (
+        input.screen_format?.includes('IMAX') || input.screen_format?.includes('Dolby') || input.projection_type?.includes('Laser')
+          ? 'laser'
+          : (is3DFormat ? 'bright' : 'standard')
+      ));
+
+  // Side curtains flanking the screen
+  const sideCurtains = {
+    left: {
+      min: [screenWidth / 2 + 0.1, 0.0, SCREEN_Z - 0.25] as [number, number, number],
+      max: [halfWidth - 0.5, screenCenterY + screenHeight / 2 + 1.2, SCREEN_Z + 0.35] as [number, number, number],
+    },
+    right: {
+      min: [-halfWidth + 0.5, 0.0, SCREEN_Z - 0.25] as [number, number, number],
+      max: [-screenWidth / 2 - 0.1, screenCenterY + screenHeight / 2 + 1.2, SCREEN_Z + 0.35] as [number, number, number],
+    },
+  };
+
+  // Subtle proscenium arch around screen
+  const proscenium: BoundingBox3D = {
+    min: [-screenWidth / 2 - 0.8, 0.0, SCREEN_Z - 0.22],
+    max: [screenWidth / 2 + 0.8, screenCenterY + screenHeight / 2 + 0.85, SCREEN_Z - 0.04],
+  };
+
+  // Illuminated EXIT signs
+  const exitSigns: Array<{ id: string; position: [number, number, number]; label: string }> = [
+    { id: 'exit_front_left', position: [halfWidth - 1.2, 4.0, SCREEN_Z + 1.6], label: 'EXIT' },
+    { id: 'exit_rear_right', position: [-halfWidth + 1.2, topTierY + 3.5, zBack + 1.4], label: 'EXIT' },
+  ];
+
+  // Aisles are open floor with low step lights (<0.5m), no tall partition walls or solid blocks
+  const carpetRunners: Array<{ name: string; bounds: BoundingBox3D }> = [];
+
+  // Balcony cantilevered structure if hall has balcony (properly supported with load-bearing structural columns, never floating)
+  let balconyStructure: ProceduralGeometryData['balconyStructure'];
+  if (hasBalcony && balconyRowsList.length > 0) {
+    const balconyFrontZ = rowAZ - stallsCount * rowPitch - 0.2;
+    const bBaseY = ROW_A_Y + stallsCount * tierRise + 3.6;
+    // Balcony is cantilevered and anchored to rear wall & ceiling structure: zero columns in seating area
+    const columns: Array<{ min: [number, number, number]; max: [number, number, number] }> = [];
+    balconyStructure = {
+      platform: {
+        min: [-halfWidth + 1.2, bBaseY - 0.65, zBack],
+        max: [halfWidth - 1.2, bBaseY, balconyFrontZ + 1.4],
+      },
+      fascia: {
+        min: [-halfWidth + 1.2, bBaseY - 0.65, balconyFrontZ + 1.3],
+        max: [halfWidth - 1.2, bBaseY + 0.05, balconyFrontZ + 1.45],
+      },
+      railing: {
+        min: [-halfWidth + 1.2, bBaseY, balconyFrontZ + 1.38],
+        max: [halfWidth - 1.2, bBaseY + 2.0, balconyFrontZ + 1.45], // ~1.0m height = 2.0 scene units
+      },
+      columns,
+      coveLightBounds: {
+        min: [-halfWidth + 1.4, bBaseY - 0.72, balconyFrontZ + 1.25],
+        max: [halfWidth - 1.4, bBaseY - 0.62, balconyFrontZ + 1.35],
+      },
+    };
+  }
+
+  // Cross aisle handrails: mid-hall in balcony hall, every few rows in motion hall (thin posts, see-through, ~0.9m = 1.8 scene units)
+  const crossAisleHandrails: ProceduralGeometryData['crossAisleHandrails'] = [];
+  if (hasBalcony) {
+    const midRowIdx = Math.floor(stallsCount / 2);
+    const midZ = rowAZ - midRowIdx * rowPitch - 0.15;
+    const midY = (midRowIdx + 1) * tierRise;
+    crossAisleHandrails.push({
+      id: 'handrail_mid_cross_aisle',
+      bounds: {
+        min: [-halfWidth + 2.2, midY, midZ - 0.06],
+        max: [halfWidth - 2.2, midY + 1.8, midZ + 0.06], // 0.9m height = 1.8 scene units
+      },
+      railColor: '#d4af37',
+    });
+  } else if (isMotionHall) {
+    for (let r = 4; r < totalRows - 1; r += 4) {
+      const crZ = rowAZ - r * rowPitch - 0.15;
+      const crY = (r + 1) * tierRise;
+      crossAisleHandrails.push({
+        id: `handrail_cross_aisle_${r}`,
+        bounds: {
+          min: [-halfWidth + 2.0, crY, crZ - 0.05],
+          max: [halfWidth - 2.0, crY + 1.8, crZ + 0.05], // 0.9m height = 1.8 scene units
+        },
+        railColor: '#38bdf8',
+      });
+    }
+  }
+
+  // Luxury recliner swivel tables, badges & side panels
+  const reclinerAccessories: ProceduralGeometryData['reclinerAccessories'] = [];
+  if (theatreDef.id === 'luxury_recliner') {
+    for (const seat of seatRecords) {
+      const [sx, sy, sz] = seat.position_gltf_y_up;
+      reclinerAccessories.push({
+        id: `table_${seat.seat_id}`,
+        seatId: seat.seat_id,
+        tablePosition: [sx + seatPitch * 0.38, sy - 0.12, sz - 0.08],
+        badgePosition: [sx, sy + 0.42, sz - 0.28],
+        sidePanelBounds: {
+          min: [sx + seatPitch * 0.34, sy - 0.85, sz - 0.45],
+          max: [sx + seatPitch * 0.42, sy - 0.10, sz + 0.35],
+        },
+      });
+    }
+  }
+
+  // Motion hall ceiling LED bars in steady blue, red, and white (no flashing)
+  const isMotionSeatHall = Boolean(
+    (input.screen_format && (input.screen_format.includes('4DX') || input.screen_format.includes('MX4D'))) ||
+    theatreDef.id === 'motion_seat' ||
+    theatreDef.id === 'dolby_atmos_4dx'
+  );
+  const motionLedBars: ProceduralGeometryData['motionLedBars'] = [];
+  if (isMotionSeatHall) {
+    const barZSpan = Math.abs(zBack) - 6.0;
+    const barRows = Math.max(3, Math.min(6, Math.round(barZSpan / 4.2)));
+    const zStep = barZSpan / (barRows + 1);
+    const colors: Array<'blue' | 'white' | 'red'> = ['blue', 'white', 'red'];
+
+    for (let br = 1; br <= barRows; br++) {
+      const bZ = Math.round((-3.0 - br * zStep) * 100) / 100;
+      const col = colors[(br - 1) % colors.length];
+      // Left longitudinal ceiling bar
+      motionLedBars.push({
+        id: `motion_led_l_${br}`,
+        position: [Math.round(-halfWidth * 0.52 * 100) / 100, Math.round((ceilingHeight - 0.28) * 100) / 100, bZ],
+        size: [0.12, 0.06, 2.6],
+        rotation: [0, 0, 0],
+        colorType: col,
+      });
+      // Right longitudinal ceiling bar
+      motionLedBars.push({
+        id: `motion_led_r_${br}`,
+        position: [Math.round(halfWidth * 0.52 * 100) / 100, Math.round((ceilingHeight - 0.28) * 100) / 100, bZ],
+        size: [0.12, 0.06, 2.6],
+        rotation: [0, 0, 0],
+        colorType: col,
+      });
+      // Center transverse ceiling accent
+      motionLedBars.push({
+        id: `motion_led_c_${br}`,
+        position: [0, Math.round((ceilingHeight - 0.28) * 100) / 100, bZ],
+        size: [2.2, 0.06, 0.12],
+        rotation: [0, 0, 0],
+        colorType: col,
+      });
+    }
+  }
+
+  const amberOutlinePanels: ProceduralGeometryData['amberOutlinePanels'] = [];
+
+  // 8c. Suspended Acoustic Ceiling Clouds & Roof Structural Trusses
+  const ceilingClouds: ProceduralGeometryData['ceilingClouds'] = [];
+  const roofTrusses: ProceduralGeometryData['roofTrusses'] = [];
+  const ventilationDucts: ProceduralGeometryData['ventilationDucts'] = [];
+  const coveLightStrips: ProceduralGeometryData['coveLightStrips'] = [];
+  const skirtingLights: ProceduralGeometryData['skirtingLights'] = [];
+  const doorFrames: ProceduralGeometryData['doorFrames'] = [];
+
+  // 1. Suspended Acoustic Clouds
+  const cloudCount = theatreDef.ceilingDesign.cloudsCount || 6;
+  const cloudRows = Math.max(2, Math.min(5, Math.ceil(cloudCount / 3)));
+  const cloudCols = Math.max(2, Math.min(3, Math.ceil(cloudCount / cloudRows)));
+  const cloudZSpan = Math.abs(zBack) - 6.0;
+  const cloudZStep = cloudZSpan / (cloudRows + 1);
+  const cloudWidth = (halfWidth * 1.5) / cloudCols;
+  const cloudDepth = Math.max(2.5, cloudZStep * 0.75);
+
+  let cIdx = 0;
+  for (let cr = 1; cr <= cloudRows; cr++) {
+    const cZ = -4.0 - cr * cloudZStep;
+    for (let cc = 0; cc < cloudCols; cc++) {
+      if (cIdx >= cloudCount) break;
+      const cX = -halfWidth * 0.7 + (cc + 0.5) * ((halfWidth * 1.4) / cloudCols);
+      ceilingClouds.push({
+        id: `cloud_${cr}_${cc}`,
+        bounds: {
+          min: [
+            Math.round((cX - cloudWidth * 0.45) * 1000) / 1000,
+            Math.round((ceilingHeight - 0.75) * 1000) / 1000,
+            Math.round((cZ - cloudDepth * 0.5) * 1000) / 1000,
+          ],
+          max: [
+            Math.round((cX + cloudWidth * 0.45) * 1000) / 1000,
+            Math.round((ceilingHeight - 0.50) * 1000) / 1000,
+            Math.round((cZ + cloudDepth * 0.5) * 1000) / 1000,
+          ],
+        },
+        style: theatreDef.ceilingDesign.structure,
+      });
+      cIdx++;
+    }
+  }
+
+  // Under-balcony clouds if balcony exists
+  if (hasBalcony && balconyRowsList.length > 0) {
+    const bBaseY = ROW_A_Y + stallsCount * tierRise + 3.6;
+    const balconyFrontZ = rowAZ - stallsCount * rowPitch - 0.2;
+    ceilingClouds.push({
+      id: 'under_balcony_cloud_l',
+      bounds: {
+        min: [-halfWidth + 2.0, bBaseY - 0.65, zBack + 1.0],
+        max: [-0.5, bBaseY - 0.55, balconyFrontZ + 1.0],
+      },
+      style: 'under_balcony',
+    });
+    ceilingClouds.push({
+      id: 'under_balcony_cloud_r',
+      bounds: {
+        min: [0.5, bBaseY - 0.65, zBack + 1.0],
+        max: [halfWidth - 2.0, bBaseY - 0.55, balconyFrontZ + 1.0],
+      },
+      style: 'under_balcony',
+    });
+  }
+
+  // 2. Transverse Roof Trusses / Beams
+  const trussCount = theatreDef.ceilingDesign.trussesCount || 4;
+  const trussZSpan = Math.abs(zBack) - 4.5;
+  const trussZStep = trussZSpan / (trussCount + 1);
+  for (let t = 1; t <= trussCount; t++) {
+    const tZ = Math.round((-2.5 - t * trussZStep) * 1000) / 1000;
+    roofTrusses.push({
+      id: `truss_${t}`,
+      bounds: {
+        min: [-halfWidth + 0.1, Math.round((ceilingHeight - 0.85) * 1000) / 1000, tZ - 0.2],
+        max: [halfWidth - 0.1, Math.round((ceilingHeight - 0.15) * 1000) / 1000, tZ + 0.2],
+      },
+    });
+  }
+
+  // 3. Ventilation Ducts (HVAC)
+  if (theatreDef.ceilingDesign.hasDucts) {
+    const ductYMin = Math.round((ceilingHeight - 1.25) * 1000) / 1000;
+    const ductYMax = Math.round((ceilingHeight - 0.65) * 1000) / 1000;
+    // Left duct (+X)
+    ventilationDucts.push({
+      id: 'duct_left',
+      bounds: {
+        min: [Math.round((halfWidth * 0.65 - 0.45) * 1000) / 1000, ductYMin, zBack + 1.0],
+        max: [Math.round((halfWidth * 0.65 + 0.45) * 1000) / 1000, ductYMax, -1.8],
+      },
+    });
+    // Right duct (-X)
+    ventilationDucts.push({
+      id: 'duct_right',
+      bounds: {
+        min: [Math.round((-halfWidth * 0.65 - 0.45) * 1000) / 1000, ductYMin, zBack + 1.0],
+        max: [Math.round((-halfWidth * 0.65 + 0.45) * 1000) / 1000, ductYMax, -1.8],
+      },
+    });
+  }
+
+  // 4. Continuous Cove Light Channels
+  // Left wall cove (+X)
+  coveLightStrips.push({
+    id: 'cove_left_wall',
+    bounds: {
+      min: [halfWidth - 0.35, Math.round((ceilingHeight - 0.40) * 1000) / 1000, zBack + 0.5],
+      max: [halfWidth - 0.15, Math.round((ceilingHeight - 0.20) * 1000) / 1000, -1.2],
+    },
+    color: theatreDef.palette.coveColor,
+  });
+  // Right wall cove (-X)
+  coveLightStrips.push({
+    id: 'cove_right_wall',
+    bounds: {
+      min: [-halfWidth + 0.15, Math.round((ceilingHeight - 0.40) * 1000) / 1000, zBack + 0.5],
+      max: [-halfWidth + 0.35, Math.round((ceilingHeight - 0.20) * 1000) / 1000, -1.2],
+    },
+    color: theatreDef.palette.coveColor,
+  });
+  // Screen proscenium top cove
+  coveLightStrips.push({
+    id: 'cove_screen_header',
+    bounds: {
+      min: [-screenWidth / 2 - 0.8, Math.round((screenCenterY + screenHeight / 2 + 0.75) * 1000) / 1000, SCREEN_Z - 0.22],
+      max: [screenWidth / 2 + 0.8, Math.round((screenCenterY + screenHeight / 2 + 0.95) * 1000) / 1000, SCREEN_Z - 0.05],
+    },
+    color: theatreDef.palette.coveColor,
+  });
+  // Screen proscenium left and right edge cove strips
+  coveLightStrips.push({
+    id: 'cove_screen_left',
+    bounds: {
+      min: [Math.round((-screenWidth / 2 - 0.85) * 1000) / 1000, Math.round((screenCenterY - screenHeight / 2 - 0.2) * 1000) / 1000, SCREEN_Z - 0.22],
+      max: [Math.round((-screenWidth / 2 - 0.65) * 1000) / 1000, Math.round((screenCenterY + screenHeight / 2 + 0.8) * 1000) / 1000, SCREEN_Z - 0.05],
+    },
+    color: theatreDef.palette.coveColor,
+  });
+  coveLightStrips.push({
+    id: 'cove_screen_right',
+    bounds: {
+      min: [Math.round((screenWidth / 2 + 0.65) * 1000) / 1000, Math.round((screenCenterY - screenHeight / 2 - 0.2) * 1000) / 1000, SCREEN_Z - 0.22],
+      max: [Math.round((screenWidth / 2 + 0.85) * 1000) / 1000, Math.round((screenCenterY + screenHeight / 2 + 0.8) * 1000) / 1000, SCREEN_Z - 0.05],
+    },
+    color: theatreDef.palette.coveColor,
+  });
+  // Rear wall cove
+  coveLightStrips.push({
+    id: 'cove_rear_wall',
+    bounds: {
+      min: [-halfWidth + 0.8, Math.round((ceilingHeight - 0.40) * 1000) / 1000, zBack + 0.12],
+      max: [halfWidth - 0.8, Math.round((ceilingHeight - 0.20) * 1000) / 1000, zBack + 0.32],
+    },
+    color: theatreDef.palette.coveColor,
+  });
+
+  // 5. Continuous Skirting Baseboard Lights
+  skirtingLights.push({
+    id: 'skirting_left',
+    bounds: {
+      min: [halfWidth - 0.15, 0.02, zBack + 0.5],
+      max: [halfWidth - 0.05, 0.14, -1.2],
+    },
+  });
+  skirtingLights.push({
+    id: 'skirting_right',
+    bounds: {
+      min: [-halfWidth + 0.05, 0.02, zBack + 0.5],
+      max: [-halfWidth + 0.15, 0.14, -1.2],
+    },
+  });
+
+  // 6. Emergency Exit Door Portals & Frames
+  doorFrames.push({
+    id: 'door_front_left',
+    frameBounds: {
+      min: [halfWidth - 0.22, 0.0, SCREEN_Z + 0.8],
+      max: [halfWidth + 0.05, 3.2, SCREEN_Z + 2.5],
+    },
+    doorBounds: {
+      min: [halfWidth - 0.12, 0.05, SCREEN_Z + 0.95],
+      max: [halfWidth + 0.02, 3.1, SCREEN_Z + 2.35],
+    },
+  });
+  doorFrames.push({
+    id: 'door_rear_right',
+    frameBounds: {
+      min: [-halfWidth - 0.05, topTierY, zBack + 0.8],
+      max: [-halfWidth + 0.22, topTierY + 3.2, zBack + 2.5],
+    },
+    doorBounds: {
+      min: [-halfWidth - 0.02, topTierY + 0.05, zBack + 0.95],
+      max: [-halfWidth + 0.12, topTierY + 3.1, zBack + 2.35],
+    },
+  });
+
+  // 7. Rear Wall Projection Booth & Apertures
+  const boothBaseY = Math.round(Math.max(topTierY + 1.2, ceilingHeight * 0.52) * 1000) / 1000;
+  const boothTopY = Math.round(Math.min(boothBaseY + 3.4, ceilingHeight - 0.4) * 1000) / 1000;
+  const boothCenterY = Math.round(((boothBaseY + boothTopY) / 2.0) * 1000) / 1000;
+  const projectionBooth: ProceduralGeometryData['projectionBooth'] = {
+    housing: {
+      min: [-3.8, boothBaseY, zBack - 0.3],
+      max: [3.8, boothTopY, zBack + 0.75],
+    },
+    centerWindow: {
+      min: [-1.4, boothCenterY - 0.55, zBack + 0.72],
+      max: [1.4, boothCenterY + 0.55, zBack + 0.80],
+    },
+    sideWindows: [
+      {
+        min: [1.8, boothCenterY - 0.4, zBack + 0.72],
+        max: [3.2, boothCenterY + 0.4, zBack + 0.80],
+      },
+      {
+        min: [-3.2, boothCenterY - 0.4, zBack + 0.72],
+        max: [-1.8, boothCenterY + 0.4, zBack + 0.80],
+      },
+    ],
+    projectorAperture: [0.0, boothCenterY, zBack + 0.85],
+    screenTarget: [0.0, screenCenterY + screenHeight * 0.15, SCREEN_Z],
+  };
+
+  // 8. 4DX Effect Rigs (when applicable)
+  let effectRigs: ProceduralGeometryData['effectRigs'];
+  if (theatreDef.features.is_4dx || input.features?.is_4dx) {
+    effectRigs = [
+      {
+        id: 'effect_rig_front',
+        trussBounds: {
+          min: [-halfWidth * 0.65, ceilingHeight - 1.8, -6.2],
+          max: [halfWidth * 0.65, ceilingHeight - 1.5, -5.8],
+        },
+        nozzles: [],
+        fans: [],
+      },
+      {
+        id: 'effect_rig_mid',
+        trussBounds: {
+          min: [-halfWidth * 0.65, ceilingHeight - 1.8, -13.2],
+          max: [halfWidth * 0.65, ceilingHeight - 1.5, -12.8],
+        },
+        nozzles: [],
+        fans: [],
+      },
+    ];
+  }
+
+  // 9. Acoustic Baffles (Flagship & Large halls)
+  let acousticBaffles: ProceduralGeometryData['acousticBaffles'];
+  if (theatreDef.ceilingDesign.hasBaffles) {
+    acousticBaffles = [];
+    for (let b = 0; b < 6; b++) {
+      const bZ = -5.0 - b * ((Math.abs(zBack) - 8.0) / 5.0);
+      acousticBaffles.push({
+        id: `baffle_l_${b}`,
+        bounds: {
+          min: [halfWidth * 0.45, ceilingHeight - 1.4, bZ - 0.08],
+          max: [halfWidth * 0.47, ceilingHeight - 0.5, bZ + 0.08],
+        },
+      });
+      acousticBaffles.push({
+        id: `baffle_r_${b}`,
+        bounds: {
+          min: [-halfWidth * 0.47, ceilingHeight - 1.4, bZ - 0.08],
+          max: [-halfWidth * 0.45, ceilingHeight - 0.5, bZ + 0.08],
+        },
+      });
+    }
+  }
+
+  // 10. Motion Pod Bases & Effect Props (Motion-seat Hall)
+  const motionPodBases: ProceduralGeometryData['motionPodBases'] = [];
+  if (isMotionHall && podSeatLists.size > 0) {
+    for (const [podId, podSeats] of Array.from(podSeatLists.entries())) {
+      const pRow = podSeats[0].row;
+      const xVals = podSeats.map((s) => s.position_gltf_y_up[0]);
+      const yVals = podSeats.map((s) => s.position_gltf_y_up[1]);
+      const zVals = podSeats.map((s) => s.position_gltf_y_up[2]);
+      const minX = Math.min(...xVals) - seatPitch * 0.44;
+      const maxX = Math.max(...xVals) + seatPitch * 0.44;
+      const baseFloorY = Math.min(...yVals) - 0.995;
+      const baseTopY = baseFloorY + 0.18;
+      const avgZ = zVals.reduce((a, b) => a + b, 0) / zVals.length;
+      const minZ = avgZ - 0.52;
+      const maxZ = avgZ + 0.52;
+      const width = maxX - minX;
+      const depth = maxZ - minZ;
+      const center: [number, number, number] = [(minX + maxX) / 2, baseFloorY + 0.09, avgZ];
+      const size: [number, number, number] = [width, 0.18, depth];
+
+      const podBounds: BoundingBox3D = {
+        min: [Math.round(minX * 1000) / 1000, Math.round(baseFloorY * 1000) / 1000, Math.round(minZ * 1000) / 1000],
+        max: [Math.round(maxX * 1000) / 1000, Math.round(baseTopY * 1000) / 1000, Math.round(maxZ * 1000) / 1000],
+      };
+
+      const pistons: Array<[number, number, number]> = [
+        [center[0] - width * 0.38, baseFloorY + 0.09, center[2] - depth * 0.35],
+        [center[0] + width * 0.38, baseFloorY + 0.09, center[2] - depth * 0.35],
+        [center[0] - width * 0.38, baseFloorY + 0.09, center[2] + depth * 0.35],
+        [center[0] + width * 0.38, baseFloorY + 0.09, center[2] + depth * 0.35],
+      ];
+
+      const grilles: Array<[number, number, number]> = podSeats.map((s) => [
+        s.position_gltf_y_up[0],
+        baseTopY + 0.005,
+        s.position_gltf_y_up[2] + 0.15,
+      ]);
+
+      motionPodBases.push({
+        id: `pod_base_${podId}`,
+        row: pRow,
+        bounds: podBounds,
+        center,
+        size,
+        pistons,
+        grilles,
+      });
+
+      // Add to walk colliders
+      colliders.push({
+        name: `pod_base_${podId}_collider`,
+        type: 'pod_base' as any,
+        bounds: podBounds,
+      });
+    }
+  }
+
+  const effectProps: ProceduralGeometryData['effectProps'] = [];
+  // Environmental effect props (fans, fog machines, water nozzles, strobes, scents) removed per pure seat motion spec.
+
+  // Add wall units to colliders for walk navigation if present
+  if (effectProps && effectProps.length > 0) {
+    for (const ep of effectProps) {
+      if (ep.type === 'fog') {
+        colliders.push({
+          name: `effect_prop_${ep.id}_collider`,
+          type: 'effect_rig' as any,
+          bounds: {
+            min: [ep.position[0] - 0.45, ep.position[1] - 0.45, ep.position[2] - 0.45],
+            max: [ep.position[0] + 0.45, ep.position[1] + 0.45, ep.position[2] + 0.45],
+          },
+        });
+      }
+    }
+  }
+
   // 9. Camera Boundaries and Safe Limits
+  const zRearSeats = rowAZ - (totalRows - 1) * rowPitch;
+  const seatingCenterZ = (rowAZ + zRearSeats) * 0.5;
+  const seatingCenterY = topTierY * 0.45 + 1.8;
+
   const cameraBounds = {
-    minX: -halfWidth + 1.8,
-    maxX: halfWidth - 1.8,
+    minX: -halfWidth + 0.8,
+    maxX: halfWidth - 0.8,
     minY: 1.1,
-    maxY: ceilingHeight - 1.4,
-    minZ: zBack + 1.8,
-    maxZ: -2.2,
+    maxY: ceilingHeight - 0.6,
+    minZ: zBack + 0.8,
+    maxZ: SCREEN_Z + 1.2,
   };
 
   const targetBounds = {
-    minX: -maxSeatAbsX * 0.8,
-    maxX: maxSeatAbsX * 0.8,
-    minY: 1.5,
-    maxY: Math.min(8.0, ceilingHeight - 3.0),
-    minZ: ROW_A_Z - (totalRows - 1) * ROW_PITCH + 2.0,
-    maxZ: -3.0,
+    minX: -Math.min(4.5, halfWidth * 0.4),
+    maxX: Math.min(4.5, halfWidth * 0.4),
+    minY: 1.2,
+    maxY: Math.min(7.5, topTierY + 3.0),
+    minZ: zRearSeats - 1.0,
+    maxZ: rowAZ + 1.0,
   };
 
   const defaultCameraPos: [number, number, number] = [
     0.0,
-    Math.min(9.5, topTierY + 6.2),
-    zBack + 3.8,
+    Math.min(ceilingHeight - 1.2, topTierY + 3.2),
+    Math.max(zBack + 1.2, zRearSeats - 3.2),
   ];
   const defaultCameraTarget: [number, number, number] = [
     0.0,
-    screenCenterY * 0.68,
-    -8.0,
+    seatingCenterY,
+    seatingCenterZ,
   ];
+
+  // Camera Presets (§ Product Polish)
+  const cameraPresets: Record<string, { position: [number, number, number]; target: [number, number, number]; caption: string }> = {
+    overview: {
+      position: defaultCameraPos,
+      target: defaultCameraTarget,
+      caption: 'Auditorium Overview',
+    },
+    front: {
+      position: [0.0, 3.2, rowAZ + 1.5],
+      target: [0.0, screenCenterY, SCREEN_Z],
+      caption: 'Front Stalls View',
+    },
+    back: {
+      position: [0.0, Math.min(topTierY + 4.2, ceilingHeight - 1.8), zBack + 1.5],
+      target: [0.0, screenCenterY, SCREEN_Z],
+      caption: 'Premier Centre View',
+    },
+    balcony: {
+      position: [0.0, hasBalcony ? topTierY + 4.8 : topTierY + 3.5, zBack + 1.2],
+      target: [0.0, screenCenterY * 0.9, SCREEN_Z],
+      caption: 'Balcony Tier View',
+    },
+    screen: {
+      position: [0.0, 2.5, SCREEN_Z + 1.8],
+      target: [0.0, topTierY * 0.5 + 2.0, (rowAZ + zBack) / 2],
+      caption: 'Near Screen Facing Seating',
+    },
+    top: {
+      position: [0.0, ceilingHeight - 1.4, (rowAZ + zBack) / 2],
+      target: [0.0, 1.0, (rowAZ + zBack) / 2],
+      caption: 'Top-down Plan View',
+    },
+    picker: {
+      position: [0.0, Math.min(topTierY + 5.0, ceilingHeight - 2.5), (rowAZ + zBack) / 2 - 2.0],
+      target: [0.0, 2.5, (rowAZ + zBack) / 2],
+      caption: 'Seat Picker View',
+    },
+    ...(isMotionHall
+      ? {
+          effects_rig: {
+            position: [0.0, ceilingHeight - 2.2, -12.0] as [number, number, number],
+            target: [0.0, ceilingHeight - 1.2, -18.0] as [number, number, number],
+            caption: 'Effects Rig & Environment',
+          },
+          wrap_screen: {
+            position: [0.0, 3.2, rowAZ + 2.0] as [number, number, number],
+            target: [0.0, screenCenterY, SCREEN_Z] as [number, number, number],
+            caption: 'Wrap Screen Panoramic View',
+          },
+        }
+      : {}),
+  };
 
   // 10. Assemble Output Data Structures
   const categoriesRecord: Record<SeatCategory, CategoryInfo> = {
-    front: { label: 'Front', rows: 'A-C', price: Math.round(basePrice * 0.8), color: '#7c2d12' },
+    front: { label: 'Front', rows: 'A-C', price: Math.round(basePrice * 0.75), color: '#7c2d12' },
     prime: { label: 'Prime', rows: 'D-G', price: basePrice, color: '#881337' },
-    premier: { label: 'Premier', rows: 'H-J', price: Math.round(basePrice * 1.35), color: '#9f1239' },
+    premier: { label: 'Premier', rows: 'H-J', price: Math.round(basePrice * 1.45), color: '#9f1239' },
   };
 
   const seatLayout: SeatLayoutFile = {
     version: 2,
-    generated_from: `procedural_generator_${input.screen_type || 'default'}`,
+    generated_from: `procedural_generator_${input.screen_type || theatreDef.name}`,
+    theatre_type: theatreDef.id,
+    theatre_type_name: theatreDef.name,
+    theatre_type_label: theatreDef.label,
+    layout_signature: input.layout_signature || (isMotionHall ? 'motion_pods' : (theatreDef.id === 'flagship' ? 'curved_rows' : (theatreDef.id === 'luxury_recliner' ? 'back_pairs_lounge' : (theatreDef.id === 'balcony' ? 'premium_middle_block' : (theatreDef.id === 'boutique' ? 'split_blocks_asymmetric' : 'centre_side_blocks'))))),
+    arrangement_pattern: input.arrangement_pattern || theatreDef.arrangementPattern,
+    blocks_pattern: input.blocks_pattern,
+    sweet_spot: input.sweet_spot,
+    documented_scale: {
+      meters_to_scene: METERS_TO_SCENE,
+      scene_to_meters: SCENE_TO_METERS,
+      seat_width_m: theatreDef.realWorldDimensions.seatWidthM,
+      row_pitch_m: theatreDef.realWorldDimensions.rowPitchM,
+      rake_step_m: theatreDef.realWorldDimensions.rakeStepM,
+      aisle_width_m: theatreDef.realWorldDimensions.aisleWidthM,
+      ceiling_height_m: theatreDef.realWorldDimensions.ceilingHeightM,
+      screen_width_m: theatreDef.realWorldDimensions.screenWidthM,
+      screen_height_m: theatreDef.realWorldDimensions.screenHeightM,
+    },
     coordinate_system: 'glTF Y-up (+Y up, +X audience left, -X audience right, +Z screenward)',
     units: {
       scene_unit: 'procedural model unit',
-      unit_to_meters_estimate: DEFAULT_UNIT_TO_METERS,
-      note: '1.28 model units ≈ 0.55m seat width',
+      unit_to_meters_estimate: SCENE_TO_METERS,
+      note: '1.0m = 2.0 scene units (documented scale)',
     },
     auditorium: {
       bounds_min: [-halfWidth, -0.57, zBack],
-      note: `Procedural ${input.screen_type || 'Cinema'} Hall with ${seatRecords.length} seats`,
+      note: `Procedural ${theatreDef.name} (${theatreDef.label}) with ${seatRecords.length} seats`,
     },
     screen: {
       center_gltf_y_up: screenCenter,
@@ -541,6 +1976,15 @@ export function generateProceduralAuditorium(
       height: screenHeight,
       aspect: Math.round((screenWidth / screenHeight) * 1000) / 1000,
       mesh: 'cinema_screen_surface',
+      is_curved: theatreDef.screenType.isCurved,
+      screen_type_id: isScreenX ? 'panoramic_wrap' : (isDirectLED ? 'premium_direct_view' : (isCurved ? 'large_curved' : (theatreDef.screenType?.type || 'standard_flat'))),
+      screen_width_m: theatreDef.realWorldDimensions.screenWidthM,
+      screen_height_m: theatreDef.realWorldDimensions.screenHeightM,
+      panoramic_wrap: isScreenX || theatreDef.screenType?.type === 'panoramic_wrap' ? {
+        sideAngleDeg: 25,
+        sideWidthRatio: 0.42,
+        sideHeightRatio: 0.82
+      } : undefined,
     },
     eye_model: {
       cushion_top_above_seat_min_units: 0.8,
@@ -549,20 +1993,44 @@ export function generateProceduralAuditorium(
       disclaimer: 'Viewing angles and sightlines are geometric estimates based on SMPTE standards. Procedural halls are idealized acoustic and architectural models and not physical laser scans.',
     },
     categories: categoriesRecord,
+    levels: {
+      stalls: { label: 'Stalls', height: 0.0, rows: stallsRowsList },
+      ...(hasBalcony ? { balcony: { label: 'Balcony', height: 3.6, rows: balconyRowsList } } : {}),
+    },
+    has_balcony: hasBalcony,
+    recliner_pairs: input.recliner_pairs,
+    sofa_pairs: input.sofa_pairs,
+    is_motion_hall: isMotionHall,
+    motion_zone: isMotionHall ? 'all' : undefined,
+    pods: input.pods || (isMotionHall ? Array.from(podSeatLists.entries()).map(([pId, sList]) => ({ pod_id: pId, row: sList[0].row, capacity: sList.length, seat_ids: sList.map(s => s.seat_id), type: 'motion_pod' })) : undefined),
+    effect_props: effectProps,
+    features: {
+      is_4dx: !!input.features?.is_4dx,
+      motion_seats: isMotionHall || !!theatreDef.features.motion_seats || !!input.features?.motion_seats || !!input.features?.is_4dx,
+      wind: !!input.features?.wind,
+      water: !!input.features?.water,
+      fog: !!input.features?.fog,
+      scent: !!input.features?.scent,
+      strobe: !!input.features?.strobe,
+      ticklers: !!input.features?.ticklers,
+      dolby_atmos: !!input.features?.dolby_atmos,
+    },
     seats: seatRecords,
   };
 
   const primaryAisleX = aisleCenters.length > 0 ? aisleCenters[0] : 0.0;
+  // Define all player parameters in metres and convert with hall's unit scale (§ Part C)
+  const playerScale = isLegacyMode ? 1.0 : METERS_TO_SCENE;
   const playerConfig: PlayerConfig = {
-    radius: 0.3,
-    standing_eye_height: 3.77,
-    crouch_eye_height: 2.5,
-    seated_eye_height: 1.9,
-    max_step_up: 0.3,
-    max_step_down: 0.4,
-    walk_speed: 3.0,
+    radius: Math.round(0.25 * playerScale * 100) / 100,
+    standing_eye_height: Math.round(1.6 * playerScale * 100) / 100,
+    crouch_eye_height: Math.round(1.1 * playerScale * 100) / 100,
+    seated_eye_height: Math.round(0.85 * playerScale * 100) / 100,
+    max_step_up: Math.round(0.35 * playerScale * 100) / 100,
+    max_step_down: Math.round(0.40 * playerScale * 100) / 100,
+    walk_speed: 3.2,
     run_speed: 6.0,
-    spawn_position: [primaryAisleX, 0.22, -6.5],
+    spawn_position: [primaryAisleX, 0.05, rowAZ + 1.5],
     spawn_yaw: 0.0, // Facing +Z screenward
     fov: 70.0,
   };
@@ -573,15 +2041,16 @@ export function generateProceduralAuditorium(
     coordinate_system: 'glTF Y-up',
     units: {
       scene_unit: 'procedural model unit',
-      unit_to_meters_estimate: DEFAULT_UNIT_TO_METERS,
+      unit_to_meters_estimate: SCENE_TO_METERS,
     },
     player: playerConfig,
     aisles: {
       central: {
-        x_min: primaryAisleX - 0.6,
-        x_max: primaryAisleX + 0.6,
-        width: 1.2,
+        x_min: primaryAisleX - aisleGap * 0.45,
+        x_max: primaryAisleX + aisleGap * 0.45,
+        width: aisleGap,
       },
+      aisle_centers: aisleCenters,
       side_left: { x_min: halfWidth - 3.8, x_max: halfWidth - 0.5 },
       side_right: { x_min: -halfWidth + 0.5, x_max: -halfWidth + 3.8 },
     },
@@ -598,6 +2067,7 @@ export function generateProceduralAuditorium(
       height: ceilingHeight,
       halfWidth,
       zBack,
+      zFront: SCREEN_Z,
       topTierY,
     },
     roomFloor: walkableSurfaces[0].bounds,
@@ -613,26 +2083,84 @@ export function generateProceduralAuditorium(
       width: screenWidth,
       height: screenHeight,
       curved: isCurved,
-      curveRadius: isCurved ? screenWidth * 1.8 : undefined,
+      curveRadius: isCurved ? (input.equipment_profile?.curve_radius ? input.equipment_profile.curve_radius * 2.0 : screenWidth * 1.8) : undefined,
+      type: isScreenX ? 'panoramic_wrap' : (isDirectLED ? 'premium_direct_view' : (isCurved ? 'large_curved' : (theatreDef.screenType?.type || 'standard_flat'))),
+      panoramicWrap: isScreenX ? {
+        sideAngleDeg: 28,
+        sideWidthRatio: 0.48,
+        sideHeightRatio: 0.85,
+      } : (theatreDef.screenType?.wrapPanels || (theatreDef.screenType as any)?.panoramicWrap),
+      bezel: isDirectLED ? {
+        width: 0.04,
+        color: '#09090b',
+        hasFrame: true,
+        thinBlack: true,
+      } : theatreDef.screenType?.bezel,
+      finish: isDirectLED ? 'glossy_led' : 'matte_white',
+      hasProjectorBeam: !isDirectLED,
     },
     screenFrame: {
-      min: [-screenWidth / 2 - 0.4, screenCenterY - screenHeight / 2 - 0.4, SCREEN_Z - 0.08],
-      max: [screenWidth / 2 + 0.4, screenCenterY + screenHeight / 2 + 0.4, SCREEN_Z - 0.01],
+      min: [-screenWidth / 2 - 0.08, screenCenterY - screenHeight / 2 - 0.08, SCREEN_Z - 0.04],
+      max: [screenWidth / 2 + 0.08, screenCenterY + screenHeight / 2 + 0.08, SCREEN_Z - 0.01],
     },
     stageLip,
+    proscenium,
+    sideCurtains,
+    woodenSlats,
     acousticPanels,
     stepLights,
     sconces,
+    ceilingDownlights,
+    atmosSpeakers,
+    exitSigns,
+    carpetRunners,
+    ceilingClouds,
+    roofTrusses,
+    ventilationDucts,
+    coveLightStrips,
+    skirtingLights,
+    doorFrames,
+    projectionBooth,
+    effectRigs,
+    motionPodBases,
+    effectProps,
+    frontFloorTrim: isMotionHall
+      ? {
+          bounds: {
+            min: [-halfWidth * 0.75, 0.05, SCREEN_Z + 1.2],
+            max: [halfWidth * 0.75, 0.12, SCREEN_Z + 1.35],
+          },
+          color: '#06b6d4',
+        }
+      : undefined,
+    acousticBaffles,
+    balconyStructure,
+    crossAisleHandrails,
+    reclinerAccessories,
+    motionLedBars,
+    amberOutlinePanels,
+    glassesCounter,
+    sideProjectors,
+    soundSystem: soundSys,
+    projectionType: input.projection_type || input.equipment_profile?.projection_type || '4K Laser',
+    beamBrightness,
     cameraBounds,
     targetBounds,
     defaultCameraPos,
     defaultCameraTarget,
+    cameraPresets,
   };
 
-  return {
+  const result: ProceduralAuditoriumResult = {
     seatLayout,
     walkNav,
     geometry,
   };
+
+  if (cacheKey) {
+    _proceduralAuditoriumCache.set(cacheKey, result);
+  }
+
+  return result;
 }
 

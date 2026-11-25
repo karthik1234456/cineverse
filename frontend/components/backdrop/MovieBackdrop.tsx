@@ -15,6 +15,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useMovieBackdrop, BackdropMovie } from '@/context/MovieBackdropContext';
+import { useComfortStore } from '@/store/useComfortStore';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
@@ -110,6 +111,7 @@ function VideoLayer({ movie, shouldPlay, visible }: VideoLayerProps) {
   return (
     <video
       ref={videoRef}
+      data-testid="movie-backdrop-video"
       className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500"
       style={{ opacity: visible && movie?.glimpse_url ? 0.6 : 0 }}
       muted
@@ -139,6 +141,8 @@ export function MovieBackdrop() {
 
   const reducedMotion = useReducedMotion();
   const dataSaver = useDataSaver();
+  const simpleMode = useComfortStore((s) => s.simpleMode);
+  const comfortReducedMotion = useComfortStore((s) => s.reducedMotion);
 
   // Crossfade: we keep "displayed" and "incoming" movies to animate between them
   const [displayedMovie, setDisplayedMovie] = useState<BackdropMovie | null>(null);
@@ -166,12 +170,16 @@ export function MovieBackdrop() {
     visible &&
     isBgVideoEnabled &&
     !reducedMotion &&
+    !comfortReducedMotion &&
+    !simpleMode &&
     !dataSaver &&
     !isTrailerModalOpen &&
     !isPausedBy3D;
 
   const [r, g, b] = hexToRgb(displayedMovie?.dominant_color);
 
+  // Part B Requirement: Stop and unmount background video and blur on the 3D route (one media element rule)
+  if (isPausedBy3D) return null;
   if (!displayedMovie && !visible) return null;
 
   return (
@@ -188,10 +196,11 @@ export function MovieBackdrop() {
             key={displayedMovie.slug}
             src={displayedMovie.banner_url}
             alt=""
-            className="absolute inset-0 w-full h-full object-cover"
+            className={`absolute inset-0 w-full h-full object-cover ${
+              !reducedMotion && !comfortReducedMotion ? 'ambient-still-pan' : ''
+            }`}
             style={{
               filter: 'blur(20px) saturate(1.1)',
-              transform: 'scale(1.08)',
               opacity: visible ? 1 : 0,
               transition: 'opacity 500ms ease',
             }}

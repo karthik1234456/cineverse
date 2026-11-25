@@ -31,6 +31,7 @@ export function WalkController() {
 
   const auditoriumWalkNav = useCinemaStore((s) => s.auditoriumWalkNav);
   const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
+  const proceduralResult = useCinemaStore((s) => s.proceduralResult);
 
   const walkables = (auditoriumWalkNav?.walkable || walkNavData.walkable) as unknown as WalkableSurface[];
   const colliders = (auditoriumWalkNav?.colliders || walkNavData.colliders) as unknown as Collider[];
@@ -54,6 +55,7 @@ export function WalkController() {
 
   // Velocity smoothing
   const velRef = useRef<THREE.Vector2>(new THREE.Vector2());
+  const pushTimerRef = useRef<number>(0);
 
   // Mouse look state
   const isPointerLocked = useRef<boolean>(false);
@@ -91,8 +93,14 @@ export function WalkController() {
         setMode('overview');
       }
 
-      // Quick interact (Sit in aimed seat)
-      if (e.code === 'KeyE' || e.code === 'Enter') {
+      // Quick interact: Select aimed seat via 'E', Sit in aimed seat via 'Enter'
+      if (e.code === 'KeyE') {
+        const hovered = useCinemaStore.getState().hoveredSeatId;
+        if (hovered) {
+          e.preventDefault();
+          useCinemaStore.getState().toggleSeat(hovered);
+        }
+      } else if (e.code === 'Enter') {
         const hovered = useCinemaStore.getState().hoveredSeatId;
         if (hovered) {
           e.preventDefault();
@@ -128,6 +136,8 @@ export function WalkController() {
     if (!isWalkMode) return;
     const canvas = gl.domElement;
 
+    const MAX_PITCH = (85 * Math.PI) / 180; // 1.48353 rad (±85°)
+
     const onPointerLockChange = () => {
       isPointerLocked.current = document.pointerLockElement === canvas;
     };
@@ -138,9 +148,9 @@ export function WalkController() {
       if (isPointerLocked.current) {
         const factor = walkSettings.sensitivity;
         const invert = walkSettings.invertY ? -1 : 1;
-        yawRef.current -= e.movementX * factor;
+        yawRef.current += e.movementX * factor;
         pitchRef.current -= e.movementY * factor * invert;
-        pitchRef.current = THREE.MathUtils.clamp(pitchRef.current, -1.3, 1.3); // ±75°
+        pitchRef.current = THREE.MathUtils.clamp(pitchRef.current, -MAX_PITCH, MAX_PITCH);
       } else if (isDraggingMouse.current) {
         const dx = e.clientX - lastMousePos.current.x;
         const dy = e.clientY - lastMousePos.current.y;
@@ -148,10 +158,34 @@ export function WalkController() {
 
         const factor = walkSettings.sensitivity * 1.5;
         const invert = walkSettings.invertY ? -1 : 1;
-        yawRef.current -= dx * factor;
+        yawRef.current += dx * factor;
         pitchRef.current -= dy * factor * invert;
-        pitchRef.current = THREE.MathUtils.clamp(pitchRef.current, -1.3, 1.3);
+        pitchRef.current = THREE.MathUtils.clamp(pitchRef.current, -MAX_PITCH, MAX_PITCH);
       }
+    };
+
+    let lastTouchX = 0;
+    let lastTouchY = 0;
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (!isWalkMode || e.touches.length === 0) return;
+      lastTouchX = e.touches[0].clientX;
+      lastTouchY = e.touches[0].clientY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isWalkMode || e.touches.length === 0) return;
+      const t = e.touches[0];
+      const dx = t.clientX - lastTouchX;
+      const dy = t.clientY - lastTouchY;
+      lastTouchX = t.clientX;
+      lastTouchY = t.clientY;
+
+      const factor = walkSettings.sensitivity * 1.5;
+      const invert = walkSettings.invertY ? -1 : 1;
+      yawRef.current += dx * factor;
+      pitchRef.current -= dy * factor * invert;
+      pitchRef.current = THREE.MathUtils.clamp(pitchRef.current, -MAX_PITCH, MAX_PITCH);
     };
 
     const onMouseDown = (e: MouseEvent) => {
@@ -180,12 +214,16 @@ export function WalkController() {
     window.addEventListener('mousemove', onMouseMove);
     canvas.addEventListener('mousedown', onMouseDown);
     window.addEventListener('mouseup', onMouseUp);
+    canvas.addEventListener('touchstart', onTouchStart, { passive: true });
+    window.addEventListener('touchmove', onTouchMove, { passive: true });
 
     return () => {
       document.removeEventListener('pointerlockchange', onPointerLockChange);
       window.removeEventListener('mousemove', onMouseMove);
       canvas.removeEventListener('mousedown', onMouseDown);
       window.removeEventListener('mouseup', onMouseUp);
+      canvas.removeEventListener('touchstart', onTouchStart);
+      window.removeEventListener('touchmove', onTouchMove);
     };
   }, [isWalkMode, gl, walkSettings, sitAt]);
 
@@ -230,9 +268,9 @@ export function WalkController() {
     if (keys.has('KeyA')) strafe -= 1;
     if (keys.has('KeyD')) strafe += 1;
 
-    // Left / Right turn (yaw with arrow keys)
-    if (keys.has('ArrowLeft')) turn += 1;
-    if (keys.has('ArrowRight')) turn -= 1;
+    // Left / Right turn (yaw with arrow keys: left turns left, right turns right)
+    if (keys.has('ArrowLeft')) turn -= 1;
+    if (keys.has('ArrowRight')) turn += 1;
 
     if (turn !== 0) {
       yawRef.current += turn * 2.2 * clampedDelta;
@@ -281,43 +319,57 @@ export function WalkController() {
       posRef.current.set(stepRes.newPos.x, stepRes.newPos.y, stepRes.newPos.z);
     }
 
-    // Boundary clamp with margin for walk player + edge notice
+    // Dynamic room boundaries derived from actual hall geometry (§ Part B.1)
+    const dims = proceduralResult?.geometry?.dimensions;
+    const halfWidth = dims?.halfWidth ?? 9.5;
+    const zBack = dims?.zBack ?? -24.5;
+    const zFront = dims?.zFront ?? 0.0;
+    const playerRadius = playerCfg?.radius ?? 0.35;
+
+    // Room boundaries giving full access to aisles, cross-aisles, front apron, and row ends
     const walkBounds = {
-      minX: -9.2,
-      maxX: 9.2,
-      minZ: -24.2,
-      maxZ: -2.2,
+      minX: -halfWidth + playerRadius + 0.1,
+      maxX: halfWidth - (playerRadius + 0.1),
+      minZ: zBack + playerRadius + 0.1,
+      maxZ: Math.min(-1.5, zFront - 1.5),
     };
-    if (
-      posRef.current.x < walkBounds.minX ||
-      posRef.current.x > walkBounds.maxX ||
-      posRef.current.z < walkBounds.minZ ||
-      posRef.current.z > walkBounds.maxZ
-    ) {
-      useCinemaStore.getState().triggerBoundaryNotice();
-      posRef.current.x = THREE.MathUtils.clamp(posRef.current.x, walkBounds.minX, walkBounds.maxX);
-      posRef.current.z = THREE.MathUtils.clamp(posRef.current.z, walkBounds.minZ, walkBounds.maxZ);
+
+    // Check if player is actively pushing into an outer boundary (§ Part B.2)
+    // Only count when player has deliberate movement input trying to cross the boundary
+    const isPushingLeft = posRef.current.x <= walkBounds.minX + 0.05 && velRef.current.x < -0.1;
+    const isPushingRight = posRef.current.x >= walkBounds.maxX - 0.05 && velRef.current.x > 0.1;
+    const isPushingBack = posRef.current.z <= walkBounds.minZ + 0.05 && velRef.current.y < -0.1;
+    const isPushingFront = posRef.current.z >= walkBounds.maxZ - 0.05 && velRef.current.y > 0.1;
+    const isPushingBoundary = isPushingLeft || isPushingRight || isPushingBack || isPushingFront;
+
+    if (isPushingBoundary) {
+      pushTimerRef.current += clampedDelta;
+      // Trigger notice only after actively pushing into outer boundary for > 0.4s (ignoring momentary touches)
+      if (pushTimerRef.current >= 0.4) {
+        useCinemaStore.getState().triggerBoundaryNotice();
+      }
+    } else {
+      pushTimerRef.current = 0;
     }
+
+    // Clamp player position to room bounds
+    posRef.current.x = THREE.MathUtils.clamp(posRef.current.x, walkBounds.minX, walkBounds.maxX);
+    posRef.current.z = THREE.MathUtils.clamp(posRef.current.z, walkBounds.minZ, walkBounds.maxZ);
 
     // 4. Smooth eye height over tiers
     const targetEyeY = posRef.current.y + playerCfg.standing_eye_height;
     eyeHeightRef.current = smoothEyeHeight(eyeHeightRef.current, targetEyeY, clampedDelta, 14.0);
 
-    // 5. Update Three.js camera pose
+    // 5. Update Three.js camera pose (§ Part C)
+    // Derived strictly from yaw and pitch only, roll fixed at zero, pitch clamped to ±85°, world up vector fixed (0, 1, 0)
     const pitch = pitchRef.current;
     const camX = posRef.current.x;
     const camY = eyeHeightRef.current;
     const camZ = posRef.current.z;
 
     camera.position.set(camX, camY, camZ);
-
-    // Camera look direction from yaw and pitch
-    const lookTarget = new THREE.Vector3(
-      camX + Math.sin(yaw) * Math.cos(pitch),
-      camY + Math.sin(pitch),
-      camZ + Math.cos(yaw) * Math.cos(pitch)
-    );
-    camera.lookAt(lookTarget);
+    camera.up.set(0, 1, 0);
+    camera.quaternion.setFromEuler(new THREE.Euler(pitch, yaw + Math.PI, 0, 'YXZ'));
 
     // 6. Crosshair seat detection raycast
     raycaster.setFromCamera(centerScreen, camera);

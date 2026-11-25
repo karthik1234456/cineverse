@@ -28,87 +28,87 @@ export interface TheatreLookPalette {
 }
 
 export const THEATRE_LOOKS: Record<TheatreLookId, TheatreLookPalette> = {
-  // Look A: Royal Burgundy and Gold (Default)
+  // Look A: Classic Cinema Red (Default standard auditorium)
   a: {
     id: 'a',
-    name: 'Royal Burgundy & Gold',
-    subtitle: 'Velvet burgundy seats, warm cream walls & gold trim',
-    floorColor: '#25151c',
-    tierColor: '#2b1b22',
-    treadColor: '#34212a',
-    wallColor: '#5c2230',
-    acousticPanelColor: '#7a1f33',
-    panelTrimColor: '#d4af37',
-    ceilingColor: '#1d1419',
-    screenFrameColor: '#120d10',
-    stageLipColor: '#2e1823',
-    railColor: '#d4af37', // Satin Brass
-    sconceGlowColor: '#fef08a', // Warm Gold 2800K
-    stepLightColor: '#fbbf24', // Amber/gold aisle
+    name: 'Classic Velvet Red',
+    subtitle: 'Classic velvet red seats (#8D1C24), oxblood acoustic panels (#3B1318) & dark espresso carpet (#222026)',
+    floorColor: '#222026', // Dark espresso carpet (+40% lightness lift)
+    tierColor: '#25242b',
+    treadColor: '#2c2a32', // Contrasting aisle runner
+    wallColor: '#272B34', // Side acoustic walls
+    acousticPanelColor: '#4A181F', // Oxblood accent panels
+    panelTrimColor: '#1F2024', // Gunmetal trim
+    ceilingColor: '#121318', // Screen wall & ceiling
+    screenFrameColor: '#121318',
+    stageLipColor: '#222026',
+    railColor: '#1F2024', // Gunmetal railings
+    sconceGlowColor: '#FF9E2C', // Warm amber
+    stepLightColor: '#FF9E2C', // Warm amber step LEDs
     seats: {
-      premier: '#9f1239', // Ruby Burgundy
-      prime: '#881337', // Deep Rose
-      front: '#7c2d12', // Warm Cognac Amber
-      selected: '#dc2626', // Vivid Crimson Highlight
-      held: '#b45309', // Warm Amber
-      booked: '#374151', // Neutral Slate
-      selectedEmissive: '#ef4444',
+      premier: '#8D1C24', // Classic velvet red (+30% lightness)
+      prime: '#8D1C24',
+      front: '#75171e',
+      selected: '#22C55E', // Selected emerald green
+      held: '#F59E0B', // Held amber
+      booked: '#4C505A', // Booked desaturated grey
+      selectedEmissive: '#22C55E',
     },
   },
 
-  // Look B: Warm Walnut and Cream
+  // Look B: Midnight Navy & Cognac Leather (Premium / Recliner Lounges)
   b: {
     id: 'b',
-    name: 'Warm Walnut & Cream',
-    subtitle: 'Walnut panelling, cream fabric panels & rust-red seats',
-    floorColor: '#2c1e19',
-    tierColor: '#36251e',
-    treadColor: '#422e25',
-    wallColor: '#4d3326',
-    acousticPanelColor: '#d6c8b4', // Cream fabric
-    panelTrimColor: '#8c5e3c', // Warm Walnut
-    ceilingColor: '#1f1612',
-    screenFrameColor: '#140f0c',
-    stageLipColor: '#38251e',
-    railColor: '#b48a60', // Antique Bronze
-    sconceGlowColor: '#fed7aa', // Warm Amber
-    stepLightColor: '#f97316', // Warm Orange
+    name: 'Midnight Navy & Cognac Leather',
+    subtitle: 'Midnight navy acoustic panels (#141D2B), cognac leather seats (#663822) & dark espresso carpet (#222026)',
+    floorColor: '#222026', // Dark espresso carpet
+    tierColor: '#25242b',
+    treadColor: '#2c2a32', // Aisle runner
+    wallColor: '#272B34', // Matte fabric side walls
+    acousticPanelColor: '#1B263B', // Midnight navy accent panels
+    panelTrimColor: '#1F2024', // Gunmetal trim
+    ceilingColor: '#121318',
+    screenFrameColor: '#121318',
+    stageLipColor: '#222026',
+    railColor: '#1F2024',
+    sconceGlowColor: '#FF9E2C', // Warm amber
+    stepLightColor: '#FF9E2C',
     seats: {
-      premier: '#9a3412', // Rust Red
-      prime: '#c2410c', // Terracotta
-      front: '#854d0e', // Warm Ochre
-      selected: '#ea580c', // Bright Rust
-      held: '#b45309', // Warm Amber
-      booked: '#3f3f46', // Neutral Zinc
-      selectedEmissive: '#f97316',
+      premier: '#663822', // Cognac leather (+35% lightness)
+      prime: '#663822',
+      front: '#542d1b',
+      selected: '#22C55E', // Selected emerald green
+      held: '#F59E0B', // Held amber
+      booked: '#4C505A', // Booked desaturated grey
+      selectedEmissive: '#22C55E',
     },
   },
 
-  // Look C: Midnight Indigo and Teal
+  // Look C: Midnight Navy & Deep Slate (Dolby Cinema / 4DX / Technical Halls)
   c: {
     id: 'c',
-    name: 'Midnight Indigo & Teal',
-    subtitle: 'Indigo walls, vibrant teal accents & deep blue seats',
-    floorColor: '#151b28',
-    tierColor: '#1b2234',
-    treadColor: '#222b40',
-    wallColor: '#1e293b',
-    acousticPanelColor: '#0f766e', // Vibrant Teal
-    panelTrimColor: '#94a3b8', // Silver Trim
-    ceilingColor: '#0f172a',
-    screenFrameColor: '#0b1120',
-    stageLipColor: '#1e293b',
-    railColor: '#cbd5e1', // Brushed Steel
-    sconceGlowColor: '#bae6fd', // Cool Cyan/Ice
-    stepLightColor: '#38bdf8', // Sky Blue
+    name: 'Midnight Navy & Deep Slate',
+    subtitle: 'Midnight navy panels (#141D2B), deep slate leather seats (#3A3F4A) & soft blue LEDs (#388BFF)',
+    floorColor: '#222026', // Dark espresso carpet
+    tierColor: '#25242b',
+    treadColor: '#2c2a32',
+    wallColor: '#272B34',
+    acousticPanelColor: '#1B263B', // Midnight navy
+    panelTrimColor: '#1F2024',
+    ceilingColor: '#121318',
+    screenFrameColor: '#121318',
+    stageLipColor: '#222026',
+    railColor: '#1F2024',
+    sconceGlowColor: '#388BFF', // Soft blue LEDs
+    stepLightColor: '#388BFF',
     seats: {
-      premier: '#1e40af', // Deep Royal Blue
-      prime: '#2563eb', // Sapphire Blue
-      front: '#0d9488', // Petrol Teal
-      selected: '#06b6d4', // Cyan Glow
-      held: '#d97706', // Amber Accent
-      booked: '#334155', // Slate Grey
-      selectedEmissive: '#22d3ee',
+      premier: '#3A3F4A', // Deep slate leather (+40% lightness)
+      prime: '#3A3F4A',
+      front: '#2f343d',
+      selected: '#22C55E', // Selected emerald green
+      held: '#F59E0B', // Held amber
+      booked: '#4C505A', // Booked desaturated grey
+      selectedEmissive: '#22C55E',
     },
   },
 };
@@ -118,4 +118,3 @@ export function getActiveLook(lookParam?: string | null): TheatreLookPalette {
   if (lookParam === 'c') return THEATRE_LOOKS.c;
   return THEATRE_LOOKS.a;
 }
-

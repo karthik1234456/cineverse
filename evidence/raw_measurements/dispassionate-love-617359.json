@@ -1,0 +1,45 @@
+{
+  "index": 112,
+  "id": 112,
+  "title": "Dispassionate Love",
+  "slug": "dispassionate-love-617359",
+  "source_type": "youtube",
+  "showtime_id": 4364,
+  "cinema_id": 5,
+  "auditorium_id": 16,
+  "url": "http://localhost:3002/cinemas/5/auditorium/16?showtime=4364&mode=3d&debug=1",
+  "click_timestamp": 1621.2999999970198,
+  "first_picture_timestamp": 3066.7000000029802,
+  "time_to_first_picture_ms": 1445.4,
+  "screenshot_1": {
+    "timestamp": 3844.2999999970198,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\dispassionate-love-617359_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5991.29999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\dispassionate-love-617359_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 8152.70000000298,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\dispassionate-love-617359_ss3.png"
+  },
+  "frame_diff_pixel_sum": 40.37,
+  "movement_proved": true,
+  "player_api": {
+    "state": "buffering",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 40.367,
+  "movement_delta_12": 40.978,
+  "movement_delta_23": 4.79
+}

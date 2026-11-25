@@ -2,19 +2,95 @@ import os
 import uuid
 import json
 import hashlib
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
+from pydantic import BaseModel
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func
 
 from app.database import get_db
 from app.models.auth import User
 from app.models.cinema import Cinema, Auditorium, Seat, TheatreAsset
 from app.models.operations import TheatreAssetVersion
+from app.models.showtime import Showtime
+from app.models.booking import Booking, BookingStatusEnum
 from app.api.dependencies import require_cinema_manager, require_admin
 from app.services.onboarding_service import AuditoriumOnboardingService
 
 router = APIRouter(prefix="/api/v1/admin/onboarding", tags=["Admin Onboarding"])
+
+
+class DesignerValidateRequest(BaseModel):
+    auditorium_id: int
+    name: str = "Auditorium"
+    rows: List[str]
+    seats_per_row: int
+    aisles: List[int] = []
+    aisle_width_m: float = 1.2
+    wheelchair_seats: List[str] = []
+    companion_seats: List[str] = []
+    numbering_direction: str = "LEFT_TO_RIGHT"
+    screen_size: str = "CURVED_LARGE"
+
+
+@router.post("/designer/validate")
+async def validate_designer_layout(
+    req: DesignerValidateRequest,
+    current_user: User = Depends(require_cinema_manager)
+):
+    """
+    Validates a visual hall designer layout against capacity, duplicate ids,
+    aisle connectivity, fire egress, and accessible seating standards.
+    """
+    errors = []
+    total_capacity = len(req.rows) * req.seats_per_row
+
+    # 1. Capacity bounds (20 to 500)
+    if total_capacity < 20:
+        errors.append("Capacity too small: auditorium must have at least 20 seats.")
+    if total_capacity > 500:
+        errors.append("Capacity too large: maximum supported auditorium capacity is 500 seats.")
+
+    # 2. Numbering direction
+    if req.numbering_direction not in ["LEFT_TO_RIGHT", "RIGHT_TO_LEFT"]:
+        errors.append("Invalid numbering direction. Must be LEFT_TO_RIGHT or RIGHT_TO_LEFT.")
+
+    # 3. Aisle width standard
+    if req.aisles and req.aisle_width_m < 1.0:
+        errors.append("Aisle width violation: egress aisles must be at least 1.0 meter wide for fire safety.")
+
+    # 4. Unreachable seats (max block width without aisle)
+    prev_aisle = 0
+    sorted_aisles = sorted(req.aisles) + [req.seats_per_row]
+    for a in sorted_aisles:
+        block_width = a - prev_aisle
+        if block_width > 16:
+            errors.append(f"Unreachable seats: block of {block_width} consecutive seats exceeds maximum 16-seat egress standard. Add an aisle.")
+        prev_aisle = a
+
+    # 5. Accessible seating standard
+    if total_capacity >= 40 and len(req.wheelchair_seats) < 1:
+        errors.append("Accessible seating requirement: halls with 40+ seats must include at least 1 wheelchair space.")
+
+    # 6. Duplicate seat IDs check
+    generated_seats = []
+    for r in req.rows:
+        for num in range(1, req.seats_per_row + 1):
+            generated_seats.append(f"{r}{num:02d}")
+    if len(generated_seats) != len(set(generated_seats)):
+        errors.append("Duplicate seat ID detected in layout specification.")
+
+    is_valid = len(errors) == 0
+    return {
+        "is_valid": is_valid,
+        "total_seats": total_capacity,
+        "rows_count": len(req.rows),
+        "seats_per_row": req.seats_per_row,
+        "wheelchair_seats_count": len(req.wheelchair_seats),
+        "companion_seats_count": len(req.companion_seats),
+        "errors": errors,
+        "message": "Layout passed validation successfully" if is_valid else "Layout validation failed with issues"
+    }
 
 
 @router.post("/validate-glb")
@@ -85,6 +161,25 @@ async def publish_auditorium_layout(
     seats_data = layout_dict.get("seats", [])
     if not seats_data:
         raise HTTPException(status_code=400, detail="Seat layout contains no seats")
+
+    # Safety Invariant: never change seats of shows that already have bookings
+    from datetime import datetime
+    booked_shows_stmt = (
+        select(func.count(Booking.id))
+        .join(Showtime, Booking.showtime_id == Showtime.id)
+        .where(
+            Showtime.auditorium_id == auditorium_id,
+            Showtime.start_time >= datetime.utcnow(),
+            Booking.status.in_([BookingStatusEnum.CONFIRMED, BookingStatusEnum.PENDING])
+        )
+    )
+    booked_res = await db.execute(booked_shows_stmt)
+    booked_count = booked_res.scalar() or 0
+    if booked_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Publish rejected: Auditorium {auditorium_id} has {booked_count} active or upcoming confirmed bookings. Modifying seat maps of booked shows is strictly prohibited to protect customer tickets."
+        )
 
     # Mark existing versions inactive
     await db.execute(

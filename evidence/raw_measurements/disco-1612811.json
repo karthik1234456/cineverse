@@ -1,0 +1,45 @@
+{
+  "index": 66,
+  "id": 66,
+  "title": "Disco",
+  "slug": "disco-1612811",
+  "source_type": "none",
+  "showtime_id": 2244,
+  "cinema_id": 1,
+  "auditorium_id": 1,
+  "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=2244&mode=3d&debug=1",
+  "click_timestamp": 1873.199999988079,
+  "first_picture_timestamp": null,
+  "time_to_first_picture_ms": null,
+  "screenshot_1": {
+    "timestamp": 2494.199999988079,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\disco-1612811_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 3989.5999999940395,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\disco-1612811_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 5485.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\disco-1612811_ss3.png"
+  },
+  "frame_diff_pixel_sum": 0.0,
+  "movement_proved": true,
+  "player_api": {
+    "state": "no player",
+    "isMuted": null,
+    "getVolume": "no player",
+    "currentTime": 0
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Honest Fallback)",
+  "movement_delta_13": 0.043,
+  "movement_delta_12": 0.044,
+  "movement_delta_23": 0.001
+}

@@ -1,0 +1,188 @@
+{
+  "standard_flat": {
+    "motion": {
+      "mean_pixel_diff": 2.36,
+      "max_pixel_diff": 176,
+      "has_motion": true,
+      "diff_image": "evidence/hall-coverage\\standard_flat_pixel_diff.png"
+    },
+    "orientation": {
+      "center": {
+        "cyan_count": 7648,
+        "cyan_avg_x": 574.8,
+        "yellow_count": 2485,
+        "yellow_avg_x": 1230.7,
+        "unmirrored": true
+      },
+      "left": {
+        "cyan_count": 6082,
+        "cyan_avg_x": 451.8,
+        "yellow_count": 2504,
+        "yellow_avg_x": 1226.2,
+        "unmirrored": true
+      },
+      "right": {
+        "cyan_count": 12731,
+        "cyan_avg_x": 839.7,
+        "yellow_count": 2478,
+        "yellow_avg_x": 1231.1,
+        "unmirrored": true
+      }
+    }
+  },
+  "large_curved": {
+    "motion": {
+      "mean_pixel_diff": 4.23,
+      "max_pixel_diff": 205,
+      "has_motion": true,
+      "diff_image": "evidence/hall-coverage\\large_curved_pixel_diff.png"
+    },
+    "orientation": {
+      "center": {
+        "cyan_count": 732,
+        "cyan_avg_x": 311.2,
+        "yellow_count": 1172,
+        "yellow_avg_x": 671.7,
+        "unmirrored": true
+      },
+      "left": {
+        "cyan_count": 1091,
+        "cyan_avg_x": 378.1,
+        "yellow_count": 748,
+        "yellow_avg_x": 584.2,
+        "unmirrored": true
+      },
+      "right": {
+        "cyan_count": 1469,
+        "cyan_avg_x": 577.3,
+        "yellow_count": 399,
+        "yellow_avg_x": 143.4,
+        "unmirrored": false
+      }
+    }
+  },
+  "premium_direct_view": {
+    "motion": {
+      "mean_pixel_diff": 1.38,
+      "max_pixel_diff": 246,
+      "has_motion": true,
+      "diff_image": "evidence/hall-coverage\\premium_direct_view_pixel_diff.png"
+    },
+    "orientation": {
+      "center": {
+        "cyan_count": 661,
+        "cyan_avg_x": 332.7,
+        "yellow_count": 2214,
+        "yellow_avg_x": 666.4,
+        "unmirrored": true
+      },
+      "left": {
+        "cyan_count": 661,
+        "cyan_avg_x": 332.7,
+        "yellow_count": 2683,
+        "yellow_avg_x": 681.0,
+        "unmirrored": true
+      },
+      "right": {
+        "cyan_count": 661,
+        "cyan_avg_x": 332.7,
+        "yellow_count": 2517,
+        "yellow_avg_x": 653.5,
+        "unmirrored": true
+      }
+    }
+  },
+  "panoramic_wrap": {
+    "motion": {
+      "mean_pixel_diff": 4.34,
+      "max_pixel_diff": 255,
+      "has_motion": true,
+      "diff_image": "evidence/hall-coverage\\panoramic_wrap_pixel_diff.png"
+    },
+    "orientation": {
+      "center": {
+        "cyan_count": 632,
+        "cyan_avg_x": 342.3,
+        "yellow_count": 246,
+        "yellow_avg_x": 968.2,
+        "unmirrored": true
+      },
+      "left": {
+        "cyan_count": 632,
+        "cyan_avg_x": 342.3,
+        "yellow_count": 695,
+        "yellow_avg_x": 718.2,
+        "unmirrored": true
+      },
+      "right": {
+        "cyan_count": 632,
+        "cyan_avg_x": 342.3,
+        "yellow_count": 624,
+        "yellow_avg_x": 699.4,
+        "unmirrored": true
+      }
+    }
+  },
+  "boutique": {
+    "motion": {
+      "mean_pixel_diff": 0.97,
+      "max_pixel_diff": 175,
+      "has_motion": true,
+      "diff_image": "evidence/hall-coverage\\boutique_pixel_diff.png"
+    },
+    "orientation": {
+      "center": {
+        "cyan_count": 769,
+        "cyan_avg_x": 305.7,
+        "yellow_count": 565,
+        "yellow_avg_x": 810.1,
+        "unmirrored": true
+      },
+      "left": {
+        "cyan_count": 769,
+        "cyan_avg_x": 305.7,
+        "yellow_count": 537,
+        "yellow_avg_x": 778.1,
+        "unmirrored": true
+      },
+      "right": {
+        "cyan_count": 769,
+        "cyan_avg_x": 305.7,
+        "yellow_count": 800,
+        "yellow_avg_x": 626.3,
+        "unmirrored": true
+      }
+    }
+  },
+  "original_100_seat": {
+    "motion": {
+      "mean_pixel_diff": 3.57,
+      "max_pixel_diff": 223,
+      "has_motion": true,
+      "diff_image": "evidence/hall-coverage\\original_100_seat_pixel_diff.png"
+    },
+    "orientation": {
+      "center": {
+        "cyan_count": 1411,
+        "cyan_avg_x": 232.9,
+        "yellow_count": 0,
+        "yellow_avg_x": null,
+        "unmirrored": false
+      },
+      "left": {
+        "cyan_count": 1411,
+        "cyan_avg_x": 232.9,
+        "yellow_count": 1975,
+        "yellow_avg_x": 1133.3,
+        "unmirrored": true
+      },
+      "right": {
+        "cyan_count": 1412,
+        "cyan_avg_x": 233.0,
+        "yellow_count": 231,
+        "yellow_avg_x": 359.3,
+        "unmirrored": true
+      }
+    }
+  }
+}

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from typing import Optional, List
 import jwt
 import bcrypt
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request, Response
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -14,6 +14,35 @@ from app.models.auth import User, RoleEnum, RefreshToken
 from app.redis_client import get_redis_client
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl=f"{settings.API_V1_PREFIX}/auth/login", auto_error=False)
+
+
+def set_auth_cookies(response: Response, access_token: str, refresh_token: str):
+    """Set HttpOnly auth cookies with environment-aware Secure flag."""
+    is_secure = settings.is_cookie_secure
+    response.set_cookie(
+        key="access_token",
+        value=access_token,
+        httponly=True,
+        secure=is_secure,
+        samesite="lax",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/"
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=is_secure,
+        samesite="lax",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
+        path="/"
+    )
+
+
+def clear_auth_cookies(response: Response):
+    """Clear HttpOnly auth cookies on logout."""
+    response.delete_cookie(key="access_token", path="/")
+    response.delete_cookie(key="refresh_token", path="/")
 
 
 def hash_password(password: str) -> str:
@@ -41,14 +70,18 @@ def create_refresh_token(user_id: int) -> str:
 
 
 async def get_current_user(
+    request: Request,
     token: Optional[str] = Depends(oauth2_scheme),
     db: AsyncSession = Depends(get_db)
 ) -> Optional[User]:
-    if not token:
+    token_str = token
+    if not token_str and request:
+        token_str = request.cookies.get("access_token")
+    if not token_str:
         return None
 
     try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        payload = jwt.decode(token_str, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
         user_id_str: str = payload.get("sub")
         if user_id_str is None:
             return None

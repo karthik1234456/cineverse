@@ -1,5 +1,6 @@
 from app.models.auth import User, RoleEnum, RefreshToken
 from app.models.cinema import City, Cinema, Auditorium, TheatreAsset, Seat
+from app.models.technical_specs import ScreenFormat, SoundSystem, ProjectionType
 from app.models.movie import Movie, MovieCast, Review, Watchlist
 from app.models.showtime import Showtime, PriceRule, SeatInventory, SeatStatusEnum
 from app.models.booking import Booking, BookingSeat, BookingAddon, FnbItem, Ticket, BookingStatusEnum
@@ -14,10 +15,17 @@ from app.models.operations import (
 )
 from app.models.waitlist import WaitlistEntry, WaitlistStatusEnum
 from app.models.dynamic_pricing import DynamicPricingRule, PricingRuleStatusEnum, PriceAuditLog
+from app.models.problem_report import ProblemReport
+from app.models.import_batch import ImportBatch
+from app.models.tax import (
+    TaxRule, TaxEntity, TaxSetting, InvoiceSequence, Invoice, InvoiceItem,
+    TaxItemTypeEnum, SupplierModelEnum, InvoiceTypeEnum
+)
 
 __all__ = [
     "User", "RoleEnum", "RefreshToken",
     "City", "Cinema", "Auditorium", "TheatreAsset", "Seat",
+    "ScreenFormat", "SoundSystem", "ProjectionType",
     "Movie", "MovieCast", "Review", "Watchlist",
     "Showtime", "PriceRule", "SeatInventory", "SeatStatusEnum",
     "Booking", "BookingSeat", "BookingAddon", "FnbItem", "Ticket", "BookingStatusEnum",
@@ -29,6 +37,10 @@ __all__ = [
     "LoyaltyAccount", "LoyaltyLedger", "LoyaltyTierEnum", "LoyaltyActionEnum",
     "CinePassSubscription", "TicketTransferLog",
     "WaitlistEntry", "WaitlistStatusEnum",
-    "DynamicPricingRule", "PricingRuleStatusEnum", "PriceAuditLog"
+    "DynamicPricingRule", "PricingRuleStatusEnum", "PriceAuditLog",
+    "ProblemReport",
+    "ImportBatch",
+    "TaxRule", "TaxEntity", "TaxSetting", "InvoiceSequence", "Invoice", "InvoiceItem",
+    "TaxItemTypeEnum", "SupplierModelEnum", "InvoiceTypeEnum",
 ]
 

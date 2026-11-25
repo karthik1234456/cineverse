@@ -1,0 +1,68 @@
+{
+  "test": "Task 3: Seat Selection & Checkout Latency Benchmark",
+  "executedAt": "2026-11-17T17:41:39.522Z",
+  "results": [
+    {
+      "hall": "Hall 1: Screen 2 (Standard Flat)",
+      "url": "http://localhost:3002/cinemas/11/auditorium/36?showtime=737",
+      "seats": [
+        "A13",
+        "A14",
+        "A15",
+        "A16"
+      ],
+      "holdId": "hold_f63b05b207a1",
+      "grandTotal": "₹1045",
+      "checkoutLoadTimeMs": 1388,
+      "passed": true
+    },
+    {
+      "hall": "Hall 2: Screen 1 (Standard Wide)",
+      "url": "http://localhost:3002/cinemas/11/auditorium/35?showtime=732",
+      "seats": [
+        "B05",
+        "B06",
+        "B07",
+        "B08"
+      ],
+      "holdId": "hold_f2f8f32b4548",
+      "grandTotal": "₹1309",
+      "checkoutLoadTimeMs": 655,
+      "passed": true
+    },
+    {
+      "hall": "Hall 3: Big Hall Flagship (Large Format Curved)",
+      "url": "http://localhost:3002/cinemas/12/auditorium/39?showtime=1875",
+      "seats": [
+        "A29",
+        "B01",
+        "B02",
+        "B03"
+      ],
+      "holdId": "hold_b1ebbf24ffad",
+      "grandTotal": "₹1309",
+      "checkoutLoadTimeMs": 494,
+      "passed": true
+    }
+  ],
+  "staleHoldTest": {
+    "url": "http://localhost:3002/checkout?hold_id=hold_ab6cb37e91c3",
+    "uiHeading": "Reservation Not Available",
+    "uiMessage": "Your seat hold has expired or is invalid. Please select your seats again.",
+    "analysis": "Gracefully handled: When hold is non-existent or expired, server returns clean HTTP 404/403 and UI truthfully states \"Reservation Not Available\" (\"Your seat hold has expired or is invalid. Please select your seats again.\"), without crashing into 500 Internal Server Error."
+  },
+  "rootCausesPlainWords": [
+    {
+      "cause": "NoneType Attribute Dereference in hold_service.py",
+      "detail": "When calculating locked pricing quote, backend previously called 'aud.screen_format.name', 'aud.sound_system.name', and 'aud.projection_type.name'. Because multiple auditoriums in the database have null technical spec relations, this threw an unhandled Python AttributeError: 'NoneType' object has no attribute 'name', causing FastAPI to return HTTP 500 Internal Server Error."
+    },
+    {
+      "cause": "CORS Origin Mismatch on Port 3002",
+      "detail": "When the frontend served on port 3002, backend ALLOWED_ORIGINS only permitted 3000 and 3001. All credentialed quote fetch requests from port 3002 were rejected by the browser."
+    },
+    {
+      "cause": "Redis Lua Script EVAL Failure",
+      "detail": "The rate limiter executed an 'eval' Lua script for sliding window counters. On local instances where Redis/FakeRedis did not support the exact eval signature, every checkout request threw an exception until the in-memory fallback was attached."
+    }
+  ]
+}

@@ -43,21 +43,19 @@ const MovieBackdropContext = createContext<MovieBackdropContextValue | undefined
 
 function getDefaultBgVideoEnabled(): boolean {
   if (typeof window === 'undefined') return true;
-  // Respect Data Saver / slow connection
-  const conn = (navigator as any).connection;
-  if (conn?.saveData) return false;
-  if (conn?.effectiveType === '2g' || conn?.effectiveType === 'slow-2g') return false;
-  // Default off on mobile to save battery
-  if (typeof window.matchMedia === 'function') {
-    const isCoarsePointer = window.matchMedia('(pointer: coarse)').matches;
-    if (isCoarsePointer) return false;
-  }
-  // Check persisted pref
+  // 1. Check user persisted preference first
   try {
     const stored = localStorage.getItem('cineverse_bg_video');
     if (stored !== null) return stored === 'true';
   } catch {/* ignore */}
-  return true; // desktop default: on
+
+  // 2. Respect Data Saver / slow connection / mobile cellular data
+  const conn = (navigator as any).connection;
+  if (conn?.saveData) return false;
+  if (conn?.effectiveType === '2g' || conn?.effectiveType === 'slow-2g') return false;
+  if (conn?.type === 'cellular') return false; // off on mobile data by default
+
+  return true; // default on
 }
 
 export function MovieBackdropProvider({ children }: { children: React.ReactNode }) {

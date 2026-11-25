@@ -1,0 +1,45 @@
+{
+  "index": 34,
+  "id": 34,
+  "title": "Punjab Express: Border Patrol",
+  "slug": "punjab-express-action",
+  "source_type": "hosted",
+  "showtime_id": 12032,
+  "cinema_id": 11,
+  "auditorium_id": 33,
+  "url": "http://localhost:3002/cinemas/11/auditorium/33?showtime=12032&mode=3d&debug=1",
+  "click_timestamp": 1821.7000000029802,
+  "first_picture_timestamp": 2099.6000000089407,
+  "time_to_first_picture_ms": 277.9,
+  "screenshot_1": {
+    "timestamp": 2817,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\punjab-express-action_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4984.4000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\punjab-express-action_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 7106.100000008941,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\punjab-express-action_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.75,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 4.118266
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.755,
+  "movement_delta_12": 1.735,
+  "movement_delta_23": 0.051
+}

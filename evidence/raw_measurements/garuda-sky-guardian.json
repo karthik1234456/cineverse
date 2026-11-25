@@ -1,0 +1,45 @@
+{
+  "index": 9,
+  "id": 9,
+  "title": "Garuda: Sky Guardian of Vijayanagara",
+  "slug": "garuda-sky-guardian",
+  "source_type": "hosted",
+  "showtime_id": 12007,
+  "cinema_id": 3,
+  "auditorium_id": 8,
+  "url": "http://localhost:3002/cinemas/3/auditorium/8?showtime=12007&mode=3d&debug=1",
+  "click_timestamp": 1888.7999999970198,
+  "first_picture_timestamp": 2133.2999999970198,
+  "time_to_first_picture_ms": 244.5,
+  "screenshot_1": {
+    "timestamp": 2589.0999999940395,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\garuda-sky-guardian_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4359.5999999940395,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\garuda-sky-guardian_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6143.9000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\garuda-sky-guardian_ss3.png"
+  },
+  "frame_diff_pixel_sum": 2.02,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.966029
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 2.025,
+  "movement_delta_12": 1.909,
+  "movement_delta_23": 0.22
+}

@@ -6,10 +6,12 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
   CheckCircle2, Printer, Calendar,
-  ArrowLeft, ShieldCheck, MapPin, XCircle, Navigation, Car, Train
+  ArrowLeft, ShieldCheck, MapPin, XCircle, Navigation, Car, Train, Clock
 } from 'lucide-react';
-import { getBooking, cancelBooking, type BookingResponse } from '@/services/api';
+import { getBooking, type BookingResponse } from '@/services/api';
 import { useMovieBackdrop } from '@/context/MovieBackdropContext';
+import CancellationModal from '@/components/CancellationModal';
+import RefundTimeline from '@/components/RefundTimeline';
 
 export default function BookingConfirmationPage() {
   const params = useParams();
@@ -17,7 +19,7 @@ export default function BookingConfirmationPage() {
 
   const [booking, setBooking] = useState<BookingResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [cancelling, setCancelling] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const [cancelNotice, setCancelNotice] = useState<string | null>(null);
   const { setActiveMovie } = useMovieBackdrop();
 
@@ -42,25 +44,6 @@ export default function BookingConfirmationPage() {
       .catch((err) => console.warn(err))
       .finally(() => setLoading(false));
   }, [bookingId, setActiveMovie]);
-
-  async function handleCancel() {
-    if (!confirm('Are you sure you want to cancel this booking? A 75% refund will be credited per cinema policy.')) {
-      return;
-    }
-
-    setCancelling(true);
-    try {
-      const res = await cancelBooking(bookingId);
-      setCancelNotice(res.message);
-      // Reload booking
-      const updated = await getBooking(bookingId);
-      setBooking(updated);
-    } catch (err: any) {
-      alert(err.message || 'Cancellation failed.');
-    } finally {
-      setCancelling(false);
-    }
-  }
 
   function handleAddToCalendar() {
     if (!booking) return;
@@ -161,6 +144,15 @@ export default function BookingConfirmationPage() {
         <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
           {cancelNotice}
         </div>
+      )}
+
+      {/* Live Refund Timeline Tracker (Driven by Webhooks) */}
+      {isCancelled && (
+        <RefundTimeline
+          refund={booking.refund}
+          breakdown={booking.refund_breakdown}
+          bookingCode={booking.booking_code}
+        />
       )}
 
       {/* Main E-Ticket Display */}
@@ -281,6 +273,14 @@ export default function BookingConfirmationPage() {
           </div>
         )}
 
+        {/* Cancellation Policy Banner */}
+        {booking.cancellation_policy && !isCancelled && (
+          <div className="rounded-2xl border border-rose-100 bg-rose-50/50 p-4 text-xs text-rose-950 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-[#C8102E] shrink-0" />
+            <span>Policy: {booking.cancellation_policy}</span>
+          </div>
+        )}
+
         {/* Actions bar */}
         <div className="pt-6 border-t border-[#E6DCD2] flex flex-wrap items-center justify-between gap-4">
           <div className="flex gap-3">
@@ -304,16 +304,42 @@ export default function BookingConfirmationPage() {
           </div>
 
           {!isCancelled && (
-            <button
-              onClick={handleCancel}
-              disabled={cancelling}
-              className="text-sm font-semibold text-slate-500 hover:text-rose-600 underline transition disabled:opacity-50"
-            >
-              {cancelling ? 'Cancelling...' : 'Cancel Booking & Refund'}
-            </button>
+            <div>
+              {booking.can_cancel ? (
+                <button
+                  onClick={() => setShowCancelModal(true)}
+                  className="flex min-h-[44px] items-center gap-2 rounded-xl border border-rose-300 bg-rose-50 px-4 py-2 text-sm font-bold text-[#C8102E] hover:bg-rose-100 transition shadow-sm"
+                >
+                  <XCircle className="h-4 w-4" />
+                  <span>Cancel Booking</span>
+                </button>
+              ) : (
+                <span className="text-xs font-semibold text-slate-500 border border-slate-200 bg-slate-50 px-3 py-2 rounded-xl block text-center">
+                  {booking.ticket?.is_used
+                    ? 'Ticket scanned at turnstile'
+                    : 'Cancellation window closed'}
+                </span>
+              )}
+            </div>
           )}
         </div>
       </div>
+
+      {/* Cancellation Confirmation Modal */}
+      {showCancelModal && (
+        <CancellationModal
+          bookingId={booking.id}
+          bookingCode={booking.booking_code}
+          movieTitle={booking.movie_title}
+          onClose={() => setShowCancelModal(false)}
+          onSuccess={async (res) => {
+            setShowCancelModal(false);
+            setCancelNotice(res.message);
+            const updated = await getBooking(bookingId);
+            setBooking(updated);
+          }}
+        />
+      )}
 
       <div className="text-center pt-4">
         <Link

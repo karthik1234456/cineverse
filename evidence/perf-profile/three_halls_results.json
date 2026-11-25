@@ -1,0 +1,92 @@
+[
+  {
+    "hallName": "Hall 1: Grand Balcony (252 seats, YouTube)",
+    "url": "http://localhost:3002/cinemas/23/auditorium/74?showtime=2048&mode=3d",
+    "loadTimeMs": 1075,
+    "playAdvanceMs": 574,
+    "fps": 7,
+    "maxInpMs": 258,
+    "avgInpMs": 158,
+    "latencies": [
+      {
+        "action": "Switch to Look Around",
+        "inpMs": 163
+      },
+      {
+        "action": "Switch to Walk Mode",
+        "inpMs": 258
+      },
+      {
+        "action": "Switch to Sit Mode",
+        "inpMs": 198
+      },
+      {
+        "action": "Seat selection click",
+        "inpMs": 14
+      }
+    ],
+    "videoFile": "D:\\projects\\CineVerse\\evidence\\recordings\\page@9ad2e39b6238c3fbb9cf35e43a1fd0dd.webm",
+    "isFpsPass": false,
+    "isInputLatencyPass": false
+  },
+  {
+    "hallName": "Hall 2: Standard Hall (100 seats, Hosted Clip)",
+    "url": "http://localhost:3002/cinemas/4/auditorium/13?showtime=61&mode=3d",
+    "loadTimeMs": 1058,
+    "playAdvanceMs": -1,
+    "fps": 108,
+    "maxInpMs": 241,
+    "avgInpMs": 140,
+    "latencies": [
+      {
+        "action": "Switch to Look Around",
+        "inpMs": 153
+      },
+      {
+        "action": "Switch to Walk Mode",
+        "inpMs": 150
+      },
+      {
+        "action": "Switch to Sit Mode",
+        "inpMs": 241
+      },
+      {
+        "action": "Seat selection click",
+        "inpMs": 14
+      }
+    ],
+    "videoFile": null,
+    "isFpsPass": true,
+    "isInputLatencyPass": false
+  },
+  {
+    "hallName": "Hall 3: Big Hall Flagship (522 seats, Largest Hall)",
+    "url": "http://localhost:3002/cinemas/12/auditorium/39?showtime=1875&mode=3d",
+    "loadTimeMs": 1214,
+    "playAdvanceMs": 563,
+    "fps": 6,
+    "maxInpMs": 1135,
+    "avgInpMs": 485,
+    "latencies": [
+      {
+        "action": "Switch to Look Around",
+        "inpMs": 1135
+      },
+      {
+        "action": "Switch to Walk Mode",
+        "inpMs": 290
+      },
+      {
+        "action": "Switch to Sit Mode",
+        "inpMs": 504
+      },
+      {
+        "action": "Seat selection click",
+        "inpMs": 10
+      }
+    ],
+    "videoFile": null,
+    "isFpsPass": false,
+    "isInputLatencyPass": false
+  }
+]

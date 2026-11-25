@@ -17,6 +17,11 @@ export interface LayoutSeat {
   number: number;
   position_gltf_y_up: [number, number, number];
   category: string;
+  seat_type?: string;
+  pair_partner_id?: string;
+  level?: 'stalls' | 'balcony';
+  section?: string;
+  in_motion_zone?: boolean;
 }
 
 export interface MapSeat {
@@ -25,12 +30,17 @@ export interface MapSeat {
   col: number;
   category: string;
   x: number;
+  seat_type?: string;
+  pair_partner_id?: string;
+  level?: 'stalls' | 'balcony';
+  section?: string;
+  in_motion_zone?: boolean;
 }
 
 export interface MapRow {
   row: string;
-  seats: MapSeat[];
   z: number;
+  seats: MapSeat[];
 }
 
 export interface SeatMapLayout {
@@ -59,7 +69,12 @@ export function buildSeatMapLayout(seats: LayoutSeat[]): SeatMapLayout {
         number: s.number,
         col: i,
         category: s.category,
-        x: s.position_gltf_y_up[0]
+        x: s.position_gltf_y_up[0],
+        seat_type: s.seat_type,
+        pair_partner_id: s.pair_partner_id,
+        level: s.level,
+        section: s.section,
+        in_motion_zone: s.in_motion_zone,
       }))
     };
   }).sort((a, b) => b.z - a.z); // larger z = closer to screen (Row A z~-8) = top of map

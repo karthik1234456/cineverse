@@ -1,0 +1,41 @@
+{
+  "index": 7,
+  "id": 59,
+  "title": "Jailer 2",
+  "slug": "jailer-2-1234139",
+  "source_type": "youtube",
+  "showtime_id": 1123,
+  "cinema_id": 1,
+  "auditorium_id": 1,
+  "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=1123&mode=3d&debug=1",
+  "click_timestamp": 2709.7000000029802,
+  "first_picture_timestamp": 4177.9000000059605,
+  "time_to_first_picture_ms": 1468.2,
+  "screenshot_1": {
+    "timestamp": 5218.100000008941,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\jailer-2-1234139_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 7754.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\jailer-2-1234139_ss2.png"
+  },
+  "frame_diff_pixel_sum": 9.38,
+  "player_api": {
+    "state": "active",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 9.384,
+  "movement_delta_12": 9.384,
+  "movement_delta_23": 0.0,
+  "movement_proved": true
+}

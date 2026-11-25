@@ -1,0 +1,85 @@
+{
+  "buildType": "production",
+  "hasOtherTabs": false,
+  "pageLoadMs": 757,
+  "topCosts": [
+    {
+      "category": "Scripting (V8 / JS Execution)",
+      "timeMs": 4944
+    },
+    {
+      "category": "Style Recalculation (CSS)",
+      "timeMs": 527
+    },
+    {
+      "category": "Layout Reflow",
+      "timeMs": 173
+    },
+    {
+      "category": "GPU Tasks & WebGL Raster",
+      "timeMs": 30
+    },
+    {
+      "category": "Paint & Rasterization",
+      "timeMs": 24
+    },
+    {
+      "category": "Compositing Layers",
+      "timeMs": 0
+    }
+  ],
+  "longTasksCount": 5,
+  "longestTaskMs": 3088,
+  "mainThreadBlockingTimeMs": 3150,
+  "inputLatencyINPMs": 22,
+  "avgFPS": 136,
+  "fpsSamples": [
+    5,
+    115,
+    144,
+    144,
+    144,
+    144,
+    144,
+    137,
+    134,
+    144,
+    144,
+    143,
+    137,
+    127,
+    140,
+    143,
+    144,
+    144,
+    144,
+    144,
+    144,
+    143,
+    144,
+    144,
+    144,
+    144,
+    144
+  ],
+  "canvasesCount": 0,
+  "iframesCount": 1,
+  "iframes": [
+    {
+      "id": "",
+      "src": "https://www.youtube-nocookie.com/embed/R8ANzYpaZaY?autoplay=1&enablejsapi=1&rel=0&modestbranding=1&playsinline=1",
+      "width": 1016,
+      "height": 572
+    }
+  ],
+  "videoElementsCount": 0,
+  "videos": [],
+  "bgVideoRunning": false,
+  "bgBlurRunning": false,
+  "audioBeforePlayDetected": false,
+  "audioBeforePlayDetails": [],
+  "statusBadgeText": "Playing in Theatre Mode",
+  "heapGrowthPct": "89.3%",
+  "startHeapMB": "23.1",
+  "endHeapMB": "43.8"
+}

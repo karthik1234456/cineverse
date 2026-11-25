@@ -93,7 +93,7 @@ export class LeafletAdapter implements IMapAdapter {
         const clusterIcon = L.divIcon({
           className: 'cineverse-cluster-pin',
           html: `
-            <div role="button" tabindex="0" aria-label="Cluster of ${cluster.count} cinemas" style="
+            <div style="
               display: flex;
               align-items: center;
               justify-content: center;
@@ -116,7 +116,11 @@ export class LeafletAdapter implements IMapAdapter {
           iconAnchor: [22, 22],
         });
 
-        const clusterMarker = L.marker([cluster.lat, cluster.lng], { icon: clusterIcon }).addTo(layerGroup);
+        const clusterMarker = L.marker([cluster.lat, cluster.lng], {
+          icon: clusterIcon,
+          title: `Cluster of ${cluster.count} cinemas`,
+          alt: `Cluster of ${cluster.count} cinemas`,
+        }).addTo(layerGroup);
         clusterMarker.on('click', () => {
           map.setView([cluster.lat, cluster.lng], map.getZoom() + 2);
         });
@@ -169,7 +173,7 @@ export class LeafletAdapter implements IMapAdapter {
         const pinIcon = L.divIcon({
           className: 'cineverse-cinema-pin',
           html: `
-            <div role="button" tabindex="0" aria-label="${m.title}" style="
+            <div style="
               display: flex;
               align-items: center;
               justify-content: center;
@@ -178,8 +182,7 @@ export class LeafletAdapter implements IMapAdapter {
               cursor: pointer;
               transform: ${scale};
               transition: transform 180ms ease-out;
-              outline: none;
-            " onfocus="this.style.filter='drop-shadow(0 0 6px #C8102E)'" onblur="this.style.filter='none'">
+            ">
               <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18 0C8.05887 0 0 8.05887 0 18C0 31.5 18 44 18 44C18 44 36 31.5 36 18C36 8.05887 27.9411 0 18 0Z" fill="${bg}"/>
                 <circle cx="18" cy="17" r="9" fill="#FFFFFF"/>
@@ -191,7 +194,11 @@ export class LeafletAdapter implements IMapAdapter {
           iconAnchor: [18, 44],
         });
 
-        const leafletMarker = L.marker([m.lat, m.lng], { icon: pinIcon }).addTo(layerGroup);
+        const leafletMarker = L.marker([m.lat, m.lng], {
+          icon: pinIcon,
+          title: m.title,
+          alt: m.title,
+        }).addTo(layerGroup);
 
         leafletMarker.on('click', () => {
           if (options.onMarkerClick) {

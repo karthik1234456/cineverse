@@ -5,13 +5,14 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  Ticket, MapPin, LogOut, Share2, Sparkles, Send, ChevronRight
+  Ticket, MapPin, LogOut, Share2, Sparkles, Send, ChevronRight, XCircle, RotateCcw
 } from 'lucide-react';
 import {
   getMyBookings, getStoredUser, logoutUser,
   getLoyaltyAccount, subscribeCinePass, cancelCinePass, claimReferral, transferTicket,
   type BookingResponse
 } from '@/services/api';
+import CancellationModal from '@/components/CancellationModal';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -29,6 +30,10 @@ export default function ProfilePage() {
   const [transferringTicketId, setTransferringTicketId] = useState<number | null>(null);
   const [recipientEmail, setRecipientEmail] = useState<string>('');
   const [transferMsg, setTransferMsg] = useState<string | null>(null);
+
+  // Cancellation modal state
+  const [cancellingBooking, setCancellingBooking] = useState<BookingResponse | null>(null);
+  const [cancellationAlert, setCancellationAlert] = useState<string | null>(null);
 
   useEffect(() => {
     const user = getStoredUser();
@@ -101,8 +106,8 @@ export default function ProfilePage() {
     }
   }
 
-  function handleLogout() {
-    logoutUser();
+  async function handleLogout() {
+    await logoutUser();
     router.push('/');
   }
 
@@ -258,6 +263,18 @@ export default function ProfilePage() {
           </div>
         </div>
 
+        {cancellationAlert && (
+          <div className="rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-950 flex items-center justify-between shadow-sm">
+            <span className="font-medium">{cancellationAlert}</span>
+            <button
+              onClick={() => setCancellationAlert(null)}
+              className="text-xs font-bold text-emerald-800 hover:underline"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {/* Bookings Cards List */}
         {loading ? (
           <div className="p-12 text-center text-slate-600">Loading your reservations...</div>
@@ -269,10 +286,23 @@ export default function ProfilePage() {
                 className="flex flex-col md:flex-row items-start md:items-center justify-between rounded-3xl border border-[#E6DCD2] bg-white p-6 gap-4 shadow-sm hover:shadow-md transition group"
               >
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-mono text-sm font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                       {b.booking_code}
                     </span>
+                    <span className="rounded-md bg-rose-50 border border-rose-200 px-2 py-0.5 text-xs font-bold text-[#9F1239]">
+                      {b.screen_format || b.screen_type}
+                    </span>
+                    {b.requires_glasses && (
+                      <span className="rounded-md bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[11px] font-bold text-indigo-700">
+                        Glasses
+                      </span>
+                    )}
+                    {b.is_demo && (
+                      <span className="rounded-md bg-amber-50 border border-amber-200 px-2 py-0.5 text-[11px] font-bold text-amber-800">
+                        Demo
+                      </span>
+                    )}
                     <span className={`rounded-md px-2.5 py-0.5 text-xs font-bold ${
                       b.status === 'CONFIRMED'
                         ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
@@ -286,9 +316,13 @@ export default function ProfilePage() {
                     {b.movie_title}
                   </h3>
 
-                  <p className="text-sm text-slate-600 flex items-center gap-1.5">
-                    <MapPin className="h-4 w-4 text-slate-400" />
-                    <span>{b.cinema_name} • {b.auditorium_name}</span>
+                  <p className="text-sm font-semibold text-slate-800">
+                    {b.tech_specs_display || `${b.auditorium_name} · ${b.screen_format || '2D'} · ${b.sound_system || 'Dolby Atmos'} · ${b.projection_type || '4K Laser'}`}
+                  </p>
+
+                  <p className="text-xs text-slate-600 flex items-center gap-1.5">
+                    <MapPin className="h-3.5 w-3.5 text-slate-400" />
+                    <span>{b.cinema_name}</span>
                   </p>
 
                   <div className="text-sm font-semibold text-slate-700">
@@ -317,7 +351,25 @@ export default function ProfilePage() {
                     <div className="text-xl font-black text-[#C8102E]">₹{Math.round(b.final_total_amount)}</div>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-wrap justify-end">
+                    {/* Cancellation Button: shown ONLY when cinema policy allows it */}
+                    {b.status === 'CONFIRMED' && b.can_cancel && (
+                      <button
+                        onClick={() => setCancellingBooking(b)}
+                        className="flex min-h-[44px] items-center gap-1.5 rounded-xl border border-rose-300 bg-rose-50 hover:bg-rose-100 px-4 py-2 text-sm font-bold text-[#C8102E] transition shadow-sm"
+                      >
+                        <XCircle className="h-4 w-4" />
+                        <span>Cancel booking</span>
+                      </button>
+                    )}
+
+                    {b.status === 'CANCELLED' && (
+                      <span className="inline-flex items-center gap-1.5 rounded-xl border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-800">
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        <span>Refund: {b.refund?.amount_display || `₹${Math.round(b.final_total_amount * 0.75)}`} ({b.refund?.status || 'REQUESTED'})</span>
+                      </span>
+                    )}
+
                     {b.status === 'CONFIRMED' && new Date(b.start_time) >= now && (
                       <button
                         onClick={() => {
@@ -421,6 +473,51 @@ export default function ProfilePage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Cancellation Confirmation Modal */}
+      {cancellingBooking && (
+        <CancellationModal
+          bookingId={cancellingBooking.id}
+          bookingCode={cancellingBooking.booking_code}
+          movieTitle={cancellingBooking.movie_title}
+          onClose={() => setCancellingBooking(null)}
+          onSuccess={(res) => {
+            setCancellationAlert(
+              res.message || `Booking ${cancellingBooking.booking_code} has been cancelled. Refund initiated.`
+            );
+            // Update local state: transition booking to CANCELLED and update refund
+            setBookings((prev) =>
+              prev.map((b) => {
+                if (b.id === cancellingBooking.id) {
+                  return {
+                    ...b,
+                    status: 'CANCELLED',
+                    can_cancel: false,
+                    refund: {
+                      id: res.refund_id || 0,
+                      booking_id: b.id,
+                      refund_amount: res.refund_amount,
+                      cancellation_fee: res.cancellation_fee,
+                      amount_paise: res.amount_paise,
+                      amount_display: `₹${res.refund_amount.toFixed(2)}`,
+                      cancellation_fee_paise: res.cancellation_fee_paise,
+                      cancellation_fee_display: `₹${res.cancellation_fee.toFixed(2)}`,
+                      status: 'REQUESTED',
+                      timeline: res.timeline || [],
+                      is_stuck: false,
+                      created_at: new Date().toISOString(),
+                    },
+                  };
+                }
+                return b;
+              })
+            );
+            setCancellingBooking(null);
+            // Move user to the 'cancelled' tab so they see their cancelled booking right away
+            setActiveTab('cancelled');
+          }}
+        />
       )}
     </div>
   );

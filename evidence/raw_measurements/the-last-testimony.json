@@ -1,0 +1,41 @@
+{
+  "index": 6,
+  "id": 16,
+  "title": "The Last Testimony of Fort Court",
+  "slug": "the-last-testimony",
+  "source_type": "hosted",
+  "showtime_id": 12014,
+  "cinema_id": 5,
+  "auditorium_id": 15,
+  "url": "http://localhost:3002/cinemas/5/auditorium/15?showtime=12014&mode=3d&debug=1",
+  "click_timestamp": 2717,
+  "first_picture_timestamp": 3045.7999999970198,
+  "time_to_first_picture_ms": 328.8,
+  "screenshot_1": {
+    "timestamp": 3647.7999999970198,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\the-last-testimony_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 6343.399999991059,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\the-last-testimony_ss2.png"
+  },
+  "frame_diff_pixel_sum": 1.85,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.29923
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.855,
+  "movement_delta_12": 1.855,
+  "movement_delta_23": 0.0,
+  "movement_proved": true
+}

@@ -30,8 +30,10 @@ export function useSeatSocket({
   useEffect(() => {
     if (!enabled || !showtimeId) return;
 
-    // Connect to real backend WebSocket
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://127.0.0.1:8002/ws';
+    // Connect to real backend WebSocket, deriving from NEXT_PUBLIC_BACKEND_URL
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+    const defaultWsUrl = backendUrl.replace(/^http/, 'ws') + '/ws';
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || defaultWsUrl;
     const socket = new WebSocket(`${wsUrl}/showtimes/${showtimeId}`);
     wsRef.current = socket;
 

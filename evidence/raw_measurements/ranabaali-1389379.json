@@ -1,0 +1,45 @@
+{
+  "index": 61,
+  "id": 61,
+  "title": "Ranabaali",
+  "slug": "ranabaali-1389379",
+  "source_type": "youtube",
+  "showtime_id": 1125,
+  "cinema_id": 1,
+  "auditorium_id": 1,
+  "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=1125&mode=3d&debug=1",
+  "click_timestamp": 1921.7999999970198,
+  "first_picture_timestamp": 3345,
+  "time_to_first_picture_ms": 1423.2,
+  "screenshot_1": {
+    "timestamp": 3903.699999988079,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\ranabaali-1389379_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5870.699999988079,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\ranabaali-1389379_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 7773.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\ranabaali-1389379_ss3.png"
+  },
+  "frame_diff_pixel_sum": 48.76,
+  "movement_proved": true,
+  "player_api": {
+    "state": "buffering",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 48.761,
+  "movement_delta_12": 48.642,
+  "movement_delta_23": 0.287
+}

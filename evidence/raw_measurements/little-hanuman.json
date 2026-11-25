@@ -1,0 +1,45 @@
+{
+  "index": 6,
+  "id": 6,
+  "title": "Little Hanuman & The Sun Chaser",
+  "slug": "little-hanuman",
+  "source_type": "hosted",
+  "showtime_id": 12004,
+  "cinema_id": 2,
+  "auditorium_id": 5,
+  "url": "http://localhost:3002/cinemas/2/auditorium/5?showtime=12004&mode=3d&debug=1",
+  "click_timestamp": 1897.5,
+  "first_picture_timestamp": 1972.7000000029802,
+  "time_to_first_picture_ms": 75.2,
+  "screenshot_1": {
+    "timestamp": 2513.2000000029802,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\little-hanuman_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4458.800000011921,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\little-hanuman_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6357.300000011921,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\little-hanuman_ss3.png"
+  },
+  "frame_diff_pixel_sum": 2.71,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.942887
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 2.715,
+  "movement_delta_12": 2.58,
+  "movement_delta_23": 0.234
+}

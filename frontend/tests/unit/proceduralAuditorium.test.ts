@@ -32,7 +32,7 @@ describe('Procedural Auditorium Generator — Faithfulness & Geometry Tests', ()
     });
 
     it('satisfies numbering rule: Seat 01 on Audience Left (+X) for every row', () => {
-      for (const row of input100.rows) {
+      for (const row of (input100.rows as string[])) {
         const rowSeats = genSeats.filter((s) => s.row === row);
         expect(rowSeats.length).toBe(10);
         // Seat 1 should have largest positive X
@@ -217,6 +217,214 @@ describe('Procedural Auditorium Generator — Faithfulness & Geometry Tests', ()
       expect(rowA[0].position_gltf_y_up[0]).toBe(18.0);
       expect(rowA[27].seat_id).toBe('A28');
       expect(rowA[27].position_gltf_y_up[0]).toBe(-18.0);
+    });
+  });
+
+  describe('5. Realistic Cinema Upgrades: Levels, Curved Rows, Recliner Pairs, 4DX Flags and Architectural Geometries', () => {
+    const inputBalconyCurved4DX: AuditoriumLayoutInput = {
+      rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M'],
+      seats_per_row: 20,
+      aisles: [5, 15],
+      accessible_seats: ['A01', 'A20'],
+      companion_seats: ['A02', 'A19'],
+      theatre_type: 'balcony',
+      screen_type: 'Dolby Atmos 4DX',
+      total_seats: 260,
+      base_price: 380,
+      curve_radius: 28.0,
+      has_balcony: true,
+      balcony_rows: ['K', 'L', 'M'],
+      features: {
+        is_4dx: true,
+        motion_seats: true,
+        wind: true,
+        water: true,
+        fog: true,
+        scent: true,
+        strobe: true,
+        ticklers: true,
+        dolby_atmos: true,
+      },
+    };
+
+    const res = generateProceduralAuditorium(inputBalconyCurved4DX);
+
+    it('generates distinct Stalls and Balcony levels with elevated balcony tiers and structure', () => {
+      expect(res.seatLayout.has_balcony).toBe(true);
+      expect(res.seatLayout.levels?.stalls?.rows).toEqual(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J']);
+      expect(res.seatLayout.levels?.balcony?.rows).toEqual(['K', 'L', 'M']);
+
+      const rowJ = res.seatLayout.seats.find((s) => s.row === 'J' && s.number === 10);
+      const rowK = res.seatLayout.seats.find((s) => s.row === 'K' && s.number === 10);
+      expect(rowJ).toBeDefined();
+      expect(rowK).toBeDefined();
+      // Row K (Balcony) should have an elevation jump of > 2.0 meters above Row J (Stalls)
+      expect(rowK!.position_gltf_y_up[1]).toBeGreaterThan(rowJ!.position_gltf_y_up[1] + 2.0);
+
+      // Balcony structure exists with platform, fascia, railing, and coveLightBounds
+      expect(res.geometry.balconyStructure).toBeDefined();
+      expect(res.geometry.balconyStructure?.platform).toBeDefined();
+      expect(res.geometry.balconyStructure?.coveLightBounds).toBeDefined();
+    });
+
+    it('curves row arcs towards the screen at the side wings based on curve_radius', () => {
+      // For row D (Z baseline), the center seat (10 or 11) should have smaller Z than the edge seat (1)
+      const seatD01 = res.seatLayout.seats.find((s) => s.seat_id === 'D01')!;
+      const seatD10 = res.seatLayout.seats.find((s) => s.seat_id === 'D10')!;
+      // D01 has large X, so sagZ curves it towards screen (+Z direction)
+      expect(seatD01.position_gltf_y_up[2]).toBeGreaterThan(seatD10.position_gltf_y_up[2]);
+    });
+
+    it('designates recliner pairs with bidirectional partner linkage', () => {
+      const premierSeats = res.seatLayout.seats.filter((s) => s.seat_type === 'recliner_pair');
+      expect(premierSeats.length).toBeGreaterThan(0);
+
+      const seat1 = premierSeats[0];
+      expect(seat1.pair_partner_id).toBeDefined();
+      const partner = res.seatLayout.seats.find((s) => s.seat_id === seat1.pair_partner_id);
+      expect(partner).toBeDefined();
+      expect(partner!.pair_partner_id).toBe(seat1.seat_id);
+    });
+
+    it('marks accessible and companion seats appropriately', () => {
+      const a01 = res.seatLayout.seats.find((s) => s.seat_id === 'A01')!;
+      const a02 = res.seatLayout.seats.find((s) => s.seat_id === 'A02')!;
+      expect(a01.seat_type).toBe('accessible');
+      expect(a02.seat_type).toBe('companion');
+    });
+
+    it('flags 4DX features and motion zone seats', () => {
+      expect(res.seatLayout.features?.is_4dx).toBe(true);
+      expect(res.seatLayout.features?.motion_seats).toBe(true);
+      const motionSeats = res.seatLayout.seats.filter((s) => s.in_motion_zone);
+      expect(motionSeats.length).toBeGreaterThan(0);
+      // Row E should be in motion zone
+      expect(res.seatLayout.seats.find((s) => s.row === 'E')!.in_motion_zone).toBe(true);
+    });
+
+    it('generates rich architectural details: wooden slats, curtains, proscenium, exit signs, downlights, atmos speakers', () => {
+      expect(res.geometry.woodenSlats.length).toBeGreaterThan(0);
+      expect(res.geometry.sideCurtains.left).toBeDefined();
+      expect(res.geometry.sideCurtains.right).toBeDefined();
+      expect(res.geometry.proscenium).toBeDefined();
+      expect(res.geometry.exitSigns.length).toBe(2);
+      expect(res.geometry.ceilingDownlights.length).toBeGreaterThan(0);
+      expect(res.geometry.atmosSpeakers.length).toBe(12);
+      expect(res.geometry.stepLights.length).toBeGreaterThan(0);
+      expect(res.geometry.carpetRunners?.length ?? 0).toBe(0);
+      expect(res.geometry.cameraPresets?.balcony).toBeDefined();
+      expect(res.geometry.cameraPresets?.screen).toBeDefined();
+    });
+  });
+
+  describe('6. Stage 3 Format Equipment & Profiles Tests', () => {
+    it('generates 3D glasses counter at entrance for 3D variants', () => {
+      const res3D = generateProceduralAuditorium({
+        rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'],
+        seats_per_row: 16,
+        aisles: [8],
+        screen_format: '3D',
+        theatre_type: 'standard',
+        total_seats: 240,
+      });
+
+      expect(res3D.geometry.glassesCounter).toBeDefined();
+      expect(res3D.geometry.glassesCounter?.glassesCount).toBe(48);
+      expect(res3D.geometry.glassesCounter?.bounds.max[1]).toBeGreaterThan(res3D.geometry.glassesCounter?.bounds.min[1] ?? 0);
+    });
+
+    it('omits 3D glasses counter for 2D variants', () => {
+      const res2D = generateProceduralAuditorium({
+        rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O'],
+        seats_per_row: 16,
+        aisles: [8],
+        screen_format: '2D',
+        theatre_type: 'standard',
+        total_seats: 240,
+      });
+
+      expect(res2D.geometry.glassesCounter).toBeUndefined();
+    });
+
+    it('configures sound systems accurately: Atmos has overheads, 7.1 has side/rear surrounds, 5.1 has fewer rear speakers', () => {
+      const baseInput: AuditoriumLayoutInput = {
+        rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'],
+        seats_per_row: 16,
+        aisles: [8],
+        theatre_type: 'standard',
+        total_seats: 224,
+      };
+
+      const resAtmos = generateProceduralAuditorium({ ...baseInput, sound_system: 'Dolby Atmos' });
+      const res71 = generateProceduralAuditorium({ ...baseInput, sound_system: 'Dolby 7.1' });
+      const res51 = generateProceduralAuditorium({ ...baseInput, sound_system: 'Standard 5.1' });
+
+      // Atmos has 6 overhead ceiling speakers
+      const atmosTops = resAtmos.geometry.atmosSpeakers.filter((s) => s.channel.startsWith('top_'));
+      expect(atmosTops.length).toBe(6);
+
+      // 7.1 has 0 overhead speakers and 4 rear surrounds
+      const tops71 = res71.geometry.atmosSpeakers.filter((s) => s.channel.startsWith('top_'));
+      expect(tops71.length).toBe(0);
+      const rears71 = res71.geometry.atmosSpeakers.filter((s) => s.channel.startsWith('rear_'));
+      expect(rears71.length).toBe(4);
+
+      // 5.1 has 0 overhead speakers and fewer rear speakers (2 rear surrounds)
+      const tops51 = res51.geometry.atmosSpeakers.filter((s) => s.channel.startsWith('top_'));
+      expect(tops51.length).toBe(0);
+      const rears51 = res51.geometry.atmosSpeakers.filter((s) => s.channel.startsWith('rear_'));
+      expect(rears51.length).toBe(2);
+      expect(rears51.length).toBeLessThan(rears71.length);
+    });
+
+    it('generates ScreenX panoramic wrap and side wall projectors', () => {
+      const resScreenX = generateProceduralAuditorium({
+        rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'],
+        seats_per_row: 20,
+        aisles: [10],
+        screen_format: 'ScreenX',
+        theatre_type: 'standard',
+        total_seats: 280,
+      });
+
+      expect(resScreenX.geometry.screenMesh.type).toBe('panoramic_wrap');
+      expect(resScreenX.geometry.screenMesh.panoramicWrap).toBeDefined();
+      expect(resScreenX.geometry.sideProjectors?.length).toBeGreaterThan(0);
+    });
+
+    it('configures Samsung Onyx LED with direct-view LED and no projector beam', () => {
+      const resOnyx = generateProceduralAuditorium({
+        rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'],
+        seats_per_row: 18,
+        aisles: [9],
+        screen_format: 'Onyx (Samsung Onyx LED)',
+        theatre_type: 'standard',
+        total_seats: 216,
+      });
+
+      expect(resOnyx.geometry.screenMesh.type).toBe('premium_direct_view');
+      expect(resOnyx.geometry.screenMesh.finish).toBe('glossy_led');
+      expect(resOnyx.geometry.screenMesh.hasProjectorBeam).toBe(false);
+      expect(resOnyx.geometry.beamBrightness).toBe('none');
+      expect(resOnyx.geometry.screenMesh.bezel?.thinBlack).toBe(true);
+    });
+
+    it('configures Dolby Cinema with brown recliners, curved screen, and laser beam', () => {
+      const resDolby = generateProceduralAuditorium({
+        rows: ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P'],
+        seats_per_row: 14,
+        aisles: [7],
+        screen_format: 'Dolby Cinema',
+        theatre_type: 'luxury_recliner',
+        total_seats: 224,
+      });
+
+      expect(resDolby.geometry.screenMesh.curved).toBe(true);
+      expect(resDolby.geometry.beamBrightness).toBe('laser');
+      const nonAccessibleSeats = resDolby.seatLayout.seats.filter((s) => s.row !== 'A');
+      for (const seat of nonAccessibleSeats) {
+        expect(seat.seat_type?.startsWith('recliner')).toBe(true);
+      }
     });
   });
 });

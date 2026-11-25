@@ -1,0 +1,45 @@
+{
+  "index": 44,
+  "id": 44,
+  "title": "Mirage in Thar: Operation Falcon",
+  "slug": "mirage-in-thar",
+  "source_type": "hosted",
+  "showtime_id": 12042,
+  "cinema_id": 14,
+  "auditorium_id": 43,
+  "url": "http://localhost:3002/cinemas/14/auditorium/43?showtime=12042&mode=3d&debug=1",
+  "click_timestamp": 1940.7999999970198,
+  "first_picture_timestamp": 2136.7000000029802,
+  "time_to_first_picture_ms": 195.9,
+  "screenshot_1": {
+    "timestamp": 2706.2000000029802,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\mirage-in-thar_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4574.4000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\mirage-in-thar_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6521.4000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\mirage-in-thar_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.84,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 4.007832
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.839,
+  "movement_delta_12": 1.827,
+  "movement_delta_23": 0.015
+}

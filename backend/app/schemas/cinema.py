@@ -31,6 +31,16 @@ class AuditoriumResponse(BaseModel):
     layout_data: Optional[dict] = None
     glb_path: Optional[str] = "/models/cineverse_auditorium_v2.web.glb"
     layout_path: Optional[str] = "/models/seat_layout_v2.json"
+    screen_format_id: Optional[int] = None
+    sound_system_id: Optional[int] = None
+    projection_type_id: Optional[int] = None
+    screen_format_name: Optional[str] = None
+    sound_system_name: Optional[str] = None
+    projection_type_name: Optional[str] = None
+    tech_specs_display: Optional[str] = None
+    requires_glasses: bool = False
+    confirmed_with_cinema: bool = False
+    is_demo: bool = True
 
     class Config:
         from_attributes = True

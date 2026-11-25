@@ -1,0 +1,167 @@
+[
+  {
+    "id": 41,
+    "title": "Kochi Harbor Noir",
+    "slug": "kochi-harbor-noir",
+    "source_type": "hosted",
+    "trailer_url": "/trailers/kochi-harbor-noir.mp4",
+    "youtube_id": null,
+    "showtime_id": 12039,
+    "cinema_id": 13,
+    "auditorium_id": 40
+  },
+  {
+    "id": 8,
+    "title": "Zero Gravity Protocol",
+    "slug": "zero-gravity-protocol",
+    "source_type": "hosted",
+    "trailer_url": "/trailers/zero-gravity-protocol.mp4",
+    "youtube_id": null,
+    "showtime_id": 12006,
+    "cinema_id": 2,
+    "auditorium_id": 7
+  },
+  {
+    "id": 2,
+    "title": "Astra: Chronicles of the Celestial Throne",
+    "slug": "astra-celestial-throne",
+    "source_type": "hosted",
+    "trailer_url": "/trailers/astra-celestial-throne.mp4",
+    "youtube_id": null,
+    "showtime_id": 12000,
+    "cinema_id": 1,
+    "auditorium_id": 1
+  },
+  {
+    "id": 48,
+    "title": "Solaris Reborn: Deep Space Echoes",
+    "slug": "solaris-reborn",
+    "source_type": "hosted",
+    "trailer_url": "/trailers/solaris-reborn.mp4",
+    "youtube_id": null,
+    "showtime_id": 12046,
+    "cinema_id": 15,
+    "auditorium_id": 47
+  },
+  {
+    "id": 18,
+    "title": "Fast Local: 08:42 from Dadar",
+    "slug": "mumbai-local-chronicles",
+    "source_type": "hosted",
+    "trailer_url": "/trailers/mumbai-local-chronicles.mp4",
+    "youtube_id": null,
+    "showtime_id": 12016,
+    "cinema_id": 6,
+    "auditorium_id": 17
+  },
+  {
+    "id": 16,
+    "title": "The Last Testimony of Fort Court",
+    "slug": "the-last-testimony",
+    "source_type": "hosted",
+    "trailer_url": "/trailers/the-last-testimony.mp4",
+    "youtube_id": null,
+    "showtime_id": 12014,
+    "cinema_id": 5,
+    "auditorium_id": 15
+  },
+  {
+    "id": 59,
+    "title": "Jailer 2",
+    "slug": "jailer-2-1234139",
+    "source_type": "youtube",
+    "trailer_url": "https://www.youtube-nocookie.com/embed/3vkHWYL2JmA",
+    "youtube_id": "3vkHWYL2JmA",
+    "showtime_id": 1123,
+    "cinema_id": 1,
+    "auditorium_id": 1
+  },
+  {
+    "id": 55,
+    "title": "Clayface",
+    "slug": "clayface-1400940",
+    "source_type": "youtube",
+    "trailer_url": "https://www.youtube-nocookie.com/embed/f7jlCqdtwdM",
+    "youtube_id": "f7jlCqdtwdM",
+    "showtime_id": 5,
+    "cinema_id": 1,
+    "auditorium_id": 1
+  },
+  {
+    "id": 106,
+    "title": "The Third Murder",
+    "slug": "the-third-murder-922673",
+    "source_type": "youtube",
+    "trailer_url": "https://www.youtube-nocookie.com/embed/OPBSJ1LWsEg",
+    "youtube_id": "OPBSJ1LWsEg",
+    "showtime_id": 4276,
+    "cinema_id": 4,
+    "auditorium_id": 13
+  },
+  {
+    "id": 54,
+    "title": "Wildwood",
+    "slug": "wildwood-791523",
+    "source_type": "youtube",
+    "trailer_url": "https://www.youtube-nocookie.com/embed/bJQGtSeLPII",
+    "youtube_id": "bJQGtSeLPII",
+    "showtime_id": 4,
+    "cinema_id": 1,
+    "auditorium_id": 1
+  },
+  {
+    "id": 104,
+    "title": "I'm Game",
+    "slug": "im-game-1250502",
+    "source_type": "youtube",
+    "trailer_url": "https://www.youtube-nocookie.com/embed/Msmfyg7yQ60",
+    "youtube_id": "Msmfyg7yQ60",
+    "showtime_id": 4252,
+    "cinema_id": 4,
+    "auditorium_id": 12
+  },
+  {
+    "id": 111,
+    "title": "Bonolota Express",
+    "slug": "bonolota-express-1542995",
+    "source_type": "youtube",
+    "trailer_url": "https://www.youtube-nocookie.com/embed/ZTZUaHsfR8o",
+    "youtube_id": "ZTZUaHsfR8o",
+    "showtime_id": 4360,
+    "cinema_id": 5,
+    "auditorium_id": 16
+  },
+  {
+    "id": 67,
+    "title": "Udta Teer",
+    "slug": "udta-teer-1375156",
+    "source_type": "youtube",
+    "trailer_url": null,
+    "youtube_id": null,
+    "showtime_id": 2245,
+    "cinema_id": 1,
+    "auditorium_id": 1
+  },
+  {
+    "id": 58,
+    "title": "Mookuthi Amman 2",
+    "slug": "mookuthi-amman-2-1327835",
+    "source_type": "youtube",
+    "trailer_url": null,
+    "youtube_id": null,
+    "showtime_id": 565,
+    "cinema_id": 1,
+    "auditorium_id": 1
+  },
+  {
+    "id": 110,
+    "title": "Gangor",
+    "slug": "gangor-278986",
+    "source_type": "youtube",
+    "trailer_url": null,
+    "youtube_id": null,
+    "showtime_id": 4340,
+    "cinema_id": 5,
+    "auditorium_id": 15
+  }
+]

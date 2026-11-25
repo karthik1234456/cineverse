@@ -1,0 +1,45 @@
+{
+  "index": 30,
+  "id": 30,
+  "title": "Howrah Bridge Sunset: A College Street Romance",
+  "slug": "howrah-bridge-sunset",
+  "source_type": "hosted",
+  "showtime_id": 12028,
+  "cinema_id": 9,
+  "auditorium_id": 29,
+  "url": "http://localhost:3002/cinemas/9/auditorium/29?showtime=12028&mode=3d&debug=1",
+  "click_timestamp": 1619.3999999910593,
+  "first_picture_timestamp": 1886.8999999910593,
+  "time_to_first_picture_ms": 267.5,
+  "screenshot_1": {
+    "timestamp": 2735.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\howrah-bridge-sunset_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4551.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\howrah-bridge-sunset_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6426.399999991059,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\howrah-bridge-sunset_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.92,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 4.175332
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.92,
+  "movement_delta_12": 1.908,
+  "movement_delta_23": 0.016
+}

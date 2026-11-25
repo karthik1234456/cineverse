@@ -1,0 +1,386 @@
+{
+  "test": "Task 6: Walk Navigation, Boundary Notice Delay, and Look Around Floor Barrier Benchmark",
+  "executedAt": "2026-11-17T18:09:18.044Z",
+  "totalHalls": 6,
+  "allPassed": true,
+  "hallResults": [
+    {
+      "hall": "Original 100-Seat Hall (Boutique)",
+      "slug": "original_100_st61",
+      "url": "http://localhost:3002/cinemas/4/auditorium/13?showtime=61&mode=3d",
+      "walk": {
+        "reachability": {
+          "ok": true,
+          "halfWidth": 16.8,
+          "roomDepth": 45.397,
+          "walkBounds": {
+            "minX": -16.35,
+            "maxX": 16.35,
+            "minZ": -46.202,
+            "maxZ": -2.755
+          },
+          "aisleEndsReachable": true,
+          "topRowReachable": true,
+          "crossAislesReachable": true
+        },
+        "shortPushRespected": true,
+        "noticeVisible": true,
+        "noticePositionValid": true,
+        "toolbarClearancePx": 634,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\walk_boundary_original_100_st61.png",
+        "passed": true
+      },
+      "lookaround": {
+        "angleRecords": [
+          {
+            "angleDeg": 0,
+            "cameraY": 7.085,
+            "localFloorY": 0,
+            "heightAboveFloor": 7.085,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 90,
+            "cameraY": 7.085,
+            "localFloorY": 0,
+            "heightAboveFloor": 7.085,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 180,
+            "cameraY": 7.085,
+            "localFloorY": 0,
+            "heightAboveFloor": 7.085,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 270,
+            "cameraY": 7.085,
+            "localFloorY": 0,
+            "heightAboveFloor": 7.085,
+            "barrierCompliant": true
+          }
+        ],
+        "minClearanceMeters": 7.085,
+        "rotationContinues": true,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\lookaround_floor_barrier_original_100_st61.png",
+        "passed": true
+      }
+    },
+    {
+      "hall": "Screen 2 (Standard Flat)",
+      "slug": "screen_2_st737",
+      "url": "http://localhost:3002/cinemas/11/auditorium/36?showtime=737&mode=3d",
+      "walk": {
+        "reachability": {
+          "ok": true,
+          "halfWidth": 19.45,
+          "roomDepth": 66.218,
+          "walkBounds": {
+            "minX": -19,
+            "maxX": 19,
+            "minZ": -67.023,
+            "maxZ": -2.755
+          },
+          "aisleEndsReachable": true,
+          "topRowReachable": true,
+          "crossAislesReachable": true
+        },
+        "shortPushRespected": true,
+        "noticeVisible": true,
+        "noticePositionValid": true,
+        "toolbarClearancePx": 634,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\walk_boundary_screen_2_st737.png",
+        "passed": true
+      },
+      "lookaround": {
+        "angleRecords": [
+          {
+            "angleDeg": 0,
+            "cameraY": 9.983,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.983,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 90,
+            "cameraY": 9.983,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.983,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 180,
+            "cameraY": 9.983,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.983,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 270,
+            "cameraY": 9.983,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.983,
+            "barrierCompliant": true
+          }
+        ],
+        "minClearanceMeters": 9.983,
+        "rotationContinues": true,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\lookaround_floor_barrier_screen_2_st737.png",
+        "passed": true
+      }
+    },
+    {
+      "hall": "Screen 1 (Standard Wide)",
+      "slug": "screen_1_st732",
+      "url": "http://localhost:3002/cinemas/11/auditorium/35?showtime=732&mode=3d",
+      "walk": {
+        "reachability": {
+          "ok": true,
+          "halfWidth": 15.05,
+          "roomDepth": 61.00299999999999,
+          "walkBounds": {
+            "minX": -14.600000000000001,
+            "maxX": 14.600000000000001,
+            "minZ": -61.80799999999999,
+            "maxZ": -2.755
+          },
+          "aisleEndsReachable": true,
+          "topRowReachable": true,
+          "crossAislesReachable": true
+        },
+        "shortPushRespected": true,
+        "noticeVisible": true,
+        "noticePositionValid": true,
+        "toolbarClearancePx": 634,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\walk_boundary_screen_1_st732.png",
+        "passed": true
+      },
+      "lookaround": {
+        "angleRecords": [
+          {
+            "angleDeg": 0,
+            "cameraY": 9.257,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.257,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 90,
+            "cameraY": 9.257,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.257,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 180,
+            "cameraY": 10.32,
+            "localFloorY": 9.32,
+            "heightAboveFloor": 1,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 270,
+            "cameraY": 9.279,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.279,
+            "barrierCompliant": true
+          }
+        ],
+        "minClearanceMeters": 1,
+        "rotationContinues": true,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\lookaround_floor_barrier_screen_1_st732.png",
+        "passed": true
+      }
+    },
+    {
+      "hall": "Big Hall Flagship (Large Curved)",
+      "slug": "flagship_st1875",
+      "url": "http://localhost:3002/cinemas/12/auditorium/39?showtime=1875&mode=3d",
+      "walk": {
+        "reachability": {
+          "ok": true,
+          "halfWidth": 21.74,
+          "roomDepth": 78.67100000000002,
+          "walkBounds": {
+            "minX": -21.29,
+            "maxX": 21.29,
+            "minZ": -79.47600000000001,
+            "maxZ": -2.755
+          },
+          "aisleEndsReachable": true,
+          "topRowReachable": true,
+          "crossAislesReachable": true
+        },
+        "shortPushRespected": true,
+        "noticeVisible": true,
+        "noticePositionValid": true,
+        "toolbarClearancePx": 634,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\walk_boundary_flagship_st1875.png",
+        "passed": true
+      },
+      "lookaround": {
+        "angleRecords": [
+          {
+            "angleDeg": 0,
+            "cameraY": 11.716,
+            "localFloorY": 0,
+            "heightAboveFloor": 11.716,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 90,
+            "cameraY": 11.716,
+            "localFloorY": 0,
+            "heightAboveFloor": 11.716,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 180,
+            "cameraY": 11.716,
+            "localFloorY": 7.2,
+            "heightAboveFloor": 4.516,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 270,
+            "cameraY": 11.716,
+            "localFloorY": 0,
+            "heightAboveFloor": 11.716,
+            "barrierCompliant": true
+          }
+        ],
+        "minClearanceMeters": 4.516,
+        "rotationContinues": true,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\lookaround_floor_barrier_flagship_st1875.png",
+        "passed": true
+      }
+    },
+    {
+      "hall": "Screen 4 (Motion Seat / 4DX)",
+      "slug": "motion_screen_4_st740",
+      "url": "http://localhost:3002/cinemas/11/auditorium/38?showtime=740&mode=3d",
+      "walk": {
+        "reachability": {
+          "ok": true,
+          "halfWidth": 19.45,
+          "roomDepth": 66.218,
+          "walkBounds": {
+            "minX": -19,
+            "maxX": 19,
+            "minZ": -67.023,
+            "maxZ": -2.755
+          },
+          "aisleEndsReachable": true,
+          "topRowReachable": true,
+          "crossAislesReachable": true
+        },
+        "shortPushRespected": true,
+        "noticeVisible": true,
+        "noticePositionValid": true,
+        "toolbarClearancePx": 634,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\walk_boundary_motion_screen_4_st740.png",
+        "passed": true
+      },
+      "lookaround": {
+        "angleRecords": [
+          {
+            "angleDeg": 0,
+            "cameraY": 9.983,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.983,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 90,
+            "cameraY": 9.983,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.983,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 180,
+            "cameraY": 9.983,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.983,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 270,
+            "cameraY": 9.983,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.983,
+            "barrierCompliant": true
+          }
+        ],
+        "minClearanceMeters": 9.983,
+        "rotationContinues": true,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\lookaround_floor_barrier_motion_screen_4_st740.png",
+        "passed": true
+      }
+    },
+    {
+      "hall": "Screen 3 (Luxury Recliner)",
+      "slug": "luxury_screen_3_st739",
+      "url": "http://localhost:3002/cinemas/11/auditorium/37?showtime=739&mode=3d",
+      "walk": {
+        "reachability": {
+          "ok": true,
+          "halfWidth": 19.45,
+          "roomDepth": 66.218,
+          "walkBounds": {
+            "minX": -19,
+            "maxX": 19,
+            "minZ": -67.023,
+            "maxZ": -2.755
+          },
+          "aisleEndsReachable": true,
+          "topRowReachable": true,
+          "crossAislesReachable": true
+        },
+        "shortPushRespected": true,
+        "noticeVisible": true,
+        "noticePositionValid": true,
+        "toolbarClearancePx": 634,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\walk_boundary_luxury_screen_3_st739.png",
+        "passed": true
+      },
+      "lookaround": {
+        "angleRecords": [
+          {
+            "angleDeg": 0,
+            "cameraY": 9.983,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.983,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 90,
+            "cameraY": 9.983,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.983,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 180,
+            "cameraY": 9.983,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.983,
+            "barrierCompliant": true
+          },
+          {
+            "angleDeg": 270,
+            "cameraY": 9.983,
+            "localFloorY": 0,
+            "heightAboveFloor": 9.983,
+            "barrierCompliant": true
+          }
+        ],
+        "minClearanceMeters": 9.983,
+        "rotationContinues": true,
+        "screenshot": "D:\\projects\\CineVerse\\evidence\\ui-verification\\lookaround_floor_barrier_luxury_screen_3_st739.png",
+        "passed": true
+      }
+    }
+  ]
+}

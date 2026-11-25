@@ -1,0 +1,47 @@
+{
+  "index": 122,
+  "id": 122,
+  "title": "Sample Showcase",
+  "slug": "sample-showcase",
+  "source_type": "hosted",
+  "showtime_id": 9999,
+  "cinema_id": 1,
+  "auditorium_id": 1,
+  "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=9999&mode=3d&debug=1",
+  "click_timestamp": 1628,
+  "first_picture_timestamp": 2095.5999999940395,
+  "time_to_first_picture_ms": 467.6,
+  "screenshot_1": {
+    "timestamp": 2742.2999999970198,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\sample-showcase_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4660.29999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\sample-showcase_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6623.29999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\sample-showcase_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.84,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.903884
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)",
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.84,
+  "movement_delta_12": 1.828,
+  "movement_delta_23": 0.014
+}

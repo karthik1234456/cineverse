@@ -1,0 +1,45 @@
+{
+  "index": 35,
+  "id": 35,
+  "title": "Fields of Gold: A Malwa Harvest",
+  "slug": "fields-of-gold-malwa",
+  "source_type": "hosted",
+  "showtime_id": 12033,
+  "cinema_id": 11,
+  "auditorium_id": 34,
+  "url": "http://localhost:3002/cinemas/11/auditorium/34?showtime=12033&mode=3d&debug=1",
+  "click_timestamp": 1628.800000011921,
+  "first_picture_timestamp": 2100,
+  "time_to_first_picture_ms": 471.2,
+  "screenshot_1": {
+    "timestamp": 2616.2000000029802,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\fields-of-gold-malwa_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4308.100000008941,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\fields-of-gold-malwa_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 7748.70000000298,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\fields-of-gold-malwa_ss3.png"
+  },
+  "frame_diff_pixel_sum": 4.72,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 5.507769
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 4.724,
+  "movement_delta_12": 4.716,
+  "movement_delta_23": 0.027
+}

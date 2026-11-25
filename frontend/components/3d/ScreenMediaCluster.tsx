@@ -1,0 +1,543 @@
+'use client';
+
+import React, { useState } from 'react';
+import { Play, Pause, Volume2, VolumeX, Film, ChevronDown, Sparkles, ExternalLink, X, AlertCircle, Loader2, RotateCcw, Maximize2 } from 'lucide-react';
+import { useCinemaStore } from '@/store/useCinemaStore';
+import { useTrailerStore } from '@/store/useTrailerStore';
+
+export interface MovieClipOption {
+  id: string;
+  label: string;
+  url: string;
+  isHd?: boolean;
+}
+
+const SAMPLE_HOSTED_CLIPS: MovieClipOption[] = [
+  { id: 'trailer_main', label: 'Official Trailer (Hosted)', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4', isHd: true },
+  { id: 'clip_teaser', label: 'Teaser Clip', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4', isHd: true },
+  { id: 'clip_action', label: 'Action Sequence Clip', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4', isHd: false },
+];
+
+export interface ScreenMediaClusterProps {
+  inline?: boolean;
+}
+
+export function ScreenMediaCluster({ inline = false }: ScreenMediaClusterProps) {
+  const trailer = useCinemaStore((s) => s.trailer);
+  const setTrailer = useCinemaStore((s) => s.setTrailerState);
+  const toggleTrailerPlay = useCinemaStore((s) => s.toggleTrailerPlay);
+  const toggleTrailerMute = useCinemaStore((s) => s.toggleTrailerMute);
+  const restartTrailer = useCinemaStore((s) => s.restartTrailer);
+  const setHouseLights = useCinemaStore((s) => s.setHouseLights);
+  const theatreModeOpen = useCinemaStore((s) => s.theatreModeOpen);
+  const setTheatreModeOpen = useCinemaStore((s) => s.setTheatreModeOpen);
+  const openTrailer = useTrailerStore((s) => s.openTrailer);
+
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [showClipMenu, setShowClipMenu] = useState(false);
+  const [qualityMode, setQualityMode] = useState<'HD' | 'Auto'>('Auto');
+  const [volumeLevel, setVolumeLevel] = useState(80);
+
+  const activeStrategy = trailer.activeStrategy || 'title_card';
+  const playbackStatus = trailer.playbackStatus || 'ready';
+
+  const isVideoTexture = activeStrategy === 'video_texture';
+  const isYouTubeCSS3D = activeStrategy === 'youtube_css3d';
+  const isTitleCard = activeStrategy === 'title_card' || activeStrategy === 'backdrop_motion';
+
+  const handleStartPlayback = () => {
+    if (typeof (window as any).__cineverse_play_trailer === 'function') {
+      (window as any).__cineverse_play_trailer();
+      return;
+    }
+    const vid = (window as any).__cineverse_video as HTMLVideoElement | undefined;
+    if (vid) {
+      vid.muted = false;
+      vid.play().then(() => {
+        setTrailer({ isPlaying: true, isMuted: false, playbackStatus: 'playing' });
+        setHouseLights('show');
+      }).catch(() => {
+        vid.muted = true;
+        vid.play().then(() => {
+          setTrailer({ isPlaying: true, isMuted: true, playbackStatus: 'playing' });
+          setHouseLights('show');
+        }).catch(() => {
+          setTrailer({ playbackStatus: 'blocked' });
+        });
+      });
+    } else {
+      const yt = (window as any).__cineverse_yt_player;
+      if (yt && typeof yt.playVideo === 'function') {
+        try {
+          yt.unMute();
+          yt.playVideo();
+          setTrailer({ isPlaying: true, isMuted: false, playbackStatus: 'loading' });
+          setHouseLights('show');
+        } catch {
+          setTrailer({ isPlaying: true, isMuted: false, playbackStatus: 'loading' });
+          setHouseLights('show');
+        }
+      } else {
+        setTrailer({ isPlaying: true, isMuted: false, playbackStatus: 'loading' });
+        setHouseLights('show');
+      }
+    }
+  };
+
+  const handleSelectClip = (clip: MovieClipOption) => {
+    setShowClipMenu(false);
+    setTrailer({
+      trailerUrl: clip.url,
+      isPlaying: true,
+      isMuted: trailer.isMuted,
+      activeStrategy: 'video_texture',
+      playbackStatus: 'playing',
+    });
+    setHouseLights('show');
+  };
+
+  const handleToggleMute = () => {
+    const newMuted = !trailer.isMuted;
+    const yt = (window as any).__cineverse_yt_player;
+    if (yt) {
+      if (newMuted && typeof yt.mute === 'function') {
+        yt.mute();
+      } else if (!newMuted && typeof yt.unMute === 'function') {
+        yt.unMute();
+        if (typeof yt.setVolume === 'function') yt.setVolume(volumeLevel || 100);
+      }
+    }
+    const vid = (window as any).__cineverse_video as HTMLVideoElement | undefined;
+    if (vid) {
+      vid.muted = newMuted;
+      if (!newMuted) vid.volume = (volumeLevel || 80) / 100;
+    }
+    toggleTrailerMute();
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseInt(e.target.value, 10);
+    setVolumeLevel(val);
+    const vid = (window as any).__cineverse_video as HTMLVideoElement | undefined;
+    if (vid) {
+      vid.volume = val / 100;
+      vid.muted = val === 0;
+      setTrailer({ isMuted: val === 0 });
+    }
+    const yt = (window as any).__cineverse_yt_player;
+    if (yt && typeof yt.setVolume === 'function') {
+      yt.setVolume(val);
+      if (val > 0) {
+        if (typeof yt.unMute === 'function') yt.unMute();
+        setTrailer({ isMuted: false });
+      } else {
+        if (typeof yt.mute === 'function') yt.mute();
+        setTrailer({ isMuted: true });
+      }
+    }
+  };
+
+  // Truthful Audio State Polling (§ Part D)
+  React.useEffect(() => {
+    if (!trailer.isPlaying) return;
+    const timer = setInterval(() => {
+      const yt = (window as any).__cineverse_yt_player;
+      if (yt && typeof yt.isMuted === 'function') {
+        try {
+          const realMuted = yt.isMuted();
+          const realVol = typeof yt.getVolume === 'function' ? yt.getVolume() : 100;
+          if (realMuted !== trailer.isMuted) {
+            setTrailer({ isMuted: realMuted });
+          }
+          if (realVol !== volumeLevel && realVol >= 0) {
+            setVolumeLevel(realVol);
+          }
+        } catch {}
+      }
+      const vid = (window as any).__cineverse_video as HTMLVideoElement | undefined;
+      if (vid) {
+        if (vid.muted !== trailer.isMuted) {
+          setTrailer({ isMuted: vid.muted });
+        }
+        const vidVol = Math.round(vid.volume * 100);
+        if (vidVol !== volumeLevel) {
+          setVolumeLevel(vidVol);
+        }
+      }
+    }, 500);
+    return () => clearInterval(timer);
+  }, [trailer.isPlaying, trailer.isMuted, volumeLevel, setTrailer]);
+
+  const handleOpenPopup = () => {
+    openTrailer({
+      movieId: 1,
+      title: trailer.movieTitle || 'Movie Trailer',
+      posterUrl: trailer.posterUrl || '',
+      trailerUrl: trailer.trailerUrl || '',
+    });
+  };
+
+  if (isMinimized) {
+    return (
+      <div
+        data-testid="compact-trailer-controls-overlay"
+        className={
+          inline
+            ? 'pointer-events-auto flex items-center gap-1.5 rounded-2xl border border-white/20 bg-[#12161f]/95 p-1.5 shadow-xl backdrop-blur-md text-white w-fit shrink-0'
+            : 'pointer-events-auto fixed bottom-24 left-4 z-30 flex items-center gap-1.5 rounded-2xl border border-white/20 bg-[#12161f]/95 p-1.5 shadow-xl backdrop-blur-md text-white'
+        }
+      >
+        <button
+          onClick={() => setIsMinimized(false)}
+          data-testid="restore-media-cluster-btn"
+          className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition"
+          title="Expand Screen Media Controls"
+          aria-label="Expand Screen Media Controls"
+        >
+          <Film className="h-4 w-4 text-rose-500" />
+        </button>
+
+        {/* Play/Pause */}
+        <button
+          onClick={toggleTrailerPlay}
+          data-testid="compact-trailer-play-toggle"
+          className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition"
+          aria-label={trailer.isPlaying ? 'Pause trailer' : 'Play trailer'}
+          title={trailer.isPlaying ? 'Pause trailer' : 'Play trailer'}
+        >
+          {trailer.isPlaying && playbackStatus === 'playing' ? (
+            <Pause className="h-4 w-4 text-rose-400" />
+          ) : (
+            <Play className="h-4 w-4 text-rose-400 fill-current" />
+          )}
+        </button>
+
+        {/* Mute */}
+        <button
+          onClick={handleToggleMute}
+          data-testid="compact-trailer-mute-toggle"
+          className={`flex h-9 w-9 items-center justify-center rounded-xl transition ${
+            trailer.isMuted
+              ? 'bg-rose-600/80 text-white hover:bg-rose-600'
+              : 'bg-emerald-600/80 text-white hover:bg-emerald-600'
+          }`}
+          aria-label={trailer.isMuted ? 'Turn sound on' : 'Mute sound'}
+          title={trailer.isMuted ? 'Turn sound on' : 'Mute sound'}
+        >
+          {trailer.isMuted ? (
+            <VolumeX className="h-4 w-4" />
+          ) : (
+            <Volume2 className="h-4 w-4" />
+          )}
+        </button>
+
+        {/* Restart */}
+        <button
+          onClick={restartTrailer}
+          data-testid="compact-trailer-restart-btn"
+          className="flex h-9 w-9 items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition"
+          title="Restart trailer"
+          aria-label="Restart trailer"
+        >
+          <RotateCcw className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
+  // Determine true status indicator (§ Part D.2, D.4: never 'Loading...' before user presses play)
+  const getStatusBadge = () => {
+    if (trailer.isTheatreMode) {
+      return (
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-rose-400">
+          <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+          <span>Playing in Theatre Mode</span>
+        </span>
+      );
+    }
+    if (playbackStatus === 'ready' || (!trailer.isPlaying && playbackStatus !== 'loading' && playbackStatus !== 'blocked' && playbackStatus !== 'unavailable')) {
+      return (
+        <span className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-400">
+          <span className="h-2 w-2 rounded-full bg-emerald-400" />
+          <span>Ready, press play on the screen</span>
+        </span>
+      );
+    }
+    if (playbackStatus === 'loading') {
+      return (
+        <span className="flex items-center gap-1 text-[11px] font-semibold text-sky-400">
+          <Loader2 className="h-3 w-3 animate-spin" />
+          <span>Loading...</span>
+        </span>
+      );
+    }
+    if (playbackStatus === 'playing') {
+      return (
+        <span className="flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
+          <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>Playing on Screen</span>
+        </span>
+      );
+    }
+    if (playbackStatus === 'paused') {
+      return (
+        <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-400">
+          <span className="h-2 w-2 rounded-full bg-amber-500" />
+          <span>Paused</span>
+        </span>
+      );
+    }
+    if (playbackStatus === 'blocked') {
+      return (
+        <span className="flex items-center gap-1 text-[11px] font-semibold text-rose-400">
+          <AlertCircle className="h-3 w-3 text-rose-400" />
+          <span>Autoplay Blocked</span>
+        </span>
+      );
+    }
+    return (
+      <span className="flex items-center gap-1 text-[11px] font-semibold text-slate-400">
+        <AlertCircle className="h-3 w-3 text-slate-400" />
+        <span>Unavailable</span>
+      </span>
+    );
+  };
+
+  return (
+    <div
+      data-testid="trailer-controls-hud"
+      className={
+        inline
+          ? 'pointer-events-auto flex flex-col gap-2 rounded-2xl border border-white/15 bg-[#0f131a]/95 p-3 shadow-2xl backdrop-blur-lg text-white w-full shrink-0'
+          : 'pointer-events-auto fixed bottom-24 left-4 z-30 flex flex-col gap-2 rounded-2xl border border-white/15 bg-[#0f131a]/95 p-3 shadow-2xl backdrop-blur-lg text-white max-w-sm sm:max-w-md'
+      }
+    >
+      {/* Header bar: Movie clip label + minimize */}
+      <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-2">
+        <div className="flex items-center gap-2 text-xs font-bold text-slate-200 truncate">
+          <Film className="h-4 w-4 text-rose-500 shrink-0" />
+          <span className="truncate">{trailer.movieTitle || 'Screen Experience'}</span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0" data-testid="screen-playback-status-badge">
+          {/* True Status Pill */}
+          {getStatusBadge()}
+
+          {/* Minimize button */}
+          <button
+            onClick={() => setIsMinimized(true)}
+            data-testid="close-media-cluster-btn"
+            className="rounded-lg p-1 text-slate-400 hover:bg-white/10 hover:text-white transition"
+            title="Minimize media controls"
+            aria-label="Minimize media controls"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Main control row (§ Part D.1, D.4) */}
+      {!trailer.trailerUrl || trailer.trailerEmbeddable === false ? (
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex items-center gap-2">
+            <span className="rounded-md bg-white/10 px-2.5 py-1 text-xs font-semibold text-slate-400">
+              Trailer not available
+            </span>
+          </div>
+          <a
+            href={`https://www.youtube.com/results?search_query=${encodeURIComponent((trailer.movieTitle || 'Movie') + ' trailer')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="search-trailer-youtube-link"
+            className="flex items-center gap-1 text-xs text-rose-400 hover:text-rose-300 font-semibold transition"
+          >
+            <span>Search on YouTube</span>
+            <ExternalLink className="h-3 w-3" />
+          </a>
+        </div>
+      ) : !trailer.isPlaying && playbackStatus === 'ready' ? (
+        <div className="flex items-center justify-between gap-3 pt-1">
+          <span className="text-xs text-slate-300 font-medium">
+            Ready, press play on the screen
+          </span>
+          <button
+            onClick={handleStartPlayback}
+            data-testid="trailer-play-toggle"
+            className="flex min-h-[38px] items-center gap-2 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-red-600/30 hover:from-red-500 hover:to-rose-500 transition"
+            aria-label="Play trailer"
+          >
+            <Play className="h-3.5 w-3.5 fill-current" />
+            <span>Play trailer</span>
+          </button>
+        </div>
+      ) : isVideoTexture || trailer.isPlaying || playbackStatus === 'playing' || playbackStatus === 'paused' ? (
+        <div className="flex flex-wrap items-center gap-2 pt-1">
+          {/* Play/Pause */}
+          <button
+            onClick={toggleTrailerPlay}
+            data-testid="trailer-play-toggle"
+            className="flex min-h-[38px] items-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-bold transition"
+            aria-label={trailer.isPlaying ? 'Pause trailer' : 'Play trailer'}
+          >
+            {trailer.isPlaying && playbackStatus === 'playing' ? (
+              <>
+                <Pause className="h-3.5 w-3.5 text-rose-400" />
+                <span>Pause</span>
+              </>
+            ) : (
+              <>
+                <Play className="h-3.5 w-3.5 text-rose-400" />
+                <span>Play</span>
+              </>
+            )}
+          </button>
+
+          {/* Mute / Tap for sound */}
+          <button
+            onClick={handleToggleMute}
+            data-testid="trailer-mute-toggle"
+            className={`flex min-h-[38px] items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shadow ${
+              trailer.isMuted
+                ? 'bg-rose-600 text-white hover:bg-rose-500 ring-2 ring-rose-400/50'
+                : 'bg-emerald-600 text-white hover:bg-emerald-500'
+            }`}
+            aria-label={trailer.isMuted ? 'Turn sound on' : 'Mute sound'}
+          >
+            {trailer.isMuted ? (
+              <>
+                <VolumeX className="h-3.5 w-3.5" />
+                <span>Tap for Sound</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="h-3.5 w-3.5" />
+                <span>Sound On</span>
+              </>
+            )}
+          </button>
+
+          {/* No sound prompt (§ Part D) */}
+          {trailer.isPlaying && trailer.isMuted && (
+            <button
+              onClick={() => {
+                const yt = (window as any).__cineverse_yt_player;
+                if (yt && typeof yt.unMute === 'function') {
+                  yt.unMute();
+                  yt.setVolume(100);
+                }
+                const vid = (window as any).__cineverse_video as HTMLVideoElement | undefined;
+                if (vid) {
+                  vid.muted = false;
+                  vid.volume = 1.0;
+                }
+                setTrailer({ isMuted: false });
+                setVolumeLevel(100);
+              }}
+              data-testid="no-sound-unmute-prompt"
+              className="flex items-center gap-1.5 rounded-full bg-amber-500 text-slate-950 font-black px-3 py-1 text-xs shadow-lg animate-bounce hover:bg-amber-400 cursor-pointer"
+            >
+              <VolumeX className="h-3.5 w-3.5" />
+              <span>No sound: click here</span>
+            </button>
+          )}
+
+          {/* Restart */}
+          <button
+            onClick={restartTrailer}
+            data-testid="trailer-restart-btn"
+            className="flex min-h-[38px] items-center gap-1.5 rounded-xl bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-bold transition text-slate-300 hover:text-white"
+            title="Restart trailer"
+            aria-label="Restart trailer"
+          >
+            <RotateCcw className="h-3.5 w-3.5 text-slate-300" />
+            <span>Restart</span>
+          </button>
+
+          {/* Volume slider */}
+          <div className="flex items-center gap-1.5 pl-1" data-testid="volume-slider-container">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={trailer.isMuted ? 0 : volumeLevel}
+              onChange={handleVolumeChange}
+              data-testid="volume-slider"
+              className="w-16 sm:w-20 accent-rose-500 h-1.5 bg-white/20 rounded-lg cursor-pointer"
+              aria-label="Volume Level"
+            />
+          </div>
+
+          {/* Change video clip dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setShowClipMenu((v) => !v)}
+              data-testid="change-video-clip-btn"
+              className="flex min-h-[38px] items-center gap-1 rounded-xl bg-white/10 hover:bg-white/20 px-2.5 py-1.5 text-xs font-semibold text-slate-300 transition"
+              title="Change Movie Clip"
+            >
+              <span>Clips</span>
+              <ChevronDown className="h-3 w-3" />
+            </button>
+
+            {showClipMenu && (
+              <div
+                data-testid="clips-dropdown-menu"
+                className="absolute bottom-full left-0 mb-2 w-52 rounded-2xl border border-white/20 bg-[#161b26] p-1.5 shadow-2xl backdrop-blur-xl z-40 space-y-1"
+              >
+                <div className="px-2 py-1 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  Select Movie Clip
+                </div>
+                {SAMPLE_HOSTED_CLIPS.map((clip) => (
+                  <button
+                    key={clip.id}
+                    onClick={() => handleSelectClip(clip)}
+                    data-testid={`select-clip-${clip.id}`}
+                    className="w-full text-left rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-200 hover:bg-rose-600 hover:text-white transition flex items-center justify-between"
+                  >
+                    <span>{clip.label}</span>
+                    {clip.isHd && <span className="text-[9px] bg-white/20 px-1 rounded font-black">HD</span>}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Theatre Mode Button */}
+          <button
+            onClick={() => setTheatreModeOpen(true)}
+            data-testid="open-theatre-mode-btn"
+            className="flex min-h-[38px] items-center gap-1 rounded-xl bg-white/10 hover:bg-white/20 px-2.5 py-1.5 text-xs font-semibold text-slate-300 transition"
+            title="Open Cinema Theatre Mode"
+            aria-label="Open Cinema Theatre Mode"
+          >
+            <Maximize2 className="h-3.5 w-3.5 text-rose-400" />
+            <span>Theatre Mode</span>
+          </button>
+        </div>
+      ) : (
+        /* Blocked / Fallback Mode (Prompt Item 3, 4) */
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex flex-col">
+            <span className="text-xs text-slate-300 font-medium">
+              {playbackStatus === 'blocked' ? 'Autoplay was restricted by browser' : 'Dynamic Title Card Active'}
+            </span>
+            <span className="text-[11px] text-slate-400">
+              {trailer.trailerUrl ? 'High-definition theatrical trailer ready to view.' : 'Now showing in selected theatres.'}
+            </span>
+          </div>
+
+          {trailer.trailerUrl && (
+            <button
+              type="button"
+              onClick={handleOpenPopup}
+              data-testid="watch-trailer-popup-btn"
+              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 px-3.5 py-2 text-xs font-bold text-white shadow-lg shadow-red-600/30 hover:from-red-500 hover:to-rose-500 transition cursor-pointer"
+            >
+              <Play className="h-3.5 w-3.5 fill-current" />
+              <span>Watch trailer</span>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

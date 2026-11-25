@@ -1,0 +1,52 @@
+{
+  "test": "Task 2: Sign-in Flow in Real UI at localhost:3002",
+  "passed": true,
+  "registeredUser": "patron_1794935792562@example.com",
+  "headerName": "UI Patron",
+  "sessionPersistedOnRefresh": true,
+  "requestLogs": [
+    {
+      "url": "/api/v1/auth/register",
+      "status": 200,
+      "allowOrigin": "http://localhost:3002",
+      "allowCredentials": "true",
+      "setCookie": null
+    },
+    {
+      "url": "/api/v1/auth/logout",
+      "status": 200,
+      "allowOrigin": "http://localhost:3002",
+      "allowCredentials": "true",
+      "setCookie": null
+    },
+    {
+      "url": "/api/v1/auth/login",
+      "status": 200,
+      "allowOrigin": "http://localhost:3002",
+      "allowCredentials": "true",
+      "setCookie": null
+    },
+    {
+      "url": "/api/v1/auth/logout",
+      "status": 200,
+      "allowOrigin": "http://localhost:3002",
+      "allowCredentials": "true",
+      "setCookie": null
+    },
+    {
+      "url": "/api/v1/auth/otp/send",
+      "status": 200,
+      "allowOrigin": "http://localhost:3002",
+      "allowCredentials": "true",
+      "setCookie": null
+    },
+    {
+      "url": "/api/v1/auth/otp/verify",
+      "status": 200,
+      "allowOrigin": "http://localhost:3002",
+      "allowCredentials": "true",
+      "setCookie": null
+    }
+  ],
+  "rootCauseOfEarlierFailure": "CORS origin mismatch and missing credential grant: backend ALLOWED_ORIGINS previously contained only 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001'. When Next.js served traffic on port 3002, cross-origin fetch calls were rejected by the browser due to missing Access-Control-Allow-Origin, and credentials (cookies/tokens) were withheld."
+}

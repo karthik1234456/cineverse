@@ -1,0 +1,45 @@
+{
+  "index": 113,
+  "id": 113,
+  "title": "Heart of the Beast",
+  "slug": "heart-of-the-beast-1263337",
+  "source_type": "youtube",
+  "showtime_id": 4368,
+  "cinema_id": 5,
+  "auditorium_id": 16,
+  "url": "http://localhost:3002/cinemas/5/auditorium/16?showtime=4368&mode=3d&debug=1",
+  "click_timestamp": 1621.2000000029802,
+  "first_picture_timestamp": 3060.3999999910593,
+  "time_to_first_picture_ms": 1439.2,
+  "screenshot_1": {
+    "timestamp": 3562.5999999940395,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\heart-of-the-beast-1263337_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5255.399999991059,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\heart-of-the-beast-1263337_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 7083.5999999940395,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\heart-of-the-beast-1263337_ss3.png"
+  },
+  "frame_diff_pixel_sum": 66.08,
+  "movement_proved": true,
+  "player_api": {
+    "state": "buffering",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 66.082,
+  "movement_delta_12": 5.326,
+  "movement_delta_23": 60.806
+}

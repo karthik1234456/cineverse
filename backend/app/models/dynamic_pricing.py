@@ -31,6 +31,9 @@ class DynamicPricingRule(Base):
     flat_adjustment = Column(Float, default=0.0, nullable=False)
     floor_price = Column(Float, nullable=False)  # Hard immutable floor
     ceiling_price = Column(Float, nullable=False)  # Hard immutable ceiling
+    version = Column(Integer, default=1, nullable=False)
+    category = Column(String(50), nullable=True)  # Front, Prime, Recliner, etc. (None = all)
+    description = Column(String(255), nullable=True)
     status = Column(Enum(PricingRuleStatusEnum), default=PricingRuleStatusEnum.DRAFT, nullable=False)
     created_by_admin_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     approved_by_admin_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)

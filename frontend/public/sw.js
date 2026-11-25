@@ -1,8 +1,10 @@
-// CineVerse Production Service Worker
-const CACHE_NAME = 'cineverse-v1';
+// CineVerse Production Service Worker (v3)
+const CACHE_NAME = 'cineverse-static-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
+  '/icon-192x192.png',
+  '/icon-512x512.png',
   '/cinemas',
   '/movies'
 ];
@@ -22,6 +24,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         keys.map((key) => {
           if (key !== CACHE_NAME) {
+            console.log('[SW] Deleting obsolete cache:', key);
             return caches.delete(key);
           }
         })
@@ -31,41 +34,70 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
 
-  // Network-first for dynamic API routes and WebSockets
+self.addEventListener('fetch', (event) => {
+  const req = event.request;
+  const url = new URL(req.url);
+
+  // 1. Never cache non-GET requests
+  if (req.method !== 'GET') {
+    return;
+  }
+
+  // 2. Never cache dynamic backend API routes or WebSockets
   if (url.pathname.startsWith('/api') || url.pathname.startsWith('/ws')) {
     return;
   }
 
-  // Cache-first / offline fallback for booking confirmation tickets
-  if (url.pathname.startsWith('/booking/')) {
+  // 3. For navigation requests (HTML pages), use Network-First to never serve stale HTML
+  if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          const cloned = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, cloned));
-          return response;
+      fetch(req)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const cloned = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, cloned));
+          }
+          return networkResponse;
         })
-        .catch(() => caches.match(event.request))
+        .catch(() => caches.match(req))
     );
     return;
   }
 
-  // Stale-while-revalidate for other navigations
+  // 4. Cache-first for booking ticket QR views when offline
+  if (url.pathname.startsWith('/booking/')) {
+    event.respondWith(
+      fetch(req)
+        .then((response) => {
+          const cloned = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, cloned));
+          return response;
+        })
+        .catch(() => caches.match(req))
+    );
+    return;
+  }
+
+  // 5. Stale-while-revalidate for Next.js static chunks, fonts, and local assets
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const fetchPromise = fetch(event.request).then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, responseToCache));
-        }
-        return networkResponse;
-      }).catch(() => cachedResponse);
+    caches.match(req).then((cachedResponse) => {
+      const fetchPromise = fetch(req)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(req, responseToCache));
+          }
+          return networkResponse;
+        })
+        .catch(() => cachedResponse);
 
       return cachedResponse || fetchPromise;
     })
   );
 });
-

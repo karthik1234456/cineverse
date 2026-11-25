@@ -1,0 +1,45 @@
+{
+  "index": 107,
+  "id": 107,
+  "title": "Ashleel Udyog Mitra Mandal",
+  "slug": "ashleel-udyog-mitra-mandal-1215150",
+  "source_type": "youtube",
+  "showtime_id": 4280,
+  "cinema_id": 4,
+  "auditorium_id": 13,
+  "url": "http://localhost:3002/cinemas/4/auditorium/13?showtime=4280&mode=3d&debug=1",
+  "click_timestamp": 1631.7000000029802,
+  "first_picture_timestamp": 3063.5,
+  "time_to_first_picture_ms": 1431.8,
+  "screenshot_1": {
+    "timestamp": 3988.0999999940395,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\ashleel-udyog-mitra-mandal-1215150_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5885.899999991059,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\ashleel-udyog-mitra-mandal-1215150_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 7809,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\ashleel-udyog-mitra-mandal-1215150_ss3.png"
+  },
+  "frame_diff_pixel_sum": 22.24,
+  "movement_proved": true,
+  "player_api": {
+    "state": "buffering",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 22.241,
+  "movement_delta_12": 24.816,
+  "movement_delta_23": 20.329
+}

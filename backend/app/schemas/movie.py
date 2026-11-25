@@ -1,6 +1,6 @@
 from typing import List, Optional
 from datetime import date, datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class CastMemberResponse(BaseModel):
@@ -42,8 +42,18 @@ class MovieResponse(BaseModel):
     title: str
     slug: str
     synopsis: str
-    poster_url: str
-    banner_url: str
+    poster_url: Optional[str] = "/posters/quantum-odyssey.webp"
+    banner_url: Optional[str] = "/backdrops/quantum-odyssey.webp"
+
+    @field_validator("poster_url", mode="before")
+    @classmethod
+    def default_poster_if_none(cls, v):
+        return v if v else "/posters/quantum-odyssey.webp"
+
+    @field_validator("banner_url", mode="before")
+    @classmethod
+    def default_banner_if_none(cls, v):
+        return v if v else "/backdrops/quantum-odyssey.webp"
     trailer_url: Optional[str] = None
     trailer_duration_seconds: Optional[int] = 25
     trailer_poster_frame_url: Optional[str] = None
@@ -63,6 +73,25 @@ class MovieResponse(BaseModel):
     languages: List[str]
     genres: List[str]
     formats: List[str]
+    tmdb_id: Optional[int] = None
+    tmdb_vote_average: Optional[float] = None
+    tmdb_popularity: Optional[float] = None
+    is_tmdb: Optional[bool] = False
+    is_showcase: Optional[bool] = False
+    source: Optional[str] = "tmdb"
+    youtube_trailer_id: Optional[str] = None
+    trailer_embeddable: Optional[bool] = False
+    trailer_reason: Optional[str] = None
+    hosted_trailer_url: Optional[str] = None
+    hosted_trailer_webm_url: Optional[str] = None
+    hosted_trailer_poster_url: Optional[str] = None
+    hosted_trailer_ambient_clip_url: Optional[str] = None
+    trailer_rights_holder: Optional[str] = None
+    trailer_license_note: Optional[str] = None
+    trailer_license_expiry: Optional[date] = None
+    trailer_source_type: Optional[str] = "youtube"
+    trailer_file_size_bytes: Optional[int] = None
+    trailer_virus_scanned: Optional[bool] = True
 
     class Config:
         from_attributes = True

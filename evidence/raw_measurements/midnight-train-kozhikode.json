@@ -1,0 +1,45 @@
+{
+  "index": 40,
+  "id": 40,
+  "title": "Midnight Express to Kozhikode",
+  "slug": "midnight-train-kozhikode",
+  "source_type": "hosted",
+  "showtime_id": 12038,
+  "cinema_id": 12,
+  "auditorium_id": 39,
+  "url": "http://localhost:3002/cinemas/12/auditorium/39?showtime=12038&mode=3d&debug=1",
+  "click_timestamp": 1909.7000000029802,
+  "first_picture_timestamp": 2144,
+  "time_to_first_picture_ms": 234.3,
+  "screenshot_1": {
+    "timestamp": 3052.7000000029802,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\midnight-train-kozhikode_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5395.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\midnight-train-kozhikode_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 7716.4000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\midnight-train-kozhikode_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.77,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.838476
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.773,
+  "movement_delta_12": 1.757,
+  "movement_delta_23": 0.045
+}

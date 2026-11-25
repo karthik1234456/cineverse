@@ -1,0 +1,41 @@
+{
+  "index": 15,
+  "id": 110,
+  "title": "Gangor",
+  "slug": "gangor-278986",
+  "source_type": "none",
+  "showtime_id": 4340,
+  "cinema_id": 5,
+  "auditorium_id": 15,
+  "url": "http://localhost:3002/cinemas/5/auditorium/15?showtime=4340&mode=3d&debug=1",
+  "click_timestamp": 2796.9000000059605,
+  "first_picture_timestamp": null,
+  "time_to_first_picture_ms": null,
+  "screenshot_1": {
+    "timestamp": 3358.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\gangor-278986_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 6034.79999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\gangor-278986_ss2.png"
+  },
+  "frame_diff_pixel_sum": 0.02,
+  "player_api": {
+    "state": "no player",
+    "isMuted": null,
+    "getVolume": "no player",
+    "currentTime": 0
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Honest Fallback)",
+  "movement_delta_13": 0.015,
+  "movement_delta_12": 0.015,
+  "movement_delta_23": 0.0,
+  "movement_proved": true
+}

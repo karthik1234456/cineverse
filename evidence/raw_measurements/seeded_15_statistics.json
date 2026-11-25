@@ -1,0 +1,37 @@
+{
+  "total_evaluated": 15,
+  "hosted": {
+    "count": 6,
+    "median_ms": 295.4,
+    "p95_ms": 587.8,
+    "min_ms": 202.7,
+    "max_ms": 587.8,
+    "raw_times": [
+      587.8,
+      333.2,
+      232,
+      202.7,
+      262,
+      328.8
+    ]
+  },
+  "youtube": {
+    "count": 6,
+    "median_ms": 1475.65,
+    "p95_ms": 1493.9,
+    "min_ms": 1437.8,
+    "max_ms": 1493.9,
+    "raw_times": [
+      1468.2,
+      1449.4,
+      1437.8,
+      1483.1,
+      1493.9,
+      1491.3
+    ]
+  },
+  "none": {
+    "count": 0,
+    "status": "Honest \"Trailer not available\" verified"
+  }
+}

@@ -54,12 +54,11 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db():
+    import app.models
+    from sqlalchemy import text
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # Migrate columns if missing (inspect first so failed statements do not abort SQLite transactions)
-    from sqlalchemy import text
-    async with engine.connect() as conn:
         # Check cinema columns
         try:
             res = await conn.execute(text("PRAGMA table_info(cinemas)"))
@@ -77,10 +76,9 @@ async def init_db():
             ("is_demo_data", "BOOLEAN DEFAULT 1"),
         ]
         for col_name, col_def in new_cinema_cols:
-            if not cinema_cols or col_name not in cinema_cols:
+            if cinema_cols and col_name not in cinema_cols:
                 try:
                     await conn.execute(text(f"ALTER TABLE cinemas ADD COLUMN {col_name} {col_def}"))
-                    await conn.commit()
                 except Exception:
                     pass
 
@@ -96,17 +94,164 @@ async def init_db():
             ("glimpse_url", "VARCHAR(500)"),
             ("glimpse_webm_url", "VARCHAR(500)"),
             ("glimpse_720p_url", "VARCHAR(500)"),
+            ("tmdb_id", "INTEGER"),
+            ("tmdb_vote_average", "FLOAT"),
+            ("tmdb_popularity", "FLOAT"),
+            ("is_tmdb", "BOOLEAN DEFAULT 0"),
+            ("is_showcase", "BOOLEAN DEFAULT 0"),
+            ("source", "VARCHAR(20) DEFAULT 'local'"),
+            ("youtube_trailer_id", "VARCHAR(50)"),
+            ("trailer_embeddable", "BOOLEAN DEFAULT 0"),
+            ("trailer_reason", "VARCHAR(255)"),
+            ("hosted_trailer_url", "VARCHAR(500)"),
+            ("hosted_trailer_webm_url", "VARCHAR(500)"),
+            ("hosted_trailer_poster_url", "VARCHAR(500)"),
+            ("hosted_trailer_ambient_clip_url", "VARCHAR(500)"),
+            ("trailer_rights_holder", "VARCHAR(255)"),
+            ("trailer_license_note", "VARCHAR(500)"),
+            ("trailer_license_expiry", "DATE"),
+            ("trailer_source_type", "VARCHAR(50) DEFAULT 'youtube'"),
+            ("trailer_file_size_bytes", "INTEGER"),
+            ("trailer_virus_scanned", "BOOLEAN DEFAULT 1"),
         ]
         for col_name, col_def in movie_cols:
-            if not existing_movie_cols or col_name not in existing_movie_cols:
+            if existing_movie_cols and col_name not in existing_movie_cols:
                 try:
                     await conn.execute(text(f"ALTER TABLE movies ADD COLUMN {col_name} {col_def}"))
-                    await conn.commit()
+                except Exception:
+                    pass
+
+        # Check auditorium columns
+        try:
+            res = await conn.execute(text("PRAGMA table_info(auditoriums)"))
+            existing_aud_cols = [r[1] for r in res.fetchall()]
+        except Exception:
+            existing_aud_cols = []
+
+        aud_cols = [
+            ("screen_format_id", "INTEGER REFERENCES screen_formats(id)"),
+            ("sound_system_id", "INTEGER REFERENCES sound_systems(id)"),
+            ("projection_type_id", "INTEGER REFERENCES projection_types(id)"),
+            ("confirmed_with_cinema", "BOOLEAN DEFAULT 0"),
+            ("is_demo", "BOOLEAN DEFAULT 1"),
+        ]
+        for col_name, col_def in aud_cols:
+            if existing_aud_cols and col_name not in existing_aud_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE auditoriums ADD COLUMN {col_name} {col_def}"))
+                except Exception:
+                    pass
+
+        # Check screen_formats columns
+        try:
+            res = await conn.execute(text("PRAGMA table_info(screen_formats)"))
+            existing_fmt_cols = [r[1] for r in res.fetchall()]
+        except Exception:
+            existing_fmt_cols = []
+
+        fmt_cols = [
+            ("min_seats", "INTEGER DEFAULT 200"),
+            ("max_seats", "INTEGER DEFAULT 300"),
+            ("confirmation_note", "VARCHAR(255)"),
+            ("equipment_profile", "JSON"),
+        ]
+        for col_name, col_def in fmt_cols:
+            if existing_fmt_cols and col_name not in existing_fmt_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE screen_formats ADD COLUMN {col_name} {col_def}"))
+                except Exception:
+                    pass
+
+
+        # Check refunds columns
+        try:
+            res = await conn.execute(text("PRAGMA table_info(refunds)"))
+            existing_refund_cols = [r[1] for r in res.fetchall()]
+        except Exception:
+            existing_refund_cols = []
+
+        refund_cols = [
+            ("amount_paise", "INTEGER DEFAULT 0"),
+            ("cancellation_fee_paise", "INTEGER DEFAULT 0"),
+            ("ticket_amount_paise", "INTEGER DEFAULT 0"),
+            ("addons_amount_paise", "INTEGER DEFAULT 0"),
+            ("convenience_fee_paise", "INTEGER DEFAULT 0"),
+            ("gst_amount_paise", "INTEGER DEFAULT 0"),
+            ("gateway_refund_id", "VARCHAR(100)"),
+            ("timeline", "JSON"),
+            ("is_stuck", "BOOLEAN DEFAULT 0"),
+            ("error_message", "VARCHAR(500)"),
+            ("updated_at", "DATETIME"),
+        ]
+        for col_name, col_def in refund_cols:
+            if existing_refund_cols and col_name not in existing_refund_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE refunds ADD COLUMN {col_name} {col_def}"))
+                except Exception:
+                    pass
+
+        # Check bookings columns for customer GSTIN
+        try:
+            res = await conn.execute(text("PRAGMA table_info(bookings)"))
+            existing_booking_cols = [r[1] for r in res.fetchall()]
+        except Exception:
+            existing_booking_cols = []
+
+        booking_cols = [
+            ("customer_gstin", "VARCHAR(15)"),
+            ("customer_business_name", "VARCHAR(255)"),
+            ("customer_business_address", "VARCHAR(500)"),
+            ("customer_state_code", "VARCHAR(2)"),
+        ]
+        for col_name, col_def in booking_cols:
+            if existing_booking_cols and col_name not in existing_booking_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE bookings ADD COLUMN {col_name} {col_def}"))
+                except Exception:
+                    pass
+
+        # Check showtimes columns
+        try:
+            res = await conn.execute(text("PRAGMA table_info(showtimes)"))
+            existing_st_cols = [r[1] for r in res.fetchall()]
+        except Exception:
+            existing_st_cols = []
+
+        st_cols = [
+            ("status", "VARCHAR(20) DEFAULT 'SCHEDULED'"),
+            ("cancellation_reason", "VARCHAR(255)"),
+            ("cleaning_gap_minutes", "INTEGER DEFAULT 20"),
+            ("import_batch_id", "VARCHAR(64)"),
+        ]
+        for col_name, col_def in st_cols:
+            if existing_st_cols and col_name not in existing_st_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE showtimes ADD COLUMN {col_name} {col_def}"))
+                except Exception:
+                    pass
+
+        # Check dynamic pricing rules columns
+        try:
+            res = await conn.execute(text("PRAGMA table_info(dynamic_pricing_rules)"))
+            existing_dpr_cols = [r[1] for r in res.fetchall()]
+        except Exception:
+            existing_dpr_cols = []
+
+        dpr_cols = [
+            ("version", "INTEGER DEFAULT 1"),
+            ("category", "VARCHAR(50)"),
+            ("description", "VARCHAR(255)"),
+        ]
+        for col_name, col_def in dpr_cols:
+            if existing_dpr_cols and col_name not in existing_dpr_cols:
+                try:
+                    await conn.execute(text(f"ALTER TABLE dynamic_pricing_rules ADD COLUMN {col_name} {col_def}"))
                 except Exception:
                     pass
 
 
 async def reset_db():
+    import app.models  # Ensure all models are registered on Base.metadata
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)

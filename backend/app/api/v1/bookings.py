@@ -1,5 +1,6 @@
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Request, Header
+from datetime import datetime, timedelta
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Header, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -7,11 +8,13 @@ from sqlalchemy.orm import selectinload
 from app.database import get_db
 from app.models.booking import Booking, BookingSeat, BookingAddon, Ticket, BookingStatusEnum
 from app.models.showtime import Showtime
+from app.models.cinema import Auditorium
 from app.models.auth import User, RoleEnum
 from app.schemas.booking import (
     SeatHoldRequest, SeatHoldResponse, SeatReleaseRequest, SeatExtendRequest,
     BookingCreateRequest, BookingResponse, BookingSeatResponse, BookingAddonResponse, TicketResponse,
-    HoldQuoteResponse, HoldAddonsUpdateRequest, HoldCouponApplyRequest
+    HoldQuoteResponse, HoldAddonsUpdateRequest, HoldCouponApplyRequest,
+    RefundBreakdownPaise, RefundTimelineItem, RefundResponse, CancellationQuoteResponse
 )
 from app.services.auth_service import get_current_user, require_user
 from app.services.hold_service import (
@@ -19,21 +22,26 @@ from app.services.hold_service import (
     get_hold_quote, update_hold_addons, apply_hold_coupon
 )
 from app.services.booking_service import create_booking
-from app.services.payment_service import cancel_booking
+from app.services.payment_service import cancel_booking, get_cancellation_quote, compute_refund_breakdown_paise
 from app.services.geo_service import generate_directions_url
+from app.core.rate_limiter import check_rate_limit
 
 router = APIRouter()
 
 
 @router.post("/hold", response_model=SeatHoldResponse)
 async def api_hold_seats(
-    showtime_id: int,
     req: SeatHoldRequest,
     request: Request,
+    showtime_id: Optional[int] = Query(None),
     x_idempotency_key: Optional[str] = Header(None, alias="X-Idempotency-Key"),
     current_user: Optional[User] = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
+    target_showtime_id = showtime_id or req.showtime_id
+    if not target_showtime_id:
+        raise HTTPException(status_code=400, detail="showtime_id must be provided")
+
     user_id = current_user.id if current_user else None
     
     forwarded = request.headers.get("X-Forwarded-For")
@@ -42,21 +50,32 @@ async def api_hold_seats(
     else:
         client_ip = request.client.host if request.client else "127.0.0.1"
 
+    # Enforce shared Redis sliding-window rate limit: 10/min per user, 30/min per IP
+    await check_rate_limit("hold_seats", request, user_id=user_id)
+
     idempotency_key = req.idempotency_key or x_idempotency_key
 
     result = await hold_seats(
         db,
-        showtime_id,
+        target_showtime_id,
         req.seat_ids,
         user_id=user_id,
         client_ip=client_ip,
-        idempotency_key=idempotency_key
+        idempotency_key=idempotency_key,
+        captcha_token=req.captcha_token
     )
     return SeatHoldResponse(**result)
 
 
 @router.post("/release")
-async def api_release_seats(req: SeatReleaseRequest, db: AsyncSession = Depends(get_db)):
+async def api_release_seats(
+    req: SeatReleaseRequest,
+    request: Request,
+    current_user: Optional[User] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    user_id = current_user.id if current_user else None
+    await check_rate_limit("release_seats", request, user_id=user_id)
     result = await release_seats(db, req.hold_id, req.seat_ids)
     return result
 
@@ -197,8 +216,11 @@ async def list_my_bookings(
             selectinload(Booking.addons),
             selectinload(Booking.showtime).selectinload(Showtime.movie),
             selectinload(Booking.showtime).selectinload(Showtime.cinema),
-            selectinload(Booking.showtime).selectinload(Showtime.auditorium),
-            selectinload(Booking.ticket)
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.screen_format),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.sound_system),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.projection_type),
+            selectinload(Booking.ticket),
+            selectinload(Booking.refund)
         )
         .order_by(Booking.created_at.desc())
     )
@@ -226,8 +248,11 @@ async def get_booking_details(
             selectinload(Booking.addons),
             selectinload(Booking.showtime).selectinload(Showtime.movie),
             selectinload(Booking.showtime).selectinload(Showtime.cinema),
-            selectinload(Booking.showtime).selectinload(Showtime.auditorium),
-            selectinload(Booking.ticket)
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.screen_format),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.sound_system),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.projection_type),
+            selectinload(Booking.ticket),
+            selectinload(Booking.refund)
         )
     )
     result = await db.execute(stmt)
@@ -248,6 +273,18 @@ async def get_booking_details(
     return await format_booking_response(booking, db)
 
 
+@router.get("/{booking_id}/cancellation-quote", response_model=CancellationQuoteResponse)
+async def api_get_cancellation_quote(
+    booking_id: int,
+    current_user: Optional[User] = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    user_id = current_user.id if current_user else None
+    is_admin = bool(current_user and current_user.role == RoleEnum.ADMIN)
+    result = await get_cancellation_quote(db, booking_id, user_id=user_id, is_admin=is_admin)
+    return CancellationQuoteResponse(**result)
+
+
 @router.post("/{booking_id}/cancel")
 async def api_cancel_booking(
     booking_id: int,
@@ -255,7 +292,8 @@ async def api_cancel_booking(
     db: AsyncSession = Depends(get_db)
 ):
     user_id = current_user.id if current_user else None
-    result = await cancel_booking(db, booking_id, user_id=user_id)
+    is_admin = bool(current_user and current_user.role == RoleEnum.ADMIN)
+    result = await cancel_booking(db, booking_id, user_id=user_id, is_admin=is_admin)
     return result
 
 
@@ -268,9 +306,12 @@ async def format_booking_response(booking: Booking, db: AsyncSession) -> Booking
             selectinload(Booking.seats),
             selectinload(Booking.addons),
             selectinload(Booking.ticket),
+            selectinload(Booking.refund),
             selectinload(Booking.showtime).selectinload(Showtime.movie),
             selectinload(Booking.showtime).selectinload(Showtime.cinema),
-            selectinload(Booking.showtime).selectinload(Showtime.auditorium),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.screen_format),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.sound_system),
+            selectinload(Booking.showtime).selectinload(Showtime.auditorium).selectinload(Auditorium.projection_type),
         )
     )
     result = await db.execute(stmt)
@@ -299,7 +340,42 @@ async def format_booking_response(booking: Booking, db: AsyncSession) -> Booking
             qr_data=b.ticket.qr_data,
             qr_code_url=b.ticket.qr_code_url,
             hmac_signature=b.ticket.hmac_signature,
-            issued_at=b.ticket.issued_at
+            issued_at=b.ticket.issued_at or datetime.utcnow(),
+            is_used=bool(b.ticket.is_used),
+            used_at=b.ticket.used_at
+        )
+
+    # Cancellation & Refund breakdown
+    cutoff_minutes = st.cancellation_cutoff_minutes if (st and st.cancellation_cutoff_minutes) else 120
+    cutoff_time = (st.start_time - timedelta(minutes=cutoff_minutes)) if st else (b.created_at + timedelta(days=1))
+    now = datetime.utcnow()
+
+    is_used = bool(b.ticket and b.ticket.is_used)
+    is_late = now > cutoff_time
+    can_cancel = (b.status == BookingStatusEnum.CONFIRMED) and (not is_used) and (not is_late)
+
+    breakdown_data = compute_refund_breakdown_paise(b, cutoff_minutes)
+    refund_breakdown = RefundBreakdownPaise(**breakdown_data)
+    cancellation_policy = breakdown_data["policy_text"]
+
+    refund_resp = None
+    if b.refund:
+        refund_resp = RefundResponse(
+            id=b.refund.id,
+            booking_id=b.refund.booking_id,
+            payment_id=b.refund.payment_id,
+            refund_amount=b.refund.refund_amount,
+            cancellation_fee=b.refund.cancellation_fee,
+            amount_paise=b.refund.amount_paise or round(b.refund.refund_amount * 100),
+            amount_display=f"₹{(b.refund.amount_paise or round(b.refund.refund_amount * 100)) / 100:,.2f}",
+            cancellation_fee_paise=b.refund.cancellation_fee_paise or round(b.refund.cancellation_fee * 100),
+            cancellation_fee_display=f"₹{(b.refund.cancellation_fee_paise or round(b.refund.cancellation_fee * 100)) / 100:,.2f}",
+            status=b.refund.status or "REQUESTED",
+            timeline=[RefundTimelineItem(**item) for item in (b.refund.timeline or [])],
+            is_stuck=bool(b.refund.is_stuck),
+            error_message=b.refund.error_message,
+            created_at=b.refund.created_at,
+            updated_at=b.refund.updated_at
         )
 
     return BookingResponse(
@@ -324,7 +400,14 @@ async def format_booking_response(booking: Booking, db: AsyncSession) -> Booking
         cinema_transit_stop=st.cinema.transit_stop if (st and st.cinema) else None,
         directions_url=generate_directions_url(st.cinema.latitude, st.cinema.longitude) if (st and st.cinema and st.cinema.latitude and st.cinema.longitude) else None,
         auditorium_name=st.auditorium.name if (st and st.auditorium) else "Screen 1",
-        screen_type=st.auditorium.screen_type if (st and st.auditorium) else "IMAX 3D",
+        screen_type=st.auditorium.screen_format_name if (st and st.auditorium) else "IMAX 3D",
+        screen_format=st.auditorium.screen_format_name if (st and st.auditorium) else "IMAX 3D",
+        sound_system=st.auditorium.sound_system_name if (st and st.auditorium) else "Dolby Atmos",
+        projection_type=st.auditorium.projection_type_name if (st and st.auditorium) else "4K Laser",
+        tech_specs_display=st.auditorium.tech_specs_display if (st and st.auditorium) else "Screen 1 · IMAX 3D · Dolby Atmos · 4K Laser",
+        requires_glasses=st.auditorium.screen_format.requires_glasses if (st and st.auditorium and "screen_format" in st.auditorium.__dict__ and st.auditorium.screen_format) else ("3D" in (st.auditorium.screen_type if (st and st.auditorium) else "")),
+        confirmed_with_cinema=st.auditorium.confirmed_with_cinema if (st and st.auditorium) else False,
+        is_demo=st.auditorium.is_demo if (st and st.auditorium) else True,
         start_time=st.start_time if st else b.created_at,
         seats=seats_resp,
         addons=addons_resp,
@@ -338,5 +421,10 @@ async def format_booking_response(booking: Booking, db: AsyncSession) -> Booking
         contact_email=b.contact_email,
         contact_phone=b.contact_phone,
         created_at=b.created_at,
-        ticket=ticket_resp
+        ticket=ticket_resp,
+        can_cancel=can_cancel,
+        cancellation_policy=cancellation_policy,
+        cancellation_cutoff_time=cutoff_time,
+        refund_breakdown=refund_breakdown,
+        refund=refund_resp
     )

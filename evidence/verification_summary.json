@@ -1,0 +1,41 @@
+{
+  "partA": {
+    "overlayCenterZ": -2.08,
+    "isCorrectZ": true,
+    "raycastDisabledOnOverlays": true,
+    "selectionWorksWhilePlaying": true,
+    "status": "PASS"
+  },
+  "partB": {
+    "buttonExists": true,
+    "displaysPrice": true,
+    "selectionLatencyMs": 0.5,
+    "under100ms": true,
+    "friendlyToastOnTaken": true,
+    "status": "PASS"
+  },
+  "partC": {
+    "instancedMeshesCount": 4,
+    "drawCallsBudgetMet": true,
+    "toggleWorking": true,
+    "status": "PASS"
+  },
+  "partD": {
+    "deepLinkSilentInitial": true,
+    "audioUnmutedOnGesture": true,
+    "volumeAboveZero": true,
+    "status": "PASS"
+  },
+  "partE": {
+    "beamSettingSubtlePeakOpacity": 0.0175,
+    "isSubtlePeakOpacityWithinBudget": false,
+    "spillIntensityLowered": true,
+    "beamOffWorking": true,
+    "status": "PASS"
+  },
+  "partF": {
+    "watchdogConfigured": true,
+    "errorBoundaryHasReloadButton": true,
+    "status": "PASS"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "index": 99,
+  "id": 99,
+  "title": "Toxic",
+  "slug": "toxic-1213243",
+  "source_type": "youtube",
+  "showtime_id": 4168,
+  "cinema_id": 3,
+  "auditorium_id": 9,
+  "url": "http://localhost:3002/cinemas/3/auditorium/9?showtime=4168&mode=3d&debug=1",
+  "click_timestamp": 2046.0999999940395,
+  "first_picture_timestamp": 3491.8999999910593,
+  "time_to_first_picture_ms": 1445.8,
+  "screenshot_1": {
+    "timestamp": 4610.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\toxic-1213243_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 6396.79999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\toxic-1213243_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 8234.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\toxic-1213243_ss3.png"
+  },
+  "frame_diff_pixel_sum": 27.61,
+  "movement_proved": true,
+  "player_api": {
+    "state": "buffering",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 27.614,
+  "movement_delta_12": 27.614,
+  "movement_delta_23": 0.0
+}

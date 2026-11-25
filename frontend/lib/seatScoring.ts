@@ -12,6 +12,8 @@ export interface ScoredSeatInput {
   vertical_angle_deg: number;
   screen_h_fov_deg: number;
   position_gltf_y_up: [number, number, number];
+  is_accessible?: boolean;
+  is_companion?: boolean;
 }
 
 export interface ScoreOptions {

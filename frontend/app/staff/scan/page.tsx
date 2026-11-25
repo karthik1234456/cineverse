@@ -182,7 +182,12 @@ export default function StaffScanPwaPage() {
 
         {/* Scan Status Feedback */}
         {scanResult && (
-          <div id="scan-success-card" className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-5 space-y-3 animate-fadeIn">
+          <div
+            id="scan-success-card"
+            data-testid="scan-success-card"
+            role="alert"
+            className="rounded-2xl border border-emerald-500/40 bg-emerald-950/20 p-5 space-y-3 animate-fadeIn"
+          >
             <div className="flex items-center gap-3">
               <CheckCircle2 className="h-7 w-7 text-emerald-400 shrink-0" />
               <div>
@@ -213,7 +218,12 @@ export default function StaffScanPwaPage() {
         )}
 
         {errorMessage && (
-          <div id="scan-error-card" className="rounded-2xl border border-red-500/40 bg-red-950/20 p-5 space-y-3 animate-fadeIn">
+          <div
+            id="scan-error-card"
+            data-testid="scan-error-card"
+            role="alert"
+            className="rounded-2xl border border-red-500/40 bg-red-950/20 p-5 space-y-3 animate-fadeIn"
+          >
             <div className="flex items-center gap-3">
               {errorType === 'ALREADY_USED' ? (
                 <AlertTriangle className="h-7 w-7 text-amber-400 shrink-0" />

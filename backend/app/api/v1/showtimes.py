@@ -47,6 +47,9 @@ async def get_showtime_seats(
             selectinload(Showtime.movie),
             selectinload(Showtime.cinema),
             selectinload(Showtime.auditorium).selectinload(Auditorium.seats),
+            selectinload(Showtime.auditorium).selectinload(Auditorium.screen_format),
+            selectinload(Showtime.auditorium).selectinload(Auditorium.sound_system),
+            selectinload(Showtime.auditorium).selectinload(Auditorium.projection_type),
             selectinload(Showtime.seat_inventory)
         )
     )
@@ -58,6 +61,14 @@ async def get_showtime_seats(
 
     # Map auditorium seats by seat_id
     aud_seats = {s.seat_id: s for s in showtime.auditorium.seats} if showtime.auditorium else {}
+
+    layout_data = showtime.auditorium.layout_data if showtime.auditorium and showtime.auditorium.layout_data else {}
+    is_motion = bool(layout_data.get("is_motion_hall") or layout_data.get("theatre_type") in ("motion_seat", "dolby_atmos_4dx") or "motion" in str(layout_data.get("theatre_type", "")))
+    seat_to_pod = {}
+    if layout_data.get("pods"):
+        for p in layout_data["pods"]:
+            for s_id in p.get("seat_ids", []):
+                seat_to_pod[s_id] = p.get("pod_id")
 
     seat_items = []
     current_user_id = current_user.id if current_user else None
@@ -78,6 +89,11 @@ async def get_showtime_seats(
 
         quote_id = f"cv-quote-{showtime.id}-{int(datetime.utcnow().timestamp())}"
 
+        is_acc = aud_seat.is_accessible if aud_seat else False
+        is_comp = aud_seat.is_companion if aud_seat else False
+        pod_id_val = seat_to_pod.get(inv.seat_id)
+        s_type = "accessible" if is_acc else ("companion" if is_comp else ("motion" if is_motion else "standard"))
+
         seat_items.append(SeatInventoryItem(
             seat_id=inv.seat_id,
             category=inv.category,
@@ -92,7 +108,11 @@ async def get_showtime_seats(
             distance_to_screen=aud_seat.distance_to_screen if aud_seat else 10.0,
             vertical_angle_deg=aud_seat.vertical_angle_deg if aud_seat else 0.0,
             horizontal_angle_deg=aud_seat.horizontal_angle_deg if aud_seat else 0.0,
-            is_accessible=aud_seat.is_accessible if aud_seat else False
+            is_accessible=is_acc,
+            is_companion=is_comp,
+            seat_type=s_type,
+            pod_id=pod_id_val,
+            motion_zone="all" if is_motion else None,
         ))
 
     # Sort seats alphabetically A01...J10
@@ -144,6 +164,14 @@ async def get_showtime_seats(
             ))
 
     quote_id = f"cv-quote-{showtime.id}-{int(datetime.utcnow().timestamp())}"
+    aud = showtime.auditorium
+    fmt_name = aud.screen_format_name if aud else showtime.format
+    snd_name = aud.sound_system_name if aud else "Standard 5.1"
+    prj_name = aud.projection_type_name if aud else "Standard digital"
+    tech_specs = aud.tech_specs_display if aud else f"{aud.name if aud else 'Screen 1'} · {fmt_name} · {snd_name} · {prj_name}"
+    requires_glasses = aud.screen_format.requires_glasses if (aud and aud.screen_format) else ("3D" in fmt_name)
+    confirmed_with_cinema = aud.confirmed_with_cinema if aud else False
+    is_demo = aud.is_demo if aud else True
 
     return ShowtimeSeatsResponse(
         showtime_id=showtime.id,
@@ -153,10 +181,18 @@ async def get_showtime_seats(
         cinema_name=showtime.cinema.name if showtime.cinema else "Cinema",
         auditorium_id=showtime.auditorium_id,
         auditorium_name=showtime.auditorium.name if showtime.auditorium else "Screen 1",
-        screen_type=showtime.auditorium.screen_type if showtime.auditorium else "IMAX 3D",
+        screen_type=fmt_name,
         has_3d_preview=showtime.auditorium.has_3d_preview if showtime.auditorium else True,
         layout_data=showtime.auditorium.layout_data if showtime.auditorium else None,
-        format=showtime.format,
+        layout_signature=showtime.auditorium.layout_data.get("layout_signature") if showtime.auditorium and showtime.auditorium.layout_data else None,
+        format=fmt_name,
+        screen_format=fmt_name,
+        sound_system=snd_name,
+        projection_type=prj_name,
+        tech_specs_display=tech_specs,
+        requires_glasses=requires_glasses,
+        confirmed_with_cinema=confirmed_with_cinema,
+        is_demo=is_demo,
         language=showtime.language,
         start_time=showtime.start_time,
         currency="INR",
@@ -164,6 +200,9 @@ async def get_showtime_seats(
         glb_path="/models/cineverse_auditorium_v2.web.glb",
         layout_path="/models/seat_layout_v2.json",
         trailer_url=showtime.movie.trailer_url if showtime.movie else None,
+        trailer_embeddable=bool(showtime.movie.trailer_embeddable) if showtime.movie else False,
+        youtube_trailer_id=showtime.movie.youtube_trailer_id if showtime.movie else None,
+        trailer_reason=getattr(showtime.movie, 'trailer_reason', None) if showtime.movie else None,
         poster_url=showtime.movie.poster_url if showtime.movie else None,
         banner_url=showtime.movie.banner_url if showtime.movie else None,
         dominant_color=showtime.movie.dominant_color if showtime.movie else None,

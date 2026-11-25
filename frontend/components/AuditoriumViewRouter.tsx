@@ -1,13 +1,32 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SeatMap2D } from '@/components/2d/SeatMap2D';
-import { AuditoriumExperience } from '@/components/3d/AuditoriumExperience';
+
+const AuditoriumExperience = dynamic(
+  () => import('@/components/3d/AuditoriumExperience').then((mod) => mod.AuditoriumExperience),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[100dvh] w-full items-center justify-center bg-[#07080a] text-white">
+        <div className="text-center">
+          <div className="h-3 w-3 rounded-full bg-[#e50914] shadow-[0_0_12px_#e50914] mx-auto mb-4 animate-ping" />
+          <div className="text-sm font-semibold tracking-widest text-slate-300 uppercase">
+            Loading CineVerse 3D Engine...
+          </div>
+        </div>
+      </div>
+    ),
+  }
+);
 import { useCinemaStore } from '@/store/useCinemaStore';
 import { getShowtimeSeats, type ShowtimeSeatsResponse } from '@/services/api';
 import { LayoutGrid, Maximize2, Minimize2, ArrowLeft } from 'lucide-react';
 import { useMovieBackdrop } from '@/context/MovieBackdropContext';
+import { useComfortStore } from '@/store/useComfortStore';
+import ProblemReportButton from '@/components/ProblemReportButton';
 
 interface AuditoriumViewRouterProps {
   cinemaId: string;
@@ -27,14 +46,22 @@ export function AuditoriumViewRouter({
   const modeParam = searchParams.get('mode');
   const seatParam = searchParams.get('seat');
 
-  // Default is 2D seat map per Phase 4 requirement; mode=3d or mode=pov switches to 3D
+  // Default is 2D seat map per Phase 4 requirement; mode=3d, mode=pov, or mode=walk switches to 3D
   const [currentMode, setCurrentMode] = useState<'2d' | '3d'>(
-    (modeParam === '3d' || modeParam === 'pov' || initialMode === '3d') ? '3d' : '2d'
+    (modeParam === '3d' || modeParam === 'pov' || modeParam === 'walk' || initialMode === '3d') ? '3d' : '2d'
   );
+  const simpleMode = useComfortStore((s) => s.simpleMode);
+  const is3DActive = currentMode === '3d' && !simpleMode;
 
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showtimeDetails, setShowtimeDetails] = useState<ShowtimeSeatsResponse | null>(null);
-  const { setActiveMovie } = useMovieBackdrop();
+  const { setActiveMovie, setPausedBy3D } = useMovieBackdrop();
+
+  // Sync 3D active state to pause background video when 3D theatre canvas is active
+  useEffect(() => {
+    setPausedBy3D(is3DActive);
+    return () => setPausedBy3D(false);
+  }, [is3DActive, setPausedBy3D]);
 
   useEffect(() => {
     getShowtimeSeats(showtimeId)
@@ -60,16 +87,18 @@ export function AuditoriumViewRouter({
   const has3D = true;
 
   useEffect(() => {
-    if (modeParam === '3d' || modeParam === 'pov') {
+    if (modeParam === '3d' || modeParam === 'pov' || modeParam === 'walk') {
       setCurrentMode('3d');
       if (modeParam === 'pov') {
-        const isValid = seatParam && /^[A-J](0[1-9]|10)$/i.test(seatParam.trim());
+        const isValid = seatParam && /^[A-Z]\d{1,3}$/i.test(seatParam.trim());
         if (isValid) {
           const upperSeat = seatParam!.trim().toUpperCase();
           useCinemaStore.getState().sitAt(upperSeat);
         } else {
           useCinemaStore.getState().setMode('overview');
         }
+      } else if (modeParam === 'walk') {
+        useCinemaStore.getState().setCameraMode('walk');
       }
     } else if (modeParam === '2d') {
       setCurrentMode('2d');
@@ -135,7 +164,7 @@ export function AuditoriumViewRouter({
     router.replace(`?${params.toString()}`);
   }
 
-  if (currentMode === '3d') {
+  if (is3DActive) {
     return (
       <div className="relative h-[100dvh] w-full overflow-hidden" data-testid="auditorium-3d-wrapper">
         {/* Slim Immersive Top Bar (§ Part E / Finding F8 fixed) */}
@@ -152,15 +181,23 @@ export function AuditoriumViewRouter({
             <span className="font-bold">Back to seat map</span>
           </button>
 
-          {/* Center: Movie / Auditorium Title */}
-          <div className="flex items-center gap-2 text-sm font-bold text-[#1B1320]">
-            <span className="text-[#C8102E] font-black">CINEVERSE 3D</span>
-            <span className="text-[#E6DCD2]">|</span>
-            <span>Auditorium {auditoriumId}</span>
+          {/* Center: Movie / Auditorium Title & Tech Specs */}
+          <div className="flex items-center gap-2 text-sm font-bold text-[#1B1320] overflow-hidden">
+            <span className="text-[#C8102E] font-black shrink-0">CINEVERSE 3D</span>
+            <span className="text-[#E6DCD2] shrink-0">|</span>
+            <span data-testid="auditorium-header-title" className="truncate">
+              {showtimeDetails?.tech_specs_display || `${showtimeDetails?.auditorium_name || `Screen ${auditoriumId}`} · ${showtimeDetails?.screen_format || showtimeDetails?.screen_type || '2D'} · ${showtimeDetails?.sound_system || 'Dolby Atmos'} · ${showtimeDetails?.projection_type || '4K Laser'}`}
+            </span>
+            {showtimeDetails?.is_demo && (
+              <span className="shrink-0 rounded bg-amber-100 border border-amber-300 px-1.5 py-0.5 text-[11px] font-bold text-amber-900" title="Demo hall configuration">
+                Demo
+              </span>
+            )}
           </div>
 
-          {/* Right: Fullscreen Toggle Button */}
+          {/* Right: Fullscreen Toggle Button & Problem Report */}
           <div className="flex items-center gap-2">
+            <ProblemReportButton />
             <button
               onClick={toggleFullScreen}
               data-testid="fullscreen-toggle-btn"
@@ -188,6 +225,7 @@ export function AuditoriumViewRouter({
           cinemaId={cinemaId}
           auditoriumId={auditoriumId}
           showtimeId={showtimeId}
+          onSwitchTo2D={handleSwitchTo2D}
         />
       </div>
     );

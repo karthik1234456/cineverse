@@ -1,0 +1,45 @@
+{
+  "index": 49,
+  "id": 49,
+  "title": "Speedway Racers: Grand Prix Nitro",
+  "slug": "speedway-racers-3d",
+  "source_type": "hosted",
+  "showtime_id": 12047,
+  "cinema_id": 15,
+  "auditorium_id": 48,
+  "url": "http://localhost:3002/cinemas/15/auditorium/48?showtime=12047&mode=3d&debug=1",
+  "click_timestamp": 1614.2000000029802,
+  "first_picture_timestamp": 1805.2999999970198,
+  "time_to_first_picture_ms": 191.1,
+  "screenshot_1": {
+    "timestamp": 2468.4000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\speedway-racers-3d_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4679.100000008941,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\speedway-racers-3d_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6762.100000008941,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\speedway-racers-3d_ss3.png"
+  },
+  "frame_diff_pixel_sum": 2.34,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.659704
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 2.336,
+  "movement_delta_12": 2.33,
+  "movement_delta_23": 0.014
+}

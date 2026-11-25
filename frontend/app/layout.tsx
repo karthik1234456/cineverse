@@ -7,6 +7,12 @@ import { TrailerPlayer } from '@/components/TrailerPlayer';
 import { MiniPlayerDock } from '@/components/MiniPlayerDock';
 import { MovieBackdropProvider } from '@/context/MovieBackdropContext';
 import { MovieBackdrop } from '@/components/backdrop/MovieBackdrop';
+import { ComfortInitializer } from '@/components/ComfortInitializer';
+import { TmdbAttribution } from '@/components/TmdbAttribution';
+import { TmdbReadinessBanner } from '@/components/TmdbReadinessBanner';
+import { PwaUpdatePrompt } from '@/components/PwaUpdatePrompt';
+import { BuildStamp } from '@/components/BuildStamp';
+import ProblemReportButton from '@/components/ProblemReportButton';
 
 export const metadata: Metadata = {
   title: 'CineVerse — Experience The Theatre Before Booking Your Movie',
@@ -29,14 +35,23 @@ export default function RootLayout({
     <html lang="en">
       <head>
         <link rel="manifest" href="/manifest.json" />
+        <link rel="preconnect" href="https://www.youtube.com" />
+        <link rel="preconnect" href="https://www.youtube-nocookie.com" />
+        <link rel="preconnect" href="https://i.ytimg.com" />
+        <link rel="preconnect" href="https://static.doubleclick.net" />
+        <link rel="dns-prefetch" href="https://www.youtube.com" />
+        <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
+        <link rel="dns-prefetch" href="https://i.ytimg.com" />
       </head>
       <body className="bg-[#FFF8F1] text-[#1B1320] text-base antialiased min-h-screen flex flex-col font-sans">
         <QueryProvider>
+          <ComfortInitializer />
           <MovieBackdropProvider>
             {/* Fixed behind all content */}
             <MovieBackdrop />
             {/* Page chrome: z-10 so it sits above backdrop */}
             <Navbar />
+            <TmdbReadinessBanner />
             <main className="flex-1 flex flex-col relative z-10">{children}</main>
             {/* Footer */}
             <footer className="mt-auto border-t border-[#E6DCD2] bg-white py-8 px-4 text-center text-sm text-[#4A4056] relative z-10">
@@ -53,14 +68,25 @@ export default function RootLayout({
                   <a href="/legal/terms" className="hover:text-[#C8102E] transition">Terms</a>
                   <a href="/legal/privacy" className="hover:text-[#C8102E] transition">Privacy (DPDP)</a>
                   <a href="/legal/refunds" className="hover:text-[#C8102E] transition">Refunds</a>
+                  <a href="/about" className="hover:text-[#C8102E] transition">About</a>
+                  <span className="text-[#E6DCD2] hidden md:inline">|</span>
+                  <ProblemReportButton />
                   <span className="text-[#E6DCD2] hidden md:inline">|</span>
                   <span>© 2026 CineVerse Cinemas India</span>
                 </div>
               </div>
+              <div className="mt-3 text-xs text-[#7A6E85]" data-testid="format-trademark-disclaimer">
+                Format names belong to their owners and are shown to describe the screen.
+              </div>
+              <div className="mt-2 flex justify-center">
+                <BuildStamp />
+              </div>
+              <TmdbAttribution />
             </footer>
             <VoiceAgentFloatingButton />
             <TrailerPlayer />
             <MiniPlayerDock />
+            <PwaUpdatePrompt />
           </MovieBackdropProvider>
         </QueryProvider>
         <script
@@ -68,8 +94,35 @@ export default function RootLayout({
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').catch(function(err) {
-                    console.debug('ServiceWorker registration omitted:', err);
+                  var isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+                  if (isDev) {
+                    navigator.serviceWorker.getRegistrations().then(function(regs) {
+                      for (var i = 0; i < regs.length; i++) {
+                        regs[i].unregister();
+                      }
+                    });
+                    if ('caches' in window) {
+                      caches.keys().then(function(keys) {
+                        for (var i = 0; i < keys.length; i++) {
+                          caches.delete(keys[i]);
+                        }
+                      });
+                    }
+                    return;
+                  }
+                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    reg.addEventListener('updatefound', function() {
+                      var installing = reg.installing;
+                      if (installing) {
+                        installing.addEventListener('statechange', function() {
+                          if (installing.state === 'installed' && navigator.serviceWorker.controller) {
+                            window.dispatchEvent(new CustomEvent('cineverse-pwa-update-available'));
+                          }
+                        });
+                      }
+                    });
+                  }).catch(function(err) {
+                    console.debug('SW registration skipped:', err);
                   });
                 });
               }

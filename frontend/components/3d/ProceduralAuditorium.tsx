@@ -8,12 +8,167 @@ import { useCinemaStore } from '@/store/useCinemaStore';
 import { getActiveLook } from '@/lib/theatreLooks';
 import type { ProceduralGeometryData } from '@/lib/proceduralAuditorium';
 import type { SeatRecord } from '@/lib/types';
+import { getSeatFamilyForSeat } from '@/lib/seatRegistry';
+import { getTheatreTypeDefinition } from '@/lib/theatreTypeRegistry';
+import { SeatStateMarkers } from './SeatStateMarkers';
+import { AudienceSimulation } from './AudienceSimulation';
+import { PersonSilhouette } from './PersonSilhouette';
 
-const PREMIUM_SEAT_PATH = '/models/seat_premium.glb';
+const SCREEN_Z = -1.255;
+
+function createCarpetCanvasTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  ctx.fillStyle = '#222026';
+  ctx.fillRect(0, 0, 128, 128);
+  for (let y = 0; y < 128; y += 2) {
+    for (let x = 0; x < 128; x += 2) {
+      const isWeave = (x + y) % 4 === 0;
+      const noise = (Math.random() - 0.5) * 8;
+      const r = Math.min(255, Math.max(0, Math.round(34 + (isWeave ? 5 : -4) + noise)));
+      const g = Math.min(255, Math.max(0, Math.round(32 + (isWeave ? 5 : -4) + noise)));
+      const b = Math.min(255, Math.max(0, Math.round(38 + (isWeave ? 6 : -4) + noise)));
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect(x, y, 2, 2);
+    }
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(16, 16);
+  return tex;
+}
+
+function createCarpetNormalTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 128;
+  canvas.height = 128;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  ctx.fillStyle = 'rgb(128,128,255)';
+  ctx.fillRect(0, 0, 128, 128);
+  for (let y = 0; y < 128; y += 4) {
+    for (let x = 0; x < 128; x += 4) {
+      const isHorizontal = ((x / 4) + (y / 4)) % 2 === 0;
+      const nx = isHorizontal ? 138 : 118;
+      const ny = isHorizontal ? 118 : 138;
+      ctx.fillStyle = `rgb(${nx},${ny},245)`;
+      ctx.fillRect(x, y, 4, 4);
+    }
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(16, 16);
+  return tex;
+}
+
+function createSoftShadowTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  const grad = ctx.createRadialGradient(32, 32, 4, 32, 32, 30);
+  grad.addColorStop(0, 'rgba(0, 0, 0, 0.65)');
+  grad.addColorStop(0.5, 'rgba(0, 0, 0, 0.35)');
+  grad.addColorStop(1, 'rgba(0, 0, 0, 0.0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 64, 64);
+  const tex = new THREE.CanvasTexture(canvas);
+  return tex;
+}
+
+function createWallRibNormalTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  const canvas = document.createElement('canvas');
+  canvas.width = 64;
+  canvas.height = 64;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+  for (let x = 0; x < 64; x++) {
+    const sinVal = Math.sin((x / 64) * Math.PI * 8);
+    const nx = Math.round(128 + sinVal * 25);
+    ctx.fillStyle = `rgb(${nx}, 128, 255)`;
+    ctx.fillRect(x, 0, 1, 64);
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.wrapS = THREE.RepeatWrapping;
+  tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(4, 4);
+  return tex;
+}
+
+let _cachedCarpetAlbedo: THREE.CanvasTexture | null = null;
+let _cachedCarpetNormal: THREE.CanvasTexture | null = null;
+let _cachedSoftShadow: THREE.CanvasTexture | null = null;
+let _cachedWallRibNormal: THREE.CanvasTexture | null = null;
+
+function getCarpetCanvasTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  if (!_cachedCarpetAlbedo) {
+    _cachedCarpetAlbedo = createCarpetCanvasTexture();
+  }
+  return _cachedCarpetAlbedo;
+}
+
+function getCarpetNormalTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  if (!_cachedCarpetNormal) {
+    _cachedCarpetNormal = createCarpetNormalTexture();
+  }
+  return _cachedCarpetNormal;
+}
+
+function getSoftShadowTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  if (!_cachedSoftShadow) {
+    _cachedSoftShadow = createSoftShadowTexture();
+  }
+  return _cachedSoftShadow;
+}
+
+function getWallRibNormalTexture(): THREE.CanvasTexture | null {
+  if (typeof document === 'undefined') return null;
+  if (!_cachedWallRibNormal) {
+    _cachedWallRibNormal = createWallRibNormalTexture();
+  }
+  return _cachedWallRibNormal;
+}
+
+// Seat Family Model Paths
+const STD_LOD0_PATH = '/models/seats/standard_lod0.glb';
+const STD_LOD1_PATH = '/models/seats/standard_lod1.glb';
+const STD_LOD2_PATH = '/models/seats/standard_lod2.glb';
+
+const REC_LOD0_PATH = '/models/seats/recliner_single_lod0.glb';
+const REC_LOD1_PATH = '/models/seats/recliner_single_lod1.glb';
+const REC_LOD2_PATH = '/models/seats/recliner_single_lod2.glb';
+
+const SOFA_LOD0_PATH = '/models/seats/sofa_lod0.glb';
+const SOFA_LOD1_PATH = '/models/seats/sofa_lod1.glb';
+const SOFA_LOD2_PATH = '/models/seats/sofa_lod2.glb';
+
+function extractFirstGeometry(scene: THREE.Group): THREE.BufferGeometry | null {
+  let geo: THREE.BufferGeometry | null = null;
+  scene.traverse((o) => {
+    if (!geo && o instanceof THREE.Mesh) {
+      geo = o.geometry;
+    }
+  });
+  return geo;
+}
 
 interface ProceduralAuditoriumProps {
   geometry: ProceduralGeometryData;
   seats: SeatRecord[];
+  screenType?: string;
   onSeatClick?: (seatId: string) => void;
   onSeatDoubleClick?: (seatId: string) => void;
 }
@@ -21,111 +176,295 @@ interface ProceduralAuditoriumProps {
 export function ProceduralAuditorium({
   geometry,
   seats,
+  screenType,
   onSeatClick,
   onSeatDoubleClick,
 }: ProceduralAuditoriumProps) {
   const theatreLook = useCinemaStore((s) => s.theatreLook);
   const qualityMode = useCinemaStore((s) => s.qualityMode);
+  const mode = useCinemaStore((s) => s.mode);
+  const isOverview = mode === 'overview';
   const cameraMode = useCinemaStore((s) => s.cameraMode);
   const activeSeatId = useCinemaStore((s) => s.activeSeatId);
   const setHoveredSeat = useCinemaStore((s) => s.setHoveredSeat);
   const toggleSeat = useCinemaStore((s) => s.toggleSeat);
+  const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
+  const houseLights = useCinemaStore((s) => s.houseLights);
+  const lightLevel = useCinemaStore((s) => s.lightLevel || 'normal');
+  const lightIntensity = useCinemaStore((s) => s.lightIntensity);
+
+  const theatreDef = useMemo(
+    () => getTheatreTypeDefinition(auditoriumLayout?.theatre_type || screenType, seats.length),
+    [auditoriumLayout?.theatre_type, screenType, seats.length]
+  );
+
+  // Check URL params (?lod=0|1|2)
+  const [urlLod, setUrlLod] = React.useState<number | null>(null);
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const lodP = params.get('lod');
+      if (lodP === '0' || lodP === '1' || lodP === '2') {
+        setUrlLod(parseInt(lodP, 10));
+      }
+    }
+  }, []);
+
+  // Default to detailed LOD0 at normal viewing distances (§ Part E: realistic chair shape with headrest, back, arms)
+  const activeLod = urlLod !== null ? urlLod : 0;
 
   const look = useMemo(() => getActiveLook(theatreLook), [theatreLook]);
 
-  // Premium seat GLB
-  const premiumGltf = useGLTF(PREMIUM_SEAT_PATH);
-  const premiumGeometry = useMemo(() => {
-    let geo: THREE.BufferGeometry | null = null;
-    premiumGltf.scene.traverse((o) => {
-      if (!geo && o instanceof THREE.Mesh) {
-        geo = o.geometry;
+  // Load only the active LOD model per seat family, avoiding loading all 9 GLBs simultaneously
+  const stdPath = activeLod === 2 ? STD_LOD2_PATH : activeLod === 1 ? STD_LOD1_PATH : STD_LOD0_PATH;
+  const recPath = activeLod === 2 ? REC_LOD2_PATH : activeLod === 1 ? REC_LOD1_PATH : REC_LOD0_PATH;
+  const sofaPath = activeLod === 2 ? SOFA_LOD2_PATH : activeLod === 1 ? SOFA_LOD1_PATH : SOFA_LOD0_PATH;
+
+  const stdGltf = useGLTF(stdPath);
+  const recGltf = useGLTF(recPath);
+  const sofaGltf = useGLTF(sofaPath);
+
+  // Extract geometries based on active LOD
+  const standardGeometry = useMemo(() => extractFirstGeometry(stdGltf.scene), [stdGltf.scene]);
+  const reclinerGeometry = useMemo(() => extractFirstGeometry(recGltf.scene), [recGltf.scene]);
+  const sofaGeometry = useMemo(() => extractFirstGeometry(sofaGltf.scene), [sofaGltf.scene]);
+
+  const effectiveScreenType = screenType || (geometry.screenMesh.curved ? 'IMAX 3D' : 'Standard');
+
+  // Partition seats into 3 families
+  const { standardSeats, reclinerSeats, sofaSeats } = useMemo(() => {
+    const std: { seat: SeatRecord; index: number }[] = [];
+    const rec: { seat: SeatRecord; index: number }[] = [];
+    const sofa: { seat: SeatRecord; index: number }[] = [];
+
+    const theatreType = auditoriumLayout?.theatre_type || (geometry as any)?.theatre_type;
+    seats.forEach((seat, index) => {
+      const family = getSeatFamilyForSeat(seat.category, seat.seat_type, effectiveScreenType, theatreType);
+      if (family === 'sofa') {
+        sofa.push({ seat, index });
+      } else if (family === 'recliner') {
+        rec.push({ seat, index });
+      } else {
+        std.push({ seat, index });
       }
     });
-    return geo || new THREE.BoxGeometry(0.7, 0.85, 0.65);
-  }, [premiumGltf.scene]);
+
+    return { standardSeats: std, reclinerSeats: rec, sofaSeats: sofa };
+  }, [seats, effectiveScreenType]);
 
   const shadowGeometry = useMemo(() => new THREE.PlaneGeometry(1.22, 0.92), []);
+  const shadowTexture = useMemo(() => getSoftShadowTexture(), []);
   const shadowMaterial = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
-        color: '#030406',
+        map: shadowTexture,
         transparent: true,
-        opacity: qualityMode === 'smooth' ? 0.22 : 0.45,
+        opacity: qualityMode === 'smooth' ? 0.35 : 0.45,
         depthWrite: false,
       }),
-    [qualityMode]
+    [shadowTexture, qualityMode]
   );
 
-  const premiumMaterial = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        roughness: 0.68,
+  const carpetTextures = useMemo(() => {
+    return {
+      albedo: getCarpetCanvasTexture(),
+      normal: getCarpetNormalTexture(),
+      ribNormal: getWallRibNormalTexture(),
+    };
+  }, []);
+
+  // Shared texture loaders for seat families
+  const seatTextures = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const loader = new THREE.TextureLoader();
+
+    const stdDiff = loader.load('/models/seats/textures/atlas_standard_diffuse.png', () => {
+      if (typeof window !== 'undefined') (window as any).__cineverse_std_diff_loaded = true;
+    });
+    stdDiff.colorSpace = THREE.SRGBColorSpace;
+    stdDiff.wrapS = THREE.RepeatWrapping;
+    stdDiff.wrapT = THREE.RepeatWrapping;
+
+    const stdNorm = loader.load('/models/seats/textures/atlas_standard_normal.png', () => {
+      if (typeof window !== 'undefined') (window as any).__cineverse_std_norm_loaded = true;
+    });
+    stdNorm.wrapS = THREE.RepeatWrapping;
+    stdNorm.wrapT = THREE.RepeatWrapping;
+
+    const recDiff = loader.load('/models/seats/textures/atlas_recliner_diffuse.png', () => {
+      if (typeof window !== 'undefined') (window as any).__cineverse_rec_diff_loaded = true;
+    });
+    recDiff.colorSpace = THREE.SRGBColorSpace;
+    recDiff.wrapS = THREE.RepeatWrapping;
+    recDiff.wrapT = THREE.RepeatWrapping;
+
+    const recNorm = loader.load('/models/seats/textures/atlas_recliner_normal.png', () => {
+      if (typeof window !== 'undefined') (window as any).__cineverse_rec_norm_loaded = true;
+    });
+    recNorm.wrapS = THREE.RepeatWrapping;
+    recNorm.wrapT = THREE.RepeatWrapping;
+
+    const sofaDiff = loader.load('/models/seats/textures/atlas_sofa_diffuse.png');
+    sofaDiff.colorSpace = THREE.SRGBColorSpace;
+    sofaDiff.wrapS = THREE.RepeatWrapping;
+    sofaDiff.wrapT = THREE.RepeatWrapping;
+
+    const sofaNorm = loader.load('/models/seats/textures/atlas_sofa_normal.png');
+    sofaNorm.wrapS = THREE.RepeatWrapping;
+    sofaNorm.wrapT = THREE.RepeatWrapping;
+
+    return { stdDiff, stdNorm, recDiff, recNorm, sofaDiff, sofaNorm };
+  }, []);
+
+  const standardMaterial = useMemo(
+    () => {
+      const mat = new THREE.MeshStandardMaterial({
+        roughness: 0.70, // Classic plush velvet roughness 0.65-0.75
         metalness: 0.04,
-      }),
-    []
+        vertexColors: true,
+        map: seatTextures?.stdDiff || null,
+        normalMap: seatTextures?.stdNorm || null,
+      });
+      if (seatTextures?.stdNorm) {
+        mat.normalScale.set(1.2, 1.2);
+      }
+      return mat;
+    },
+    [seatTextures]
+  );
+
+  const reclinerMaterial = useMemo(
+    () => {
+      const mat = new THREE.MeshStandardMaterial({
+        roughness: 0.40, // Semi-matte leather roughness 0.35-0.45
+        metalness: 0.06,
+        vertexColors: true,
+        map: seatTextures?.recDiff || null,
+        normalMap: seatTextures?.recNorm || null,
+      });
+      if (seatTextures?.recNorm) {
+        mat.normalScale.set(1.4, 1.4);
+      }
+      return mat;
+    },
+    [seatTextures]
+  );
+
+  const sofaMaterial = useMemo(
+    () => {
+      const mat = new THREE.MeshStandardMaterial({
+        roughness: 0.40, // Modern leather / slate roughness 0.35-0.45
+        metalness: 0.06,
+        vertexColors: true,
+        map: seatTextures?.sofaDiff || null,
+        normalMap: seatTextures?.sofaNorm || null,
+      });
+      if (seatTextures?.sofaNorm) {
+        mat.normalScale.set(1.0, 1.0);
+      }
+      return mat;
+    },
+    [seatTextures]
   );
 
   // Instanced Meshes for ultra-low draw calls
   const shadowMeshRef = useRef<THREE.InstancedMesh>(null);
-  const premiumSeatsMeshRef = useRef<THREE.InstancedMesh>(null);
+  const standardMeshRef = useRef<THREE.InstancedMesh>(null);
+  const reclinerMeshRef = useRef<THREE.InstancedMesh>(null);
+  const sofaMeshRef = useRef<THREE.InstancedMesh>(null);
   const panelsMeshRef = useRef<THREE.InstancedMesh>(null);
   const trimMeshRef = useRef<THREE.InstancedMesh>(null);
   const sconcesMeshRef = useRef<THREE.InstancedMesh>(null);
   const stepLightsMeshRef = useRef<THREE.InstancedMesh>(null);
+  const slatsMeshRef = useRef<THREE.InstancedMesh>(null);
+  const downlightsMeshRef = useRef<THREE.InstancedMesh>(null);
+  const atmosSpeakersMeshRef = useRef<THREE.InstancedMesh>(null);
   const seatStateCache = useRef<Map<string, string>>(new Map());
 
   // Architectural materials matching art direction
   const floorMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(look.floorColor),
-        roughness: 0.85,
-        metalness: 0.02,
+        color: new THREE.Color(theatreDef.palette?.carpetColor || '#222026'),
+        roughness: 0.90,
+        metalness: 0.01,
+        map: carpetTextures?.albedo || null,
+        normalMap: carpetTextures?.normal || null,
       }),
-    [look.floorColor]
+    [theatreDef.palette, carpetTextures]
   );
 
   const tierMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(look.tierColor),
-        roughness: 0.85,
-        metalness: 0.02,
+        color: new THREE.Color(theatreDef.palette?.carpetColor || '#222026'),
+        roughness: 0.90,
+        metalness: 0.01,
+        map: carpetTextures?.albedo || null,
+        normalMap: carpetTextures?.normal || null,
       }),
-    [look.tierColor]
+    [theatreDef.palette, carpetTextures]
   );
 
   const treadMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(look.treadColor),
-        roughness: 0.70,
-        metalness: 0.08,
+        color: new THREE.Color(theatreDef.palette?.runnerColor || '#2c2a32'),
+        roughness: 0.88,
+        metalness: 0.01,
+        map: carpetTextures?.albedo || null,
+        normalMap: carpetTextures?.normal || null,
       }),
-    [look.treadColor]
+    [theatreDef.palette, carpetTextures]
   );
 
   const wallMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(look.wallColor),
-        roughness: 0.90,
+        color: new THREE.Color(theatreDef.palette?.wallColor || '#272B34'),
+        roughness: 0.80,
         metalness: 0.02,
-        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 1.0,
+        side: isOverview ? THREE.BackSide : THREE.DoubleSide,
+        normalMap: carpetTextures?.ribNormal || null,
       }),
-    [look.wallColor]
+    [theatreDef.palette, isOverview, carpetTextures]
+  );
+
+  const frontScreenWallMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color('#181b22'),
+        roughness: 0.88,
+        metalness: 0.02,
+        side: isOverview ? THREE.BackSide : THREE.DoubleSide,
+      }),
+    [isOverview]
+  );
+
+  const nosingMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: theatreDef.id === 'flagship' ? '#388BFF' : '#FF9E2C',
+        emissive: new THREE.Color(theatreDef.id === 'flagship' ? '#388BFF' : '#FF9E2C'),
+        emissiveIntensity: 2.0,
+        roughness: 0.20,
+      }),
+    [theatreDef.id]
   );
 
   const acousticPanelMaterial = useMemo(
     () =>
       new THREE.MeshStandardMaterial({
-        color: new THREE.Color(look.acousticPanelColor),
-        roughness: 0.82,
+        color: new THREE.Color(theatreDef.palette?.panelColor || look.acousticPanelColor),
+        roughness: 0.75,
         metalness: 0.04,
-        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 1.0,
+        side: isOverview ? THREE.BackSide : THREE.DoubleSide,
       }),
-    [look.acousticPanelColor]
+    [theatreDef.palette, look.acousticPanelColor, isOverview]
   );
 
   const panelTrimMaterial = useMemo(
@@ -134,6 +473,8 @@ export function ProceduralAuditorium({
         color: new THREE.Color(look.panelTrimColor),
         roughness: 0.35,
         metalness: 0.80,
+        transparent: true,
+        opacity: 1.0,
       }),
     [look.panelTrimColor]
   );
@@ -144,9 +485,11 @@ export function ProceduralAuditorium({
         color: new THREE.Color(look.ceilingColor),
         roughness: 0.95,
         metalness: 0.00,
-        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 1.0,
+        side: isOverview ? THREE.BackSide : THREE.DoubleSide,
       }),
-    [look.ceilingColor]
+    [look.ceilingColor, isOverview]
   );
 
   const screenFrameMaterial = useMemo(
@@ -186,11 +529,475 @@ export function ProceduralAuditorium({
       new THREE.MeshStandardMaterial({
         color: new THREE.Color(look.stepLightColor),
         emissive: new THREE.Color(look.stepLightColor),
-        emissiveIntensity: 1.4,
+        emissiveIntensity: 0.8,
         roughness: 0.30,
         metalness: 0.00,
       }),
     [look.stepLightColor]
+  );
+
+  const woodSlatMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#2e1c14',
+        roughness: 0.65,
+        metalness: 0.05,
+      }),
+    []
+  );
+
+  const curtainMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#5b101c',
+        roughness: 0.95,
+        metalness: 0.02,
+      }),
+    []
+  );
+
+  const prosceniumMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#13151b',
+        roughness: 0.85,
+        metalness: 0.1,
+      }),
+    []
+  );
+
+  const downlightMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#ffffff',
+        emissive: new THREE.Color('#fff4e0'),
+        emissiveIntensity: lightLevel === 'bright' ? 4.8 : lightLevel === 'dim' ? 2.4 : 3.6,
+        roughness: 0.15,
+        metalness: 0.1,
+      }),
+    [lightLevel, lightIntensity]
+  );
+
+  const speakerMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#181b22',
+        roughness: 0.45,
+        metalness: 0.15,
+      }),
+    []
+  );
+
+  const exitSignMaterial = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: '#10b981',
+      }),
+    []
+  );
+
+  const carpetRunnerMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#4a111a',
+        roughness: 0.92,
+        metalness: 0.02,
+      }),
+    []
+  );
+
+  const coveLightMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color(theatreDef.palette?.coveColor || look.sconceGlowColor),
+        emissive: new THREE.Color(theatreDef.palette?.coveColor || look.sconceGlowColor),
+        emissiveIntensity: lightIntensity === 'brighter' ? 3.60 : 2.80,
+        roughness: 0.1,
+        metalness: 0.0,
+      }),
+    [theatreDef.palette, look.sconceGlowColor, lightIntensity]
+  );
+
+  const skirtingLightMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color(theatreDef.palette?.skirtingColor || look.stepLightColor),
+        emissive: new THREE.Color(theatreDef.palette?.skirtingColor || look.stepLightColor),
+        emissiveIntensity: lightIntensity === 'brighter' ? 2.40 : 1.80,
+        roughness: 0.1,
+        metalness: 0.0,
+      }),
+    [theatreDef.palette, look.stepLightColor, lightIntensity]
+  );
+
+  const roofTrussMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#111418',
+        roughness: 0.85,
+        metalness: 0.25,
+      }),
+    []
+  );
+
+  const ceilingCloudMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color(theatreDef.palette?.ceilingColor || look.ceilingColor),
+        roughness: 0.90,
+        metalness: 0.02,
+      }),
+    [theatreDef.palette, look.ceilingColor]
+  );
+
+  const ventilationDuctMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#334155',
+        roughness: 0.45,
+        metalness: 0.65,
+      }),
+    []
+  );
+
+  const doorFrameMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#1e293b',
+        roughness: 0.60,
+        metalness: 0.30,
+      }),
+    []
+  );
+
+  const doorPanelMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#334155',
+        roughness: 0.75,
+        metalness: 0.15,
+      }),
+    []
+  );
+
+  const boothHousingMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: new THREE.Color(theatreDef.palette?.boothColor || '#181b22'),
+        roughness: 0.88,
+        metalness: 0.10,
+      }),
+    [theatreDef.palette]
+  );
+
+  const boothWindowMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#0f172a',
+        roughness: 0.15,
+        metalness: 0.90,
+        transparent: true,
+        opacity: 0.85,
+        emissive: new THREE.Color('#38bdf8'),
+        emissiveIntensity: 0.25,
+      }),
+    []
+  );
+
+  const projectorBeamRef = useRef<THREE.Mesh>(null);
+  const projectorBeamMaterial = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: '#bfdbfe',
+        transparent: true,
+        opacity: 0.0,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      }),
+    []
+  );
+
+  const glassesDeskMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#1e222b',
+        roughness: 0.4,
+        metalness: 0.6,
+      }),
+    []
+  );
+
+  const glassesTrayMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#0e1117',
+        roughness: 0.7,
+        metalness: 0.3,
+      }),
+    []
+  );
+
+  const glassesSignMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#0284c7',
+        emissive: new THREE.Color('#38bdf8'),
+        emissiveIntensity: 2.2,
+        roughness: 0.2,
+      }),
+    []
+  );
+
+  const sideProjectorHousingMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#1e2025',
+        roughness: 0.5,
+        metalness: 0.7,
+      }),
+    []
+  );
+
+  const sideProjectorLensMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#0284c7',
+        emissive: new THREE.Color('#0ea5e9'),
+        emissiveIntensity: 1.8,
+        roughness: 0.1,
+      }),
+    []
+  );
+
+  const effectRigMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#181a1f',
+        roughness: 0.60,
+        metalness: 0.50,
+      }),
+    []
+  );
+
+  const podBaseMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#111318',
+        roughness: 0.55,
+        metalness: 0.65,
+      }),
+    []
+  );
+
+  const podPistonMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#94a3b8',
+        roughness: 0.25,
+        metalness: 0.90,
+      }),
+    []
+  );
+
+  const podGrilleMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#1e293b',
+        roughness: 0.85,
+        metalness: 0.40,
+      }),
+    []
+  );
+
+  const effectPropMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#1e222b',
+        roughness: 0.50,
+        metalness: 0.60,
+      }),
+    []
+  );
+
+  const effectPropLedMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: houseLights === 'show' ? '#06b6d4' : '#0891b2',
+        emissive: new THREE.Color('#06b6d4'),
+        emissiveIntensity: houseLights === 'show' ? 1.8 : 0.45,
+        roughness: 0.3,
+        metalness: 0.2,
+      }),
+    [houseLights]
+  );
+
+  const floorTrimMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#06b6d4',
+        emissive: new THREE.Color('#06b6d4'),
+        emissiveIntensity: houseLights === 'show' ? 1.2 : 0.6,
+        roughness: 0.4,
+        metalness: 0.3,
+      }),
+    [houseLights]
+  );
+
+  const acousticBaffleMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#1e293b',
+        roughness: 0.92,
+        metalness: 0.02,
+      }),
+    []
+  );
+
+  const handrailMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: theatreDef.id === 'balcony' ? '#d4af37' : '#94a3b8',
+        roughness: 0.35,
+        metalness: 0.85,
+      }),
+    [theatreDef.id]
+  );
+
+  const reclinerTableMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#452210',
+        roughness: 0.65,
+        metalness: 0.15,
+      }),
+    []
+  );
+
+  const reclinerBadgeMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#d4af37',
+        roughness: 0.25,
+        metalness: 0.90,
+      }),
+    []
+  );
+
+  const reclinerSidePanelMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#2a150e',
+        roughness: 0.70,
+        metalness: 0.10,
+      }),
+    []
+  );
+
+  const motionLedBlueMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#2563eb',
+        emissive: new THREE.Color('#3b82f6'),
+        emissiveIntensity: houseLights === 'show' ? 1.6 : 0.8,
+        roughness: 0.2,
+      }),
+    [houseLights]
+  );
+
+  const motionLedRedMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#dc2626',
+        emissive: new THREE.Color('#ef4444'),
+        emissiveIntensity: houseLights === 'show' ? 1.6 : 0.8,
+        roughness: 0.2,
+      }),
+    [houseLights]
+  );
+
+  const motionLedWhiteMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#e2e8f0',
+        emissive: new THREE.Color('#ffffff'),
+        emissiveIntensity: houseLights === 'show' ? 1.4 : 0.7,
+        roughness: 0.2,
+      }),
+    [houseLights]
+  );
+
+  const amberOutlineMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#d97706',
+        emissive: new THREE.Color('#f59e0b'),
+        emissiveIntensity: houseLights === 'show' ? 1.5 : 0.9,
+        roughness: 0.3,
+        metalness: 0.4,
+      }),
+    [houseLights]
+  );
+
+  const stageGrilleMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#111318',
+        roughness: 0.85,
+        metalness: 0.60,
+      }),
+    []
+  );
+
+  // Volumetric Projector Light Beam Geometry connecting booth to screen
+  const projectorBeamGeometry = useMemo(() => {
+    const geo = new THREE.BufferGeometry();
+    const booth = geometry.projectionBooth;
+    const apex = booth ? booth.projectorAperture : [0, 8.0, geometry.dimensions.zBack + 0.85];
+    const sWidth = geometry.screenMesh.width;
+    const sHeight = geometry.screenMesh.height;
+    const sCenterY = geometry.screenMesh.center[1];
+    const sZ = SCREEN_Z;
+
+    const tl = [-sWidth / 2, sCenterY + sHeight / 2, sZ];
+    const tr = [sWidth / 2, sCenterY + sHeight / 2, sZ];
+    const br = [sWidth / 2, sCenterY - sHeight / 2, sZ];
+    const bl = [-sWidth / 2, sCenterY - sHeight / 2, sZ];
+
+    const vertices = new Float32Array([
+      // Top face
+      apex[0], apex[1], apex[2],
+      tl[0], tl[1], tl[2],
+      tr[0], tr[1], tr[2],
+      // Right face
+      apex[0], apex[1], apex[2],
+      tr[0], tr[1], tr[2],
+      br[0], br[1], br[2],
+      // Bottom face
+      apex[0], apex[1], apex[2],
+      br[0], br[1], br[2],
+      bl[0], bl[1], bl[2],
+      // Left face
+      apex[0], apex[1], apex[2],
+      bl[0], bl[1], bl[2],
+      tl[0], tl[1], tl[2],
+    ]);
+
+    geo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    geo.computeVertexNormals();
+    return geo;
+  }, [geometry]);
+
+  const balconyRailingMaterial = useMemo(
+    () =>
+      new THREE.MeshStandardMaterial({
+        color: '#1e2430',
+        roughness: 0.3,
+        metalness: 0.8,
+        transparent: true,
+        opacity: 0.6,
+      }),
+    []
   );
 
   // Reusable geoms for instanced decor
@@ -198,27 +1005,88 @@ export function ProceduralAuditorium({
   const trimGeom = useMemo(() => new THREE.BoxGeometry(0.14, 4.54, 1.84), []);
   const sconceGeom = useMemo(() => new THREE.BoxGeometry(0.08, 0.35, 0.14), []);
   const stepLightGeom = useMemo(() => new THREE.BoxGeometry(0.04, 0.02, 0.12), []);
+  const slatGeom = useMemo(() => new THREE.BoxGeometry(0.06, 6.2, 0.12), []);
+  const downlightGeom = useMemo(() => new THREE.CylinderGeometry(0.12, 0.12, 0.06, 8), []);
+  const speakerGeom = useMemo(() => new THREE.BoxGeometry(0.35, 0.22, 0.28), []);
+  const exitSignGeom = useMemo(() => new THREE.BoxGeometry(0.65, 0.3, 0.08), []);
 
-  // Initialize InstancedMesh positions
+  // 3D Seat Watchdog State
+  const watchdogFailureTime = useRef<number | null>(null);
+  const watchdogRebuildCount = useRef<number>(0);
+  const [readinessWarning, setReadinessWarning] = React.useState<string | null>(null);
+
+  // Compute union bounding box & sphere across all seat items for an instanced mesh to prevent culling
+  const computeInstancedBounds = useCallback((
+    mesh: THREE.InstancedMesh | null,
+    items: { seat: SeatRecord }[]
+  ) => {
+    if (!mesh || items.length === 0) return;
+    mesh.frustumCulled = false;
+    let minX = Infinity, minY = Infinity, minZ = Infinity;
+    let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+    for (let i = 0; i < items.length; i++) {
+      const b = items[i].seat.bounds_gltf_y_up;
+      if (b) {
+        if (b.min[0] < minX) minX = b.min[0];
+        if (b.min[1] < minY) minY = b.min[1];
+        if (b.min[2] < minZ) minZ = b.min[2];
+        if (b.max[0] > maxX) maxX = b.max[0];
+        if (b.max[1] > maxY) maxY = b.max[1];
+        if (b.max[2] > maxZ) maxZ = b.max[2];
+      }
+    }
+    if (minX !== Infinity && mesh.geometry) {
+      const box = new THREE.Box3(
+        new THREE.Vector3(minX - 0.5, minY - 0.5, minZ - 0.5),
+        new THREE.Vector3(maxX + 0.5, maxY + 0.5, maxZ + 0.5)
+      );
+      const sphere = new THREE.Sphere();
+      box.getBoundingSphere(sphere);
+      mesh.boundingBox = box;
+      mesh.boundingSphere = sphere;
+      // Keep/recompute local geometry bounds for individual instance raycasting
+      mesh.geometry.computeBoundingBox();
+      mesh.geometry.computeBoundingSphere();
+    }
+  }, []);
+
+  const initSeatMesh = useCallback((
+    mesh: THREE.InstancedMesh | null,
+    items: { seat: SeatRecord; index: number }[]
+  ) => {
+    if (!mesh || items.length === 0) return;
+    mesh.frustumCulled = false;
+    const dummy = new THREE.Object3D();
+    items.forEach((item, idx) => {
+      const { min, max } = item.seat.bounds_gltf_y_up;
+      const posX = (min[0] + max[0]) / 2;
+      const posY = min[1];
+      const posZ = (min[2] + max[2]) / 2;
+      const angleY = Math.atan2(-posX, SCREEN_Z - posZ);
+
+      dummy.position.set(posX, posY, posZ);
+      dummy.rotation.set(0, angleY, 0);
+      dummy.scale.set(1, 1, 1);
+      dummy.updateMatrix();
+      mesh.setMatrixAt(idx, dummy.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    computeInstancedBounds(mesh, items);
+  }, [computeInstancedBounds]);
+
+  // Initialize InstancedMesh positions & true bounding extents
   useEffect(() => {
     const dummy = new THREE.Object3D();
 
     // 1. Seats & contact shadows
-    if (shadowMeshRef.current && premiumSeatsMeshRef.current) {
+    if (shadowMeshRef.current) {
       const shadowMesh = shadowMeshRef.current;
-      const seatMesh = premiumSeatsMeshRef.current;
-
+      shadowMesh.frustumCulled = false;
       seats.forEach((seat, idx) => {
         const { min, max } = seat.bounds_gltf_y_up;
         const posX = (min[0] + max[0]) / 2;
         const posY = min[1];
         const posZ = (min[2] + max[2]) / 2;
-
-        dummy.position.set(posX, posY, posZ);
-        dummy.rotation.set(0, 0, 0);
-        dummy.scale.set(1, 1, 1);
-        dummy.updateMatrix();
-        seatMesh.setMatrixAt(idx, dummy.matrix);
 
         dummy.position.set(posX, posY + 0.005, posZ);
         dummy.rotation.set(-Math.PI / 2, 0, 0);
@@ -226,14 +1094,19 @@ export function ProceduralAuditorium({
         dummy.updateMatrix();
         shadowMesh.setMatrixAt(idx, dummy.matrix);
       });
-
-      seatMesh.instanceMatrix.needsUpdate = true;
       shadowMesh.instanceMatrix.needsUpdate = true;
-      seatStateCache.current.clear();
+      computeInstancedBounds(shadowMesh, seats.map((seat) => ({ seat })));
     }
+
+    initSeatMesh(standardMeshRef.current, standardSeats);
+    initSeatMesh(reclinerMeshRef.current, reclinerSeats);
+    initSeatMesh(sofaMeshRef.current, sofaSeats);
+    seatStateCache.current.clear();
 
     // 2. Acoustic panels & trims
     if (panelsMeshRef.current && trimMeshRef.current && geometry.acousticPanels.length > 0) {
+      panelsMeshRef.current.frustumCulled = false;
+      trimMeshRef.current.frustumCulled = false;
       geometry.acousticPanels.forEach((p, idx) => {
         dummy.position.set(...p.position);
         dummy.rotation.set(0, p.rotationY, 0);
@@ -248,6 +1121,7 @@ export function ProceduralAuditorium({
 
     // 3. Sconces
     if (sconcesMeshRef.current && geometry.sconces.length > 0) {
+      sconcesMeshRef.current.frustumCulled = false;
       geometry.sconces.forEach((sc, idx) => {
         dummy.position.set(...sc.position);
         dummy.rotation.set(0, 0, 0);
@@ -260,6 +1134,7 @@ export function ProceduralAuditorium({
 
     // 4. Step lights
     if (stepLightsMeshRef.current && geometry.stepLights.length > 0) {
+      stepLightsMeshRef.current.frustumCulled = false;
       geometry.stepLights.forEach((sl, idx) => {
         dummy.position.set(...sl.position);
         dummy.rotation.set(0, 0, 0);
@@ -269,17 +1144,83 @@ export function ProceduralAuditorium({
       });
       stepLightsMeshRef.current.instanceMatrix.needsUpdate = true;
     }
-  }, [seats, geometry]);
 
-  // Per-frame color & state updates for instanced seats
-  useFrame(() => {
-    const seatMesh = premiumSeatsMeshRef.current;
-    if (!seatMesh) return;
+    // 5. Wooden slats
+    if (slatsMeshRef.current && geometry.woodenSlats && geometry.woodenSlats.length > 0) {
+      slatsMeshRef.current.frustumCulled = false;
+      geometry.woodenSlats.forEach((sl, idx) => {
+        dummy.position.set(...sl.position);
+        dummy.rotation.set(0, sl.rotationY, 0);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        slatsMeshRef.current!.setMatrixAt(idx, dummy.matrix);
+      });
+      slatsMeshRef.current.instanceMatrix.needsUpdate = true;
+    }
+
+    // 6. Ceiling downlights
+    if (downlightsMeshRef.current && geometry.ceilingDownlights && geometry.ceilingDownlights.length > 0) {
+      downlightsMeshRef.current.frustumCulled = false;
+      geometry.ceilingDownlights.forEach((dl, idx) => {
+        dummy.position.set(...dl.position);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        downlightsMeshRef.current!.setMatrixAt(idx, dummy.matrix);
+      });
+      downlightsMeshRef.current.instanceMatrix.needsUpdate = true;
+    }
+
+    // 7. Atmos speakers
+    if (atmosSpeakersMeshRef.current && geometry.atmosSpeakers && geometry.atmosSpeakers.length > 0) {
+      atmosSpeakersMeshRef.current.frustumCulled = false;
+      geometry.atmosSpeakers.forEach((spk, idx) => {
+        dummy.position.set(...spk.position);
+        dummy.rotation.set(0, 0, 0);
+        dummy.scale.set(1, 1, 1);
+        dummy.updateMatrix();
+        atmosSpeakersMeshRef.current!.setMatrixAt(idx, dummy.matrix);
+      });
+      atmosSpeakersMeshRef.current.instanceMatrix.needsUpdate = true;
+    }
+  }, [seats, geometry, standardGeometry, reclinerGeometry, sofaGeometry, initSeatMesh, computeInstancedBounds]);
+
+  // Per-frame color & state updates for instanced seats and dynamic surface fading
+  useFrame(({ camera }) => {
+    // Dynamic near-camera surface fading: surfaces within ~1.5m fade out smoothly so view stays clear
+    if (geometry.dimensions) {
+      const camY = camera.position.y;
+      const camZ = camera.position.z;
+      const camX = camera.position.x;
+
+      const ceilDist = Math.abs(camY - geometry.dimensions.height);
+      if (ceilDist < 1.5) {
+        ceilingMaterial.opacity = THREE.MathUtils.clamp((ceilDist - 0.2) / 1.3, 0.0, 1.0);
+      } else {
+        ceilingMaterial.opacity = 1.0;
+      }
+
+      const backWallDist = Math.abs(camZ - geometry.dimensions.zBack);
+      const frontWallDist = Math.abs(camZ - geometry.dimensions.zFront);
+      const sideWallDist = Math.abs(Math.abs(camX) - geometry.dimensions.halfWidth);
+      const wallDist = Math.min(backWallDist, frontWallDist, sideWallDist);
+      if (wallDist < 1.5) {
+        const wallFade = THREE.MathUtils.clamp((wallDist - 0.2) / 1.3, 0.0, 1.0);
+        wallMaterial.opacity = wallFade;
+        acousticPanelMaterial.opacity = wallFade;
+        panelTrimMaterial.opacity = wallFade;
+      } else {
+        wallMaterial.opacity = 1.0;
+        acousticPanelMaterial.opacity = 1.0;
+        panelTrimMaterial.opacity = 1.0;
+      }
+    }
 
     const activeStatuses = useCinemaStore.getState().seatStatuses;
     const activeSelected = useCinemaStore.getState().selectedSeats;
     const currentHovered = useCinemaStore.getState().hoveredSeatId;
     const isShow = useCinemaStore.getState().houseLights === 'show';
+    const isAvailabilityView = useCinemaStore.getState().isAvailabilityView;
     const currentLook = getActiveLook(useCinemaStore.getState().theatreLook);
     const camMode = useCinemaStore.getState().cameraMode;
     const actSeatId = useCinemaStore.getState().activeSeatId;
@@ -287,120 +1228,256 @@ export function ProceduralAuditorium({
     const time = performance.now() * 0.003;
     const pulse = 0.85 + Math.sin(time) * 0.15;
 
-    let colorsNeedUpdate = false;
-    let matricesNeedUpdate = false;
-    const dummy = new THREE.Object3D();
-    const tempColor = new THREE.Color();
+    const is4dxActive = useCinemaStore.getState().experience4dxActive;
+    const intensity4dx = useCinemaStore.getState().experience4dxIntensity;
 
-    for (let idx = 0; idx < seats.length; idx++) {
-      const seat = seats[idx];
-      const isSelected = activeSelected.includes(seat.seat_id);
-      const rawStatus = activeStatuses[seat.seat_id] || 'available';
-      const isHeld = rawStatus === 'held';
-      const isBooked = rawStatus === 'booked';
-      const isHovered = currentHovered === seat.seat_id;
-      const isHiddenInPov = camMode === 'pov' && actSeatId === seat.seat_id;
+    const updateSeatMeshGroup = (
+      mesh: THREE.InstancedMesh | null,
+      items: { seat: SeatRecord; index: number }[],
+      familyType: 'standard' | 'recliner' | 'sofa'
+    ) => {
+      if (!mesh) return;
 
-      let hexColor: string;
-      if (isSelected) {
-        hexColor = currentLook.seats.selected;
-      } else if (isHeld) {
-        hexColor = currentLook.seats.held;
-      } else if (isBooked) {
-        hexColor = currentLook.seats.booked;
-      } else if (isHovered) {
-        hexColor = '#ffd700';
+      let colorsNeedUpdate = false;
+      let matricesNeedUpdate = false;
+      const dummy = new THREE.Object3D();
+      const tempColor = new THREE.Color();
+
+      for (let idx = 0; idx < items.length; idx++) {
+        const seat = items[idx].seat;
+        const isSelected = activeSelected.includes(seat.seat_id);
+        const rawStatus = activeStatuses[seat.seat_id] || 'available';
+        const isHeld = rawStatus === 'held';
+        const isBooked = rawStatus === 'booked';
+        const isHovered = currentHovered === seat.seat_id;
+        const isHiddenInPov = (camMode === 'pov' || useCinemaStore.getState().mode === 'seated') && actSeatId === seat.seat_id;
+
+        let hexColor: string;
+        if (isSelected) {
+          hexColor = '#22C55E'; // Emerald green
+        } else if (isHeld) {
+          hexColor = '#F59E0B'; // Amber
+        } else if (isBooked) {
+          hexColor = '#3F424A'; // Desaturated grey
+        } else if (isHovered) {
+          hexColor = '#FF9E2C';
+        } else {
+          if (familyType === 'sofa' || theatreDef.features.motion_seats || theatreDef.features.is_4dx || auditoriumLayout?.layout_signature === 'motion_pods') {
+            hexColor = theatreDef.palette?.fabricPrimary || '#3A3F4A'; // Deep slate leather (+40% lightness)
+          } else if (familyType === 'recliner' || theatreDef.id === 'luxury_recliner') {
+            hexColor = theatreDef.palette?.fabricPrimary || '#663822'; // Cognac leather (+35% lightness)
+          } else {
+            const cat = (seat.category || 'prime').toLowerCase();
+            hexColor =
+              cat === 'premier'
+                ? (theatreDef.palette?.fabricSecondary || currentLook.seats.premier)
+                : cat === 'front'
+                ? currentLook.seats.front
+                : (theatreDef.palette?.fabricPrimary || currentLook.seats.prime); // Classic velvet red #8D1C24
+          }
+        }
+
+        tempColor.set(hexColor);
+        if (isShow && !isSelected && !isHovered && !isHeld) {
+          tempColor.multiplyScalar(0.75);
+        }
+        if (isHeld) {
+          tempColor.multiplyScalar(pulse);
+        }
+        // Availability View: Dims booked seats further and makes available seats brighter (§ Part C)
+        if (isAvailabilityView) {
+          if (isBooked) {
+            tempColor.multiplyScalar(0.35);
+          } else if (!isSelected && !isHeld) {
+            tempColor.multiplyScalar(1.4);
+          }
+        }
+
+        const stateKey = `${isSelected ? 1 : 0}-${isHeld ? pulse.toFixed(1) : 0}-${isBooked ? 1 : 0}-${isHovered ? 1 : 0}-${isShow ? 1 : 0}-${isAvailabilityView ? 1 : 0}-${currentLook.id}-${isHiddenInPov ? 1 : 0}`;
+        const isSeatShaking = is4dxActive && !!seat.in_motion_zone;
+
+        if (seatStateCache.current.get(seat.seat_id) !== stateKey || isSeatShaking) {
+          if (!isSeatShaking) {
+            seatStateCache.current.set(seat.seat_id, stateKey);
+          }
+          mesh.setColorAt(idx, tempColor);
+          colorsNeedUpdate = true;
+
+          const { min, max } = seat.bounds_gltf_y_up;
+          const posX = (min[0] + max[0]) / 2;
+          let posY = min[1];
+          const posZ = (min[2] + max[2]) / 2;
+          const angleY = Math.atan2(-posX, SCREEN_Z - posZ);
+          let pitch = 0;
+          let roll = 0;
+
+          if (isSeatShaking) {
+            const t4 = performance.now() * 0.007;
+            const intMult = intensity4dx === 'full' ? 1.0 : (intensity4dx === 'light' ? 0.35 : 0.65);
+            const heave = Math.sin(t4 * 7.5 + idx * 0.5) * 0.025 * intMult;
+            pitch = Math.sin(t4 * 5.5 + idx) * 0.035 * intMult;
+            roll = Math.cos(t4 * 6.5 + idx * 0.4) * 0.02 * intMult;
+            posY += heave;
+          }
+
+          dummy.position.set(posX, posY, posZ);
+          dummy.rotation.set(pitch, angleY, roll);
+          dummy.scale.set(isHiddenInPov ? 0 : 1, isHiddenInPov ? 0 : 1, isHiddenInPov ? 0 : 1);
+          dummy.updateMatrix();
+          mesh.setMatrixAt(idx, dummy.matrix);
+          matricesNeedUpdate = true;
+        }
+      }
+
+      if (colorsNeedUpdate && mesh.instanceColor) {
+        mesh.instanceColor.needsUpdate = true;
+      }
+      if (matricesNeedUpdate) {
+        mesh.instanceMatrix.needsUpdate = true;
+      }
+    };
+
+    updateSeatMeshGroup(standardMeshRef.current, standardSeats, 'standard');
+    updateSeatMeshGroup(reclinerMeshRef.current, reclinerSeats, 'recliner');
+    updateSeatMeshGroup(sofaMeshRef.current, sofaSeats, 'sofa');
+
+    // 3D Seat Watchdog: Monitor drawn seats vs expected seats
+    const drawnSeatCount =
+      (standardMeshRef.current && standardSeats.length > 0 ? standardSeats.length : 0) +
+      (reclinerMeshRef.current && reclinerSeats.length > 0 ? reclinerSeats.length : 0) +
+      (sofaMeshRef.current && sofaSeats.length > 0 ? sofaSeats.length : 0);
+    const expectedSeatCount = seats.length;
+
+    if (drawnSeatCount < expectedSeatCount && (standardGeometry || reclinerGeometry || sofaGeometry)) {
+      if (watchdogFailureTime.current === null) {
+        watchdogFailureTime.current = performance.now();
+      } else if (performance.now() - watchdogFailureTime.current > 2000) {
+        console.warn(
+          `[3D Watchdog] Missing seat instances detected (${drawnSeatCount}/${expectedSeatCount}) for > 2s. Rebuilding instance matrices...`
+        );
+        watchdogRebuildCount.current += 1;
+        initSeatMesh(standardMeshRef.current, standardSeats);
+        initSeatMesh(reclinerMeshRef.current, reclinerSeats);
+        initSeatMesh(sofaMeshRef.current, sofaSeats);
+        seatStateCache.current.clear();
+        watchdogFailureTime.current = null;
+        if (watchdogRebuildCount.current >= 2) {
+          setReadinessWarning('Notice: Synchronizing 3D seat geometry. Click Reload 3D if hall appears incomplete.');
+        }
+      }
+    } else {
+      watchdogFailureTime.current = null;
+    }
+
+    if (typeof window !== 'undefined') {
+      (window as any).__cineverse_watchdog = {
+        drawnSeatCount,
+        expectedSeatCount,
+        rebuildCount: watchdogRebuildCount.current,
+        warning: readinessWarning,
+      };
+    }
+
+    // Smoothly update volumetric projector beam opacity based on equipment profile
+    const hasBeam = geometry.screenMesh.hasProjectorBeam !== false;
+    const brightnessTier = geometry.beamBrightness || 'standard';
+    const beamSetting = useCinemaStore.getState().beamSetting ?? 'subtle';
+    let targetBeamOpacity = 0.00;
+    if (hasBeam && brightnessTier !== 'none' && beamSetting !== 'off') {
+      if (beamSetting === 'subtle') {
+        // Peak about 6 to 8 percent (0.07) for subtle setting (§ Part E)
+        targetBeamOpacity = isShow ? 0.07 : (useCinemaStore.getState().houseLights === 'dim' ? 0.025 : 0.00);
       } else {
-        const cat = (seat.category || 'prime').toLowerCase();
-        hexColor =
-          cat === 'premier'
-            ? currentLook.seats.premier
-            : cat === 'front'
-            ? currentLook.seats.front
-            : currentLook.seats.prime;
-      }
-
-      tempColor.set(hexColor);
-      if (isShow && !isSelected && !isHovered && !isHeld) {
-        tempColor.multiplyScalar(0.75);
-      }
-      if (isHeld) {
-        tempColor.multiplyScalar(pulse);
-      }
-
-      const stateKey = `${isSelected ? 1 : 0}-${isHeld ? pulse.toFixed(1) : 0}-${isBooked ? 1 : 0}-${isHovered ? 1 : 0}-${isShow ? 1 : 0}-${currentLook.id}-${isHiddenInPov ? 1 : 0}`;
-      if (seatStateCache.current.get(seat.seat_id) !== stateKey) {
-        seatStateCache.current.set(seat.seat_id, stateKey);
-        seatMesh.setColorAt(idx, tempColor);
-        colorsNeedUpdate = true;
-
-        const { min, max } = seat.bounds_gltf_y_up;
-        const posX = (min[0] + max[0]) / 2;
-        const posY = min[1];
-        const posZ = (min[2] + max[2]) / 2;
-        dummy.position.set(posX, posY, posZ);
-        dummy.scale.set(isHiddenInPov ? 0 : 1, isHiddenInPov ? 0 : 1, isHiddenInPov ? 0 : 1);
-        dummy.updateMatrix();
-        seatMesh.setMatrixAt(idx, dummy.matrix);
-        matricesNeedUpdate = true;
+        targetBeamOpacity = isShow ? 0.14 : (useCinemaStore.getState().houseLights === 'dim' ? 0.05 : 0.00);
       }
     }
 
-    if (colorsNeedUpdate && seatMesh.instanceColor) {
-      seatMesh.instanceColor.needsUpdate = true;
+    if (projectorBeamMaterial) {
+      if (beamSetting === 'off') {
+        projectorBeamMaterial.opacity = 0.00;
+        if (projectorBeamRef.current) projectorBeamRef.current.visible = false;
+      } else {
+        if (projectorBeamRef.current) projectorBeamRef.current.visible = true;
+        projectorBeamMaterial.opacity = THREE.MathUtils.lerp(
+          projectorBeamMaterial.opacity,
+          targetBeamOpacity,
+          0.25
+        );
+      }
     }
-    if (matricesNeedUpdate) {
-      seatMesh.instanceMatrix.needsUpdate = true;
+
+    // Dynamic emissive intensity on cove & skirting lights based on mode and intensity setting
+    const isBrighterMode = useCinemaStore.getState().lightIntensity === 'brighter';
+    const targetCove = isShow ? 0.50 : isBrighterMode ? 3.60 : 2.80;
+    const targetSkirting = isShow ? 0.35 : isBrighterMode ? 2.40 : 1.80;
+    if (coveLightMaterial) {
+      coveLightMaterial.emissiveIntensity = THREE.MathUtils.lerp(
+        coveLightMaterial.emissiveIntensity,
+        targetCove,
+        0.10
+      );
+    }
+    if (skirtingLightMaterial) {
+      skirtingLightMaterial.emissiveIntensity = THREE.MathUtils.lerp(
+        skirtingLightMaterial.emissiveIntensity,
+        targetSkirting,
+        0.10
+      );
     }
   });
 
   // Direct interaction handlers on InstancedMesh (Zero extra draw calls)
-  const handleInstanceClick = useCallback(
-    (e: ThreeEvent<MouseEvent>) => {
-      e.stopPropagation();
-      if (e.instanceId !== undefined && seats[e.instanceId]) {
-        const seatId = seats[e.instanceId].seat_id;
-        if (onSeatClick) {
-          onSeatClick(seatId);
-        } else {
-          toggleSeat(seatId);
-        }
+  const createClickHandler = (items: { seat: SeatRecord; index: number }[]) => (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    if (e.instanceId !== undefined && items[e.instanceId]) {
+      const seatId = items[e.instanceId].seat.seat_id;
+      if (onSeatClick) {
+        onSeatClick(seatId);
+      } else {
+        toggleSeat(seatId);
       }
-    },
-    [seats, onSeatClick, toggleSeat]
-  );
+    }
+  };
 
-  const handleInstanceDoubleClick = useCallback(
-    (e: ThreeEvent<MouseEvent>) => {
-      e.stopPropagation();
-      if (e.instanceId !== undefined && seats[e.instanceId]) {
-        const seatId = seats[e.instanceId].seat_id;
-        if (onSeatDoubleClick) {
-          onSeatDoubleClick(seatId);
-        }
-      }
-    },
-    [seats, onSeatDoubleClick]
-  );
+  const createDoubleClickHandler = (items: { seat: SeatRecord; index: number }[]) => (e: ThreeEvent<MouseEvent>) => {
+    e.stopPropagation();
+    if (e.instanceId !== undefined && items[e.instanceId]) {
+      const seatId = items[e.instanceId].seat.seat_id;
+      if (onSeatDoubleClick) onSeatDoubleClick(seatId);
+    }
+  };
 
-  const lastHoverIdx = useRef<number | null>(null);
-  const handleInstancePointerMove = useCallback(
-    (e: ThreeEvent<PointerEvent>) => {
-      e.stopPropagation();
-      if (e.instanceId !== undefined && seats[e.instanceId]) {
-        if (lastHoverIdx.current === e.instanceId) return;
-        lastHoverIdx.current = e.instanceId;
-        setHoveredSeat(seats[e.instanceId].seat_id);
-      }
-    },
-    [seats, setHoveredSeat]
-  );
+  const lastHoverSeatId = useRef<string | null>(null);
+  const hoverOutTimer = useRef<any>(null);
+
+  const createPointerMoveHandler = (items: { seat: SeatRecord; index: number }[]) => (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    if (hoverOutTimer.current) {
+      clearTimeout(hoverOutTimer.current);
+      hoverOutTimer.current = null;
+    }
+    if (typeof document !== 'undefined' && document.body.style.cursor !== 'pointer') {
+      document.body.style.cursor = 'pointer';
+    }
+    if (e.instanceId !== undefined && items[e.instanceId]) {
+      const seatId = items[e.instanceId].seat.seat_id;
+      if (lastHoverSeatId.current === seatId) return;
+      lastHoverSeatId.current = seatId;
+      setHoveredSeat(seatId);
+    }
+  };
 
   const handleInstancePointerOut = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
       e.stopPropagation();
-      lastHoverIdx.current = null;
-      setHoveredSeat(null);
+      if (hoverOutTimer.current) clearTimeout(hoverOutTimer.current);
+      hoverOutTimer.current = setTimeout(() => {
+        if (typeof document !== 'undefined') {
+          document.body.style.cursor = 'default';
+        }
+        lastHoverSeatId.current = null;
+        setHoveredSeat(null);
+      }, 50);
     },
     [setHoveredSeat]
   );
@@ -419,19 +1496,78 @@ export function ProceduralAuditorium({
     return { size, center };
   };
 
+  const renderSeeThroughRail = (
+    bounds: { min: [number, number, number]; max: [number, number, number] },
+    material: THREE.Material,
+    keyName: string
+  ) => {
+    const width = Math.max(0.1, bounds.max[0] - bounds.min[0]);
+    const height = Math.max(0.1, bounds.max[1] - bounds.min[1]);
+    const depth = Math.max(0.04, bounds.max[2] - bounds.min[2]);
+    const centerX = (bounds.min[0] + bounds.max[0]) / 2;
+    const centerY = (bounds.min[1] + bounds.max[1]) / 2;
+    const centerZ = (bounds.min[2] + bounds.max[2]) / 2;
+
+    const topRailY = bounds.max[1] - 0.03;
+    const midRailY = bounds.min[1] + height * 0.5;
+
+    const numPosts = Math.max(2, Math.floor(width / 1.4) + 1);
+    const postStep = width / (numPosts - 1);
+    const postThickness = 0.04;
+
+    return (
+      <group key={keyName} name={keyName}>
+        {/* Top rail */}
+        <mesh position={[centerX, topRailY, centerZ]} material={material}>
+          <boxGeometry args={[width, 0.06, depth]} />
+        </mesh>
+        {/* Mid rail */}
+        <mesh position={[centerX, midRailY, centerZ]} material={material}>
+          <boxGeometry args={[width, 0.04, depth]} />
+        </mesh>
+        {/* Vertical baluster posts */}
+        {Array.from({ length: numPosts }).map((_, i) => {
+          const postX = bounds.min[0] + i * postStep;
+          return (
+            <mesh
+              key={`post_${i}`}
+              position={[postX, centerY, centerZ]}
+              material={material}
+            >
+              <boxGeometry args={[postThickness, height, depth]} />
+            </mesh>
+          );
+        })}
+      </group>
+    );
+  };
+
   const floorBox = boxHelper(geometry.roomFloor);
   const ceilingBox = boxHelper(geometry.ceiling);
   const stageLipBox = boxHelper(geometry.stageLip);
   const screenFrameBox = boxHelper(geometry.screenFrame);
 
-  // Debug proxy flag
+  // Debug flags
   const [debugProxies, setDebugProxies] = React.useState(false);
+  const [debugScale, setDebugScale] = React.useState(false);
   useEffect(() => {
-    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+    if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
       setDebugProxies(params.get('debug') === 'proxies');
+      setDebugScale(params.get('debug') === 'scale');
     }
   }, []);
+
+  const hasModelLoadError =
+    (standardSeats.length > 0 && !standardGeometry) ||
+    (reclinerSeats.length > 0 && !reclinerGeometry) ||
+    (sofaSeats.length > 0 && !sofaGeometry);
+
+  useEffect(() => {
+    if (hasModelLoadError) {
+      console.error('[CineVerse 3D] CRITICAL: Seat models failed to load. Check /dev/readiness.');
+    }
+  }, [hasModelLoadError]);
 
   return (
     <group name="ProceduralAuditoriumRoot">
@@ -445,38 +1581,56 @@ export function ProceduralAuditorium({
         <boxGeometry args={floorBox.size} />
       </mesh>
 
-      {/* 2. Tier Platforms */}
+      {/* 2. Tier Platforms with Lit Stair Nosings */}
       <group name="TierPlatforms">
         {geometry.tiers.map((tier) => {
           const { size, center } = boxHelper(tier.bounds);
           return (
-            <mesh
-              key={tier.name}
-              name={tier.name}
-              position={center}
-              material={tierMaterial}
-              receiveShadow
-            >
-              <boxGeometry args={size} />
-            </mesh>
+            <group key={tier.name}>
+              <mesh
+                name={tier.name}
+                position={center}
+                material={tierMaterial}
+                receiveShadow
+              >
+                <boxGeometry args={size} />
+              </mesh>
+              {/* Lit stair nosing strip on the front edge of the tier */}
+              <mesh
+                name={`${tier.name}_nosing`}
+                position={[center[0], tier.topY - 0.01, tier.bounds.max[2] + 0.01]}
+                material={nosingMaterial}
+              >
+                <boxGeometry args={[size[0], 0.025, 0.025]} />
+              </mesh>
+            </group>
           );
         })}
       </group>
 
-      {/* 3. Aisle Stair Treads */}
+      {/* 3. Aisle Stair Treads with Lit Stair Nosings */}
       <group name="AisleSteps">
         {geometry.aisleSteps.map((step) => {
           const { size, center } = boxHelper(step.bounds);
           return (
-            <mesh
-              key={step.name}
-              name={step.name}
-              position={center}
-              material={treadMaterial}
-              receiveShadow
-            >
-              <boxGeometry args={size} />
-            </mesh>
+            <group key={step.name}>
+              <mesh
+                name={step.name}
+                position={center}
+                material={treadMaterial}
+                receiveShadow
+              >
+                <boxGeometry args={size} />
+              </mesh>
+              {/* Lit stair nosing strip on the front edge of the step tread */}
+              <mesh
+                name={`${step.name}_nosing`}
+                position={[center[0], step.topY - 0.01, step.bounds.max[2] + 0.01]}
+                material={nosingMaterial}
+              >
+                <boxGeometry args={[size[0], 0.025, 0.025]} />
+              </mesh>
+            </group>
           );
         })}
       </group>
@@ -485,12 +1639,13 @@ export function ProceduralAuditorium({
       <group name="AuditoriumWalls">
         {Object.entries(geometry.walls).map(([wallKey, bounds]) => {
           const { size, center } = boxHelper(bounds);
+          const mat = wallKey === 'front' ? frontScreenWallMaterial : wallMaterial;
           return (
             <mesh
               key={`${wallKey}_wall`}
               name={`${wallKey}_wall`}
               position={center}
-              material={wallMaterial}
+              material={mat}
             >
               <boxGeometry args={size} />
             </mesh>
@@ -512,6 +1667,7 @@ export function ProceduralAuditorium({
         name="screen_frame"
         position={screenFrameBox.center}
         material={screenFrameMaterial}
+        raycast={() => null}
       >
         <boxGeometry args={screenFrameBox.size} />
       </mesh>
@@ -520,9 +1676,486 @@ export function ProceduralAuditorium({
         name="stage_lip"
         position={stageLipBox.center}
         material={stageLipMaterial}
+        raycast={() => null}
       >
         <boxGeometry args={stageLipBox.size} />
       </mesh>
+
+      {theatreDef.id === 'standard' && (
+        <mesh
+          name="stage_lip_grille"
+          position={[stageLipBox.center[0], stageLipBox.center[1], stageLipBox.center[2] + stageLipBox.size[2] / 2 + 0.02]}
+          material={stageGrilleMaterial}
+        >
+          <boxGeometry args={[stageLipBox.size[0] * 0.92, stageLipBox.size[1] * 0.65, 0.04]} />
+        </mesh>
+      )}
+
+      {/* 6b. Proscenium Arch (Open Perimeter Frame: Left Column, Right Column, Top Header) & Side Curtains */}
+      {geometry.proscenium && (() => {
+        const pBox = geometry.proscenium;
+        const beamThickness = 0.45;
+        const frameDepth = Math.max(0.12, pBox.max[2] - pBox.min[2]);
+        const centerZ = (pBox.min[2] + pBox.max[2]) / 2;
+
+        const leftColWidth = beamThickness;
+        const leftColHeight = pBox.max[1] - pBox.min[1];
+        const leftColCenter: [number, number, number] = [
+          pBox.min[0] + leftColWidth / 2,
+          pBox.min[1] + leftColHeight / 2,
+          centerZ,
+        ];
+
+        const rightColWidth = beamThickness;
+        const rightColHeight = pBox.max[1] - pBox.min[1];
+        const rightColCenter: [number, number, number] = [
+          pBox.max[0] - rightColWidth / 2,
+          pBox.min[1] + rightColHeight / 2,
+          centerZ,
+        ];
+
+        const topHeaderWidth = pBox.max[0] - pBox.min[0];
+        const topHeaderHeight = beamThickness;
+        const topHeaderCenter: [number, number, number] = [
+          (pBox.min[0] + pBox.max[0]) / 2,
+          pBox.max[1] - topHeaderHeight / 2,
+          centerZ,
+        ];
+
+        return (
+          <group name="proscenium_arch_frame">
+            {/* Left Column */}
+            <mesh
+              name="proscenium_arch_left"
+              position={leftColCenter}
+              material={prosceniumMaterial}
+            >
+              <boxGeometry args={[leftColWidth, leftColHeight, frameDepth]} />
+            </mesh>
+            {/* Right Column */}
+            <mesh
+              name="proscenium_arch_right"
+              position={rightColCenter}
+              material={prosceniumMaterial}
+            >
+              <boxGeometry args={[rightColWidth, rightColHeight, frameDepth]} />
+            </mesh>
+            {/* Top Lintel Beam */}
+            <mesh
+              name="proscenium_arch_header"
+              position={topHeaderCenter}
+              material={prosceniumMaterial}
+            >
+              <boxGeometry args={[topHeaderWidth, topHeaderHeight, frameDepth]} />
+            </mesh>
+          </group>
+        );
+      })()}
+
+      {geometry.sideCurtains && (
+        <group name="SideCurtains">
+          <mesh
+            name="side_curtain_left"
+            position={boxHelper(geometry.sideCurtains.left).center}
+            material={curtainMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.sideCurtains.left).size} />
+          </mesh>
+          <mesh
+            name="side_curtain_right"
+            position={boxHelper(geometry.sideCurtains.right).center}
+            material={curtainMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.sideCurtains.right).size} />
+          </mesh>
+        </group>
+      )}
+
+      {/* 6c. Balcony Structure & Under-Balcony Warm Cove Light */}
+      {geometry.balconyStructure && (
+        <group name="BalconyArchitecture">
+          <mesh
+            name="balcony_platform"
+            position={boxHelper(geometry.balconyStructure.platform).center}
+            material={tierMaterial}
+            receiveShadow
+          >
+            <boxGeometry args={boxHelper(geometry.balconyStructure.platform).size} />
+          </mesh>
+          <mesh
+            name="balcony_fascia"
+            position={boxHelper(geometry.balconyStructure.fascia).center}
+            material={wallMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.balconyStructure.fascia).size} />
+          </mesh>
+          {renderSeeThroughRail(geometry.balconyStructure.railing, balconyRailingMaterial, "balcony_railing")}
+          <mesh
+            name="under_balcony_cove_light"
+            position={boxHelper(geometry.balconyStructure.coveLightBounds).center}
+            material={coveLightMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.balconyStructure.coveLightBounds).size} />
+          </mesh>
+          {geometry.balconyStructure.columns?.map((col, idx) => {
+            const { size, center } = boxHelper(col);
+            return (
+              <mesh
+                key={`balcony_col_${idx}`}
+                name={`balcony_column_${idx}`}
+                position={center}
+                material={wallMaterial}
+                castShadow
+                receiveShadow
+              >
+                <boxGeometry args={size} />
+              </mesh>
+            );
+          })}
+        </group>
+      )}
+
+      {/* Cross-Aisle Handrails (thin see-through posts and rails) */}
+      {geometry.crossAisleHandrails && geometry.crossAisleHandrails.length > 0 && (
+        <group name="CrossAisleHandrailsContainer">
+          {geometry.crossAisleHandrails.map((rail) =>
+            renderSeeThroughRail(rail.bounds, handrailMaterial, rail.id)
+          )}
+        </group>
+      )}
+
+      {/* Luxury Recliner Swivel Tables, Badges & Side Panels */}
+      {geometry.reclinerAccessories && geometry.reclinerAccessories.length > 0 && (
+        <group name="ReclinerAccessoriesContainer">
+          {geometry.reclinerAccessories.map((acc) => {
+            const { size: sideSize, center: sideCenter } = boxHelper(acc.sidePanelBounds);
+            return (
+              <group key={acc.id} name={acc.id}>
+                {/* Wood Swivel Tray Table */}
+                <mesh position={acc.tablePosition} material={reclinerTableMaterial}>
+                  <cylinderGeometry args={[0.22, 0.22, 0.04, 16]} />
+                </mesh>
+                {/* Generic Round Brass Badge */}
+                <mesh position={acc.badgePosition} rotation={[Math.PI / 2, 0, 0]} material={reclinerBadgeMaterial}>
+                  <cylinderGeometry args={[0.06, 0.06, 0.02, 16]} />
+                </mesh>
+                {/* Dark Wood Side Panel */}
+                <mesh position={sideCenter} material={reclinerSidePanelMaterial}>
+                  <boxGeometry args={sideSize} />
+                </mesh>
+              </group>
+            );
+          })}
+        </group>
+      )}
+
+      {/* Radiating Motion LED Bars */}
+      {geometry.motionLedBars && geometry.motionLedBars.length > 0 && (
+        <group name="MotionLedBarsContainer">
+          {geometry.motionLedBars.map((bar) => {
+            const mat =
+              bar.colorType === 'blue'
+                ? motionLedBlueMaterial
+                : bar.colorType === 'red'
+                ? motionLedRedMaterial
+                : motionLedWhiteMaterial;
+            return (
+              <mesh
+                key={bar.id}
+                name={bar.id}
+                position={bar.position}
+                rotation={bar.rotation}
+                material={mat}
+              >
+                <boxGeometry args={bar.size} />
+              </mesh>
+            );
+          })}
+        </group>
+      )}
+
+      {/* Luxury Recliner Vertical Amber LED Outline Panels */}
+      {geometry.amberOutlinePanels && geometry.amberOutlinePanels.length > 0 && (
+        <group name="AmberOutlinePanelsContainer">
+          {geometry.amberOutlinePanels.map((panel) => (
+            <mesh
+              key={panel.id}
+              name={panel.id}
+              position={panel.position}
+              material={amberOutlineMaterial}
+            >
+              <boxGeometry args={panel.size} />
+            </mesh>
+          ))}
+        </group>
+      )}
+
+      {/* 6d. Suspended Acoustic Ceiling Clouds */}
+      {geometry.ceilingClouds && geometry.ceilingClouds.length > 0 && (
+        <group name="CeilingCloudsContainer">
+          {geometry.ceilingClouds.map((cloud) => {
+            const { size, center } = boxHelper(cloud.bounds);
+            return (
+              <mesh
+                key={cloud.id}
+                name={`ceiling_cloud_${cloud.id}`}
+                position={center}
+                material={ceilingCloudMaterial}
+              >
+                <boxGeometry args={size} />
+              </mesh>
+            );
+          })}
+        </group>
+      )}
+
+      {/* 6e. Roof Trusses / Structural Girders */}
+      {geometry.roofTrusses && geometry.roofTrusses.length > 0 && (
+        <group name="RoofTrussesContainer">
+          {geometry.roofTrusses.map((truss) => {
+            const { size, center } = boxHelper(truss.bounds);
+            return (
+              <mesh
+                key={truss.id}
+                name={`roof_truss_${truss.id}`}
+                position={center}
+                material={roofTrussMaterial}
+              >
+                <boxGeometry args={size} />
+              </mesh>
+            );
+          })}
+        </group>
+      )}
+
+      {/* 6f. Ventilation Ducts (HVAC) */}
+      {geometry.ventilationDucts && geometry.ventilationDucts.length > 0 && (
+        <group name="VentilationDuctsContainer">
+          {geometry.ventilationDucts.map((duct) => {
+            const { size, center } = boxHelper(duct.bounds);
+            return (
+              <mesh
+                key={duct.id}
+                name={`vent_duct_${duct.id}`}
+                position={center}
+                material={ventilationDuctMaterial}
+              >
+                <boxGeometry args={size} />
+              </mesh>
+            );
+          })}
+        </group>
+      )}
+
+      {/* 6g. Continuous Perimeter Cove Light Strips */}
+      {geometry.coveLightStrips && geometry.coveLightStrips.length > 0 && (
+        <group name="CoveLightStripsContainer">
+          {geometry.coveLightStrips.map((strip) => {
+            const { size, center } = boxHelper(strip.bounds);
+            return (
+              <mesh
+                key={strip.id}
+                name={`cove_strip_${strip.id}`}
+                position={center}
+                material={coveLightMaterial}
+              >
+                <boxGeometry args={size} />
+              </mesh>
+            );
+          })}
+        </group>
+      )}
+
+      {/* 6h. Baseboard Skirting Lights */}
+      {geometry.skirtingLights && geometry.skirtingLights.length > 0 && (
+        <group name="SkirtingLightsContainer">
+          {geometry.skirtingLights.map((skirt) => {
+            const { size, center } = boxHelper(skirt.bounds);
+            return (
+              <mesh
+                key={skirt.id}
+                name={`skirting_light_${skirt.id}`}
+                position={center}
+                material={skirtingLightMaterial}
+              >
+                <boxGeometry args={size} />
+              </mesh>
+            );
+          })}
+        </group>
+      )}
+
+      {/* 6i. Framed Emergency Exit Doors */}
+      {geometry.doorFrames && geometry.doorFrames.length > 0 && (
+        <group name="ExitDoorPortals">
+          {geometry.doorFrames.map((door) => {
+            const frame = boxHelper(door.frameBounds);
+            const panel = boxHelper(door.doorBounds);
+            return (
+              <group key={door.id} name={door.id}>
+                <mesh position={frame.center} material={doorFrameMaterial}>
+                  <boxGeometry args={frame.size} />
+                </mesh>
+                <mesh position={panel.center} material={doorPanelMaterial}>
+                  <boxGeometry args={panel.size} />
+                </mesh>
+              </group>
+            );
+          })}
+        </group>
+      )}
+
+      {/* 6j. Projection Booth & Volumetric Projector Beam */}
+      {geometry.projectionBooth && (
+        <group name="ProjectionBoothStructure">
+          <mesh
+            name="projection_booth_housing"
+            position={boxHelper(geometry.projectionBooth.housing).center}
+            material={boothHousingMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.projectionBooth.housing).size} />
+          </mesh>
+          <mesh
+            name="projection_booth_center_window"
+            position={boxHelper(geometry.projectionBooth.centerWindow).center}
+            material={boothWindowMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.projectionBooth.centerWindow).size} />
+          </mesh>
+          {geometry.projectionBooth.sideWindows.map((sw, idx) => (
+            <mesh
+              key={`booth_side_window_${idx}`}
+              name={`booth_side_window_${idx}`}
+              position={boxHelper(sw).center}
+              material={boothWindowMaterial}
+            >
+              <boxGeometry args={boxHelper(sw).size} />
+            </mesh>
+          ))}
+          {geometry.screenMesh.hasProjectorBeam !== false && (
+            <mesh
+              ref={projectorBeamRef}
+              name="volumetric_projector_beam"
+              geometry={projectorBeamGeometry}
+              material={projectorBeamMaterial}
+              raycast={() => null}
+            />
+          )}
+        </group>
+      )}
+
+      {/* 6j-2. 3D Glasses Counter at Entrance */}
+      {geometry.glassesCounter && (
+        <group name="Entrance3DGlassesCounter">
+          <mesh
+            name="glasses_counter_desk"
+            position={boxHelper(geometry.glassesCounter.bounds).center}
+            material={glassesDeskMaterial}
+            castShadow
+            receiveShadow
+          >
+            <boxGeometry args={boxHelper(geometry.glassesCounter.bounds).size} />
+          </mesh>
+          <mesh
+            name="glasses_counter_tray"
+            position={boxHelper(geometry.glassesCounter.topTrayBounds).center}
+            material={glassesTrayMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.glassesCounter.topTrayBounds).size} />
+          </mesh>
+          <mesh
+            name="glasses_counter_sign"
+            position={boxHelper(geometry.glassesCounter.signBounds).center}
+            material={glassesSignMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.glassesCounter.signBounds).size} />
+          </mesh>
+        </group>
+      )}
+
+      {/* 6j-3. ScreenX Side Wall Projectors */}
+      {geometry.sideProjectors && geometry.sideProjectors.length > 0 && (
+        <group name="ScreenXSideProjectorsContainer">
+          {geometry.sideProjectors.map((sp) => (
+            <group key={sp.id} name={sp.id} position={sp.position} rotation={[0, sp.rotationY, 0]}>
+              <mesh material={sideProjectorHousingMaterial}>
+                <boxGeometry args={[0.35, 0.22, 0.45]} />
+              </mesh>
+              <mesh position={[0, 0, 0.23]} material={sideProjectorLensMaterial}>
+                <cylinderGeometry args={[0.07, 0.07, 0.04, 16]} />
+              </mesh>
+            </group>
+          ))}
+        </group>
+      )}
+
+      {/* 6k. Overhead Structural Lighting Trusses */}
+      {geometry.effectRigs && geometry.effectRigs.length > 0 && (
+        <group name="EffectRigsContainer">
+          {geometry.effectRigs.map((rig) => {
+            const { size, center } = boxHelper(rig.trussBounds);
+            return (
+              <group key={rig.id} name={rig.id}>
+                <mesh position={center} material={effectRigMaterial}>
+                  <boxGeometry args={size} />
+                </mesh>
+              </group>
+            );
+          })}
+        </group>
+      )}
+
+      {/* 6l. Acoustic Baffles */}
+      {geometry.acousticBaffles && geometry.acousticBaffles.length > 0 && (
+        <group name="AcousticBafflesContainer">
+          {geometry.acousticBaffles.map((baffle) => {
+            const { size, center } = boxHelper(baffle.bounds);
+            return (
+              <mesh key={baffle.id} position={center} material={acousticBaffleMaterial}>
+                <boxGeometry args={size} />
+              </mesh>
+            );
+          })}
+        </group>
+      )}
+
+      {/* 6m. Motion Pod Platform Bases & Actuator Pistons */}
+      {geometry.motionPodBases && geometry.motionPodBases.length > 0 && (
+        <group name="MotionPodBasesContainer">
+          {geometry.motionPodBases.map((pod) => (
+            <group key={pod.id} name={pod.id}>
+              {/* Pod Platform Base */}
+              <mesh position={pod.center} material={podBaseMaterial} receiveShadow castShadow>
+                <boxGeometry args={pod.size} />
+              </mesh>
+              {/* 4 Pneumatic Actuator Pistons */}
+              {pod.pistons.map((pistPos, pIdx) => (
+                <mesh key={`${pod.id}_piston_${pIdx}`} position={pistPos} material={podPistonMaterial}>
+                  <cylinderGeometry args={[0.045, 0.055, 0.18, 12]} />
+                </mesh>
+              ))}
+              {/* Under-seat Vent Grilles */}
+              {pod.grilles.map((grillePos, gIdx) => (
+                <mesh key={`${pod.id}_grille_${gIdx}`} position={grillePos} material={podGrilleMaterial}>
+                  <boxGeometry args={[0.42, 0.015, 0.28]} />
+                </mesh>
+              ))}
+            </group>
+          ))}
+        </group>
+      )}
+
+      {/* 6o. Front Floor Trim Light */}
+      {geometry.frontFloorTrim && (
+        <group name="FrontFloorTrimContainer">
+          <mesh
+            position={boxHelper(geometry.frontFloorTrim.bounds).center}
+            material={floorTrimMaterial}
+          >
+            <boxGeometry args={boxHelper(geometry.frontFloorTrim.bounds).size} />
+          </mesh>
+        </group>
+      )}
 
       {/* 7. Instanced Acoustic Panels, Trims & Sconces (Ultra-low Draw Calls) */}
       {geometry.acousticPanels.length > 0 && (
@@ -531,13 +2164,24 @@ export function ProceduralAuditorium({
             ref={panelsMeshRef}
             args={[panelGeom, acousticPanelMaterial, geometry.acousticPanels.length]}
             name="InstancedAcousticPanels"
+            frustumCulled={false}
           />
           <instancedMesh
             ref={trimMeshRef}
             args={[trimGeom, panelTrimMaterial, geometry.acousticPanels.length]}
             name="InstancedPanelTrims"
+            frustumCulled={false}
           />
         </group>
+      )}
+
+      {geometry.woodenSlats && geometry.woodenSlats.length > 0 && (
+        <instancedMesh
+          ref={slatsMeshRef}
+          args={[slatGeom, woodSlatMaterial, geometry.woodenSlats.length]}
+          name="InstancedWoodenSlats"
+          frustumCulled={false}
+        />
       )}
 
       {geometry.sconces.length > 0 && (
@@ -545,35 +2189,114 @@ export function ProceduralAuditorium({
           ref={sconcesMeshRef}
           args={[sconceGeom, sconceGlowMaterial, geometry.sconces.length]}
           name="InstancedArchitecturalSconces"
+          frustumCulled={false}
         />
       )}
 
-      {/* 8. Instanced Aisle Step Lights (1 Draw Call instead of 90) */}
+      {/* 8. Instanced Aisle Step Lights, Downlights & Atmos Speakers */}
       {geometry.stepLights.length > 0 && (
         <instancedMesh
           ref={stepLightsMeshRef}
           args={[stepLightGeom, stepLightMaterial, geometry.stepLights.length]}
           name="InstancedAisleStepLights"
+          frustumCulled={false}
         />
       )}
 
-      {/* 9. Instanced Premium Seats & Contact Shadows with Built-in Raycast Interactivity */}
-      <group name="PremiumSeatsContainer">
+      {!isOverview && geometry.ceilingDownlights && geometry.ceilingDownlights.length > 0 && (
+        <instancedMesh
+          ref={downlightsMeshRef}
+          args={[downlightGeom, downlightMaterial, geometry.ceilingDownlights.length]}
+          name="InstancedCeilingDownlights"
+          frustumCulled={false}
+        />
+      )}
+
+      {geometry.atmosSpeakers && geometry.atmosSpeakers.length > 0 && (
+        <instancedMesh
+          ref={atmosSpeakersMeshRef}
+          args={[speakerGeom, speakerMaterial, geometry.atmosSpeakers.length]}
+          name="InstancedDolbyAtmosSpeakers"
+          frustumCulled={false}
+        />
+      )}
+
+      {/* 8b. Illuminated EXIT signs */}
+      {geometry.exitSigns && (
+        <group name="ExitSigns">
+          {geometry.exitSigns.map((es) => (
+            <mesh key={es.id} position={es.position} material={exitSignMaterial}>
+              <boxGeometry args={[0.65, 0.3, 0.08]} />
+            </mesh>
+          ))}
+        </group>
+      )}
+
+      {/* 9. Instanced Modern Seats & Contact Shadows across 3 Families */}
+      <group name="ModernSeatsContainer">
         <instancedMesh
           ref={shadowMeshRef}
           args={[shadowGeometry, shadowMaterial, seats.length]}
           name="InstancedContactShadows"
+          frustumCulled={false}
+          raycast={() => null}
         />
-        <instancedMesh
-          ref={premiumSeatsMeshRef}
-          args={[premiumGeometry, premiumMaterial, seats.length]}
-          name="InstancedPremiumSeats"
-          onClick={handleInstanceClick}
-          onDoubleClick={handleInstanceDoubleClick}
-          onPointerMove={handleInstancePointerMove}
-          onPointerOut={handleInstancePointerOut}
-        />
+        {standardGeometry && standardSeats.length > 0 && (
+          <instancedMesh
+            ref={standardMeshRef}
+            args={[standardGeometry, standardMaterial, standardSeats.length]}
+            name="InstancedStandardSeats"
+            frustumCulled={false}
+            onClick={createClickHandler(standardSeats)}
+            onDoubleClick={createDoubleClickHandler(standardSeats)}
+            onPointerMove={createPointerMoveHandler(standardSeats)}
+            onPointerOut={handleInstancePointerOut}
+          />
+        )}
+        {reclinerGeometry && reclinerSeats.length > 0 && (
+          <instancedMesh
+            ref={reclinerMeshRef}
+            args={[reclinerGeometry, reclinerMaterial, reclinerSeats.length]}
+            name="InstancedReclinerSeats"
+            frustumCulled={false}
+            onClick={createClickHandler(reclinerSeats)}
+            onDoubleClick={createDoubleClickHandler(reclinerSeats)}
+            onPointerMove={createPointerMoveHandler(reclinerSeats)}
+            onPointerOut={handleInstancePointerOut}
+          />
+        )}
+        {sofaGeometry && sofaSeats.length > 0 && (
+          <instancedMesh
+            ref={sofaMeshRef}
+            args={[sofaGeometry, sofaMaterial, sofaSeats.length]}
+            name="InstancedSofaSeats"
+            frustumCulled={false}
+            onClick={createClickHandler(sofaSeats)}
+            onDoubleClick={createDoubleClickHandler(sofaSeats)}
+            onPointerMove={createPointerMoveHandler(sofaSeats)}
+            onPointerOut={handleInstancePointerOut}
+          />
+        )}
+        {/* Floating 3D State Markers (✓ for selected, ✕ for booked, gold rim glow on hover) */}
+        <SeatStateMarkers seats={seats} />
       </group>
+
+      {/* 9b. Instanced Audience Simulation on Booked Seats Only */}
+      <AudienceSimulation seats={seats} />
+
+      {/* 1.75m Person Silhouette Scale Verification (?debug=scale) */}
+      {debugScale && (
+        <group name="DebugScaleSilhouettes">
+          <PersonSilhouette
+            position={[geometry.dimensions.halfWidth - 3.0, 0.0, geometry.dimensions.zFront + 3.0]}
+            label="1.75m Scale Silhouette"
+          />
+          <PersonSilhouette
+            position={[geometry.dimensions.halfWidth - 3.0, geometry.dimensions.topTierY, geometry.dimensions.zBack + 2.0]}
+            label="1.75m Scale Silhouette"
+          />
+        </group>
+      )}
 
       {/* 10. Debug Proxies (Only when ?debug=proxies enabled, otherwise 0 draw calls) */}
       {debugProxies && (
@@ -598,4 +2321,13 @@ export function ProceduralAuditorium({
   );
 }
 
-useGLTF.preload(PREMIUM_SEAT_PATH);
+// Preload seat models across all 3 LODs for zero-stutter rendering
+useGLTF.preload(STD_LOD0_PATH);
+useGLTF.preload(STD_LOD1_PATH);
+useGLTF.preload(STD_LOD2_PATH);
+useGLTF.preload(REC_LOD0_PATH);
+useGLTF.preload(REC_LOD1_PATH);
+useGLTF.preload(REC_LOD2_PATH);
+useGLTF.preload(SOFA_LOD0_PATH);
+useGLTF.preload(SOFA_LOD1_PATH);
+useGLTF.preload(SOFA_LOD2_PATH);

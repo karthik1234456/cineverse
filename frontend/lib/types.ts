@@ -2,7 +2,11 @@ export type SeatStatus = 'available' | 'booked' | 'held' | 'selected';
 
 export type SeatCategory = 'front' | 'prime' | 'premier';
 
-export type CameraMode = 'orbit' | 'pov' | 'walk' | 'overview' | 'seated' | 'transitioning';
+export type SeatType = 'standard' | 'recliner' | 'recliner_pair' | 'sofa' | 'accessible' | 'companion' | 'motion';
+
+export type HallLevel = 'stalls' | 'balcony';
+
+export type CameraMode = 'drone' | 'orbit' | 'pov' | 'walk' | 'overview' | 'seated' | 'transitioning';
 
 export type HouseLightsMode = 'full' | 'dim' | 'show';
 
@@ -10,7 +14,7 @@ export type QualityTier = 'high' | 'medium' | 'low';
 
 export type QualityMode = 'smooth' | 'beautiful';
 
-export type CameraPreset = 'overview' | 'front' | 'back' | 'aerial';
+export type CameraPreset = 'overview' | 'front' | 'back' | 'aerial' | 'screen' | 'balcony' | 'top' | 'picker' | 'effects_rig' | 'wrap_screen';
 
 export interface BoundingBox3D {
   min: [number, number, number];
@@ -33,6 +37,23 @@ export interface SeatRecord {
   vertical_angle_deg: number;
   screen_h_fov_deg: number;
   screen_v_fov_deg: number;
+  seat_type?: SeatType;
+  pair_partner_id?: string;
+  level?: HallLevel;
+  section?: string;
+  in_motion_zone?: boolean;
+  pod_id?: string;
+  motion_zone?: string;
+}
+
+export type EffectPropType = 'wind' | 'fog' | 'water' | 'strobe' | 'scent' | 'poke';
+
+export interface EffectProp {
+  id: string;
+  type: EffectPropType;
+  position: [number, number, number];
+  orientation?: [number, number, number];
+  label: string;
 }
 
 export interface CategoryInfo {
@@ -48,11 +69,46 @@ export interface ScreenConfig {
   height: number;
   aspect: number;
   mesh: string;
+  screen_type_id?: string;
+  screen_type_name?: string;
+  is_curved?: boolean;
+  screen_width_m?: number;
+  screen_height_m?: number;
+  has_projector_beam?: boolean;
+  panoramic_wrap?: {
+    sideAngleDeg: number;
+    sideWidthRatio: number;
+    sideHeightRatio: number;
+  };
 }
 
 export interface SeatLayoutFile {
   version: number;
   generated_from: string;
+  theatre_type?: string;
+  theatre_type_name?: string;
+  theatre_type_label?: string;
+  layout_signature?: string;
+  is_motion_hall?: boolean;
+  arrangement_pattern?: string;
+  blocks_pattern?: number[];
+  sweet_spot?: {
+    rows: string[];
+    seat_numbers: number[];
+    label?: string;
+    price_multiplier?: number;
+  };
+  documented_scale?: {
+    meters_to_scene: number;
+    scene_to_meters: number;
+    seat_width_m: number;
+    row_pitch_m: number;
+    rake_step_m: number;
+    aisle_width_m: number;
+    ceiling_height_m: number;
+    screen_width_m: number;
+    screen_height_m: number;
+  };
   coordinate_system: string;
   units: {
     scene_unit: string;
@@ -71,6 +127,33 @@ export interface SeatLayoutFile {
     disclaimer: string;
   };
   categories: Record<SeatCategory, CategoryInfo>;
+  levels?: {
+    stalls?: { label: string; height: number; rows: string[] };
+    balcony?: { label: string; height: number; rows: string[] };
+  };
+  has_balcony?: boolean;
+  recliner_pairs?: Array<[string, string]>;
+  sofa_pairs?: Array<[string, string]>;
+  motion_zone?: string;
+  pods?: Array<{
+    pod_id: string;
+    row: string;
+    capacity: number;
+    seat_ids: string[];
+    type?: string;
+  }>;
+  features?: {
+    motion_seats?: boolean;
+    wind?: boolean;
+    water?: boolean;
+    fog?: boolean;
+    scent?: boolean;
+    strobe?: boolean;
+    ticklers?: boolean;
+    is_4dx?: boolean;
+    dolby_atmos?: boolean;
+  };
+  effect_props?: EffectProp[];
   seats: SeatRecord[];
 }
 
@@ -115,6 +198,7 @@ export interface WalkNavFile {
     central: { x_min: number; x_max: number; width: number };
     side_left: { x_min: number; x_max: number };
     side_right: { x_min: number; x_max: number };
+    aisle_centers?: number[];
   };
   walkable_count: number;
   collider_count: number;
@@ -228,13 +312,39 @@ declare global {
       simulateHold: (seatId: string) => void;
       updateSeatStatus: (seatId: string, status: SeatStatus) => void;
       setHouseLights: (mode: HouseLightsMode) => void;
+      setLightIntensity: (intensity: 'normal' | 'brighter') => void;
+      sampleLuminance: () => {
+        meanLuminance: number;
+        meanLuminance255?: number;
+        nearBlackPercent: number;
+        below02Percent?: number;
+        above08Percent?: number;
+        above15Percent?: number;
+        highlightPercent: number;
+        screenClippedPercent?: number;
+        contrastRatio?: number;
+        meanSeatLum?: number;
+        meanFloorLum?: number;
+        width: number;
+        height: number;
+        hueHistogram?: Record<string, number>;
+      };
       setTheatreLook: (look: 'a' | 'b' | 'c') => void;
       setQualityTier: (tier: QualityTier) => void;
       setQualityMode: (mode: QualityMode) => void;
       setFOV: (fov: number) => void;
       setHoveredSeat: (seatId: string | null) => void;
+      samplePixelAt?: (xNorm?: number, yNorm?: number) => [number, number, number, number];
       getStore: () => any;
       getVisibleProxiesCount: () => number;
+      getShadowCastersCount: () => number;
+      getWatchdogStatus?: () => {
+        drawnSeatCount: number;
+        expectedSeatCount: number;
+        rebuildCount: number;
+        warning: string | null;
+      };
+      getDrawnSeatCount?: () => number;
     };
   }
 }

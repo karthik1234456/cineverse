@@ -9,6 +9,7 @@ from app.database import get_db
 from app.models.movie import Movie, MovieCast, Review
 from app.models.showtime import Showtime, PriceRule, SeatInventory, SeatStatusEnum
 from app.models.cinema import Cinema, Auditorium, City
+from app.models.technical_specs import ScreenFormat, SoundSystem, ProjectionType
 from app.models.auth import User
 from app.schemas.movie import MovieResponse, MovieDetailResponse, ReviewCreate, ReviewResponse
 from app.services.auth_service import get_current_user, require_user
@@ -17,13 +18,16 @@ from app.services.geo_service import haversine_distance_km, generate_directions_
 router = APIRouter()
 
 
+@router.get("", response_model=List[MovieResponse], include_in_schema=False)
 @router.get("/", response_model=List[MovieResponse])
 async def list_movies(
     response: Response,
     city_id: Optional[int] = None,
     genre: Optional[str] = None,
     language: Optional[str] = None,
-    format: Optional[str] = None,
+    format: Optional[str] = Query(None, description="Screen format filter (comma-separated for multi-select)"),
+    sound: Optional[str] = Query(None, description="Sound system filter (comma-separated for multi-select)"),
+    projection: Optional[str] = Query(None, description="Projection filter (comma-separated for multi-select)"),
     certificate: Optional[str] = None,
     status: Optional[str] = None,  # "now_showing" or "coming_soon"
     search: Optional[str] = None,
@@ -53,6 +57,35 @@ async def list_movies(
                        )\
                        .distinct()
 
+    # Technical specs filters on movies via auditoriums / showtimes
+    if (format or sound or projection) and not (city_id and status == "now_showing"):
+        stmt = stmt.join(Showtime, Showtime.movie_id == Movie.id)\
+                   .join(Auditorium, Auditorium.id == Showtime.auditorium_id)\
+                   .distinct()
+    elif (format or sound or projection) and (city_id and status == "now_showing"):
+        stmt = stmt.join(Auditorium, Auditorium.id == Showtime.auditorium_id)\
+                   .distinct()
+
+    if format and format.lower() != "all":
+        fmts = [f.strip().lower() for f in format.split(",") if f.strip()]
+        if fmts:
+            stmt = stmt.outerjoin(ScreenFormat, ScreenFormat.id == Auditorium.screen_format_id)\
+                       .where(or_(
+                           func.lower(ScreenFormat.name).in_(fmts),
+                           func.lower(Showtime.format).in_(fmts),
+                           func.lower(Auditorium.screen_type).in_(fmts)
+                       ))
+    if sound and sound.lower() != "all":
+        snds = [s.strip().lower() for s in sound.split(",") if s.strip()]
+        if snds:
+            stmt = stmt.outerjoin(SoundSystem, SoundSystem.id == Auditorium.sound_system_id)\
+                       .where(func.lower(SoundSystem.name).in_(snds))
+    if projection and projection.lower() != "all":
+        prjs = [p.strip().lower() for p in projection.split(",") if p.strip()]
+        if prjs:
+            stmt = stmt.outerjoin(ProjectionType, ProjectionType.id == Auditorium.projection_type_id)\
+                       .where(func.lower(ProjectionType.name).in_(prjs))
+
     if status == "now_showing":
         stmt = stmt.where(Movie.is_now_showing == True)
     elif status == "coming_soon":
@@ -70,15 +103,15 @@ async def list_movies(
             )
         )
 
-    # Sorting
+    # Sorting (prioritize real TMDB movies first)
     if sort == "release_date":
-        stmt = stmt.order_by(Movie.release_date.desc(), Movie.rating_avg.desc())
+        stmt = stmt.order_by(Movie.is_tmdb.desc(), Movie.release_date.desc(), Movie.rating_avg.desc())
     elif sort == "title":
-        stmt = stmt.order_by(Movie.title.asc())
+        stmt = stmt.order_by(Movie.is_tmdb.desc(), Movie.title.asc())
     elif sort == "rating":
-        stmt = stmt.order_by(Movie.rating_avg.desc(), Movie.rating_count.desc())
+        stmt = stmt.order_by(Movie.is_tmdb.desc(), Movie.rating_avg.desc(), Movie.rating_count.desc())
     else:  # popularity (default)
-        stmt = stmt.order_by(Movie.rating_count.desc(), Movie.rating_avg.desc(), Movie.release_date.desc())
+        stmt = stmt.order_by(Movie.is_tmdb.desc(), Movie.rating_count.desc(), Movie.rating_avg.desc(), Movie.release_date.desc())
 
     result = await db.execute(stmt)
     movies = result.scalars().all()
@@ -86,12 +119,38 @@ async def list_movies(
     # In-memory filter for JSON array fields (genres, languages, formats)
     filtered = []
     for m in movies:
+        # Rule: do NOT silently use generated art for real titles; hide real titles that have no poster from Now Showing
+        if m.is_tmdb and not (m.poster_url and m.poster_url.strip()):
+            if status == "now_showing" or m.is_now_showing:
+                continue
         if genre and genre.lower() != "all" and genre not in (m.genres or []):
             continue
         if language and language.lower() != "all" and language not in (m.languages or []):
             continue
-        if format and format.lower() != "all" and format not in (m.formats or []):
-            continue
+        if format and format.lower() != "all":
+            fmt_low = format.lower()
+            m_fmts = [f.lower() for f in (m.formats or [])]
+            matched = False
+            if fmt_low == "large screen":
+                matched = any("large" in f or "imax" in f for f in m_fmts)
+            elif fmt_low == "overhead sound":
+                matched = any("overhead" in f or "atmos" in f for f in m_fmts)
+            elif fmt_low == "motion seats":
+                matched = any("motion" in f or "4dx" in f for f in m_fmts)
+            elif fmt_low == "laser projection":
+                matched = any("laser" in f for f in m_fmts)
+            elif fmt_low == "recliner":
+                matched = any("recliner" in f or "gold" in f for f in m_fmts)
+            elif fmt_low == "balcony":
+                matched = any("balcony" in f for f in m_fmts)
+            elif fmt_low == "boutique":
+                matched = any("boutique" in f for f in m_fmts)
+            elif fmt_low == "3d":
+                matched = any("3d" in f for f in m_fmts)
+            else:
+                matched = any(fmt_low in f for f in m_fmts)
+            if not matched:
+                continue
         filtered.append(m)
 
     total_count = len(filtered)
@@ -103,6 +162,112 @@ async def list_movies(
     start = (page - 1) * page_size
     end = start + page_size
     return filtered[start:end]
+
+
+@router.get("/catalog-info")
+async def get_movies_catalog_info():
+    """Returns catalog provider public metadata and demonstration notice."""
+    from app.config import settings
+    from app.services.catalog.tmdb import check_tmdb_key_status
+
+    key_status = await check_tmdb_key_status()
+    banner = key_status.get("banner") if settings.CATALOG_SOURCE.lower() == "tmdb" else None
+
+    return {
+        "catalog_source": settings.CATALOG_SOURCE,
+        "is_demo_mode": True,
+        "attribution_required": settings.CATALOG_SOURCE.lower() == "tmdb",
+        "tmdb_attribution_text": "This product uses the TMDB API but is not endorsed or certified by TMDB.",
+        "sample_notice": "Sample showtimes for demonstration",
+        "tmdb_key_set": key_status.get("is_set", False),
+        "tmdb_key_valid": key_status.get("is_valid", False),
+        "status": key_status.get("status"),
+        "reason": key_status.get("reason"),
+        "last_sync_time": key_status.get("last_sync_time"),
+        "readiness_banner": banner,
+    }
+
+
+@router.get("/featured", response_model=MovieDetailResponse)
+async def get_featured_movie_endpoint(db: AsyncSession = Depends(get_db)):
+    """Returns top featured movie for Movie of the Day."""
+    stmt = (
+        select(Movie)
+        .options(
+            selectinload(Movie.cast_members),
+            selectinload(Movie.reviews).selectinload(Review.user)
+        )
+        .where(Movie.is_now_showing == True)
+        .order_by(Movie.is_tmdb.desc(), Movie.rating_avg.desc(), Movie.rating_count.desc())
+    )
+    result = await db.execute(stmt)
+    movie = result.scalars().first()
+    if not movie:
+        fallback_stmt = (
+            select(Movie)
+            .options(
+                selectinload(Movie.cast_members),
+                selectinload(Movie.reviews).selectinload(Review.user)
+            )
+            .limit(1)
+        )
+        res_fb = await db.execute(fallback_stmt)
+        movie = res_fb.scalars().first()
+    if not movie:
+        raise HTTPException(status_code=404, detail="No movies found")
+
+    review_responses = []
+    for r in movie.reviews:
+        if r.is_approved:
+            review_responses.append(ReviewResponse(
+                id=r.id,
+                movie_id=r.movie_id,
+                user_id=r.user_id,
+                rating=r.rating,
+                headline=r.headline,
+                content=r.content,
+                has_spoilers=r.has_spoilers,
+                created_at=r.created_at,
+                user_name=r.user.full_name if r.user else "Verified Viewer"
+            ))
+
+    return MovieDetailResponse(
+        id=movie.id,
+        title=movie.title,
+        slug=movie.slug,
+        synopsis=movie.synopsis,
+        poster_url=movie.poster_url,
+        banner_url=movie.banner_url,
+        trailer_url=movie.trailer_url,
+        dominant_color=movie.dominant_color,
+        glimpse_url=movie.glimpse_url,
+        glimpse_webm_url=movie.glimpse_webm_url,
+        glimpse_720p_url=movie.glimpse_720p_url,
+        duration_minutes=movie.duration_minutes,
+        certificate=movie.certificate,
+        release_date=movie.release_date,
+        is_now_showing=movie.is_now_showing,
+        is_coming_soon=movie.is_coming_soon,
+        rating_avg=movie.rating_avg,
+        rating_count=movie.rating_count,
+        interested_count=movie.interested_count,
+        languages=movie.languages or [],
+        genres=movie.genres or [],
+        formats=movie.formats or [],
+        tmdb_id=movie.tmdb_id,
+        tmdb_vote_average=movie.tmdb_vote_average,
+        tmdb_vote_count=movie.tmdb_vote_count,
+        is_tmdb=movie.is_tmdb,
+        director=movie.director,
+        cast=movie.cast or [],
+        reviews=review_responses
+    )
+
+
+@router.get("/now-showing", response_model=List[MovieResponse])
+async def get_now_showing_alias(response: Response, db: AsyncSession = Depends(get_db)):
+    """Convenience alias for /movies?status=now_showing."""
+    return await list_movies(response=response, status="now_showing", db=db)
 
 
 @router.get("/{id_or_slug}", response_model=MovieDetailResponse)
@@ -163,6 +328,15 @@ async def get_movie(id_or_slug: str, db: AsyncSession = Depends(get_db)):
         languages=movie.languages or [],
         genres=movie.genres or [],
         formats=movie.formats or [],
+        tmdb_id=movie.tmdb_id,
+        tmdb_vote_average=movie.tmdb_vote_average,
+        tmdb_popularity=movie.tmdb_popularity,
+        is_tmdb=movie.is_tmdb,
+        is_showcase=movie.is_showcase,
+        source=movie.source,
+        youtube_trailer_id=movie.youtube_trailer_id,
+        trailer_embeddable=bool(getattr(movie, "trailer_embeddable", False)),
+        trailer_reason=getattr(movie, "trailer_reason", None),
         cast_members=movie.cast_members or [],
         reviews=review_responses
     )
@@ -173,7 +347,9 @@ async def get_movie_showtimes(
     movie_id: int,
     city_id: Optional[int] = None,
     target_date: Optional[str] = None,  # YYYY-MM-DD
-    format: Optional[str] = None,
+    format: Optional[str] = Query(None, description="Screen format filter (comma-separated for multi-select)"),
+    sound: Optional[str] = Query(None, description="Sound system filter (comma-separated for multi-select)"),
+    projection: Optional[str] = Query(None, description="Projection filter (comma-separated for multi-select)"),
     language: Optional[str] = None,
     user_lat: Optional[float] = Query(None, description="User latitude (rounded to 2 decimal places)"),
     user_lng: Optional[float] = Query(None, description="User longitude (rounded to 2 decimal places)"),
@@ -199,14 +375,19 @@ async def get_movie_showtimes(
             Showtime.start_time >= start_of_day,
             Showtime.start_time <= end_of_day
         )
-        .options(
-            selectinload(Showtime.cinema),
-            selectinload(Showtime.auditorium),
-            selectinload(Showtime.price_rules),
-            selectinload(Showtime.seat_inventory)
-        )
-        .order_by(Showtime.start_time)
     )
+
+    if city_id:
+        stmt = stmt.join(Cinema, Cinema.id == Showtime.cinema_id).where(Cinema.city_id == city_id)
+
+    stmt = stmt.options(
+        selectinload(Showtime.cinema),
+        selectinload(Showtime.auditorium).selectinload(Auditorium.screen_format),
+        selectinload(Showtime.auditorium).selectinload(Auditorium.sound_system),
+        selectinload(Showtime.auditorium).selectinload(Auditorium.projection_type),
+        selectinload(Showtime.price_rules),
+        selectinload(Showtime.seat_inventory)
+    ).order_by(Showtime.start_time)
 
     result = await db.execute(stmt)
     all_showtimes = result.scalars().all()
@@ -215,15 +396,30 @@ async def get_movie_showtimes(
     u_lat = round(user_lat, 2) if user_lat is not None else None
     u_lng = round(user_lng, 2) if user_lng is not None else None
 
-    # Filter by city, format, language
+    # Parse multi-select filter lists
+    filter_fmts = [f.strip().lower() for f in format.split(",") if f.strip()] if format and format.lower() != "all" else []
+    filter_snds = [s.strip().lower() for s in sound.split(",") if s.strip()] if sound and sound.lower() != "all" else []
+    filter_prjs = [p.strip().lower() for p in projection.split(",") if p.strip()] if projection and projection.lower() != "all" else []
+
+    # Filter by city, format, sound, projection, language
     grouped_by_cinema: Dict[int, Dict[str, Any]] = {}
 
     for st in all_showtimes:
         if city_id and st.cinema.city_id != city_id:
             continue
-        if format and format != st.format:
+
+        aud = st.auditorium
+        fmt_name = aud.screen_format_name if aud else (st.format or "2D")
+        snd_name = aud.sound_system_name if aud else "Standard 5.1"
+        prj_name = aud.projection_type_name if aud else "Standard digital"
+
+        if filter_fmts and fmt_name.lower() not in filter_fmts and (st.format or "").lower() not in filter_fmts:
             continue
-        if language and language != st.language:
+        if filter_snds and snd_name.lower() not in filter_snds:
+            continue
+        if filter_prjs and prj_name.lower() not in filter_prjs:
+            continue
+        if language and language.lower() != "all" and language.lower() != (st.language or "").lower():
             continue
 
         cinema = st.cinema
@@ -273,16 +469,28 @@ async def get_movie_showtimes(
         else:
             avail_status = "AVAILABLE"
 
+        tech_specs = aud.tech_specs_display if aud else f"{aud.name if aud else 'Screen 1'} · {fmt_name} · {snd_name} · {prj_name}"
+        requires_glasses = aud.screen_format.requires_glasses if (aud and aud.screen_format) else ("3D" in fmt_name)
+        confirmed_with_cinema = aud.confirmed_with_cinema if aud else False
+        is_demo = aud.is_demo if aud else True
+
         grouped_by_cinema[cinema.id]["showtimes"].append({
             "id": st.id,
             "movie_id": st.movie_id,
             "auditorium_id": st.auditorium_id,
-            "auditorium_name": st.auditorium.name if st.auditorium else "Screen 1",
-            "screen_type": st.auditorium.screen_type if st.auditorium else "IMAX 3D",
-            "has_3d_preview": st.auditorium.has_3d_preview if st.auditorium else True,
+            "auditorium_name": aud.name if aud else "Screen 1",
+            "screen_type": fmt_name,
+            "has_3d_preview": aud.has_3d_preview if aud else True,
             "start_time": st.start_time,
             "end_time": st.end_time,
-            "format": st.format,
+            "format": fmt_name,
+            "screen_format": fmt_name,
+            "sound_system": snd_name,
+            "projection_type": prj_name,
+            "tech_specs_display": tech_specs,
+            "requires_glasses": requires_glasses,
+            "confirmed_with_cinema": confirmed_with_cinema,
+            "is_demo": is_demo,
             "language": st.language,
             "lowest_price": lowest_price,
             "availability_status": avail_status,
@@ -328,4 +536,5 @@ async def post_review(
         created_at=review.created_at,
         user_name=current_user.full_name
     )
+
 

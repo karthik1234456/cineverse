@@ -1,0 +1,45 @@
+{
+  "index": 13,
+  "id": 13,
+  "title": "Kolar Gold Shadows",
+  "slug": "kolar-gold-shadows",
+  "source_type": "hosted",
+  "showtime_id": 12011,
+  "cinema_id": 4,
+  "auditorium_id": 12,
+  "url": "http://localhost:3002/cinemas/4/auditorium/12?showtime=12011&mode=3d&debug=1",
+  "click_timestamp": 1616,
+  "first_picture_timestamp": 1776,
+  "time_to_first_picture_ms": 160,
+  "screenshot_1": {
+    "timestamp": 2289.199999988079,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\kolar-gold-shadows_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4176.899999991059,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\kolar-gold-shadows_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6240.29999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\kolar-gold-shadows_ss3.png"
+  },
+  "frame_diff_pixel_sum": 2.6,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.858492
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 2.6,
+  "movement_delta_12": 2.427,
+  "movement_delta_23": 0.248
+}

@@ -1,9 +1,9 @@
 // app/movies/[id]/page.tsx
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import {
   Star, Play, Compass, MapPin, CheckCircle2, Navigation, ExternalLink, ShieldCheck
 } from 'lucide-react';
@@ -15,15 +15,64 @@ import {
 import { CinemaLocationModal } from '@/components/map/CinemaLocationModal';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useMovieBackdrop } from '@/context/MovieBackdropContext';
+import { MoviePoster } from '@/components/MoviePoster';
+import { TechnicalSpecsFilterBar } from '@/components/filters/TechnicalSpecsFilterBar';
 
-export default function MovieDetailPage() {
+function MovieDetailContent() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const movieIdOrSlug = params.id as string;
+
+  const paramFormat = searchParams.get('format') || '';
+  const paramSound = searchParams.get('sound') || '';
+  const paramProjection = searchParams.get('projection') || '';
+
+  const [selectedFormats, setSelectedFormats] = useState<string[]>(() => {
+    if (paramFormat) return paramFormat.split(',').filter(Boolean);
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cineverse_tech_filters_movie_showtimes');
+        if (stored) return JSON.parse(stored).formats || [];
+      } catch {}
+    }
+    return [];
+  });
+  const [selectedSounds, setSelectedSounds] = useState<string[]>(() => {
+    if (paramSound) return paramSound.split(',').filter(Boolean);
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cineverse_tech_filters_movie_showtimes');
+        if (stored) return JSON.parse(stored).sounds || [];
+      } catch {}
+    }
+    return [];
+  });
+  const [selectedProjections, setSelectedProjections] = useState<string[]>(() => {
+    if (paramProjection) return paramProjection.split(',').filter(Boolean);
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('cineverse_tech_filters_movie_showtimes');
+        if (stored) return JSON.parse(stored).projections || [];
+      } catch {}
+    }
+    return [];
+  });
 
   const [movie, setMovie] = useState<MovieDetail | null>(null);
   const [showtimesGroups, setShowtimesGroups] = useState<CinemaShowtimesGroup[]>([]);
   const [selectedDateIdx, setSelectedDateIdx] = useState<number>(0);
-  const [currentCityId, setCurrentCityId] = useState<number | undefined>(undefined);
+  const [currentCityId, setCurrentCityId] = useState<number | undefined>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('cineverse_city_id');
+      if (stored) return parseInt(stored, 10);
+      const citySlug = localStorage.getItem('cineverse_city');
+      if (citySlug === 'delhi-ncr') return 3;
+      if (citySlug === 'mumbai') return 2;
+      if (citySlug === 'bengaluru') return 1;
+    }
+    return undefined;
+  });
   const [loading, setLoading] = useState(true);
   const [radiusFilter, setRadiusFilter] = useState<number | null>(null);
   const [activeModalCinema, setActiveModalCinema] = useState<CinemaShowtimesGroup | null>(null);
@@ -64,6 +113,33 @@ export default function MovieDetailPage() {
 
   const selectedDate = dates[selectedDateIdx];
 
+  // Sync state back to URL
+  const updateUrlParams = useCallback(
+    (updates: Record<string, string>) => {
+      const current = new URLSearchParams(
+        typeof window !== 'undefined' ? window.location.search : searchParams.toString()
+      );
+      Object.entries(updates).forEach(([key, val]) => {
+        if (!val) {
+          current.delete(key);
+        } else {
+          current.set(key, val);
+        }
+      });
+      const query = current.toString();
+      router.replace(`/movies/${movieIdOrSlug}${query ? `?${query}` : ''}`, { scroll: false });
+    },
+    [router, searchParams, movieIdOrSlug]
+  );
+
+  useEffect(() => {
+    updateUrlParams({
+      format: selectedFormats.join(','),
+      sound: selectedSounds.join(','),
+      projection: selectedProjections.join(','),
+    });
+  }, [selectedFormats, selectedSounds, selectedProjections, updateUrlParams]);
+
   useEffect(() => {
     setLoading(true);
 
@@ -82,30 +158,43 @@ export default function MovieDetailPage() {
           glimpse_webm_url: (m as any).glimpse_webm_url ?? null,
           glimpse_720p_url: (m as any).glimpse_720p_url ?? null,
         });
+        const targetCityId = currentCityId ?? (
+          typeof window !== 'undefined'
+            ? (parseInt(localStorage.getItem('cineverse_city_id') || '0', 10) || undefined)
+            : undefined
+        );
+        const fmtParam = selectedFormats.length > 0 ? selectedFormats.join(',') : undefined;
+        const sndParam = selectedSounds.length > 0 ? selectedSounds.join(',') : undefined;
+        const prjParam = selectedProjections.length > 0 ? selectedProjections.join(',') : undefined;
+
         const groups = await getMovieShowtimes(
           m.id,
-          currentCityId,
+          targetCityId,
           selectedDate.iso,
-          undefined,
+          fmtParam,
           undefined,
           userCoords?.lat,
           userCoords?.lng,
-          radiusFilter || undefined
+          radiusFilter || undefined,
+          sndParam,
+          prjParam
         );
         if (groups && groups.length > 0) {
           setShowtimesGroups(groups);
         } else if (selectedDateIdx === 0 && !radiusFilter) {
-          // Check subsequent days to show the first available showtime
+          // Check subsequent days to show the first available showtime in this city
           for (let i = 1; i < dates.length; i++) {
             const nextGroups = await getMovieShowtimes(
               m.id,
-              currentCityId,
+              targetCityId,
               dates[i].iso,
-              undefined,
+              fmtParam,
               undefined,
               userCoords?.lat,
               userCoords?.lng,
-              radiusFilter || undefined
+              radiusFilter || undefined,
+              sndParam,
+              prjParam
             );
             if (nextGroups && nextGroups.length > 0) {
               setSelectedDateIdx(i);
@@ -120,7 +209,7 @@ export default function MovieDetailPage() {
       })
       .catch((err) => console.warn(err))
       .finally(() => setLoading(false));
-  }, [movieIdOrSlug, selectedDateIdx, currentCityId, userCoords, radiusFilter]);
+  }, [movieIdOrSlug, selectedDateIdx, currentCityId, userCoords, radiusFilter, selectedFormats, selectedSounds, selectedProjections]);
 
   if (loading && !movie) {
     return (
@@ -190,13 +279,14 @@ export default function MovieDetailPage() {
         <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 w-full flex flex-col md:flex-row items-center md:items-end gap-8">
           {/* Poster */}
           <div className="w-52 sm:w-60 shrink-0 aspect-[2/3] rounded-3xl overflow-hidden border-2 border-white/20 shadow-2xl bg-black/40 relative">
-            <img
+            <MoviePoster
               src={movie.poster_url}
               alt={movie.title}
+              title={movie.title}
+              certificate={movie.certificate}
               className="h-full w-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = 'none';
-              }}
+              containerClassName="h-full w-full"
+              priority
             />
             <div className="absolute top-3 left-3 rounded-lg bg-black/70 px-2.5 py-1 text-sm font-bold border border-white/20 backdrop-blur-md">
               {movie.certificate}
@@ -349,6 +439,21 @@ export default function MovieDetailPage() {
               </span>
             </div>
           </div>
+
+          {/* Screen Format, Sound & Projection Multi-Select Chips Bar */}
+          <TechnicalSpecsFilterBar
+            cityId={currentCityId}
+            selectedFormats={selectedFormats}
+            selectedSounds={selectedSounds}
+            selectedProjections={selectedProjections}
+            storageKey="cineverse_tech_filters_movie_showtimes"
+            onChange={({ formats, sounds, projections }) => {
+              setSelectedFormats(formats);
+              setSelectedSounds(sounds);
+              setSelectedProjections(projections);
+            }}
+            className="my-4"
+          />
 
           {/* Showtimes Grouped by Cinema */}
           <div className="space-y-6">
@@ -578,5 +683,13 @@ export default function MovieDetailPage() {
         }
       />
     </div>
+  );
+}
+
+export default function MovieDetailPage() {
+  return (
+    <Suspense fallback={<div className="p-12 text-center text-base text-slate-600">Loading movie details...</div>}>
+      <MovieDetailContent />
+    </Suspense>
   );
 }

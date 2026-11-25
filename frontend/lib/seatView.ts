@@ -153,4 +153,3 @@ export function formatVerticalAngle(deg: number): string {
   if (Math.abs(deg) < 0.5) return '0.0° (Level)';
   return deg > 0 ? `+${abs}° Up` : `-${abs}° Down`;
 }
-

@@ -1,0 +1,45 @@
+{
+  "index": 12,
+  "id": 12,
+  "title": "The Forest Phantom: Whispers of Malnad",
+  "slug": "the-forest-phantom",
+  "source_type": "hosted",
+  "showtime_id": 12010,
+  "cinema_id": 4,
+  "auditorium_id": 11,
+  "url": "http://localhost:3002/cinemas/4/auditorium/11?showtime=12010&mode=3d&debug=1",
+  "click_timestamp": 1752.2999999970198,
+  "first_picture_timestamp": 1928.1000000089407,
+  "time_to_first_picture_ms": 175.8,
+  "screenshot_1": {
+    "timestamp": 2461.9000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\the-forest-phantom_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4207,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\the-forest-phantom_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 5876.79999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\the-forest-phantom_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.84,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.930217
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.839,
+  "movement_delta_12": 1.831,
+  "movement_delta_23": 0.012
+}

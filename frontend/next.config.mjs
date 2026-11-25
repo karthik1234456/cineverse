@@ -1,5 +1,54 @@
+import { execSync } from 'child_process';
+
+let commitHash = 'dev';
+try {
+  commitHash = execSync('git rev-parse --short HEAD').toString().trim();
+} catch (e) {
+  commitHash = process.env.NEXT_PUBLIC_GIT_COMMIT_SHA || 'unknown';
+}
+const buildTime = new Date().toISOString();
+
+// Single source of truth for backend URL across the entire frontend
+const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+
+// Ensure dev server never silently picks another port
+if (process.argv.includes('dev')) {
+  try {
+    execSync('node ./scripts/ensure-port.cjs 3000', { stdio: 'inherit' });
+  } catch (e) {
+    process.exit(1);
+  }
+}
+
+// Parse allowed frontend origins from environment (unified with backend CORS)
+const rawAllowed = process.env.ALLOWED_ORIGINS || process.env.CORS_ORIGINS || 'http://localhost:3000,http://127.0.0.1:3000,http://localhost:3001,http://127.0.0.1:3001';
+let allowedOriginsList = ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'http://127.0.0.1:3001'];
+try {
+  allowedOriginsList = rawAllowed.startsWith('[')
+    ? JSON.parse(rawAllowed)
+    : rawAllowed.split(',').map(s => s.trim()).filter(Boolean);
+} catch {
+  // fallback to default list
+}
+const allowedOriginsStr = allowedOriginsList.join(' ');
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: {
+    NEXT_PUBLIC_GIT_COMMIT_SHA: commitHash,
+    NEXT_PUBLIC_BUILD_TIME: buildTime,
+    NEXT_PUBLIC_BACKEND_URL: backendUrl,
+    NEXT_PUBLIC_ALLOWED_ORIGINS: allowedOriginsList.join(','),
+  },
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'image.tmdb.org',
+        pathname: '/**',
+      },
+    ],
+  },
   async headers() {
     return [
       {
@@ -37,13 +86,13 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com",
-              "connect-src 'self' http://localhost:8000 http://127.0.0.1:8000 ws://localhost:8000 ws://127.0.0.1:8000 http://localhost:8002 http://127.0.0.1:8002 ws://localhost:8002 ws://127.0.0.1:8002 https://api.razorpay.com https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com blob: data:",
-              "img-src 'self' data: blob: https://* https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com",
+              "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://checkout.razorpay.com https://www.youtube.com https://s.ytimg.com",
+              `connect-src 'self' ${allowedOriginsStr} http://localhost:8000 http://127.0.0.1:8000 ws://localhost:8000 ws://127.0.0.1:8000 http://localhost:8002 http://127.0.0.1:8002 ws://localhost:8002 ws://127.0.0.1:8002 https://api.razorpay.com https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://www.youtube.com https://*.youtube.com https://*.youtube-nocookie.com https://*.googlevideo.com https://i.ytimg.com https://*.ytimg.com blob: data:`,
+              "img-src 'self' data: blob: https://image.tmdb.org https://* https://*.tile.openstreetmap.org https://*.basemaps.cartocdn.com https://i.ytimg.com https://*.ytimg.com",
               "style-src 'self' 'unsafe-inline' https://unpkg.com",
               "font-src 'self' data:",
-              "frame-src 'self' https://api.razorpay.com https://www.youtube.com https://www.youtube-nocookie.com",
-              "media-src 'self' blob: data: https://commondatastorage.googleapis.com https://*.storage.googleapis.com",
+              "frame-src 'self' https://api.razorpay.com https://www.youtube.com https://*.youtube.com https://www.youtube-nocookie.com https://*.youtube-nocookie.com",
+              "media-src 'self' blob: data: https://commondatastorage.googleapis.com https://*.storage.googleapis.com https://*.googlevideo.com https://www.youtube.com https://youtube.com",
               "worker-src 'self' blob:",
             ].join('; '),
           },
@@ -52,7 +101,7 @@ const nextConfig = {
     ];
   },
   async rewrites() {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8002';
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
     return [
       {
         source: '/api/v1/:path*',

@@ -1,0 +1,45 @@
+{
+  "index": 4,
+  "id": 4,
+  "title": "Vajra: The Thunderborn",
+  "slug": "vajra-thunderborn",
+  "source_type": "hosted",
+  "showtime_id": 12002,
+  "cinema_id": 1,
+  "auditorium_id": 3,
+  "url": "http://localhost:3002/cinemas/1/auditorium/3?showtime=12002&mode=3d&debug=1",
+  "click_timestamp": 2222.2000000029802,
+  "first_picture_timestamp": 2469.2000000029802,
+  "time_to_first_picture_ms": 247,
+  "screenshot_1": {
+    "timestamp": 2992.800000011921,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\vajra-thunderborn_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4921.800000011921,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\vajra-thunderborn_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6751.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\vajra-thunderborn_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.47,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 4.307326
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.47,
+  "movement_delta_12": 1.43,
+  "movement_delta_23": 0.136
+}

@@ -5,6 +5,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Star, Heart } from 'lucide-react';
 import type { Movie } from '@/services/api';
+import { MoviePoster } from '@/components/MoviePoster';
 
 interface MovieCardProps {
   movie: Movie;
@@ -21,13 +22,13 @@ export function MovieCard({ movie }: MovieCardProps) {
     >
       {/* Poster image container */}
       <div className="relative aspect-[2/3] w-full overflow-hidden bg-[#FDEBD8]">
-        <img
+        <MoviePoster
           src={movie.poster_url}
           alt={movie.title}
+          title={movie.title}
+          certificate={movie.certificate}
           className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-          onError={(e) => {
-            (e.target as HTMLElement).style.display = 'none';
-          }}
+          containerClassName="h-full w-full"
         />
 
         {/* Certificate Badge (>= 14px text) */}

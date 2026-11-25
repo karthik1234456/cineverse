@@ -26,7 +26,7 @@ export function VoiceAgentFloatingButton() {
         <button
           onClick={() => setIsOpen(true)}
           data-testid="voice-agent-floating-trigger"
-          aria-label="Open CineVerse Voice Assistant (Shortcut: Alt+V)"
+          title="Ask CineVerse (Alt+V)"
           className="group relative overflow-hidden flex items-center gap-2.5 rounded-full bg-gradient-to-r from-[#e50914] to-red-700 px-4 py-3 text-white shadow-2xl shadow-red-950/60 transition-all duration-300 hover:scale-105 hover:shadow-red-600/40 active:scale-95 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-[#0b0c10]"
         >
           {/* Animated pulse ring — contained within button overflow */}

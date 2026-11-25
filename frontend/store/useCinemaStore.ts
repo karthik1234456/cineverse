@@ -52,15 +52,39 @@ export interface WalkSettings {
   headBob: boolean;
 }
 
+export type TrailerPlaybackStatus = 'ready' | 'loading' | 'playing' | 'paused' | 'blocked' | 'unavailable' | 'error';
+export type ScreenStrategy = 'video_texture' | 'youtube_css3d' | 'backdrop_motion' | 'title_card' | 'solid_color' | 'test_card';
+
 export interface TrailerState {
   isPlaying: boolean;
   isMuted: boolean;
   volume: number;
   trailerUrl: string;
+  trailerEmbeddable?: boolean;
+  youtubeTrailerId?: string | null;
+  trailerReason?: string | null;
   posterUrl?: string;
+  bannerUrl?: string;
   movieTitle?: string;
   hasSpill: boolean;
+  playbackStatus?: TrailerPlaybackStatus;
+  activeStrategy?: ScreenStrategy;
+  youtubeErrorCode?: number | null;
+  currentTime?: number;
+  duration?: number;
+  isTheatreMode?: boolean;
 }
+
+function getInitialTrailerDisplayPreference(): 'theatre_mode' | 'screen_3d' {
+  if (typeof window === 'undefined') return 'theatre_mode';
+  try {
+    const saved = localStorage.getItem('cineverse_trailer_display');
+    if (saved === 'theatre_mode' || saved === 'screen_3d') return saved;
+  } catch (e) {}
+  return 'theatre_mode';
+}
+
+const initialTrailerDisplay = getInitialTrailerDisplayPreference();
 
 export interface CinemaState {
   // Seat state
@@ -90,9 +114,15 @@ export interface CinemaState {
 
   // Cinema Screen Trailer (§5c)
   trailer: TrailerState;
+  theatreModeOpen: boolean;
+  setTheatreModeOpen: (open: boolean) => void;
 
   // Environment & Realism
   houseLights: HouseLightsMode;
+  lightLevel: 'dim' | 'normal' | 'bright';
+  setLightLevel: (level: 'dim' | 'normal' | 'bright') => void;
+  lightIntensity: 'normal' | 'brighter';
+  setLightIntensity: (intensity: 'normal' | 'brighter') => void;
   qualityTier: QualityTier;
   qualityMode: QualityMode;
   useHqModel: boolean;
@@ -107,8 +137,52 @@ export interface CinemaState {
   toggleHeatmap: () => void;
   setHeatmapActive: (active: boolean) => void;
 
+  // Availability View (§ Part C)
+  isAvailabilityView: boolean;
+  toggleAvailabilityView: () => void;
+  setAvailabilityView: (active: boolean) => void;
+
+  // Audience Simulation (§ 4)
+  showPeople: boolean;
+  setShowPeople: (show: boolean) => void;
+  toggleShowPeople: () => void;
+
+  // Seat Markers & Projector Beam Settings (§ Parts C & E)
+  showSeatMarkers: boolean;
+  setShowSeatMarkers: (show: boolean) => void;
+  toggleSeatMarkers: () => void;
+  beamSetting: 'off' | 'subtle' | 'normal';
+  setBeamSetting: (setting: 'off' | 'subtle' | 'normal') => void;
+
+  // 4DX Experience Simulation (§ 8)
+  experience4dxActive: boolean;
+  setExperience4dxActive: (active: boolean) => void;
+  experience4dxIntensity: 'off' | 'light' | 'medium' | 'full';
+  setExperience4dxIntensity: (intensity: 'off' | 'light' | 'medium' | 'full') => void;
+
+  // Guided Tour & Presets (§ 9)
+  tourActive: boolean;
+  setTourActive: (active: boolean) => void;
+  tourStepIndex: number;
+  setTourStepIndex: (index: number) => void;
+
+  // Multilingual Support (§ 9)
+  selectedLanguage: 'en' | 'hi' | 'kn' | 'ta' | 'te';
+  setSelectedLanguage: (lang: 'en' | 'hi' | 'kn' | 'ta' | 'te') => void;
+
+  // Settings Modal (§ 9)
+  settingsModalOpen: boolean;
+  setSettingsModalOpen: (open: boolean) => void;
+
+  // Phase 10 Group Booking
+  activeGroup: any | null;
+  groupMemberMap: Record<string, { userId: number; userName: string; initials: string; color: string; proposedSeats: string[]; assignedSeats: string[]; role: string }>;
+  setActiveGroup: (group: any | null) => void;
+  updateGroupMemberSeats: (userId: number, seats: string[]) => void;
+
   // Feedback & Toast
   toastMessage: string | null;
+  toastAction: { label: string; onClick: () => void } | null;
   lastBoundaryNoticeTime: number;
   triggerBoundaryNotice: () => void;
 
@@ -123,12 +197,35 @@ export interface CinemaState {
 
   // Dynamic Auditorium Layout & Procedural 3D
   auditoriumId: string;
+  auditoriumName?: string;
+  screenType?: string;
+  screenFormat?: string;
+  soundSystem?: string;
+  projectionType?: string;
+  techSpecsDisplay?: string;
+  requiresGlasses?: boolean;
+  confirmedWithCinema?: boolean;
+  isDemo?: boolean;
   auditoriumLayout: SeatLayoutFile;
   auditoriumWalkNav: WalkNavFile;
   cameraBounds: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number };
   targetBounds: { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number };
   proceduralResult: ProceduralAuditoriumResult | null;
-  setAuditoriumData: (auditoriumId: string, result: ProceduralAuditoriumResult | null) => void;
+  setAuditoriumData: (
+    auditoriumId: string,
+    result: ProceduralAuditoriumResult | null,
+    meta?: {
+      name?: string;
+      screenType?: string;
+      screenFormat?: string;
+      soundSystem?: string;
+      projectionType?: string;
+      techSpecsDisplay?: string;
+      requiresGlasses?: boolean;
+      confirmedWithCinema?: boolean;
+      isDemo?: boolean;
+    }
+  ) => void;
 
   // Actions
   setSeatStatuses: (statuses: Record<string, SeatStatus>) => void;
@@ -154,13 +251,17 @@ export interface CinemaState {
   standUp: () => void;
   walkToSeat: (seatId: string) => void;
   teleportToRow: (row: string) => void;
+  teleportWalkPlayer: (pos: [number, number, number]) => void;
   updateWalkPose: (pos: [number, number, number], eyeHeight: number, yaw: number, pitch: number) => void;
   setWalkSettings: (settings: Partial<WalkSettings>) => void;
 
   // Trailer controls (§5c)
   setTrailerState: (state: Partial<TrailerState>) => void;
+  setTrailerPlaybackStatus: (status: TrailerPlaybackStatus) => void;
+  setTrailerStrategy: (strategy: ScreenStrategy) => void;
   toggleTrailerPlay: () => void;
   toggleTrailerMute: () => void;
+  restartTrailer: () => void;
 
   enterPOV: (seatId: string) => void;
   exitPOV: () => void;
@@ -169,6 +270,10 @@ export interface CinemaState {
   setHouseLights: (mode: HouseLightsMode) => void;
   theatreLook: 'a' | 'b' | 'c';
   setTheatreLook: (look: 'a' | 'b' | 'c') => void;
+  screenFitMode: 'fit' | 'fill';
+  setScreenFitMode: (mode: 'fit' | 'fill') => void;
+  trailerDisplayPreference: 'screen_3d' | 'theatre_mode';
+  setTrailerDisplayPreference: (pref: 'screen_3d' | 'theatre_mode') => void;
   setQualityTier: (tier: QualityTier) => void;
   setQualityMode: (mode: QualityMode) => void;
   setContinuousRendering: (continuous: boolean) => void;
@@ -178,7 +283,7 @@ export interface CinemaState {
   addToCompare: (seatId: string) => void;
   removeFromCompare: (seatId: string) => void;
 
-  showToast: (message: string) => void;
+  showToast: (message: string, action?: { label: string; onClick: () => void } | null) => void;
   clearToast: () => void;
   setRendererInfo: (info: Partial<CinemaState['rendererInfo']>) => void;
 
@@ -200,6 +305,34 @@ function getInitialQualityMode(): QualityMode {
 }
 
 const initialQuality = getInitialQualityMode();
+
+function getInitialLightLevel(): 'dim' | 'normal' | 'bright' {
+  if (typeof window !== 'undefined') {
+    const params = new URLSearchParams(window.location.search);
+    const paramLevel = params.get('lightLevel')?.toLowerCase();
+    if (paramLevel === 'dim' || paramLevel === 'normal' || paramLevel === 'bright') {
+      return paramLevel as 'dim' | 'normal' | 'bright';
+    }
+    const fromStorage = localStorage.getItem('cineverse_light_level');
+    if (fromStorage === 'dim' || fromStorage === 'normal' || fromStorage === 'bright') {
+      return fromStorage as 'dim' | 'normal' | 'bright';
+    }
+  }
+  return 'normal';
+}
+
+function getInitialLightIntensity(): 'normal' | 'brighter' {
+  if (typeof window !== 'undefined') {
+    const fromStorage = localStorage.getItem('cineverse_light_intensity');
+    if (fromStorage === 'normal' || fromStorage === 'brighter') {
+      return fromStorage;
+    }
+  }
+  return 'normal';
+}
+
+const initialLightLevel = getInitialLightLevel();
+const initialLightIntensity = initialLightLevel === 'bright' ? 'brighter' : getInitialLightIntensity();
 
 export const useCinemaStore = create<CinemaState>((set, get) => ({
   seatStatuses: {},
@@ -244,11 +377,57 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     volume: 0.75,
     trailerUrl: '',
     hasSpill: true,
+    playbackStatus: 'ready',
+    activeStrategy: 'title_card',
+    isTheatreMode: false,
   },
+  theatreModeOpen: false,
+  setTheatreModeOpen: (open) =>
+    set((s) => ({
+      theatreModeOpen: open,
+      trailer: {
+        ...s.trailer,
+        isTheatreMode: open,
+        isPlaying: open ? s.trailer.isPlaying : false,
+        playbackStatus: open ? s.trailer.playbackStatus : 'ready',
+      },
+      houseLights: open ? 'dim' : 'full',
+    })),
 
   houseLights: 'full',
+  lightLevel: initialLightLevel,
+  setLightLevel: (level) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('cineverse_light_level', level);
+      } catch (e) {}
+    }
+    const mappedIntensity = level === 'bright' ? 'brighter' : 'normal';
+    set({ lightLevel: level, lightIntensity: mappedIntensity });
+  },
+  lightIntensity: initialLightIntensity,
+  setLightIntensity: (intensity) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('cineverse_light_intensity', intensity);
+      } catch (e) {}
+    }
+    const mappedLevel = intensity === 'brighter' ? 'bright' : 'normal';
+    set({ lightIntensity: intensity, lightLevel: mappedLevel });
+  },
   theatreLook: (typeof window !== 'undefined' ? (new URLSearchParams(window.location.search).get('look') as 'a' | 'b' | 'c') || 'a' : 'a'),
   setTheatreLook: (look) => set({ theatreLook: look }),
+  screenFitMode: 'fit',
+  setScreenFitMode: (mode) => set({ screenFitMode: mode }),
+  trailerDisplayPreference: initialTrailerDisplay,
+  setTrailerDisplayPreference: (pref) => {
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('cineverse_trailer_display', pref);
+      } catch (e) {}
+    }
+    set({ trailerDisplayPreference: pref });
+  },
   qualityTier: initialQuality === 'smooth' ? 'low' : 'high',
   qualityMode: initialQuality,
   useHqModel: false,
@@ -261,14 +440,88 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   toggleHeatmap: () => set((state) => ({ isHeatmapActive: !state.isHeatmapActive })),
   setHeatmapActive: (active) => set({ isHeatmapActive: active }),
 
+  isAvailabilityView: false,
+  toggleAvailabilityView: () => set((state) => ({ isAvailabilityView: !state.isAvailabilityView })),
+  setAvailabilityView: (active) => set({ isAvailabilityView: active }),
+
+  activeGroup: null,
+  groupMemberMap: {},
+  setActiveGroup: (group) => {
+    if (!group) {
+      set({ activeGroup: null, groupMemberMap: {} });
+      return;
+    }
+    const memberMap: Record<string, any> = {};
+    for (const m of group.members || []) {
+      memberMap[m.user_id] = {
+        userId: m.user_id,
+        userName: m.user_name,
+        initials: m.initials,
+        color: m.color,
+        proposedSeats: m.proposed_seats || [],
+        assignedSeats: m.assigned_seats || [],
+        role: m.role,
+      };
+    }
+    set({ activeGroup: group, groupMemberMap: memberMap });
+  },
+  updateGroupMemberSeats: (userId, seats) => {
+    set((state) => {
+      const current = state.groupMemberMap[userId];
+      if (!current) return state;
+      return {
+        groupMemberMap: {
+          ...state.groupMemberMap,
+          [userId]: {
+            ...current,
+            proposedSeats: seats,
+          },
+        },
+      };
+    });
+  },
+
   toastMessage: null,
+  toastAction: null,
   lastBoundaryNoticeTime: 0,
   triggerBoundaryNotice: () => {
     const now = Date.now();
-    if (now - get().lastBoundaryNoticeTime > 1400) {
+    if (now - get().lastBoundaryNoticeTime > 1500) {
       set({ lastBoundaryNoticeTime: now });
     }
   },
+
+  // Audience Simulation (§ 4)
+  showPeople: true,
+  setShowPeople: (show) => set({ showPeople: show }),
+  toggleShowPeople: () => set((state) => ({ showPeople: !state.showPeople })),
+
+  // Seat Markers & Projector Beam Settings (§ Parts C & E)
+  showSeatMarkers: true,
+  setShowSeatMarkers: (show) => set({ showSeatMarkers: show }),
+  toggleSeatMarkers: () => set((state) => ({ showSeatMarkers: !state.showSeatMarkers })),
+  beamSetting: 'subtle',
+  setBeamSetting: (setting) => set({ beamSetting: setting }),
+
+  // 4DX Experience Simulation (§ 8)
+  experience4dxActive: false,
+  setExperience4dxActive: (active) => set({ experience4dxActive: active }),
+  experience4dxIntensity: 'medium',
+  setExperience4dxIntensity: (intensity) => set({ experience4dxIntensity: intensity }),
+
+  // Guided Tour & Presets (§ 9)
+  tourActive: false,
+  setTourActive: (active) => set({ tourActive: active }),
+  tourStepIndex: 0,
+  setTourStepIndex: (index) => set({ tourStepIndex: index }),
+
+  // Multilingual Support (§ 9)
+  selectedLanguage: 'en',
+  setSelectedLanguage: (lang) => set({ selectedLanguage: lang }),
+
+  // Settings Modal (§ 9)
+  settingsModalOpen: false,
+  setSettingsModalOpen: (open) => set({ settingsModalOpen: open }),
 
   rendererInfo: {
     triangles: 0,
@@ -280,16 +533,34 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
   // Dynamic Auditorium Layout
   auditoriumId: '1',
+  auditoriumName: 'Auditorium 1',
+  screenType: 'Standard Flat',
+  screenFormat: '2D',
+  soundSystem: 'Standard 5.1',
+  projectionType: 'Standard digital',
+  techSpecsDisplay: 'Auditorium 1 · 2D · Standard 5.1 · Standard digital',
+  requiresGlasses: false,
+  confirmedWithCinema: false,
+  isDemo: true,
   auditoriumLayout: layoutData as unknown as SeatLayoutFile,
   auditoriumWalkNav: walkNavData as unknown as WalkNavFile,
   cameraBounds: DEFAULT_AUDITORIUM_BOUNDS,
   targetBounds: DEFAULT_TARGET_BOUNDS,
   proceduralResult: null,
 
-  setAuditoriumData: (auditoriumId, result) => {
+  setAuditoriumData: (auditoriumId, result, meta) => {
     if (!result) {
       set({
         auditoriumId,
+        auditoriumName: meta?.name || `Auditorium ${auditoriumId}`,
+        screenType: meta?.screenType || meta?.screenFormat || 'Standard Flat',
+        screenFormat: meta?.screenFormat || meta?.screenType || '2D',
+        soundSystem: meta?.soundSystem || 'Standard 5.1',
+        projectionType: meta?.projectionType || 'Standard digital',
+        techSpecsDisplay: meta?.techSpecsDisplay || `${meta?.name || `Auditorium ${auditoriumId}`} · ${meta?.screenFormat || '2D'} · ${meta?.soundSystem || 'Standard 5.1'} · ${meta?.projectionType || 'Standard digital'}`,
+        requiresGlasses: meta?.requiresGlasses ?? false,
+        confirmedWithCinema: meta?.confirmedWithCinema ?? false,
+        isDemo: meta?.isDemo ?? true,
         proceduralResult: null,
         auditoriumLayout: layoutData as unknown as SeatLayoutFile,
         auditoriumWalkNav: walkNavData as unknown as WalkNavFile,
@@ -301,6 +572,15 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
     set({
       auditoriumId,
+      auditoriumName: meta?.name || result.seatLayout.theatre_type_label || `Auditorium ${auditoriumId}`,
+      screenType: meta?.screenType || meta?.screenFormat || (result.seatLayout.screen as any)?.name || 'Standard Flat',
+      screenFormat: meta?.screenFormat || meta?.screenType || '2D',
+      soundSystem: meta?.soundSystem || 'Standard 5.1',
+      projectionType: meta?.projectionType || 'Standard digital',
+      techSpecsDisplay: meta?.techSpecsDisplay || `${meta?.name || `Auditorium ${auditoriumId}`} · ${meta?.screenFormat || '2D'} · ${meta?.soundSystem || 'Standard 5.1'} · ${meta?.projectionType || 'Standard digital'}`,
+      requiresGlasses: meta?.requiresGlasses ?? false,
+      confirmedWithCinema: meta?.confirmedWithCinema ?? false,
+      isDemo: meta?.isDemo ?? true,
       proceduralResult: result,
       auditoriumLayout: result.seatLayout,
       auditoriumWalkNav: result.walkNav,
@@ -328,7 +608,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     })),
 
   selectSeat: (seatId) => {
-    const { seatStatuses, selectedSeats, showToast } = get();
+    const { seatStatuses, selectedSeats, showToast, auditoriumLayout } = get();
     const status = seatStatuses[seatId] || 'available';
 
     if (status === 'booked') {
@@ -345,6 +625,28 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
       return false;
     }
 
+    // Check recliner pair
+    const seatRec = auditoriumLayout?.seats?.find((s) => s.seat_id === seatId);
+    const partnerId = seatRec?.pair_partner_id;
+
+    if (partnerId && !selectedSeats.includes(partnerId)) {
+      const partnerStatus = seatStatuses[partnerId] || 'available';
+      if (partnerStatus === 'booked' || partnerStatus === 'held') {
+        showToast(`Recliner ${seatId} requires partner ${partnerId}, which is currently ${partnerStatus}.`);
+        return false;
+      }
+      if (selectedSeats.length + 2 > MAX_SELECTED_SEATS) {
+        showToast(`Selecting this recliner pair exceeds the maximum ${MAX_SELECTED_SEATS} seats allowed.`);
+        return false;
+      }
+      set({
+        selectedSeats: [...selectedSeats, seatId, partnerId],
+        activeSeatId: seatId,
+      });
+      showToast(`Recliners come in pairs, so ${partnerId} was added too`);
+      return true;
+    }
+
     if (selectedSeats.length >= MAX_SELECTED_SEATS) {
       showToast(`Maximum ${MAX_SELECTED_SEATS} seats allowed per booking.`);
       return false;
@@ -358,7 +660,18 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
   },
 
   deselectSeat: (seatId) => {
-    const { selectedSeats } = get();
+    const { selectedSeats, auditoriumLayout, showToast } = get();
+    const seatRec = auditoriumLayout?.seats?.find((s) => s.seat_id === seatId);
+    const partnerId = seatRec?.pair_partner_id;
+
+    if (partnerId && selectedSeats.includes(partnerId)) {
+      set({
+        selectedSeats: selectedSeats.filter((id) => id !== seatId && id !== partnerId),
+      });
+      showToast(`Deselected recliner pair ${seatId} and ${partnerId}`);
+      return;
+    }
+
     set({
       selectedSeats: selectedSeats.filter((id) => id !== seatId),
     });
@@ -390,9 +703,21 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
         cameraMode: 'orbit',
       });
     } else if (mode === 'walk') {
+      const camPos = get().cameraPosition;
+      const bounds = get().cameraBounds || DEFAULT_AUDITORIUM_BOUNDS;
+      const targetX = 0.0; // center main aisle
+      let targetZ = camPos ? camPos[2] : -12.0;
+      targetZ = Math.max(bounds.minZ + 1.5, Math.min(bounds.maxZ - 1.5, targetZ));
+
       set({
         mode: 'walk',
         cameraMode: 'walk',
+        walkPlayer: {
+          ...get().walkPlayer,
+          position: [targetX, 0.0, targetZ],
+          yaw: 0.0, // facing screen
+          pitch: 0.0,
+        },
       });
     } else if (mode === 'seated') {
       const active = get().activeSeatId || 'E05';
@@ -420,6 +745,7 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
         position = DEFAULT_CAMERA_POS;
         break;
       case 'front':
+      case 'screen':
         position = [0.0, 4.0, -11.0];
         break;
       case 'back':
@@ -427,6 +753,15 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
         break;
       case 'aerial':
         position = [0.0, 10.2, -15.0];
+        break;
+      case 'balcony':
+        position = [0.0, 9.8, -26.0];
+        break;
+      case 'top':
+        position = [0.0, 15.0, -15.0];
+        break;
+      case 'picker':
+        position = [0.0, 12.0, -21.0];
         break;
     }
 
@@ -516,6 +851,19 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     });
   },
 
+  teleportWalkPlayer: (pos) => {
+    set({
+      mode: 'walk',
+      cameraMode: 'walk',
+      walkPlayer: {
+        ...get().walkPlayer,
+        position: pos,
+        yaw: 0.0,
+        pitch: 0.0,
+      },
+    });
+  },
+
   updateWalkPose: (pos, eyeHeight, yaw, pitch) =>
     set((state) => ({
       walkPlayer: {
@@ -543,15 +891,68 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
       },
     })),
 
-  toggleTrailerPlay: () =>
+  setTrailerPlaybackStatus: (status) =>
     set((s) => ({
-      trailer: { ...s.trailer, isPlaying: !s.trailer.isPlaying },
+      trailer: { ...s.trailer, playbackStatus: status },
     })),
+
+  setTrailerStrategy: (strategy) =>
+    set((s) => ({
+      trailer: { ...s.trailer, activeStrategy: strategy },
+    })),
+
+  toggleTrailerPlay: () => {
+    const s = get();
+    // Invariant: Never open or play trailer without playable source
+    const hasPlayableSource = Boolean(s.trailer.trailerUrl) && s.trailer.trailerEmbeddable !== false;
+    if (!hasPlayableSource) {
+      return;
+    }
+    const isHosted = Boolean(
+      s.trailer.trailerUrl &&
+      (s.trailer.trailerUrl.endsWith('.mp4') ||
+        s.trailer.trailerUrl.endsWith('.webm') ||
+        s.trailer.trailerUrl.startsWith('/trailers/') ||
+        s.trailer.trailerUrl.includes('googleapis.com'))
+    );
+    if (!s.trailer.isPlaying && !isHosted && s.trailerDisplayPreference === 'theatre_mode') {
+      set({
+        theatreModeOpen: true,
+        trailer: { ...s.trailer, isPlaying: true, playbackStatus: 'playing', isTheatreMode: true },
+        houseLights: 'dim',
+      });
+      return;
+    }
+    set({
+      trailer: { ...s.trailer, isPlaying: !s.trailer.isPlaying },
+    });
+  },
 
   toggleTrailerMute: () =>
     set((s) => ({
       trailer: { ...s.trailer, isMuted: !s.trailer.isMuted },
     })),
+
+  restartTrailer: () => {
+    if (typeof window !== 'undefined') {
+      const vid = (window as any).__cineverse_video as HTMLVideoElement | undefined;
+      if (vid) {
+        vid.currentTime = 0;
+        vid.play().catch(() => {});
+      }
+      const yt = (window as any).__cineverse_yt_player;
+      if (yt && typeof yt.seekTo === 'function') {
+        try {
+          yt.seekTo(0, true);
+          yt.playVideo();
+        } catch {}
+      }
+    }
+    set((s) => ({
+      trailer: { ...s.trailer, isPlaying: true, playbackStatus: 'playing' },
+      houseLights: 'show',
+    }));
+  },
 
   enterPOV: (seatId) => {
     const currentMode = get().cameraMode;
@@ -677,17 +1078,17 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     }));
   },
 
-  showToast: (message) => {
+  showToast: (message, action = null) => {
     if (toastTimer) clearTimeout(toastTimer);
-    set({ toastMessage: message });
+    set({ toastMessage: message, toastAction: action });
     toastTimer = setTimeout(() => {
-      set({ toastMessage: null });
-    }, 3200);
+      set({ toastMessage: null, toastAction: null });
+    }, action ? 5000 : 3200);
   },
 
   clearToast: () => {
     if (toastTimer) clearTimeout(toastTimer);
-    set({ toastMessage: null });
+    set({ toastMessage: null, toastAction: null });
   },
 
   setRendererInfo: (info) =>
@@ -703,9 +1104,11 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
     return {
       mode: state.mode,
       theatreLook: state.theatreLook,
+      screenFitMode: state.screenFitMode,
       cameraMode: state.cameraMode,
       cameraPreset: state.cameraPreset,
       isHeatmapActive: state.isHeatmapActive,
+      isAvailabilityView: state.isAvailabilityView,
       cameraPosition: state.cameraPosition,
       cameraTarget: state.cameraTarget,
       fov: state.fov,
@@ -729,4 +1132,6 @@ export const useCinemaStore = create<CinemaState>((set, get) => ({
 
 if (typeof window !== 'undefined') {
   (window as any).useCinemaStore = useCinemaStore;
+  (window as any).__cineverse_store = useCinemaStore;
+  (window as any).__cinemaStore = useCinemaStore;
 }

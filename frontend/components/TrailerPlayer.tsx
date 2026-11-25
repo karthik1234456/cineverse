@@ -18,9 +18,29 @@ import {
 } from 'lucide-react';
 import { useTrailerStore } from '@/store/useTrailerStore';
 import { useMovieBackdrop } from '@/context/MovieBackdropContext';
+import { useComfortStore } from '@/store/useComfortStore';
+
+function getYoutubeEmbedUrl(url: string): string {
+  if (!url) return '';
+  const trimmed = url.trim();
+  if (/^[\w-]{11}$/.test(trimmed)) {
+    return `https://www.youtube-nocookie.com/embed/${trimmed}?autoplay=1&modestbranding=1&rel=0`;
+  }
+  let videoId = '';
+  const match = trimmed.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  if (match) {
+    videoId = match[1];
+  } else if (trimmed.includes('embed/')) {
+    videoId = trimmed.split('embed/')[1]?.split('?')[0] || '';
+  }
+  return videoId
+    ? `https://www.youtube-nocookie.com/embed/${videoId}?autoplay=1&modestbranding=1&rel=0`
+    : trimmed;
+}
 
 export function TrailerPlayer() {
   const activeTrailer = useTrailerStore((s) => s.activeTrailer);
+  const captionsAlwaysOn = useComfortStore((s) => s.captionsAlwaysOn);
   const closeTrailer = useTrailerStore((s) => s.closeTrailer);
   const dockTrailer = useTrailerStore((s) => s.dockTrailer);
   const setPlaying = useTrailerStore((s) => s.setPlaying);
@@ -235,19 +255,21 @@ export function TrailerPlayer() {
                 />
 
                 {/* Subtitle / WebVTT overlay simulation if enabled */}
-                {activeTrailer.captionsEnabled && (
+                {(activeTrailer.captionsEnabled || captionsAlwaysOn) && (
                   <div className="pointer-events-none absolute bottom-16 left-1/2 -translate-x-1/2 rounded-lg bg-black/80 px-4 py-1.5 text-center text-sm font-medium text-white shadow backdrop-blur-sm">
                     [Soundtrack playing · Audio Dialogue]
                   </div>
                 )}
               </>
-            ) : activeTrailer.trailerUrl?.includes('youtube') ? (
+            ) : (activeTrailer.trailerUrl && (activeTrailer.trailerUrl.includes('youtube') || activeTrailer.trailerUrl.includes('youtu.be') || /^[\w-]{11}$/.test(activeTrailer.trailerUrl.trim()))) ? (
               <iframe
-                src={activeTrailer.trailerUrl.replace('watch?v=', 'embed/')}
-                title={`${activeTrailer.title} Trailer`}
-                className="h-full w-full"
+                src={getYoutubeEmbedUrl(activeTrailer.trailerUrl)}
+                title={`${activeTrailer.title} Official Trailer`}
+                className="h-full w-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                sandbox="allow-scripts allow-same-origin allow-presentation allow-popups"
                 allowFullScreen
+                data-testid="youtube-trailer-iframe"
               />
             ) : (
               <div className="p-8 text-center text-slate-300">

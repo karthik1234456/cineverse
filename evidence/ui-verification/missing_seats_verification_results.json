@@ -1,0 +1,78 @@
+{
+  "test": "Task 5: 522-Seat Hall Instance Stability & WebGL Recovery Benchmark",
+  "executedAt": "2026-11-17T17:48:11.732Z",
+  "hall": "Screen 1 — Big Hall Flagship (Auditorium 39, Showtime 1875)",
+  "expectedSeats": 522,
+  "totalCycles": 50,
+  "failures": 0,
+  "allCyclesPassed": true,
+  "contextLossTest": {
+    "lossTriggered": true,
+    "countDuringLoss": 522,
+    "restoreTriggered": true,
+    "countAfterRestore": 522,
+    "restorationPassed": true
+  },
+  "loopRecordsSample": [
+    {
+      "iteration": 1,
+      "drawnCount": 522,
+      "expected": 522,
+      "passed": true
+    },
+    {
+      "iteration": 6,
+      "drawnCount": 522,
+      "expected": 522,
+      "passed": true
+    },
+    {
+      "iteration": 11,
+      "drawnCount": 522,
+      "expected": 522,
+      "passed": true
+    },
+    {
+      "iteration": 16,
+      "drawnCount": 522,
+      "expected": 522,
+      "passed": true
+    },
+    {
+      "iteration": 21,
+      "drawnCount": 522,
+      "expected": 522,
+      "passed": true
+    },
+    {
+      "iteration": 26,
+      "drawnCount": 522,
+      "expected": 522,
+      "passed": true
+    },
+    {
+      "iteration": 31,
+      "drawnCount": 522,
+      "expected": 522,
+      "passed": true
+    },
+    {
+      "iteration": 36,
+      "drawnCount": 522,
+      "expected": 522,
+      "passed": true
+    },
+    {
+      "iteration": 41,
+      "drawnCount": 522,
+      "expected": 522,
+      "passed": true
+    },
+    {
+      "iteration": 46,
+      "drawnCount": 522,
+      "expected": 522,
+      "passed": true
+    }
+  ]
+}

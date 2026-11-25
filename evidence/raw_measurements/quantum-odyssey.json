@@ -1,0 +1,45 @@
+{
+  "index": 1,
+  "id": 1,
+  "title": "Quantum Odyssey: Beyond the Singularity",
+  "slug": "quantum-odyssey",
+  "source_type": "hosted",
+  "showtime_id": 61,
+  "cinema_id": 4,
+  "auditorium_id": 13,
+  "url": "http://localhost:3002/cinemas/4/auditorium/13?showtime=61&mode=3d&debug=1",
+  "click_timestamp": 2552.2000000029802,
+  "first_picture_timestamp": 3066,
+  "time_to_first_picture_ms": 513.8,
+  "screenshot_1": {
+    "timestamp": 3506.7000000029802,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\quantum-odyssey_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 6134.20000000298,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\quantum-odyssey_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 8821.10000000894,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\quantum-odyssey_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.62,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 4.508812
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.623,
+  "movement_delta_12": 1.345,
+  "movement_delta_23": 0.282
+}

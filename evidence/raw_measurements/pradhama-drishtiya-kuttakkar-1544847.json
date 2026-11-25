@@ -1,0 +1,45 @@
+{
+  "index": 105,
+  "id": 105,
+  "title": "Pradhama Drishtiya Kuttakkar",
+  "slug": "pradhama-drishtiya-kuttakkar-1544847",
+  "source_type": "youtube",
+  "showtime_id": 4256,
+  "cinema_id": 4,
+  "auditorium_id": 12,
+  "url": "http://localhost:3002/cinemas/4/auditorium/12?showtime=4256&mode=3d&debug=1",
+  "click_timestamp": 1703.7000000029802,
+  "first_picture_timestamp": 3141.800000011921,
+  "time_to_first_picture_ms": 1438.1,
+  "screenshot_1": {
+    "timestamp": 3818.6000000089407,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\pradhama-drishtiya-kuttakkar-1544847_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5673.100000008941,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\pradhama-drishtiya-kuttakkar-1544847_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 7459.800000011921,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\pradhama-drishtiya-kuttakkar-1544847_ss3.png"
+  },
+  "frame_diff_pixel_sum": 4.75,
+  "movement_proved": true,
+  "player_api": {
+    "state": "buffering",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 4.752,
+  "movement_delta_12": 4.057,
+  "movement_delta_23": 0.733
+}

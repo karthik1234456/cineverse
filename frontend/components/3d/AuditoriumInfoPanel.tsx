@@ -6,33 +6,60 @@ import layoutData from '@/public/models/seat_layout_v2.json';
 import type { SeatLayoutFile, SeatStatus, QualityTier } from '@/lib/types';
 import { Info, Sliders, Sun, Moon, X } from 'lucide-react';
 
-export function AuditoriumInfoPanel() {
+export interface AuditoriumInfoPanelProps {
+  inline?: boolean;
+}
+
+export function AuditoriumInfoPanel({ inline = false }: AuditoriumInfoPanelProps) {
+  const cameraMode = useCinemaStore((s) => s.cameraMode);
+  const mode = useCinemaStore((s) => s.mode);
+
   const [showHonestyModal, setShowHonestyModal] = useState(false);
   const [showDevControls, setShowDevControls] = useState(false);
   const [isDebugMode, setIsDebugMode] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+
+  // First-person modes (Walk/Seated/POV) are minimal: collapsed by default
+  const isFirstPerson = mode === 'walk' || mode === 'seated' || cameraMode === 'pov' || cameraMode === 'walk';
+  const [isCollapsed, setIsCollapsed] = useState(isFirstPerson);
+
+  useEffect(() => {
+    if (isFirstPerson) {
+      setIsCollapsed(true);
+    }
+  }, [isFirstPerson]);
 
   const seatStatuses = useCinemaStore((s) => s.seatStatuses);
   const selectedSeats = useCinemaStore((s) => s.selectedSeats);
   const houseLights = useCinemaStore((s) => s.houseLights);
   const setHouseLights = useCinemaStore((s) => s.setHouseLights);
+  const lightLevel = useCinemaStore((s) => s.lightLevel || 'normal');
+  const setLightLevel = useCinemaStore((s) => s.setLightLevel);
   const qualityTier = useCinemaStore((s) => s.qualityTier);
   const setQualityTier = useCinemaStore((s) => s.setQualityTier);
   const useHqModel = useCinemaStore((s) => s.useHqModel);
   const setUseHqModel = useCinemaStore((s) => s.setUseHqModel);
   const updateSeatStatus = useCinemaStore((s) => s.updateSeatStatus);
   const showToast = useCinemaStore((s) => s.showToast);
-  const cameraMode = useCinemaStore((s) => s.cameraMode);
-  const mode = useCinemaStore((s) => s.mode);
   const storeTiers = useCinemaStore((s) => s.tiers);
   const auditoriumLayout = useCinemaStore((s) => s.auditoriumLayout);
+  const auditoriumName = useCinemaStore((s) => s.auditoriumName);
+  const storeScreenType = useCinemaStore((s) => s.screenType);
+  const storeScreenFormat = useCinemaStore((s) => s.screenFormat);
+  const storeSoundSystem = useCinemaStore((s) => s.soundSystem);
+  const storeProjectionType = useCinemaStore((s) => s.projectionType);
+  const storeTechSpecsDisplay = useCinemaStore((s) => s.techSpecsDisplay);
+  const isDemo = useCinemaStore((s) => s.isDemo);
+  const proceduralResult = useCinemaStore((s) => s.proceduralResult);
+
+  const layout = auditoriumLayout || (layoutData as unknown as SeatLayoutFile);
 
   const displayTiers = React.useMemo(() => {
+    // 1. Authoritative server tiers from showtime API (guarantees 100% price truth between 2D and 3D)
     if (storeTiers && storeTiers.length > 0) {
       return storeTiers.map((t) => ({
         name: t.name,
         category: t.category,
-        rows: t.rows.length > 0 ? `Rows ${t.rows[0]}–${t.rows[t.rows.length - 1]}` : '',
+        rows: t.rows.length === 1 ? `Row ${t.rows[0]}` : `Rows ${t.rows[0]}–${t.rows[t.rows.length - 1]}`,
         price: t.price,
         colorClass:
           t.category.toLowerCase() === 'premier'
@@ -42,12 +69,64 @@ export function AuditoriumInfoPanel() {
             : 'border-blue-300 bg-blue-50 text-[#1E40AF]',
       }));
     }
+
+    if (layout.seats && layout.seats.length > 0) {
+      const allRows = Array.from(new Set(layout.seats.map((s) => s.row))).sort();
+      const rowToCat = new Map<string, string>();
+      const catPrices = new Map<string, number>();
+
+      for (const s of layout.seats) {
+        const cat = (s.category || 'Prime').toLowerCase();
+        if (!rowToCat.has(s.row)) {
+          rowToCat.set(s.row, cat);
+        }
+        if (s.price && (!catPrices.has(cat) || s.price < (catPrices.get(cat) || Infinity))) {
+          catPrices.set(cat, s.price);
+        }
+      }
+
+      const catRows = new Map<string, string[]>();
+      for (const r of allRows) {
+        const cat = rowToCat.get(r) || 'prime';
+        if (!catRows.has(cat)) catRows.set(cat, []);
+        catRows.get(cat)!.push(r);
+      }
+
+      const order = ['front', 'prime', 'premier'];
+      const result = [];
+      for (const k of order) {
+        if (catRows.has(k) && catRows.get(k)!.length > 0) {
+          const rowsInTier = catRows.get(k)!;
+          const rText =
+            rowsInTier.length === 1
+              ? `Row ${rowsInTier[0]}`
+              : `Rows ${rowsInTier[0]}–${rowsInTier[rowsInTier.length - 1]}`;
+          const capName = k.charAt(0).toUpperCase() + k.slice(1);
+          const colorClass =
+            k === 'premier'
+              ? 'border-rose-300 bg-rose-50 text-[#9F1239]'
+              : k === 'front'
+              ? 'border-amber-300 bg-amber-50 text-[#8D5B28]'
+              : 'border-blue-300 bg-blue-50 text-[#1E40AF]';
+          const p = catPrices.get(k) || (k === 'premier' ? 520 : k === 'front' ? 280 : 380);
+          result.push({
+            name: capName,
+            category: k,
+            rows: rText,
+            price: p,
+            colorClass,
+          });
+        }
+      }
+      if (result.length > 0) return result;
+    }
+
     return [
       { name: 'Front', category: 'front', rows: 'Rows A–C', price: 280, colorClass: 'border-amber-300 bg-amber-50 text-[#8D5B28]' },
       { name: 'Prime', category: 'prime', rows: 'Rows D–G', price: 380, colorClass: 'border-blue-300 bg-blue-50 text-[#1E40AF]' },
       { name: 'Premier', category: 'premier', rows: 'Rows H–J', price: 520, colorClass: 'border-rose-300 bg-rose-50 text-[#9F1239]' },
     ];
-  }, [storeTiers]);
+  }, [layout.seats, storeTiers]);
 
   // Check URL query flag ?debug=1 (dev builds only)
   useEffect(() => {
@@ -57,7 +136,21 @@ export function AuditoriumInfoPanel() {
     }
   }, []);
 
-  const layout = auditoriumLayout || (layoutData as unknown as SeatLayoutFile);
+  const totalSeatsCount = layout.seats ? layout.seats.length : 100;
+  const rowsList = React.useMemo(() => {
+    if (!layout.seats || layout.seats.length === 0) return { first: 'A', last: 'J', count: 10 };
+    const rSet = new Set(layout.seats.map((s) => s.row));
+    const sorted = Array.from(rSet).sort();
+    return { first: sorted[0], last: sorted[sorted.length - 1], count: sorted.length };
+  }, [layout.seats]);
+
+  const rowRangeText = `${totalSeatsCount} Seats • ${rowsList.count} Rows (${rowsList.first}–${rowsList.last})`;
+  const displayHallTitle = auditoriumName || 'Auditorium';
+  const displayScreenType = storeScreenType || layout.theatre_type_label || 'Standard Screen';
+
+  // Screen realistic dimensions: SCENE_TO_METERS = 0.5
+  const screenMetersWidth = Math.round((layout.screen.width * 0.5) * 10) / 10;
+  const screenMetersHeight = Math.round((layout.screen.height * 0.5) * 10) / 10;
 
   // Compute status counts strictly partitioning into exactly all seats in this auditorium
   const counts = React.useMemo(() => {
@@ -80,15 +173,11 @@ export function AuditoriumInfoPanel() {
     return { available, booked, held, selected };
   }, [seatStatuses, selectedSeats, layout.seats]);
 
-  // First-person modes (Walk/Seated/POV) are minimal: auto-hide the panel
-  const isFirstPerson = mode === 'walk' || mode === 'seated' || cameraMode === 'pov' || cameraMode === 'walk';
-  if (isFirstPerson) {
-    return null;
-  }
+  // First-person modes (Walk/Seated/POV) are minimal: collapsed by default (rendered via isCollapsed below)
 
   if (isCollapsed) {
     return (
-      <div className="fixed left-4 top-16 z-30 hidden md:block">
+      <div className={inline ? 'pointer-events-auto w-full shrink-0' : 'fixed left-4 top-16 z-30 hidden md:block'}>
         <button
           onClick={() => setIsCollapsed(false)}
           data-testid="expand-auditorium-info-btn"
@@ -104,20 +193,32 @@ export function AuditoriumInfoPanel() {
   return (
     <>
       <div
-        className="pointer-events-none fixed left-4 top-16 z-20 hidden w-80 max-h-[calc(100dvh-5rem)] flex-col gap-3 overflow-y-auto transition-opacity duration-300 md:flex"
+        className={
+          inline
+            ? 'pointer-events-none flex flex-col gap-3 w-full shrink-0 transition-opacity duration-300'
+            : 'pointer-events-none fixed left-4 top-16 z-20 hidden w-80 max-h-[calc(100dvh-5rem)] flex-col gap-3 overflow-y-auto transition-opacity duration-300 md:flex'
+        }
       >
         {/* Theatre Title & Screen Spec Card */}
-        <div className="pointer-events-auto rounded-3xl border border-[#E6DCD2] bg-white/95 p-5 shadow-2xl backdrop-blur-md text-[#1B1320]">
+        <div
+          data-testid="auditorium-info-panel"
+          className="pointer-events-auto rounded-3xl border border-[#E6DCD2] bg-white/95 p-5 shadow-2xl backdrop-blur-md text-[#1B1320]"
+        >
           <div className="flex items-start justify-between">
             <div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="h-2.5 w-2.5 rounded-full bg-[#C8102E] shadow-[0_0_8px_#C8102E]" />
-                <h1 className="text-base font-bold tracking-tight text-[#1B1320]">
-                  Auditorium 1 — 3D Laser IMAX
+                <h1 className="text-base font-bold tracking-tight text-[#1B1320]" data-testid="auditorium-panel-title">
+                  {storeTechSpecsDisplay || `${displayHallTitle} · ${storeScreenFormat || displayScreenType} · ${storeSoundSystem || 'Dolby Atmos'} · ${storeProjectionType || '4K Laser'}`}
                 </h1>
+                {isDemo && (
+                  <span className="rounded bg-amber-100 border border-amber-300 px-1.5 py-0.5 text-[10px] font-bold text-amber-900">
+                    Demo
+                  </span>
+                )}
               </div>
-              <p className="mt-1 text-sm text-slate-500">
-                100 Luxury Recliners • 10 Rows (A–J)
+              <p className="mt-1 text-sm text-slate-500" data-testid="auditorium-panel-subtitle">
+                {rowRangeText}
               </p>
             </div>
 
@@ -139,12 +240,95 @@ export function AuditoriumInfoPanel() {
             </div>
           </div>
 
-          <div className="mt-3 flex items-center justify-between rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] px-3 py-2 text-sm">
-            <span className="text-slate-600 font-medium">Screen Format</span>
-            <span className="font-bold text-[#1B1320]">
-              {layout.screen.aspect}:1 Aspect ({layout.screen.width}m × {layout.screen.height}m)
-            </span>
+          <div className="mt-3 flex flex-col gap-1.5 rounded-xl bg-[#FAF6F0] border border-[#E6DCD2] p-3 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-slate-600 font-medium">Screen Format</span>
+              <span className="font-bold text-[#1B1320]">{storeScreenFormat || storeScreenType || '2D'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-600 font-medium">Sound System</span>
+              <span className="font-bold text-[#1B1320]">{storeSoundSystem || 'Dolby Atmos'}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-slate-600 font-medium">Projection</span>
+              <span className="font-bold text-[#1B1320]">{storeProjectionType || '4K Laser'}</span>
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t border-[#E6DCD2]/60">
+              <span className="text-slate-500">Geometry</span>
+              <span className="font-medium text-slate-700" data-testid="auditorium-panel-screen-dims">
+                {layout.screen.aspect}:1 Aspect ({screenMetersWidth}m × {screenMetersHeight}m)
+              </span>
+            </div>
+            {(layout as any).layout_signature && (
+              <div className="flex items-center justify-between pt-1 border-t border-[#E6DCD2]/60">
+                <span className="text-slate-500">Signature</span>
+                <span className="font-mono text-[11px] font-semibold text-slate-700" data-testid="auditorium-panel-signature">
+                  {(layout as any).layout_signature}
+                </span>
+              </div>
+            )}
           </div>
+
+          {/* Format Equipment in Plain Words (§ Stage 3) */}
+          {((layout as any).equipment_profile || storeScreenFormat) && (
+            <div className="mt-3 rounded-xl bg-slate-900 text-slate-200 border border-slate-800 p-3 text-xs space-y-1.5" data-testid="auditorium-equipment-card">
+              <div className="font-bold text-white flex items-center justify-between">
+                <span>Auditorium Equipment</span>
+                {((layout as any).equipment_profile?.confirmation_note || ['ICE', 'ICE 3D', 'P[XL]', 'EPIQ'].includes(storeScreenFormat || '')) && (
+                  <span className="text-[10px] font-normal text-amber-300 italic">
+                    details to confirm with the cinema
+                  </span>
+                )}
+              </div>
+              <p className="text-slate-300">
+                {(layout as any).equipment_profile?.screen_description ||
+                  (storeScreenFormat?.includes('IMAX') ? 'Expansive tall curved screen with steep rake' :
+                   storeScreenFormat?.includes('Onyx') ? 'Direct-view Samsung Onyx LED with thin black bezel (no projector beam)' :
+                   storeScreenFormat?.includes('ScreenX') ? '270° panoramic centre screen + dual side wall screens' :
+                   storeScreenFormat === 'Dolby Cinema' ? 'Dolby Vision HDR laser screen with dark matte interior and plush recliners' :
+                   'Flat cinema projection screen')}
+              </p>
+              <div className="flex flex-wrap gap-1.5 pt-1 text-[11px]">
+                {(storeScreenFormat?.includes('3D') || (layout as any).equipment_profile?.has_glasses_counter) && (
+                  <span className="rounded bg-sky-950 text-sky-300 border border-sky-800 px-2 py-0.5">
+                    👓 3D glasses counter at entrance
+                  </span>
+                )}
+                {(storeScreenFormat?.includes('4DX') || storeScreenFormat?.includes('MX4D') || (layout as any).equipment_profile?.has_motion_pods) && (
+                  <span className="rounded bg-indigo-950 text-indigo-300 border border-indigo-800 px-2 py-0.5">
+                    ⚡ 4-seat motion pods on visible bases
+                  </span>
+                )}
+                {(storeScreenFormat === 'Dolby Cinema' || (layout as any).theatre_type === 'luxury_recliner') && (
+                  <span className="rounded bg-amber-950 text-amber-300 border border-amber-800 px-2 py-0.5">
+                    🛋️ Plush brown leather recliners
+                  </span>
+                )}
+                {(storeSoundSystem?.includes('Atmos') || storeSoundSystem?.includes('DTS:X')) ? (
+                  <span className="rounded bg-slate-800 text-slate-300 px-2 py-0.5">
+                    🔊 Overhead & surround speaker arrays
+                  </span>
+                ) : storeSoundSystem?.includes('7.1') ? (
+                  <span className="rounded bg-slate-800 text-slate-300 px-2 py-0.5">
+                    🔊 Side & rear surrounds
+                  </span>
+                ) : (
+                  <span className="rounded bg-slate-800 text-slate-300 px-2 py-0.5">
+                    🔊 Standard surround speakers
+                  </span>
+                )}
+                {storeScreenFormat?.includes('Onyx') ? (
+                  <span className="rounded bg-emerald-950 text-emerald-300 border border-emerald-800 px-2 py-0.5">
+                    ✨ Direct LED (no projector beam)
+                  </span>
+                ) : (
+                  <span className="rounded bg-slate-800 text-slate-300 px-2 py-0.5">
+                    📽️ Projector booth with laser beam
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Seat Categories & Pricing (§ Task 3) */}
           <div className="mt-4 space-y-2 border-t border-[#E6DCD2] pt-3">
@@ -153,7 +337,11 @@ export function AuditoriumInfoPanel() {
             </div>
             <div className="grid grid-cols-3 gap-2 text-center text-sm">
               {displayTiers.map((tier) => (
-                <div key={tier.name} className={`rounded-xl border py-2 ${tier.colorClass}`}>
+                <div
+                  key={tier.name}
+                  data-testid={`tier-card-${tier.category.toLowerCase()}`}
+                  className={`rounded-xl border py-2 ${tier.colorClass}`}
+                >
                   <div className="font-bold">{tier.name}</div>
                   <div className="text-sm text-slate-500">{tier.rows}</div>
                   <div className="mt-0.5 font-black text-sm">₹{Math.round(tier.price)}</div>
@@ -166,33 +354,39 @@ export function AuditoriumInfoPanel() {
           <div className="mt-4 border-t border-[#E6DCD2] pt-3">
             <div className="flex items-center justify-between text-sm text-slate-700">
               <div className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full border border-slate-300 bg-[#FAF6F0]" />
+                <span className="h-4 w-4 rounded border border-slate-300 bg-[#FAF6F0]" />
                 <span className="font-medium">Available</span>
                 <span className="font-bold text-slate-500">({counts.available})</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full bg-[#C8102E]" />
-                <span className="font-bold text-[#C8102E]">Selected</span>
-                <span className="font-bold text-[#C8102E]">({counts.selected})</span>
+                <span className="h-4 w-4 rounded bg-[#22C55E] text-white flex items-center justify-center font-bold text-[10px] shadow-sm">
+                  ✓
+                </span>
+                <span className="font-bold text-[#22C55E]">Selected</span>
+                <span className="font-bold text-[#22C55E]">({counts.selected})</span>
               </div>
             </div>
 
             <div className="mt-2.5 flex items-center justify-between text-sm text-slate-700">
               <div className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full bg-amber-500 animate-pulse" />
-                <span className="font-medium">Held</span>
+                <span className="h-4 w-4 rounded bg-[#F59E0B] text-white flex items-center justify-center font-bold text-[10px] shadow-sm">
+                  🕒
+                </span>
+                <span className="font-medium text-amber-700">Held</span>
                 <span className="font-bold text-amber-700">({counts.held})</span>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="h-3 w-3 rounded-full bg-slate-300" />
-                <span className="font-medium">Booked</span>
-                <span className="font-bold text-slate-400">({counts.booked})</span>
+                <span className="h-4 w-4 rounded bg-[#3F424A] text-slate-200 flex items-center justify-center font-bold text-[10px] shadow-sm">
+                  ✕
+                </span>
+                <span className="font-medium text-slate-600">Booked</span>
+                <span className="font-bold text-slate-500">({counts.booked})</span>
               </div>
             </div>
           </div>
 
           {/* Quick Environment Controls */}
-          <div className="mt-4 flex items-center justify-between border-t border-[#E6DCD2] pt-3 text-sm">
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-[#E6DCD2] pt-3 text-sm">
             <button
               onClick={() => setHouseLights(houseLights === 'full' ? 'show' : 'full')}
               className="flex min-h-[44px] items-center gap-1.5 rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] px-3.5 py-2 text-slate-700 font-bold transition hover:bg-slate-100"
@@ -209,6 +403,25 @@ export function AuditoriumInfoPanel() {
                 </>
               )}
             </button>
+
+            {/* Light Level Setting: Dim, Normal, Bright */}
+            <div className="flex items-center gap-1 rounded-xl border border-[#E6DCD2] bg-[#FAF6F0] p-1 text-xs font-semibold">
+              <span className="px-1.5 text-slate-500 font-medium">Light:</span>
+              {(['dim', 'normal', 'bright'] as const).map((lvl) => (
+                <button
+                  key={lvl}
+                  onClick={() => setLightLevel(lvl)}
+                  data-testid={`light-level-${lvl}`}
+                  className={`rounded-lg px-2 py-1 capitalize transition ${
+                    lightLevel === lvl
+                      ? 'bg-slate-900 text-white shadow-sm'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  {lvl}
+                </button>
+              ))}
+            </div>
 
             {/* Dev Tools: only visible when ?debug=1 in dev */}
             {isDebugMode && (

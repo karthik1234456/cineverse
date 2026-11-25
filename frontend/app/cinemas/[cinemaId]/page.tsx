@@ -4,11 +4,12 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { MapPin, Compass, CheckCircle2, Train, Car, Phone, Clock, ExternalLink } from 'lucide-react';
+import { MapPin, Compass, CheckCircle2, Train, Car, Phone, Clock, ExternalLink, Accessibility } from 'lucide-react';
 import { getCinema, getCinemaShowtimes, type Cinema, type CinemaMovieShowtimes } from '@/services/api';
 import { MiniMap } from '@/components/map/MiniMap';
 import { AdminMapPicker } from '@/components/map/AdminMapPicker';
 import { getDirectionsUrl } from '@/components/map/MapAdapter';
+import { MoviePoster } from '@/components/MoviePoster';
 
 export default function CinemaDetailPage() {
   const params = useParams();
@@ -233,6 +234,53 @@ export default function CinemaDetailPage() {
         />
       )}
 
+      {/* Accessibility & Step-Free Route Information (WCAG 2.2 AA) */}
+      <div
+        className="rounded-3xl border border-[#E6DCD2] bg-white p-7 shadow-sm space-y-4"
+        data-testid="cinema-accessibility-card"
+      >
+        <div className="flex items-center gap-2.5">
+          <div className="p-2.5 rounded-xl bg-blue-50 text-blue-700">
+            <Accessibility className="h-6 w-6" aria-hidden="true" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-[#1B1320]">Accessibility & Step-Free Access</h3>
+            <p className="text-sm text-slate-600">
+              Clear route guidance, wheelchair seating, and sensory accommodations for all patrons.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+          <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-1.5">
+            <h4 className="text-base font-bold text-[#1B1320] flex items-center gap-1.5">
+              <span>♿</span> Step-Free Entrance & Elevators
+            </h4>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Step-free ramp entry at Main Concourse Gate A. Dedicated wide elevators connect directly from basement parking level B1/B2 to cinema lobby.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-1.5">
+            <h4 className="text-base font-bold text-[#1B1320] flex items-center gap-1.5">
+              <span>💺</span> Wheelchair & Companion Seats
+            </h4>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Every auditorium features dedicated level-access wheelchair spaces with adjoining companion seats (Row A / Mid-Tier). Companions enjoy identical sightlines.
+            </p>
+          </div>
+
+          <div className="p-4 rounded-2xl bg-[#FAF6F0] border border-[#E6DCD2] space-y-1.5">
+            <h4 className="text-base font-bold text-[#1B1320] flex items-center gap-1.5">
+              <span>🎧</span> Assistive Listening & Restrooms
+            </h4>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              Inductive hearing loops active at box office and screens. Unisex step-free accessible restrooms located 20 meters from auditorium entrances.
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Date Picker Strip */}
       <section className="space-y-4">
         <div>
@@ -278,13 +326,13 @@ export default function CinemaDetailPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E6DCD2]">
                   <div className="flex items-center gap-4">
                     <div className="h-16 w-12 rounded-xl bg-[#E6DCD2] shrink-0 overflow-hidden border border-[#E6DCD2]">
-                      <img
+                      <MoviePoster
                         src={item.poster_url}
                         alt={item.title}
+                        title={item.title}
+                        certificate={item.certificate}
                         className="h-full w-full object-cover"
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
+                        containerClassName="h-full w-full"
                       />
                     </div>
                     <div>

@@ -1,0 +1,35 @@
+[
+  {
+    "testName": "Error 150 (Owner Embedding Disabled)",
+    "errorCode": 150,
+    "theatreModalVisible": true,
+    "isTheatreMode": true,
+    "transitionLatencyMs": 1398,
+    "passed": true,
+    "screenshot": "D:\\projects\\CineVerse\\evidence\\fallbacks\\error_150_theatre_mode_active.png"
+  },
+  {
+    "testName": "Error 101 (Embedding Forbidden in Domain)",
+    "errorCode": 101,
+    "theatreModalVisible": true,
+    "isTheatreMode": true,
+    "transitionLatencyMs": 1048,
+    "passed": true,
+    "screenshot": "D:\\projects\\CineVerse\\evidence\\fallbacks\\error_101_theatre_mode_active.png"
+  },
+  {
+    "testName": "3-Second Watchdog Timeout Fallback",
+    "errorCode": null,
+    "theatreModalVisible": true,
+    "isTheatreMode": true,
+    "transitionLatencyMs": 3522,
+    "passed": true,
+    "screenshot": "D:\\projects\\CineVerse\\evidence\\fallbacks\\watchdog_fallback_theatre_mode.png"
+  },
+  {
+    "testName": "Title Card Fallback (No Video Asset)",
+    "strategy": "title_card",
+    "passed": true,
+    "screenshot": "D:\\projects\\CineVerse\\evidence\\fallbacks\\title_card_fallback_screen.png"
+  }
+]

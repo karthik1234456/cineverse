@@ -1,7 +1,8 @@
 // frontend/services/api.ts
 // Complete API client for CineVerse FastAPI backend.
 
-const API_BASE = '/api/v1';
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+const API_BASE = typeof window !== 'undefined' ? '/api/v1' : `${BACKEND_URL}/api/v1`;
 
 function getHeaders(): HeadersInit {
   const headers: HeadersInit = {
@@ -18,28 +19,52 @@ function getHeaders(): HeadersInit {
 
 export async function apiFetch<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE}${endpoint}`;
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      ...getHeaders(),
-      ...(options.headers || {}),
-    },
-  });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      credentials: options.credentials || 'include',
+      headers: {
+        ...getHeaders(),
+        ...(options.headers || {}),
+      },
+    });
 
-  if (!response.ok) {
-    let errorDetail = response.statusText;
-    try {
-      const errJson = await response.json();
-      errorDetail = errJson.detail || JSON.stringify(errJson);
-    } catch {
-      // ignore
+    if (!response.ok) {
+      let errorDetail = response.statusText;
+      let retryAfter: number | null = null;
+      try {
+        const errJson = await response.json();
+        errorDetail = errJson.detail || errJson.error?.message || JSON.stringify(errJson);
+        if (errJson.error?.retry_after) {
+          retryAfter = Number(errJson.error.retry_after);
+        }
+      } catch {
+        // ignore
+      }
+      const rawHeader = response.headers.get('Retry-After');
+      if (rawHeader) {
+        const parsed = Number(rawHeader);
+        if (!isNaN(parsed)) retryAfter = parsed;
+      }
+      if (response.status === 429) {
+        const waitMsg = retryAfter ? ` Please wait ${retryAfter} seconds before trying again.` : ' Please wait a moment before trying again.';
+        errorDetail = `Too many requests.${waitMsg}`;
+      }
+      const err = new Error(errorDetail || `API request failed with status ${response.status}`);
+      (err as any).status = response.status;
+      (err as any).retryAfter = retryAfter;
+      throw err;
     }
-    const err = new Error(errorDetail || `API request failed with status ${response.status}`);
-    (err as any).status = response.status;
+
+    return response.json();
+  } catch (err: any) {
+    if (err.name === 'TypeError' || err.message?.includes('fetch') || err.message?.includes('NetworkError') || err.message?.includes('Failed to fetch')) {
+      const netErr = new Error('Network error. Unable to reach authentication server.');
+      (netErr as any).status = 0;
+      throw netErr;
+    }
     throw err;
   }
-
-  return response.json();
 }
 
 // ---------------- CITIES ----------------
@@ -53,6 +78,96 @@ export interface City {
 
 export async function getCities(): Promise<City[]> {
   return apiFetch<City[]>('/cities/');
+}
+
+// ---------------- TECHNICAL SPECIFICATIONS ----------------
+export interface ScreenFormatItem {
+  id: number;
+  name: string;
+  description?: string;
+  requires_glasses: boolean;
+  is_active: boolean;
+}
+
+export interface SoundSystemItem {
+  id: number;
+  name: string;
+  description?: string;
+  channels?: string;
+  is_active: boolean;
+}
+
+export interface ProjectionTypeItem {
+  id: number;
+  name: string;
+  description?: string;
+  resolution?: string;
+  is_active: boolean;
+}
+
+export interface FilterFacetCount {
+  name: string;
+  count: number;
+  requires_glasses?: boolean;
+  channels?: string;
+  resolution?: string;
+}
+
+export interface FilterFacetsResponse {
+  city_id?: number | null;
+  movie_id?: number | null;
+  cinema_id?: number | null;
+  total_auditoriums: number;
+  formats: FilterFacetCount[];
+  sounds: FilterFacetCount[];
+  projections: FilterFacetCount[];
+}
+
+export async function getFilterFacets(cityId?: number, movieId?: number, cinemaId?: number): Promise<FilterFacetsResponse> {
+  const query = new URLSearchParams();
+  if (cityId) query.set('city_id', cityId.toString());
+  if (movieId) query.set('movie_id', movieId.toString());
+  if (cinemaId) query.set('cinema_id', cinemaId.toString());
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  return apiFetch<FilterFacetsResponse>(`/technical-specs/facets${qs}`);
+}
+
+export async function getScreenFormats(): Promise<ScreenFormatItem[]> {
+  return apiFetch<ScreenFormatItem[]>('/technical-specs/formats');
+}
+
+export async function getSoundSystems(): Promise<SoundSystemItem[]> {
+  return apiFetch<SoundSystemItem[]>('/technical-specs/sounds');
+}
+
+export async function getProjectionTypes(): Promise<ProjectionTypeItem[]> {
+  return apiFetch<ProjectionTypeItem[]>('/technical-specs/projections');
+}
+
+export interface AuditoriumDetail {
+  id: number;
+  cinema_id: number;
+  name: string;
+  screen_type: string;
+  total_seats: number;
+  has_3d_preview: boolean;
+  layout_data?: any;
+  glb_path?: string;
+  layout_path?: string;
+  screen_format_id?: number;
+  sound_system_id?: number;
+  projection_type_id?: number;
+  screen_format_name?: string;
+  sound_system_name?: string;
+  projection_type_name?: string;
+  tech_specs_display?: string;
+  requires_glasses?: boolean;
+  confirmed_with_cinema?: boolean;
+  is_demo?: boolean;
+}
+
+export async function getAuditorium(auditoriumId: number | string): Promise<AuditoriumDetail> {
+  return apiFetch<AuditoriumDetail>(`/auditoriums/${auditoriumId}`);
 }
 
 // ---------------- MOVIES ----------------
@@ -79,6 +194,10 @@ export interface Movie {
   languages: string[];
   genres: string[];
   formats: string[];
+  tmdb_id?: number;
+  tmdb_vote_average?: number;
+  is_tmdb?: boolean;
+  youtube_trailer_id?: string;
 }
 
 export interface CastMember {
@@ -111,6 +230,8 @@ export async function getMovies(params: {
   genre?: string;
   language?: string;
   format?: string;
+  sound?: string;
+  projection?: string;
   certificate?: string;
   status?: 'now_showing' | 'coming_soon';
   search?: string;
@@ -119,10 +240,13 @@ export async function getMovies(params: {
   page_size?: number;
 } = {}): Promise<Movie[]> {
   const query = new URLSearchParams();
-  if (params.city_id) query.set('city_id', params.city_id.toString());
+  const cId = params.city_id || (typeof window !== 'undefined' ? parseInt(localStorage.getItem('cineverse_city_id') || '1', 10) : 1);
+  if (cId) query.set('city_id', cId.toString());
   if (params.genre) query.set('genre', params.genre);
   if (params.language) query.set('language', params.language);
   if (params.format) query.set('format', params.format);
+  if (params.sound) query.set('sound', params.sound);
+  if (params.projection) query.set('projection', params.projection);
   if (params.certificate) query.set('certificate', params.certificate);
   if (params.status) query.set('status', params.status);
   if (params.search) query.set('search', params.search);
@@ -130,7 +254,7 @@ export async function getMovies(params: {
   if (params.page) query.set('page', params.page.toString());
   if (params.page_size) query.set('page_size', params.page_size.toString());
 
-  return apiFetch<Movie[]>(`/movies/?${query.toString()}`);
+  return apiFetch<Movie[]>(`/movies?${query.toString()}`);
 }
 
 export async function getMovie(idOrSlug: string | number): Promise<MovieDetail> {
@@ -143,6 +267,13 @@ export interface ShowtimeSlot {
   auditorium_id: number;
   auditorium_name: string;
   screen_type: string;
+  screen_format?: string;
+  sound_system?: string;
+  projection_type?: string;
+  tech_specs_display?: string;
+  requires_glasses?: boolean;
+  confirmed_with_cinema?: boolean;
+  is_demo?: boolean;
   has_3d_preview: boolean;
   start_time: string;
   end_time: string;
@@ -182,12 +313,17 @@ export async function getMovieShowtimes(
   language?: string,
   userLat?: number,
   userLng?: number,
-  maxDistanceKm?: number
+  maxDistanceKm?: number,
+  sound?: string,
+  projection?: string
 ): Promise<CinemaShowtimesGroup[]> {
   const query = new URLSearchParams();
-  if (cityId) query.set('city_id', cityId.toString());
+  const cId = cityId || (typeof window !== 'undefined' ? parseInt(localStorage.getItem('cineverse_city_id') || '1', 10) : 1);
+  if (cId) query.set('city_id', cId.toString());
   if (targetDate) query.set('target_date', targetDate);
   if (format) query.set('format', format);
+  if (sound) query.set('sound', sound);
+  if (projection) query.set('projection', projection);
   if (language) query.set('language', language);
   if (userLat != null) query.set('user_lat', userLat.toString());
   if (userLng != null) query.set('user_lng', userLng.toString());
@@ -222,6 +358,9 @@ export interface Cinema {
 export async function getCinemas(params: {
   cityId?: number;
   search?: string;
+  format?: string;
+  sound?: string;
+  projection?: string;
   userLat?: number;
   userLng?: number;
   maxDistanceKm?: number;
@@ -231,8 +370,12 @@ export async function getCinemas(params: {
   if (typeof params === 'number') {
     query.set('city_id', params.toString());
   } else {
-    if (params.cityId) query.set('city_id', params.cityId.toString());
+    const cId = params.cityId || (typeof window !== 'undefined' ? parseInt(localStorage.getItem('cineverse_city_id') || '1', 10) : 1);
+    if (cId) query.set('city_id', cId.toString());
     if (params.search) query.set('search', params.search);
+    if (params.format) query.set('format', params.format);
+    if (params.sound) query.set('sound', params.sound);
+    if (params.projection) query.set('projection', params.projection);
     if (params.userLat != null) query.set('user_lat', params.userLat.toString());
     if (params.userLng != null) query.set('user_lng', params.userLng.toString());
     if (params.maxDistanceKm != null) query.set('max_distance_km', params.maxDistanceKm.toString());
@@ -260,10 +403,18 @@ export interface CinemaMovieShowtimes {
 
 export async function getCinemaShowtimes(
   cinemaId: number,
-  targetDate?: string
+  targetDate?: string,
+  format?: string,
+  sound?: string,
+  projection?: string
 ): Promise<CinemaMovieShowtimes[]> {
-  const query = targetDate ? `?target_date=${targetDate}` : '';
-  return apiFetch<CinemaMovieShowtimes[]>(`/cinemas/${cinemaId}/showtimes${query}`);
+  const query = new URLSearchParams();
+  if (targetDate) query.set('target_date', targetDate);
+  if (format) query.set('format', format);
+  if (sound) query.set('sound', sound);
+  if (projection) query.set('projection', projection);
+  const qs = query.toString() ? `?${query.toString()}` : '';
+  return apiFetch<CinemaMovieShowtimes[]>(`/cinemas/${cinemaId}/showtimes${qs}`);
 }
 
 // ---------------- GLOBAL SEARCH ----------------
@@ -316,7 +467,14 @@ export interface AuditoriumLayoutData {
   seats_per_row: number;
   aisles: number[];
   accessible_seats?: string[];
+  companion_seats?: string[];
   category_bands?: CategoryBand[];
+  recliner_pairs?: [string, string][];
+  curve_radius?: number;
+  angle_span?: number;
+  levels?: { balcony?: any; stalls?: any } | any;
+  has_balcony?: boolean;
+  [key: string]: any;
 }
 
 export interface ShowtimeSeatsResponse {
@@ -328,6 +486,13 @@ export interface ShowtimeSeatsResponse {
   auditorium_id: number;
   auditorium_name: string;
   screen_type: string;
+  screen_format?: string;
+  sound_system?: string;
+  projection_type?: string;
+  tech_specs_display?: string;
+  requires_glasses?: boolean;
+  confirmed_with_cinema?: boolean;
+  is_demo?: boolean;
   has_3d_preview: boolean;
   layout_data?: AuditoriumLayoutData | null;
   format: string;
@@ -338,6 +503,9 @@ export interface ShowtimeSeatsResponse {
   glb_path: string;
   layout_path: string;
   trailer_url?: string;
+  trailer_embeddable?: boolean;
+  youtube_trailer_id?: string;
+  trailer_reason?: string;
   poster_url?: string;
   banner_url?: string;
   dominant_color?: string | null;
@@ -421,6 +589,67 @@ export async function validateCoupon(code: string, orderAmount: number): Promise
   });
 }
 
+export interface RefundBreakdownPaise {
+  ticket_amount_paise: number;
+  ticket_refund_paise: number;
+  addons_amount_paise: number;
+  addons_refund_paise: number;
+  convenience_fee_paise: number;
+  convenience_fee_refund_paise: number;
+  gst_amount_paise: number;
+  gst_refund_paise: number;
+  discount_amount_paise: number;
+  cancellation_fee_paise: number;
+  total_paid_paise: number;
+  total_refund_paise: number;
+  ticket_amount_display: string;
+  ticket_refund_display: string;
+  addons_amount_display: string;
+  addons_refund_display: string;
+  convenience_fee_display: string;
+  gst_amount_display: string;
+  cancellation_fee_display: string;
+  total_paid_display: string;
+  total_refund_display: string;
+}
+
+export interface RefundTimelineItem {
+  status: 'REQUESTED' | 'PROCESSING' | 'REFUNDED' | 'FAILED' | string;
+  timestamp: string;
+  note: string;
+}
+
+export interface RefundResponse {
+  id: number;
+  booking_id: number;
+  payment_id?: number | null;
+  refund_amount: number;
+  cancellation_fee: number;
+  amount_paise: number;
+  amount_display: string;
+  cancellation_fee_paise: number;
+  cancellation_fee_display: string;
+  status: 'REQUESTED' | 'PROCESSING' | 'REFUNDED' | 'FAILED' | string;
+  timeline: RefundTimelineItem[];
+  is_stuck: boolean;
+  error_message?: string | null;
+  created_at: string;
+  updated_at?: string | null;
+}
+
+export interface CancellationQuoteResponse {
+  booking_id: number;
+  booking_code: string;
+  can_cancel: boolean;
+  cancellation_cutoff_minutes: number;
+  cutoff_time: string;
+  is_late: boolean;
+  is_used: boolean;
+  reason_ineligible?: string | null;
+  policy_text: string;
+  breakdown: RefundBreakdownPaise;
+}
+
 export interface BookingResponse {
   id: number;
   booking_code: string;
@@ -444,6 +673,13 @@ export interface BookingResponse {
   directions_url?: string | null;
   auditorium_name: string;
   screen_type: string;
+  screen_format?: string;
+  sound_system?: string;
+  projection_type?: string;
+  tech_specs_display?: string;
+  requires_glasses?: boolean;
+  confirmed_with_cinema?: boolean;
+  is_demo?: boolean;
   start_time: string;
   seats: { seat_id: string; category: string; price: number }[];
   addons: { fnb_item_id: number; name: string; quantity: number; unit_price: number; total_price: number }[];
@@ -463,7 +699,14 @@ export interface BookingResponse {
     qr_code_url: string;
     hmac_signature: string;
     issued_at: string;
+    is_used?: boolean;
+    used_at?: string | null;
   };
+  can_cancel?: boolean;
+  cancellation_policy?: string | null;
+  cancellation_cutoff_time?: string | null;
+  refund_breakdown?: RefundBreakdownPaise | null;
+  refund?: RefundResponse | null;
 }
 
 export interface HoldSeatQuote {
@@ -512,6 +755,13 @@ export interface HoldQuoteResponse {
   directions_url?: string | null;
   auditorium_name: string;
   screen_type: string;
+  screen_format?: string;
+  sound_system?: string;
+  projection_type?: string;
+  tech_specs_display?: string;
+  requires_glasses?: boolean;
+  confirmed_with_cinema?: boolean;
+  is_demo?: boolean;
   start_time: string;
   expires_at: string;
   hold_duration_seconds: number;
@@ -573,13 +823,31 @@ export async function getBooking(id: number | string): Promise<BookingResponse> 
   return apiFetch<BookingResponse>(`/bookings/${id}`);
 }
 
+export async function getCancellationQuote(id: number | string): Promise<CancellationQuoteResponse> {
+  return apiFetch<CancellationQuoteResponse>(`/bookings/${id}/cancellation-quote`);
+}
+
 export async function cancelBooking(id: number | string): Promise<{
   booking_id: number;
   status: string;
   refund_amount: number;
+  amount_paise: number;
+  cancellation_fee: number;
+  cancellation_fee_paise: number;
+  timeline: RefundTimelineItem[];
+  breakdown?: RefundBreakdownPaise;
   message: string;
+  already_cancelled?: boolean;
 }> {
   return apiFetch(`/bookings/${id}/cancel`, { method: 'POST' });
+}
+
+export async function getStuckRefunds(): Promise<any[]> {
+  return apiFetch<any[]>('/admin/refunds/stuck');
+}
+
+export async function retryStuckRefund(id: number | string): Promise<any> {
+  return apiFetch<any>(`/admin/refunds/${id}/retry`, { method: 'POST' });
 }
 
 export async function getMyBookings(): Promise<BookingResponse[]> {
@@ -678,11 +946,61 @@ export async function verifyOtp(phone: string, otp: string): Promise<TokenRespon
   return res;
 }
 
-export function logoutUser() {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('cineverse_token');
-    localStorage.removeItem('cineverse_user');
+export async function logoutUser(): Promise<void> {
+  try {
+    await apiFetch('/auth/logout', {
+      method: 'POST',
+    });
+  } catch {
+    // Ignore server error on logout to ensure client cleanup proceeds
+  } finally {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('cineverse_token');
+      localStorage.removeItem('cineverse_user');
+    }
   }
+}
+
+export async function refreshToken(providedRefreshToken?: string): Promise<TokenResponse> {
+  const res = await apiFetch<TokenResponse>('/auth/refresh', {
+    method: 'POST',
+    body: JSON.stringify(providedRefreshToken ? { refresh_token: providedRefreshToken } : {}),
+  });
+  if (res.access_token && typeof window !== 'undefined') {
+    localStorage.setItem('cineverse_token', res.access_token);
+    localStorage.setItem('cineverse_user', JSON.stringify(res));
+  }
+  return res;
+}
+
+export async function forgotPassword(emailOrPhone: string): Promise<{ message: string; hint?: string }> {
+  const isEmail = emailOrPhone.includes('@');
+  const payload = isEmail ? { email: emailOrPhone } : { phone: emailOrPhone };
+  return apiFetch('/auth/forgot-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function resetPassword(data: { emailOrPhone: string; tokenOrOtp: string; newPassword: string }): Promise<{ message: string }> {
+  const isEmail = data.emailOrPhone.includes('@');
+  const payload: any = {
+    new_password: data.newPassword,
+    token: data.tokenOrOtp,
+  };
+  if (isEmail) {
+    payload.email = data.emailOrPhone;
+  } else {
+    payload.phone = data.emailOrPhone;
+  }
+  return apiFetch('/auth/reset-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getCurrentUser(): Promise<any> {
+  return apiFetch('/auth/me');
 }
 
 export function getStoredUser(): TokenResponse | null {
@@ -902,4 +1220,313 @@ export async function transferTicket(ticketId: number, recipientEmail: string) {
     body: JSON.stringify({ recipient_email: recipientEmail }),
   });
 }
+
+// ---------------- ADMIN SECURITY & ANTI-BOT ----------------
+export interface SecurityMetrics {
+  global_counters: Record<string, number>;
+  active_blocks_count: number;
+  blocked_targets: Array<{
+    target_type: string;
+    target: string;
+    masked_target: string;
+    reason: string;
+    ttl_seconds: number;
+    expires_in_minutes: number;
+  }>;
+  recent_alerts: Array<{
+    id: string;
+    severity: string;
+    reason: string;
+    client_ip: string;
+    masked_ip: string;
+    user_id: number | null;
+    timestamp: number;
+    status: string;
+  }>;
+  recent_events: Array<{
+    event_type: string;
+    masked_ip: string;
+    user_id: number | null;
+    timestamp: number;
+    metadata: Record<string, any>;
+  }>;
+}
+
+export async function getSecurityMetrics(): Promise<SecurityMetrics> {
+  return apiFetch<SecurityMetrics>('/admin/security/metrics');
+}
+
+export async function blockSecurityTarget(target_type: 'ip' | 'user', target: string, duration_minutes: number, reason: string) {
+  return apiFetch<any>('/admin/security/block', {
+    method: 'POST',
+    body: JSON.stringify({ target_type, target, duration_minutes, reason }),
+  });
+}
+
+export async function unblockSecurityTarget(target_type: 'ip' | 'user', target: string) {
+  return apiFetch<any>('/admin/security/unblock', {
+    method: 'POST',
+    body: JSON.stringify({ target_type, target }),
+  });
+}
+
+// ---------------- OPERATOR SCHEDULING & PRICING ----------------
+export interface OperatorCinema {
+  id: number;
+  name: string;
+  city_id?: number;
+  address?: string;
+  total_screens: number;
+}
+
+export interface OperatorTimelineResponse {
+  cinema: { id: number; name: string };
+  date: string;
+  auditoriums: Array<{
+    id: number;
+    name: string;
+    screen_type?: string;
+    total_seats: number;
+  }>;
+  showtimes: Array<{
+    id: number;
+    movie_id: number;
+    movie_title: string;
+    movie_duration: number;
+    movie_poster?: string;
+    auditorium_id: number;
+    auditorium_name: string;
+    start_time: string;
+    end_time: string;
+    cleaning_gap_minutes: number;
+    effective_end_time: string;
+    format: string;
+    language: string;
+    status: string;
+    cancellation_reason?: string;
+    price_rules: Record<string, number>;
+  }>;
+  movies: Array<{
+    id: number;
+    title: string;
+    duration_minutes: number;
+    poster_url?: string;
+    certification?: string;
+    language?: string;
+  }>;
+}
+
+export interface SeatPriceMapPreview {
+  showtime_id: number;
+  movie_title: string;
+  cinema_name: string;
+  auditorium_name: string;
+  start_time: string;
+  format: string;
+  language: string;
+  category_base_prices: Record<string, number>;
+  total_seats: number;
+  seat_map: Array<{
+    seat_id: string;
+    row: string;
+    number: number;
+    category: string;
+    base_price: number;
+    effective_price: number;
+    effective_price_paise: number;
+  }>;
+}
+
+export interface ShowCancelDryRun {
+  dry_run: boolean;
+  showtime_id: number;
+  movie_title: string;
+  cinema_name: string;
+  screen_name: string;
+  start_time: string;
+  status: string;
+  affected_bookings_count: number;
+  affected_tickets_count: number;
+  total_refund_paise: number;
+  total_refund_rupees: number;
+  affected_bookings: Array<{
+    booking_id: number;
+    booking_code: string;
+    customer_name: string;
+    customer_email: string;
+    customer_phone: string;
+    ticket_count: number;
+    seats: string[];
+    final_total_paise: number;
+    refund_amount_paise: number;
+    refund_amount_rupees: number;
+  }>;
+}
+
+export interface CSVPreviewResult {
+  entity_type: string;
+  total_rows: number;
+  valid_rows_count: number;
+  invalid_rows_count: number;
+  is_valid: boolean;
+  error_report: Array<{
+    row: number;
+    column: string;
+    value?: string;
+    error: string;
+  }>;
+  preview_samples: Array<Record<string, any>>;
+}
+
+export interface ImportBatchSummary {
+  batch_id: string;
+  entity_type: string;
+  filename: string;
+  total_rows: number;
+  valid_rows: number;
+  invalid_rows: number;
+  status: string;
+  created_at: string | null;
+  undone_at: string | null;
+}
+
+export interface DynamicPricingRuleItem {
+  id: number;
+  name: string;
+  category?: string;
+  cinema_id?: number;
+  format?: string;
+  floor_price: number;
+  ceiling_price: number;
+  price_multiplier: number;
+  flat_adjustment: number;
+  min_occupancy_pct: number;
+  max_occupancy_pct: number;
+  version: number;
+  status: string;
+  updated_at?: string;
+}
+
+export async function getAccessibleCinemas(): Promise<OperatorCinema[]> {
+  return apiFetch<OperatorCinema[]>('/admin/schedule/cinemas');
+}
+
+export async function getScheduleTimeline(cinemaId: number, date: string): Promise<OperatorTimelineResponse> {
+  return apiFetch<OperatorTimelineResponse>(`/admin/schedule/timeline?cinema_id=${cinemaId}&date=${date}`);
+}
+
+export async function checkScheduleConflict(params: {
+  auditorium_id: number;
+  start_time: string;
+  duration_minutes: number;
+  cleaning_gap_minutes?: number;
+  exclude_showtime_id?: number;
+}) {
+  const query = new URLSearchParams({
+    auditorium_id: String(params.auditorium_id),
+    start_time: params.start_time,
+    duration_minutes: String(params.duration_minutes),
+    cleaning_gap_minutes: String(params.cleaning_gap_minutes || 20),
+  });
+  if (params.exclude_showtime_id) query.append('exclude_showtime_id', String(params.exclude_showtime_id));
+  return apiFetch<any>(`/admin/schedule/conflict-check?${query.toString()}`);
+}
+
+export async function createScheduleSlot(payload: {
+  cinema_id: number;
+  auditorium_id: number;
+  movie_id: number;
+  start_time: string;
+  format_type?: string;
+  language?: string;
+  cleaning_gap_minutes?: number;
+  price_tier_rules?: Record<string, number>;
+}) {
+  return apiFetch<any>('/admin/schedule/slots', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function bulkCopySchedule(payload: {
+  cinema_id: number;
+  source_date: string;
+  target_dates: string[];
+  copy_mode?: 'SKIP_CONFLICTS' | 'FAIL_ON_CONFLICT';
+}) {
+  return apiFetch<any>('/admin/schedule/bulk-copy', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getSeatPriceMapPreview(showtimeId: number): Promise<SeatPriceMapPreview> {
+  return apiFetch<SeatPriceMapPreview>(`/admin/schedule/showtimes/${showtimeId}/price-map-preview`);
+}
+
+export async function dryRunCancelShow(showtimeId: number): Promise<ShowCancelDryRun> {
+  return apiFetch<ShowCancelDryRun>(`/admin/schedule/showtimes/${showtimeId}/cancel-dry-run`, {
+    method: 'POST',
+  });
+}
+
+export async function executeCancelShow(showtimeId: number, mfaCode: string, reason?: string) {
+  return apiFetch<any>(`/admin/schedule/showtimes/${showtimeId}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({ mfa_code: mfaCode, reason: reason || 'Cinema operational cancellation' }),
+  });
+}
+
+export async function previewCsvImport(csvText: string, entityType: string = 'SHOWTIMES'): Promise<CSVPreviewResult> {
+  return apiFetch<CSVPreviewResult>('/admin/schedule/import/preview', {
+    method: 'POST',
+    body: JSON.stringify({ csv_text: csvText, entity_type: entityType }),
+  });
+}
+
+export async function executeCsvImport(csvText: string, entityType: string = 'SHOWTIMES', filename: string = 'import.csv') {
+  return apiFetch<any>('/admin/schedule/import/execute', {
+    method: 'POST',
+    body: JSON.stringify({ csv_text: csvText, entity_type: entityType, filename }),
+  });
+}
+
+export async function undoCsvImport(batchId: string) {
+  return apiFetch<any>(`/admin/schedule/import/${batchId}/undo`, {
+    method: 'POST',
+  });
+}
+
+export async function listImportBatches(): Promise<ImportBatchSummary[]> {
+  return apiFetch<ImportBatchSummary[]>('/admin/schedule/import/batches');
+}
+
+export async function getPricingRules(cinemaId?: number): Promise<{
+  rules: DynamicPricingRuleItem[];
+  audit_logs: any[];
+}> {
+  const q = cinemaId ? `?cinema_id=${cinemaId}` : '';
+  return apiFetch<any>(`/admin/schedule/pricing-rules${q}`);
+}
+
+export async function upsertPricingRule(payload: {
+  name: string;
+  floor_price: number;
+  ceiling_price: number;
+  price_multiplier?: number;
+  flat_adjustment?: number;
+  category?: string;
+  cinema_id?: number;
+  format_type?: string;
+  min_occupancy_pct?: number;
+  max_occupancy_pct?: number;
+  rule_id?: number;
+  reason?: string;
+}) {
+  return apiFetch<any>('/admin/schedule/pricing-rules', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
 

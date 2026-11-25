@@ -1,0 +1,41 @@
+{
+  "index": 3,
+  "id": 2,
+  "title": "Astra: Chronicles of the Celestial Throne",
+  "slug": "astra-celestial-throne",
+  "source_type": "hosted",
+  "showtime_id": 12000,
+  "cinema_id": 1,
+  "auditorium_id": 1,
+  "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=12000&mode=3d&debug=1",
+  "click_timestamp": 2872.300000011921,
+  "first_picture_timestamp": 3104.300000011921,
+  "time_to_first_picture_ms": 232,
+  "screenshot_1": {
+    "timestamp": 3637.7000000029802,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\astra-celestial-throne_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 6220.20000000298,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\astra-celestial-throne_ss2.png"
+  },
+  "frame_diff_pixel_sum": 1.84,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.119815
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.836,
+  "movement_delta_12": 1.836,
+  "movement_delta_23": 0.0,
+  "movement_proved": true
+}

@@ -1,0 +1,45 @@
+{
+  "index": 20,
+  "id": 20,
+  "title": "Deccan Underworld: King of Dhoolpet",
+  "slug": "deccan-underworld",
+  "source_type": "hosted",
+  "showtime_id": 12018,
+  "cinema_id": 6,
+  "auditorium_id": 19,
+  "url": "http://localhost:3002/cinemas/6/auditorium/19?showtime=12018&mode=3d&debug=1",
+  "click_timestamp": 2117.3999999910593,
+  "first_picture_timestamp": 2350.2999999970198,
+  "time_to_first_picture_ms": 232.9,
+  "screenshot_1": {
+    "timestamp": 2898.3999999910593,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\deccan-underworld_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5505.29999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\deccan-underworld_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 8041.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\deccan-underworld_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.56,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 5.702926
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.56,
+  "movement_delta_12": 1.45,
+  "movement_delta_23": 0.229
+}
