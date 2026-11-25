@@ -1,0 +1,45 @@
+{
+  "index": 38,
+  "id": 38,
+  "title": "Sector 17: Chandigarh Nights",
+  "slug": "chandigarh-nights",
+  "source_type": "hosted",
+  "showtime_id": 12036,
+  "cinema_id": 12,
+  "auditorium_id": 37,
+  "url": "http://localhost:3002/cinemas/12/auditorium/37?showtime=12036&mode=3d&debug=1",
+  "click_timestamp": 1924.5,
+  "first_picture_timestamp": 2255.5,
+  "time_to_first_picture_ms": 331,
+  "screenshot_1": {
+    "timestamp": 3177.6000000089407,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\chandigarh-nights_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5146.800000011921,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\chandigarh-nights_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6940.20000000298,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\chandigarh-nights_ss3.png"
+  },
+  "frame_diff_pixel_sum": 60.78,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 4.217377
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 60.776,
+  "movement_delta_12": 60.724,
+  "movement_delta_23": 0.321
+}

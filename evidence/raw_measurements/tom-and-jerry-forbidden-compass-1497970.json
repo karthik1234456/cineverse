@@ -1,0 +1,45 @@
+{
+  "index": 68,
+  "id": 68,
+  "title": "Tom and Jerry: Forbidden Compass",
+  "slug": "tom-and-jerry-forbidden-compass-1497970",
+  "source_type": "youtube",
+  "showtime_id": 2803,
+  "cinema_id": 1,
+  "auditorium_id": 1,
+  "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=2803&mode=3d&debug=1",
+  "click_timestamp": 1911.6000000089407,
+  "first_picture_timestamp": 3390.2999999970198,
+  "time_to_first_picture_ms": 1478.7,
+  "screenshot_1": {
+    "timestamp": 4397.79999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\tom-and-jerry-forbidden-compass-1497970_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 6395,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\tom-and-jerry-forbidden-compass-1497970_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 8154.100000008941,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\tom-and-jerry-forbidden-compass-1497970_ss3.png"
+  },
+  "frame_diff_pixel_sum": 82.07,
+  "movement_proved": true,
+  "player_api": {
+    "state": "buffering",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 82.071,
+  "movement_delta_12": 97.908,
+  "movement_delta_23": 36.372
+}

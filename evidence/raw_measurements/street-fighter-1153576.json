@@ -1,0 +1,45 @@
+{
+  "index": 56,
+  "id": 56,
+  "title": "Street Fighter",
+  "slug": "street-fighter-1153576",
+  "source_type": "youtube",
+  "showtime_id": 563,
+  "cinema_id": 1,
+  "auditorium_id": 1,
+  "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=563&mode=3d&debug=1",
+  "click_timestamp": 1930.3999999910593,
+  "first_picture_timestamp": 3338.3999999910593,
+  "time_to_first_picture_ms": 1408,
+  "screenshot_1": {
+    "timestamp": 3719.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\street-fighter-1153576_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5561.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\street-fighter-1153576_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 7322.899999991059,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\street-fighter-1153576_ss3.png"
+  },
+  "frame_diff_pixel_sum": 71.64,
+  "movement_proved": true,
+  "player_api": {
+    "state": "buffering",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 71.639,
+  "movement_delta_12": 54.05,
+  "movement_delta_23": 39.353
+}

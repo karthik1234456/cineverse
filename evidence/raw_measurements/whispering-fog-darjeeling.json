@@ -1,0 +1,45 @@
+{
+  "index": 33,
+  "id": 33,
+  "title": "Whispering Fog of Darjeeling",
+  "slug": "whispering-fog-darjeeling",
+  "source_type": "hosted",
+  "showtime_id": 12031,
+  "cinema_id": 10,
+  "auditorium_id": 32,
+  "url": "http://localhost:3002/cinemas/10/auditorium/32?showtime=12031&mode=3d&debug=1",
+  "click_timestamp": 1749.800000011921,
+  "first_picture_timestamp": 1926.800000011921,
+  "time_to_first_picture_ms": 177,
+  "screenshot_1": {
+    "timestamp": 2537.9000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\whispering-fog-darjeeling_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4295.800000011921,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\whispering-fog-darjeeling_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6092.100000008941,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\whispering-fog-darjeeling_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.98,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 4.142673
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.977,
+  "movement_delta_12": 1.934,
+  "movement_delta_23": 0.048
+}

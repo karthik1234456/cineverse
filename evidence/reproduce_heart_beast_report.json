@@ -1,0 +1,45 @@
+{
+  "url": "http://localhost:3002/cinemas/5/auditorium/16?showtime=4368&mode=3d",
+  "storeState": {
+    "movieTitle": "Heart of the Beast",
+    "trailerUrl": "",
+    "activeStrategy": "title_card",
+    "playbackStatus": "ready",
+    "isTheatreMode": false,
+    "theatreModeOpen": false,
+    "auditoriumId": "16",
+    "auditoriumName": "Screen 3 — Standard Wide Stadium",
+    "screenType": "2D"
+  },
+  "theatreModeContent": {
+    "theatreModeOpen": true,
+    "hasPlayerElement": true,
+    "hasIframe": false,
+    "hasVideo": false,
+    "innerText": "Back to 3D Hall\nHeart of the Beast\nTHEATRE MODE\n\nHeart of the Beast\n\nPlaying preview on the cinema auditorium screen.",
+    "innerHTMLSnippet": "<div data-testid=\"theatre-mode-cinema-frame\" class=\"relative flex flex-col w-[85vw] max-w-7xl max-h-[92vh] rounded-2xl border-2 border-slate-700/80 bg-[#090b10] shadow-[0_0_80px_rgba(200,16,46,0.25)] overflow-hidden\"><header class=\"flex h-12 items-center justify-between border-b border-white/10 bg-["
+  },
+  "consoleLogs": [
+    {
+      "type": "info",
+      "text": "[SeatSocket] Connected to live showtime channel 4368"
+    }
+  ],
+  "networkEvents": [
+    {
+      "url": "http://localhost:3002/cinemas/5/auditorium/16?showtime=4368&mode=3d",
+      "status": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "http://localhost:3002/api/v1/showtimes/4368/seats",
+      "status": 200,
+      "statusText": "OK"
+    },
+    {
+      "url": "http://localhost:3002/api/v1/showtimes/4368/seats",
+      "status": 200,
+      "statusText": "OK"
+    }
+  ]
+}

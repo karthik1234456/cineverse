@@ -1,0 +1,45 @@
+{
+  "index": 21,
+  "id": 21,
+  "title": "Charminar Chords: Old City Symphony",
+  "slug": "charminar-chords",
+  "source_type": "hosted",
+  "showtime_id": 12019,
+  "cinema_id": 6,
+  "auditorium_id": 20,
+  "url": "http://localhost:3002/cinemas/6/auditorium/20?showtime=12019&mode=3d&debug=1",
+  "click_timestamp": 1849.2000000029802,
+  "first_picture_timestamp": 2103,
+  "time_to_first_picture_ms": 253.8,
+  "screenshot_1": {
+    "timestamp": 2665.3999999910593,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\charminar-chords_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4626.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\charminar-chords_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6598,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\charminar-chords_ss3.png"
+  },
+  "frame_diff_pixel_sum": 63.37,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 4.290162
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 63.369,
+  "movement_delta_12": 63.338,
+  "movement_delta_23": 0.302
+}

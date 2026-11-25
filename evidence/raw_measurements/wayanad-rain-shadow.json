@@ -1,0 +1,45 @@
+{
+  "index": 39,
+  "id": 39,
+  "title": "Wayanad Rain: Echo of the Western Ghats",
+  "slug": "wayanad-rain-shadow",
+  "source_type": "hosted",
+  "showtime_id": 12037,
+  "cinema_id": 12,
+  "auditorium_id": 38,
+  "url": "http://localhost:3002/cinemas/12/auditorium/38?showtime=12037&mode=3d&debug=1",
+  "click_timestamp": 1664.5,
+  "first_picture_timestamp": 2056.8999999910593,
+  "time_to_first_picture_ms": 392.4,
+  "screenshot_1": {
+    "timestamp": 2707.8999999910593,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\wayanad-rain-shadow_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4808.79999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\wayanad-rain-shadow_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6970.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\wayanad-rain-shadow_ss3.png"
+  },
+  "frame_diff_pixel_sum": 2.17,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.565182
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 2.17,
+  "movement_delta_12": 2.104,
+  "movement_delta_23": 0.1
+}

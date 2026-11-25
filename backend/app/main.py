@@ -84,7 +84,12 @@ async def lifespan(app: FastAPI):
     from app.services.trailer_freshness import start_trailer_freshness_scheduler
     freshness_task = asyncio.create_task(start_trailer_freshness_scheduler(interval_seconds=86400, run_on_startup=True))
 
+    # Launch background weekly sample audit scheduler (30 titles, 7d / 604800s)
+    from app.services.trailer_weekly_audit import start_weekly_trailer_audit_scheduler
+    weekly_audit_task = asyncio.create_task(start_weekly_trailer_audit_scheduler(interval_seconds=604800, run_on_startup=True))
+
     yield
+    weekly_audit_task.cancel()
     freshness_task.cancel()
     sweeper_task.cancel()
     await close_redis_client()

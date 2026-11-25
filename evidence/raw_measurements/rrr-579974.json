@@ -1,0 +1,45 @@
+{
+  "index": 103,
+  "id": 103,
+  "title": "RRR",
+  "slug": "rrr-579974",
+  "source_type": "youtube",
+  "showtime_id": 4200,
+  "cinema_id": 3,
+  "auditorium_id": 10,
+  "url": "http://localhost:3002/cinemas/3/auditorium/10?showtime=4200&mode=3d&debug=1",
+  "click_timestamp": 1769.0999999940395,
+  "first_picture_timestamp": 3356.8999999910593,
+  "time_to_first_picture_ms": 1587.8,
+  "screenshot_1": {
+    "timestamp": 4027.7999999970198,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\rrr-579974_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5909.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\rrr-579974_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 7848,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\rrr-579974_ss3.png"
+  },
+  "frame_diff_pixel_sum": 56.47,
+  "movement_proved": true,
+  "player_api": {
+    "state": "buffering",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 56.47,
+  "movement_delta_12": 46.09,
+  "movement_delta_23": 33.014
+}

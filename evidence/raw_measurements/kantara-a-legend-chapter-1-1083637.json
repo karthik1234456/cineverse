@@ -1,0 +1,45 @@
+{
+  "index": 101,
+  "id": 101,
+  "title": "Kantara - A Legend: Chapter 1",
+  "slug": "kantara-a-legend-chapter-1-1083637",
+  "source_type": "youtube",
+  "showtime_id": 4192,
+  "cinema_id": 3,
+  "auditorium_id": 10,
+  "url": "http://localhost:3002/cinemas/3/auditorium/10?showtime=4192&mode=3d&debug=1",
+  "click_timestamp": 1730.6000000089407,
+  "first_picture_timestamp": 3147.6000000089407,
+  "time_to_first_picture_ms": 1417,
+  "screenshot_1": {
+    "timestamp": 3950.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\kantara-a-legend-chapter-1-1083637_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5813.300000011921,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\kantara-a-legend-chapter-1-1083637_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 8089.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\kantara-a-legend-chapter-1-1083637_ss3.png"
+  },
+  "frame_diff_pixel_sum": 15.79,
+  "movement_proved": true,
+  "player_api": {
+    "state": "buffering",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 15.793,
+  "movement_delta_12": 13.857,
+  "movement_delta_23": 16.58
+}

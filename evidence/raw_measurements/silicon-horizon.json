@@ -1,0 +1,45 @@
+{
+  "index": 47,
+  "id": 47,
+  "title": "Silicon Horizon: AI Takeover",
+  "slug": "silicon-horizon",
+  "source_type": "hosted",
+  "showtime_id": 12045,
+  "cinema_id": 15,
+  "auditorium_id": 46,
+  "url": "http://localhost:3002/cinemas/15/auditorium/46?showtime=12045&mode=3d&debug=1",
+  "click_timestamp": 1892.5,
+  "first_picture_timestamp": 2318.699999988079,
+  "time_to_first_picture_ms": 426.2,
+  "screenshot_1": {
+    "timestamp": 3085.8999999910593,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\silicon-horizon_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5284.0999999940395,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\silicon-horizon_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 8037.399999991059,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\silicon-horizon_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.86,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 4.296459
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.862,
+  "movement_delta_12": 1.82,
+  "movement_delta_23": 0.147
+}

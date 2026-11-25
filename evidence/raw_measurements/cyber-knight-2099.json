@@ -1,0 +1,45 @@
+{
+  "index": 50,
+  "id": 50,
+  "title": "Cyber Knight 2099",
+  "slug": "cyber-knight-2099",
+  "source_type": "hosted",
+  "showtime_id": 12048,
+  "cinema_id": 16,
+  "auditorium_id": 49,
+  "url": "http://localhost:3002/cinemas/16/auditorium/49?showtime=12048&mode=3d&debug=1",
+  "click_timestamp": 1730.8999999910593,
+  "first_picture_timestamp": 1987.7999999970198,
+  "time_to_first_picture_ms": 256.9,
+  "screenshot_1": {
+    "timestamp": 2901,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\cyber-knight-2099_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5176.899999991059,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\cyber-knight-2099_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 7500.79999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\cyber-knight-2099_ss3.png"
+  },
+  "frame_diff_pixel_sum": 2.14,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 4.142652
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 2.143,
+  "movement_delta_12": 2.088,
+  "movement_delta_23": 0.147
+}

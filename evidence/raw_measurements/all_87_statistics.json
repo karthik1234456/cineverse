@@ -1,0 +1,29 @@
+{
+  "hosted": {
+    "count": 51,
+    "passed": 51,
+    "median_ms": 234.8,
+    "p95_ms": 551.5999999999999,
+    "min_ms": 75.2,
+    "max_ms": 965.3,
+    "mean_delta": 7.971764705882354
+  },
+  "youtube": {
+    "count": 29,
+    "passed": 29,
+    "median_ms": 1440.4,
+    "p95_ms": 1493.78,
+    "min_ms": 1401.5,
+    "max_ms": 1587.8,
+    "mean_delta": 39.345862068965516
+  },
+  "none": {
+    "count": 7,
+    "passed": 7,
+    "median_ms": null,
+    "p95_ms": null,
+    "min_ms": null,
+    "max_ms": null,
+    "mean_delta": 0.005714285714285714
+  }
+}

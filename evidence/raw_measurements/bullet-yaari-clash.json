@@ -1,0 +1,45 @@
+{
+  "index": 37,
+  "id": 37,
+  "title": "Bullet Yaari: Campus Swagger",
+  "slug": "bullet-yaari-clash",
+  "source_type": "hosted",
+  "showtime_id": 12035,
+  "cinema_id": 11,
+  "auditorium_id": 36,
+  "url": "http://localhost:3002/cinemas/11/auditorium/36?showtime=12035&mode=3d&debug=1",
+  "click_timestamp": 1728,
+  "first_picture_timestamp": 1959.5999999940395,
+  "time_to_first_picture_ms": 231.6,
+  "screenshot_1": {
+    "timestamp": 2484.8999999910593,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\bullet-yaari-clash_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4753,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\bullet-yaari-clash_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6979.29999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\bullet-yaari-clash_ss3.png"
+  },
+  "frame_diff_pixel_sum": 61.4,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 4.023881
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 61.396,
+  "movement_delta_12": 61.381,
+  "movement_delta_23": 0.142
+}

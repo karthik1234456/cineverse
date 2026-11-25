@@ -1,0 +1,45 @@
+{
+  "index": 26,
+  "id": 26,
+  "title": "Dosa & Filter Coffee: Triplicane Diaries",
+  "slug": "dosa-filter-coffee",
+  "source_type": "hosted",
+  "showtime_id": 12024,
+  "cinema_id": 8,
+  "auditorium_id": 25,
+  "url": "http://localhost:3002/cinemas/8/auditorium/25?showtime=12024&mode=3d&debug=1",
+  "click_timestamp": 1709.1000000089407,
+  "first_picture_timestamp": 1920.2999999970198,
+  "time_to_first_picture_ms": 211.2,
+  "screenshot_1": {
+    "timestamp": 2543.4000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\dosa-filter-coffee_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4495.9000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\dosa-filter-coffee_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6432.4000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\dosa-filter-coffee_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.62,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 4.302499
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.62,
+  "movement_delta_12": 1.42,
+  "movement_delta_23": 0.329
+}

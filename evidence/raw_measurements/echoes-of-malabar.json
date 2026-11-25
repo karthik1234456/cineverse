@@ -1,0 +1,45 @@
+{
+  "index": 28,
+  "id": 28,
+  "title": "Echoes of Malabar Coast",
+  "slug": "echoes-of-malabar",
+  "source_type": "hosted",
+  "showtime_id": 12026,
+  "cinema_id": 9,
+  "auditorium_id": 27,
+  "url": "http://localhost:3002/cinemas/9/auditorium/27?showtime=12026&mode=3d&debug=1",
+  "click_timestamp": 1809.2000000029802,
+  "first_picture_timestamp": 2007.2999999970198,
+  "time_to_first_picture_ms": 198.1,
+  "screenshot_1": {
+    "timestamp": 2461.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\echoes-of-malabar_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4170.70000000298,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\echoes-of-malabar_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 5909.20000000298,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\echoes-of-malabar_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.3,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.648855
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.295,
+  "movement_delta_12": 1.289,
+  "movement_delta_23": 0.011
+}

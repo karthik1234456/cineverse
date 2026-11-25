@@ -33,5 +33,9 @@
     "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
   ],
   "measured_live": true,
-  "result": "PASS (Measured Live)"
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.855,
+  "movement_delta_12": 1.855,
+  "movement_delta_23": 0.0,
+  "movement_proved": true
 }

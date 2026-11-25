@@ -20,6 +20,11 @@ from app.services.trailer_freshness import (
     get_freshness_alerts,
     get_freshness_history,
 )
+from app.services.trailer_weekly_audit import (
+    run_weekly_trailer_sample_audit,
+    get_weekly_audit_alerts,
+    get_weekly_audit_history,
+)
 
 router = APIRouter()
 
@@ -287,5 +292,34 @@ async def simulate_trailer_loss(
         "all_active_alerts": get_freshness_alerts(),
         "report": report
     }
+
+
+@router.get("/admin/trailers/weekly-audit/status")
+async def get_weekly_sample_audit_status():
+    """
+    Returns latest weekly trailer sample audit history, active alerts, and metrics (§ Task 5).
+    """
+    history = get_weekly_audit_history()
+    alerts = get_weekly_audit_alerts()
+    return {
+        "latest_run": history[-1] if history else None,
+        "total_runs": len(history),
+        "active_alerts": alerts,
+        "history": history[-10:],
+    }
+
+
+@router.post("/admin/trailers/weekly-audit/trigger")
+async def trigger_weekly_sample_audit(db: AsyncSession = Depends(get_db)):
+    """
+    Manually triggers a weekly sample audit run (30 random titles) and returns the report.
+    """
+    report = await run_weekly_trailer_sample_audit(db)
+    return {
+        "status": "completed",
+        "report": report,
+        "alerts": get_weekly_audit_alerts(),
+    }
+
 
 

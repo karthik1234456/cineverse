@@ -1,0 +1,45 @@
+{
+  "index": 69,
+  "id": 69,
+  "title": "Comrade Kalyan",
+  "slug": "comrade-kalyan-1428295",
+  "source_type": "youtube",
+  "showtime_id": 2804,
+  "cinema_id": 1,
+  "auditorium_id": 1,
+  "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=2804&mode=3d&debug=1",
+  "click_timestamp": 1871.7999999970198,
+  "first_picture_timestamp": 3323.8999999910593,
+  "time_to_first_picture_ms": 1452.1,
+  "screenshot_1": {
+    "timestamp": 3808.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\comrade-kalyan-1428295_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5647.5999999940395,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\comrade-kalyan-1428295_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 7509.399999991059,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\comrade-kalyan-1428295_ss3.png"
+  },
+  "frame_diff_pixel_sum": 25.71,
+  "movement_proved": true,
+  "player_api": {
+    "state": "buffering",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 25.711,
+  "movement_delta_12": 39.063,
+  "movement_delta_23": 30.424
+}

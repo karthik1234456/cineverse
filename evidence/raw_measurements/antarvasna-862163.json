@@ -1,0 +1,45 @@
+{
+  "index": 108,
+  "id": 108,
+  "title": "Antarvasna",
+  "slug": "antarvasna-862163",
+  "source_type": "none",
+  "showtime_id": 4284,
+  "cinema_id": 4,
+  "auditorium_id": 13,
+  "url": "http://localhost:3002/cinemas/4/auditorium/13?showtime=4284&mode=3d&debug=1",
+  "click_timestamp": 1608,
+  "first_picture_timestamp": null,
+  "time_to_first_picture_ms": null,
+  "screenshot_1": {
+    "timestamp": 2254.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\antarvasna-862163_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 3993.2000000029802,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\antarvasna-862163_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 5726.20000000298,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\antarvasna-862163_ss3.png"
+  },
+  "frame_diff_pixel_sum": 0.02,
+  "movement_proved": true,
+  "player_api": {
+    "state": "no player",
+    "isMuted": null,
+    "getVolume": "no player",
+    "currentTime": 0
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Honest Fallback)",
+  "movement_delta_13": 8.99,
+  "movement_delta_12": 8.987,
+  "movement_delta_23": 0.025
+}

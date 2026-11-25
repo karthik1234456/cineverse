@@ -1,0 +1,45 @@
+{
+  "index": 71,
+  "id": 71,
+  "title": "Godzilla Minus Zero",
+  "slug": "godzilla-minus-zero-1381071",
+  "source_type": "youtube",
+  "showtime_id": 3363,
+  "cinema_id": 1,
+  "auditorium_id": 1,
+  "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=3363&mode=3d&debug=1",
+  "click_timestamp": 1634.2999999970198,
+  "first_picture_timestamp": 3063.5,
+  "time_to_first_picture_ms": 1429.2,
+  "screenshot_1": {
+    "timestamp": 3489.4000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\godzilla-minus-zero-1381071_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5360.29999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\godzilla-minus-zero-1381071_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 7210.4000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\godzilla-minus-zero-1381071_ss3.png"
+  },
+  "frame_diff_pixel_sum": 47.02,
+  "movement_proved": true,
+  "player_api": {
+    "state": "buffering",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 47.022,
+  "movement_delta_12": 2.491,
+  "movement_delta_23": 44.664
+}

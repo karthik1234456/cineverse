@@ -1,0 +1,45 @@
+{
+  "index": 15,
+  "id": 15,
+  "title": "Pune Heritage: Streets of Deccan Gymkhana",
+  "slug": "pune-heritage-tales",
+  "source_type": "hosted",
+  "showtime_id": 12013,
+  "cinema_id": 5,
+  "auditorium_id": 14,
+  "url": "http://localhost:3002/cinemas/5/auditorium/14?showtime=12013&mode=3d&debug=1",
+  "click_timestamp": 1641.1000000089407,
+  "first_picture_timestamp": 1774.5,
+  "time_to_first_picture_ms": 133.4,
+  "screenshot_1": {
+    "timestamp": 2324.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\pune-heritage-tales_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 5113.20000000298,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\pune-heritage-tales_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 7874.9000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\pune-heritage-tales_ss3.png"
+  },
+  "frame_diff_pixel_sum": 2.29,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 4.74313
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 2.289,
+  "movement_delta_12": 1.773,
+  "movement_delta_23": 0.641
+}

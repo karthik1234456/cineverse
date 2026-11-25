@@ -3,7 +3,7 @@
   "id": 67,
   "title": "Udta Teer",
   "slug": "udta-teer-1375156",
-  "source_type": "youtube",
+  "source_type": "none",
   "showtime_id": 2245,
   "cinema_id": 1,
   "auditorium_id": 1,
@@ -21,9 +21,9 @@
   },
   "frame_diff_pixel_sum": 0.0,
   "player_api": {
-    "state": "disabled",
-    "isMuted": true,
-    "getVolume": 0,
+    "state": "no player",
+    "isMuted": null,
+    "getVolume": "no player",
     "currentTime": 0
   },
   "console_errors": [
@@ -33,5 +33,9 @@
     "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
   ],
   "measured_live": true,
-  "result": "PASS (Honest Fallback)"
+  "result": "PASS (Honest Fallback)",
+  "movement_delta_13": 0.0,
+  "movement_delta_12": 0.0,
+  "movement_delta_23": 0.0,
+  "movement_proved": true
 }

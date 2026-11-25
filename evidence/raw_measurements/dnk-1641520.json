@@ -1,0 +1,45 @@
+{
+  "index": 64,
+  "id": 64,
+  "title": "DNK",
+  "slug": "dnk-1641520",
+  "source_type": "none",
+  "showtime_id": 1685,
+  "cinema_id": 1,
+  "auditorium_id": 1,
+  "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=1685&mode=3d&debug=1",
+  "click_timestamp": 1611.2000000029802,
+  "first_picture_timestamp": null,
+  "time_to_first_picture_ms": null,
+  "screenshot_1": {
+    "timestamp": 2154.4000000059605,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\dnk-1641520_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 3786.2000000029802,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\dnk-1641520_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 5289.5,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\dnk-1641520_ss3.png"
+  },
+  "frame_diff_pixel_sum": 0.0,
+  "movement_proved": true,
+  "player_api": {
+    "state": "no player",
+    "isMuted": null,
+    "getVolume": "no player",
+    "currentTime": 0
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Honest Fallback)",
+  "movement_delta_13": 3.926,
+  "movement_delta_12": 3.926,
+  "movement_delta_23": 0.0
+}

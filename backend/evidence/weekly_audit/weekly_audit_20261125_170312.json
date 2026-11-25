@@ -1,0 +1,295 @@
+{
+  "timestamp": "2026-11-25T17:03:12.023843+00:00",
+  "sampled_count": 30,
+  "passed_count": 23,
+  "failed_count": 7,
+  "failure_rate_pct": 23.33,
+  "threshold_pct": 5.0,
+  "alert_triggered": true,
+  "failed_titles": [
+    {
+      "id": 55,
+      "title": "Clayface",
+      "source_type": "youtube",
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 69,
+      "title": "Comrade Kalyan",
+      "source_type": "youtube",
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 70,
+      "title": "Pehla Pyaar Doosri Baar",
+      "source_type": "youtube",
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 52,
+      "title": "Ramayana: Rise of a Legend",
+      "source_type": "youtube",
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 62,
+      "title": "The Social Reckoning",
+      "source_type": "youtube",
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 63,
+      "title": "I Play Rocky",
+      "source_type": "youtube",
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 68,
+      "title": "Tom and Jerry: Forbidden Compass",
+      "source_type": "youtube",
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    }
+  ],
+  "audit_items": [
+    {
+      "id": 21,
+      "title": "Charminar Chords: Old City Symphony",
+      "slug": "charminar-chords",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 55,
+      "title": "Clayface",
+      "slug": "clayface-1400940",
+      "source_type": "youtube",
+      "is_ok": false,
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 44,
+      "title": "Mirage in Thar: Operation Falcon",
+      "slug": "mirage-in-thar",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 36,
+      "title": "Jatt in London: Desi Chaos",
+      "slug": "jatt-in-london-laugh",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 20,
+      "title": "Deccan Underworld: King of Dhoolpet",
+      "slug": "deccan-underworld",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 28,
+      "title": "Echoes of Malabar Coast",
+      "slug": "echoes-of-malabar",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 69,
+      "title": "Comrade Kalyan",
+      "slug": "comrade-kalyan-1428295",
+      "source_type": "youtube",
+      "is_ok": false,
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 14,
+      "title": "Maharudra: The Fortress of Valor",
+      "slug": "maharudra-rising",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 6,
+      "title": "Little Hanuman & The Sun Chaser",
+      "slug": "little-hanuman",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 25,
+      "title": "Marina Breeze: A Chennai Love Story",
+      "slug": "chennai-monsoons",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 7,
+      "title": "Chronos Paradox: Echoes of Tomorrow",
+      "slug": "chronos-paradox",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 23,
+      "title": "Godavari Monsoon Diary",
+      "slug": "godavari-monsoon-diary",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 70,
+      "title": "Pehla Pyaar Doosri Baar",
+      "slug": "pehla-pyaar-doosri-baar-1772549",
+      "source_type": "youtube",
+      "is_ok": false,
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 60,
+      "title": "Scene",
+      "slug": "scene-1402181",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 39,
+      "title": "Wayanad Rain: Echo of the Western Ghats",
+      "slug": "wayanad-rain-shadow",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 17,
+      "title": "Midnight at Sinhagad",
+      "slug": "ghat-crematorium",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 52,
+      "title": "Ramayana: Rise of a Legend",
+      "slug": "ramayana-rise-of-a-legend-656908",
+      "source_type": "youtube",
+      "is_ok": false,
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 3,
+      "title": "Shadow Protocol: Bangalore Drift",
+      "slug": "shadow-protocol",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 47,
+      "title": "Silicon Horizon: AI Takeover",
+      "slug": "silicon-horizon",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 30,
+      "title": "Howrah Bridge Sunset: A College Street Romance",
+      "slug": "howrah-bridge-sunset",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 35,
+      "title": "Fields of Gold: A Malwa Harvest",
+      "slug": "fields-of-gold-malwa",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 8,
+      "title": "Zero Gravity Protocol",
+      "slug": "zero-gravity-protocol",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 62,
+      "title": "The Social Reckoning",
+      "slug": "the-social-reckoning-1281331",
+      "source_type": "youtube",
+      "is_ok": false,
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 63,
+      "title": "I Play Rocky",
+      "slug": "i-play-rocky-1286656",
+      "source_type": "youtube",
+      "is_ok": false,
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 68,
+      "title": "Tom and Jerry: Forbidden Compass",
+      "slug": "tom-and-jerry-forbidden-compass-1497970",
+      "source_type": "youtube",
+      "is_ok": false,
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 19,
+      "title": "Simhadri Roar: The Rayalaseema Legend",
+      "slug": "simhadri-roar",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 41,
+      "title": "Kochi Harbor Noir",
+      "slug": "kochi-harbor-noir",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 40,
+      "title": "Midnight Express to Kozhikode",
+      "slug": "midnight-train-kozhikode",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 24,
+      "title": "Madras Syndicate: North Chennai War",
+      "slug": "madras-syndicate",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 37,
+      "title": "Bullet Yaari: Campus Swagger",
+      "slug": "bullet-yaari-clash",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    }
+  ]
+}

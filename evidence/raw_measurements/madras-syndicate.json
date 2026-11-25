@@ -1,0 +1,45 @@
+{
+  "index": 24,
+  "id": 24,
+  "title": "Madras Syndicate: North Chennai War",
+  "slug": "madras-syndicate",
+  "source_type": "hosted",
+  "showtime_id": 12022,
+  "cinema_id": 7,
+  "auditorium_id": 23,
+  "url": "http://localhost:3002/cinemas/7/auditorium/23?showtime=12022&mode=3d&debug=1",
+  "click_timestamp": 1653.7000000029802,
+  "first_picture_timestamp": 1996.5,
+  "time_to_first_picture_ms": 342.8,
+  "screenshot_1": {
+    "timestamp": 2603.8999999910593,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\madras-syndicate_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4610.79999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\madras-syndicate_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6638.5999999940395,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\madras-syndicate_ss3.png"
+  },
+  "frame_diff_pixel_sum": 1.76,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.495738
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 1.761,
+  "movement_delta_12": 1.754,
+  "movement_delta_23": 0.039
+}

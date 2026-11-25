@@ -1,0 +1,283 @@
+{
+  "timestamp": "2026-11-25T17:03:11.367684+00:00",
+  "sampled_count": 30,
+  "passed_count": 25,
+  "failed_count": 5,
+  "failure_rate_pct": 16.67,
+  "threshold_pct": 5.0,
+  "alert_triggered": true,
+  "failed_titles": [
+    {
+      "id": 65,
+      "title": "Hanuman Ansh",
+      "source_type": "youtube",
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 71,
+      "title": "Godzilla Minus Zero",
+      "source_type": "youtube",
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 69,
+      "title": "Comrade Kalyan",
+      "source_type": "youtube",
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 57,
+      "title": "The Cat in the Hat",
+      "source_type": "youtube",
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 63,
+      "title": "I Play Rocky",
+      "source_type": "youtube",
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    }
+  ],
+  "audit_items": [
+    {
+      "id": 15,
+      "title": "Pune Heritage: Streets of Deccan Gymkhana",
+      "slug": "pune-heritage-tales",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 4,
+      "title": "Vajra: The Thunderborn",
+      "slug": "vajra-thunderborn",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 36,
+      "title": "Jatt in London: Desi Chaos",
+      "slug": "jatt-in-london-laugh",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 32,
+      "title": "The Magic Quill: Rabindra Fantasy",
+      "slug": "the-magic-quill",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 29,
+      "title": "Bengal Tiger: Mystery of Sunderbans",
+      "slug": "bengal-tiger-detective",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 18,
+      "title": "Fast Local: 08:42 from Dadar",
+      "slug": "mumbai-local-chronicles",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 14,
+      "title": "Maharudra: The Fortress of Valor",
+      "slug": "maharudra-rising",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 12,
+      "title": "The Forest Phantom: Whispers of Malnad",
+      "slug": "the-forest-phantom",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 38,
+      "title": "Sector 17: Chandigarh Nights",
+      "slug": "chandigarh-nights",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 28,
+      "title": "Echoes of Malabar Coast",
+      "slug": "echoes-of-malabar",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 3,
+      "title": "Shadow Protocol: Bangalore Drift",
+      "slug": "shadow-protocol",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 2,
+      "title": "Astra: Chronicles of the Celestial Throne",
+      "slug": "astra-celestial-throne",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 6,
+      "title": "Little Hanuman & The Sun Chaser",
+      "slug": "little-hanuman",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 65,
+      "title": "Hanuman Ansh",
+      "slug": "hanuman-ansh-1709391",
+      "source_type": "youtube",
+      "is_ok": false,
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 71,
+      "title": "Godzilla Minus Zero",
+      "slug": "godzilla-minus-zero-1381071",
+      "source_type": "youtube",
+      "is_ok": false,
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 33,
+      "title": "Whispering Fog of Darjeeling",
+      "slug": "whispering-fog-darjeeling",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 39,
+      "title": "Wayanad Rain: Echo of the Western Ghats",
+      "slug": "wayanad-rain-shadow",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 60,
+      "title": "Scene",
+      "slug": "scene-1402181",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 69,
+      "title": "Comrade Kalyan",
+      "slug": "comrade-kalyan-1428295",
+      "source_type": "youtube",
+      "is_ok": false,
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 13,
+      "title": "Kolar Gold Shadows",
+      "slug": "kolar-gold-shadows",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 46,
+      "title": "Banaras Sunset: A Spiritual Journey",
+      "slug": "banaras-ghat-serenade",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 42,
+      "title": "Gully Hustle: Beat of Mumbai",
+      "slug": "gully-hustle-dharavi",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 45,
+      "title": "Big Fat Chandni Chowk Wedding",
+      "slug": "delhi-6-weddings",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 35,
+      "title": "Fields of Gold: A Malwa Harvest",
+      "slug": "fields-of-gold-malwa",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 27,
+      "title": "Chola Secrets: The Buried Temple",
+      "slug": "chola-secrets",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 57,
+      "title": "The Cat in the Hat",
+      "slug": "the-cat-in-the-hat-1117898",
+      "source_type": "youtube",
+      "is_ok": false,
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 67,
+      "title": "Udta Teer",
+      "slug": "udta-teer-1375156",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 63,
+      "title": "I Play Rocky",
+      "slug": "i-play-rocky-1286656",
+      "source_type": "youtube",
+      "is_ok": false,
+      "reason": "YouTube check error: object tuple can't be used in 'await' expression"
+    },
+    {
+      "id": 66,
+      "title": "Disco",
+      "slug": "disco-1612811",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    },
+    {
+      "id": 1,
+      "title": "Quantum Odyssey: Beyond the Singularity",
+      "slug": "quantum-odyssey",
+      "source_type": "youtube",
+      "is_ok": true,
+      "reason": "Honest title card fallback"
+    }
+  ]
+}

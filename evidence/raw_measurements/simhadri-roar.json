@@ -1,0 +1,45 @@
+{
+  "index": 19,
+  "id": 19,
+  "title": "Simhadri Roar: The Rayalaseema Legend",
+  "slug": "simhadri-roar",
+  "source_type": "hosted",
+  "showtime_id": 12017,
+  "cinema_id": 6,
+  "auditorium_id": 18,
+  "url": "http://localhost:3002/cinemas/6/auditorium/18?showtime=12017&mode=3d&debug=1",
+  "click_timestamp": 1888.5,
+  "first_picture_timestamp": 2594.5,
+  "time_to_first_picture_ms": 706,
+  "screenshot_1": {
+    "timestamp": 3125.699999988079,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\simhadri-roar_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 4845.699999988079,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\simhadri-roar_ss2.png"
+  },
+  "screenshot_3": {
+    "timestamp": 6545,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\simhadri-roar_ss3.png"
+  },
+  "frame_diff_pixel_sum": 4.76,
+  "movement_proved": true,
+  "player_api": {
+    "state": "playing",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 3.995668
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)",
+  "movement_delta_13": 4.756,
+  "movement_delta_12": 4.727,
+  "movement_delta_23": 0.06
+}
