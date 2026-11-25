@@ -1,0 +1,37 @@
+{
+  "index": 10,
+  "id": 54,
+  "title": "Wildwood",
+  "slug": "wildwood-791523",
+  "source_type": "youtube",
+  "showtime_id": 4,
+  "cinema_id": 1,
+  "auditorium_id": 1,
+  "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=4&mode=3d&debug=1",
+  "click_timestamp": 2942.4000000059605,
+  "first_picture_timestamp": 4425.5,
+  "time_to_first_picture_ms": 1483.1,
+  "screenshot_1": {
+    "timestamp": 5377.29999999702,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\wildwood-791523_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 8228.59999999404,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\wildwood-791523_ss2.png"
+  },
+  "frame_diff_pixel_sum": 0.46,
+  "player_api": {
+    "state": "active",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)"
+}

@@ -146,6 +146,22 @@ export function TheatreModePlayer() {
     return () => window.removeEventListener('message', handleMessage);
   }, [theatreModeOpen]);
 
+  // Expose live player metrics for test harness inspection
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__theatre_mode_metrics = {
+        open: theatreModeOpen,
+        isPlaying,
+        isMuted,
+        volume,
+        playerFailed,
+        hasStartedPlaying,
+        youtubeId,
+        timestamp: performance.now(),
+      };
+    }
+  }, [theatreModeOpen, isPlaying, isMuted, volume, playerFailed, hasStartedPlaying, youtubeId]);
+
   // Keyboard navigation inside Theatre Mode
   useEffect(() => {
     if (!theatreModeOpen) return;

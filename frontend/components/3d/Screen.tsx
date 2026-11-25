@@ -1076,6 +1076,8 @@ export function CinemaScreen({
             src: videoRef.current.src,
             readyState: videoRef.current.readyState,
             paused: videoRef.current.paused,
+            muted: videoRef.current.muted,
+            volume: videoRef.current.volume,
             currentTime: videoRef.current.currentTime,
             duration: videoRef.current.duration || 0,
             videoWidth: videoRef.current.videoWidth,

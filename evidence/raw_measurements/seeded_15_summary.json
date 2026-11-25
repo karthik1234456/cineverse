@@ -1,0 +1,557 @@
+[
+  {
+    "index": 3,
+    "id": 2,
+    "title": "Astra: Chronicles of the Celestial Throne",
+    "slug": "astra-celestial-throne",
+    "source_type": "hosted",
+    "showtime_id": 12000,
+    "cinema_id": 1,
+    "auditorium_id": 1,
+    "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=12000&mode=3d&debug=1",
+    "click_timestamp": 2872.300000011921,
+    "first_picture_timestamp": 3104.300000011921,
+    "time_to_first_picture_ms": 232,
+    "screenshot_1": {
+      "timestamp": 3637.7000000029802,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\astra-celestial-throne_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 6220.20000000298,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\astra-celestial-throne_ss2.png"
+    },
+    "frame_diff_pixel_sum": 1.84,
+    "player_api": {
+      "state": "playing",
+      "isMuted": false,
+      "getVolume": 100,
+      "currentTime": 3.119815
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Measured Live)"
+  },
+  {
+    "index": 12,
+    "id": 111,
+    "title": "Bonolota Express",
+    "slug": "bonolota-express-1542995",
+    "source_type": "youtube",
+    "showtime_id": 4360,
+    "cinema_id": 5,
+    "auditorium_id": 16,
+    "url": "http://localhost:3002/cinemas/5/auditorium/16?showtime=4360&mode=3d&debug=1",
+    "click_timestamp": 2865.5,
+    "first_picture_timestamp": 4356.79999999702,
+    "time_to_first_picture_ms": 1491.3,
+    "screenshot_1": {
+      "timestamp": 4881,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\bonolota-express-1542995_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 7556.4000000059605,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\bonolota-express-1542995_ss2.png"
+    },
+    "frame_diff_pixel_sum": 17.62,
+    "player_api": {
+      "state": "active",
+      "isMuted": false,
+      "getVolume": 100,
+      "currentTime": 2
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Measured Live)"
+  },
+  {
+    "index": 8,
+    "id": 55,
+    "title": "Clayface",
+    "slug": "clayface-1400940",
+    "source_type": "youtube",
+    "showtime_id": 5,
+    "cinema_id": 1,
+    "auditorium_id": 1,
+    "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=5&mode=3d&debug=1",
+    "click_timestamp": 2908.2000000029802,
+    "first_picture_timestamp": 4357.5999999940395,
+    "time_to_first_picture_ms": 1449.4,
+    "screenshot_1": {
+      "timestamp": 5055.5,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\clayface-1400940_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 7720.79999999702,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\clayface-1400940_ss2.png"
+    },
+    "frame_diff_pixel_sum": 68.91,
+    "player_api": {
+      "state": "active",
+      "isMuted": false,
+      "getVolume": 100,
+      "currentTime": 2
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Measured Live)"
+  },
+  {
+    "index": 15,
+    "id": 110,
+    "title": "Gangor",
+    "slug": "gangor-278986",
+    "source_type": "youtube",
+    "showtime_id": 4340,
+    "cinema_id": 5,
+    "auditorium_id": 15,
+    "url": "http://localhost:3002/cinemas/5/auditorium/15?showtime=4340&mode=3d&debug=1",
+    "click_timestamp": 2796.9000000059605,
+    "first_picture_timestamp": null,
+    "time_to_first_picture_ms": null,
+    "screenshot_1": {
+      "timestamp": 3358.5,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\gangor-278986_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 6034.79999999702,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\gangor-278986_ss2.png"
+    },
+    "frame_diff_pixel_sum": 0.02,
+    "player_api": {
+      "state": "disabled",
+      "isMuted": true,
+      "getVolume": 0,
+      "currentTime": 0
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Honest Fallback)"
+  },
+  {
+    "index": 11,
+    "id": 104,
+    "title": "I'm Game",
+    "slug": "im-game-1250502",
+    "source_type": "youtube",
+    "showtime_id": 4252,
+    "cinema_id": 4,
+    "auditorium_id": 12,
+    "url": "http://localhost:3002/cinemas/4/auditorium/12?showtime=4252&mode=3d&debug=1",
+    "click_timestamp": 2986.2000000029802,
+    "first_picture_timestamp": 4480.0999999940395,
+    "time_to_first_picture_ms": 1493.9,
+    "screenshot_1": {
+      "timestamp": 5193.20000000298,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\im-game-1250502_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 7909,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\im-game-1250502_ss2.png"
+    },
+    "frame_diff_pixel_sum": 59.89,
+    "player_api": {
+      "state": "active",
+      "isMuted": false,
+      "getVolume": 100,
+      "currentTime": 2
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Measured Live)"
+  },
+  {
+    "index": 7,
+    "id": 59,
+    "title": "Jailer 2",
+    "slug": "jailer-2-1234139",
+    "source_type": "youtube",
+    "showtime_id": 1123,
+    "cinema_id": 1,
+    "auditorium_id": 1,
+    "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=1123&mode=3d&debug=1",
+    "click_timestamp": 2709.7000000029802,
+    "first_picture_timestamp": 4177.9000000059605,
+    "time_to_first_picture_ms": 1468.2,
+    "screenshot_1": {
+      "timestamp": 5218.100000008941,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\jailer-2-1234139_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 7754.5,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\jailer-2-1234139_ss2.png"
+    },
+    "frame_diff_pixel_sum": 9.38,
+    "player_api": {
+      "state": "active",
+      "isMuted": false,
+      "getVolume": 100,
+      "currentTime": 2
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Measured Live)"
+  },
+  {
+    "index": 1,
+    "id": 41,
+    "title": "Kochi Harbor Noir",
+    "slug": "kochi-harbor-noir",
+    "source_type": "hosted",
+    "showtime_id": 12039,
+    "cinema_id": 13,
+    "auditorium_id": 40,
+    "url": "http://localhost:3002/cinemas/13/auditorium/40?showtime=12039&mode=3d&debug=1",
+    "click_timestamp": 3021,
+    "first_picture_timestamp": 3608.7999999970198,
+    "time_to_first_picture_ms": 587.8,
+    "screenshot_1": {
+      "timestamp": 4109.70000000298,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\kochi-harbor-noir_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 6560.0999999940395,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\kochi-harbor-noir_ss2.png"
+    },
+    "frame_diff_pixel_sum": 0.47,
+    "player_api": {
+      "state": "playing",
+      "isMuted": false,
+      "getVolume": 100,
+      "currentTime": 3.173582
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Measured Live)"
+  },
+  {
+    "index": 14,
+    "id": 58,
+    "title": "Mookuthi Amman 2",
+    "slug": "mookuthi-amman-2-1327835",
+    "source_type": "youtube",
+    "showtime_id": 565,
+    "cinema_id": 1,
+    "auditorium_id": 1,
+    "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=565&mode=3d&debug=1",
+    "click_timestamp": 2827.199999988079,
+    "first_picture_timestamp": null,
+    "time_to_first_picture_ms": null,
+    "screenshot_1": {
+      "timestamp": 3367.2999999970198,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\mookuthi-amman-2-1327835_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 5827.5,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\mookuthi-amman-2-1327835_ss2.png"
+    },
+    "frame_diff_pixel_sum": 0.0,
+    "player_api": {
+      "state": "disabled",
+      "isMuted": true,
+      "getVolume": 0,
+      "currentTime": 0
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Honest Fallback)"
+  },
+  {
+    "index": 5,
+    "id": 18,
+    "title": "Fast Local: 08:42 from Dadar",
+    "slug": "mumbai-local-chronicles",
+    "source_type": "hosted",
+    "showtime_id": 12016,
+    "cinema_id": 6,
+    "auditorium_id": 17,
+    "url": "http://localhost:3002/cinemas/6/auditorium/17?showtime=12016&mode=3d&debug=1",
+    "click_timestamp": 2791.9000000059605,
+    "first_picture_timestamp": 3053.9000000059605,
+    "time_to_first_picture_ms": 262,
+    "screenshot_1": {
+      "timestamp": 3947.4000000059605,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\mumbai-local-chronicles_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 6916.5,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\mumbai-local-chronicles_ss2.png"
+    },
+    "frame_diff_pixel_sum": 1.75,
+    "player_api": {
+      "state": "playing",
+      "isMuted": false,
+      "getVolume": 100,
+      "currentTime": 3.839482
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Measured Live)"
+  },
+  {
+    "index": 4,
+    "id": 48,
+    "title": "Solaris Reborn: Deep Space Echoes",
+    "slug": "solaris-reborn",
+    "source_type": "hosted",
+    "showtime_id": 12046,
+    "cinema_id": 15,
+    "auditorium_id": 47,
+    "url": "http://localhost:3002/cinemas/15/auditorium/47?showtime=12046&mode=3d&debug=1",
+    "click_timestamp": 2772.5,
+    "first_picture_timestamp": 2975.2000000029802,
+    "time_to_first_picture_ms": 202.7,
+    "screenshot_1": {
+      "timestamp": 3566.4000000059605,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\solaris-reborn_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 6285,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\solaris-reborn_ss2.png"
+    },
+    "frame_diff_pixel_sum": 2.19,
+    "player_api": {
+      "state": "playing",
+      "isMuted": false,
+      "getVolume": 100,
+      "currentTime": 3.310028
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Measured Live)"
+  },
+  {
+    "index": 6,
+    "id": 16,
+    "title": "The Last Testimony of Fort Court",
+    "slug": "the-last-testimony",
+    "source_type": "hosted",
+    "showtime_id": 12014,
+    "cinema_id": 5,
+    "auditorium_id": 15,
+    "url": "http://localhost:3002/cinemas/5/auditorium/15?showtime=12014&mode=3d&debug=1",
+    "click_timestamp": 2717,
+    "first_picture_timestamp": 3045.7999999970198,
+    "time_to_first_picture_ms": 328.8,
+    "screenshot_1": {
+      "timestamp": 3647.7999999970198,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\the-last-testimony_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 6343.399999991059,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\the-last-testimony_ss2.png"
+    },
+    "frame_diff_pixel_sum": 1.85,
+    "player_api": {
+      "state": "playing",
+      "isMuted": false,
+      "getVolume": 100,
+      "currentTime": 3.29923
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Measured Live)"
+  },
+  {
+    "index": 9,
+    "id": 106,
+    "title": "The Third Murder",
+    "slug": "the-third-murder-922673",
+    "source_type": "youtube",
+    "showtime_id": 4276,
+    "cinema_id": 4,
+    "auditorium_id": 13,
+    "url": "http://localhost:3002/cinemas/4/auditorium/13?showtime=4276&mode=3d&debug=1",
+    "click_timestamp": 2869,
+    "first_picture_timestamp": 4306.79999999702,
+    "time_to_first_picture_ms": 1437.8,
+    "screenshot_1": {
+      "timestamp": 5718,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\the-third-murder-922673_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 8410.699999988079,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\the-third-murder-922673_ss2.png"
+    },
+    "frame_diff_pixel_sum": 7.26,
+    "player_api": {
+      "state": "active",
+      "isMuted": false,
+      "getVolume": 100,
+      "currentTime": 2
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Measured Live)"
+  },
+  {
+    "index": 13,
+    "id": 67,
+    "title": "Udta Teer",
+    "slug": "udta-teer-1375156",
+    "source_type": "youtube",
+    "showtime_id": 2245,
+    "cinema_id": 1,
+    "auditorium_id": 1,
+    "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=2245&mode=3d&debug=1",
+    "click_timestamp": 2987.8999999910593,
+    "first_picture_timestamp": null,
+    "time_to_first_picture_ms": null,
+    "screenshot_1": {
+      "timestamp": 3464.699999988079,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\udta-teer-1375156_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 6010.199999988079,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\udta-teer-1375156_ss2.png"
+    },
+    "frame_diff_pixel_sum": 0.0,
+    "player_api": {
+      "state": "disabled",
+      "isMuted": true,
+      "getVolume": 0,
+      "currentTime": 0
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Honest Fallback)"
+  },
+  {
+    "index": 10,
+    "id": 54,
+    "title": "Wildwood",
+    "slug": "wildwood-791523",
+    "source_type": "youtube",
+    "showtime_id": 4,
+    "cinema_id": 1,
+    "auditorium_id": 1,
+    "url": "http://localhost:3002/cinemas/1/auditorium/1?showtime=4&mode=3d&debug=1",
+    "click_timestamp": 2942.4000000059605,
+    "first_picture_timestamp": 4425.5,
+    "time_to_first_picture_ms": 1483.1,
+    "screenshot_1": {
+      "timestamp": 5377.29999999702,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\wildwood-791523_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 8228.59999999404,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\wildwood-791523_ss2.png"
+    },
+    "frame_diff_pixel_sum": 0.46,
+    "player_api": {
+      "state": "active",
+      "isMuted": false,
+      "getVolume": 100,
+      "currentTime": 2
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Measured Live)"
+  },
+  {
+    "index": 2,
+    "id": 8,
+    "title": "Zero Gravity Protocol",
+    "slug": "zero-gravity-protocol",
+    "source_type": "hosted",
+    "showtime_id": 12006,
+    "cinema_id": 2,
+    "auditorium_id": 7,
+    "url": "http://localhost:3002/cinemas/2/auditorium/7?showtime=12006&mode=3d&debug=1",
+    "click_timestamp": 2810.7000000029802,
+    "first_picture_timestamp": 3143.9000000059605,
+    "time_to_first_picture_ms": 333.2,
+    "screenshot_1": {
+      "timestamp": 3911.4000000059605,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\zero-gravity-protocol_ss1.png"
+    },
+    "screenshot_2": {
+      "timestamp": 6803.20000000298,
+      "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\zero-gravity-protocol_ss2.png"
+    },
+    "frame_diff_pixel_sum": 1.35,
+    "player_api": {
+      "state": "playing",
+      "isMuted": false,
+      "getVolume": 100,
+      "currentTime": 3.673405
+    },
+    "console_errors": [
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+      "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+    ],
+    "measured_live": true,
+    "result": "PASS (Measured Live)"
+  }
+]

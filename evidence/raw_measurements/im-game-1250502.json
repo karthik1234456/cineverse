@@ -1,0 +1,37 @@
+{
+  "index": 11,
+  "id": 104,
+  "title": "I'm Game",
+  "slug": "im-game-1250502",
+  "source_type": "youtube",
+  "showtime_id": 4252,
+  "cinema_id": 4,
+  "auditorium_id": 12,
+  "url": "http://localhost:3002/cinemas/4/auditorium/12?showtime=4252&mode=3d&debug=1",
+  "click_timestamp": 2986.2000000029802,
+  "first_picture_timestamp": 4480.0999999940395,
+  "time_to_first_picture_ms": 1493.9,
+  "screenshot_1": {
+    "timestamp": 5193.20000000298,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\im-game-1250502_ss1.png"
+  },
+  "screenshot_2": {
+    "timestamp": 7909,
+    "file_path": "D:\\projects\\CineVerse\\evidence\\raw_measurements\\screenshots\\im-game-1250502_ss2.png"
+  },
+  "frame_diff_pixel_sum": 59.89,
+  "player_api": {
+    "state": "active",
+    "isMuted": false,
+    "getVolume": 100,
+    "currentTime": 2
+  },
+  "console_errors": [
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #425; visit https://react.dev/errors/425 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #418; visit https://react.dev/errors/418 for the full message or use the non-minified dev environment for full errors and additional helpful warnings.",
+    "Minified React error #423; visit https://react.dev/errors/423 for the full message or use the non-minified dev environment for full errors and additional helpful warnings."
+  ],
+  "measured_live": true,
+  "result": "PASS (Measured Live)"
+}
